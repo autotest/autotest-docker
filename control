@@ -1,0 +1,71 @@
+AUTHOR = "Chris Evich <cevich@redhat.com>"
+DOC = "Runs various tests for Docker"
+NAME = "Docker"
+TIME = "SHORT"
+TEST_TYPE = "CLIENT"
+# timeout in seconds
+TIMEOUT = 60 * 60
+
+##############################################################################
+import sys, imp, os, os.path, logging
+from autotest.client import test
+
+def find_subtests(control_path):
+    """
+    Descent search into subtests for all modules matching their directory name.
+    """
+    subtests = []
+    logging.info("Searching for docker subtests")
+    subtest_basename = os.path.join(os.path.basename(control_path), 'subtests')
+    subtest_path = os.path.join(control_path, 'subtests')
+    # All subtest packages located beneath dir holding this control file
+    for dirpath, dirnames, filenames in os.walk(subtest_path):
+        del dirnames  #  Not used
+        # Skip top-level
+        if dirpath == subtest_path:
+            continue
+        # Subtest module must have same name as basename
+        basename = os.path.basename(dirpath)
+        # test.test class must be in module named same as directory
+        modname = basename + '.py'
+        if modname in filenames:
+            # 3rd item is dir relative to job.testdir
+            url = dirpath.partition(job.testdir)[2]
+            # job.testdir doesn't include trailing '/'
+            url = url.lstrip('/')
+            logging.info("Found docker subtest module %s", url)
+            subtests.append(url)
+    return subtests
+
+def step_init():
+    """
+    Entry-point & stepengine enable signal to load/run all or --args subtests.
+    """
+    # Several calls need directory containing this control file
+    control_path = os.path.dirname(job.control)
+    # job --args string is CSV of custom subtest list
+    if len(job.args) > 0:
+        names = job.args[0].split(',')
+        subtest_basename = os.path.join(os.path.basename(control_path),
+                                                         'subtests')
+        subtests = [os.path.join(subtest_basename, name) for name in names]
+    else:  # no --args specified, run all subtests found
+        subtests = find_subtests(control_path)
+    # no need to calculate this every loop
+    total = len(subtests)
+    # Every step must be pickleable: use wrapper function + arguments
+    for index, url in enumerate(subtests):
+        tag = "test_%s-of-%s" % (index + 1, total)
+        job.next_step(run_test, control_path, url, tag, TIMEOUT)
+
+def run_test(control_path, url, tag, timeout):
+    """
+    Wrapper function around job.run_test() and setup for subtest namespace.
+    """
+    # Don't share lib package context across tests
+    dockertest = imp.load_module('dockertest',
+                                 *imp.find_module('dockertest', [control_path]))
+    sys.modules['dockertest'] = dockertest
+    job.run_test(url=url, tag=tag, timeout=TIMEOUT)
+    # Make sure this gets unloaded each time.
+    del sys.modules['dockertest']
