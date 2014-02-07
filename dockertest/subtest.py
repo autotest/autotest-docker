@@ -1,8 +1,14 @@
 """
-Generic test.test derivative
+Adapt/extend autotest.client.test.test for Docker test sub-framework
+
+This module provides two helper classes intended to make writing
+subtests easier.  They hide some of the autotest ``test.test``
+complexity, while providing some helper methods for logging
+output to the controling terminal (only) and automatically
+loading the specified configuration section (see `configuration module`_)
 """
 
-import logging
+import logging, tempfile, os.path
 from autotest.client.shared import error, base_job
 from autotest.client import job, test
 import version, config
@@ -122,7 +128,7 @@ class Subtest(test.test):
         Log a DEBUG level message to the controlling terminal **only**
 
         :param message: Same as logging.debug()
-        :*args: Same as logging.debug()
+        :\*args: Same as logging.debug()
         """
         return self._log('debug', message, *args)
 
@@ -131,7 +137,7 @@ class Subtest(test.test):
         Log a INFO level message to the controlling terminal **only**
 
         :param message: Same as logging.info()
-        :*args: Same as logging.info()
+        :\*args: Same as logging.info()
         """
         return self._log('info', message, *args)
 
@@ -140,7 +146,7 @@ class Subtest(test.test):
         Log a WARNING level message to the controlling terminal **only**
 
         :param message: Same as logging.warning()
-        :*args: Same as logging.warning()
+        :\*args: Same as logging.warning()
         """
         return self._log('warning', message, *args)
 
@@ -149,6 +155,97 @@ class Subtest(test.test):
         Log a ERROR level message to the controlling terminal **only**
 
         :param message: Same as logging.error()
-        :*args: Same as logging.error()
+        :\*args: Same as logging.error()
         """
         return self._log('error', message, *args)
+
+
+# Does not follow same subtest interface
+class SubSubtest(object):
+    """
+    Simplistic/minimal subtest interface matched with config section
+    """
+    #: Reference to outer, parent test.  Read-only / set in __init__
+    test = None
+    #: subsubsub test config instance, read-write, setup in __init__ but
+    #: persists across iterations.  Handy for storing temporary results.
+    config = None
+    #: Path to a temporary directory which will automatically be
+    #: removed during cleanup()
+    tmpdir = None  # automatically determined in initialize()
+
+    def __init__(self, parent_test):
+        """
+        Initialize sub-subtest
+
+        :param parent_test: The Subtest instance calling this instance
+        """
+        self.test = parent_test
+        config_section = ('docker_cli/dockerimport/%s'
+                          % self.__class__.__name__)
+        self.config = config.Config()[config_section]
+
+    def initialize(self):
+        """
+        Called every time the test is run.
+        """
+        self.test.loginfo("%s initialize()", self.__class__.__name__)
+        self.tmpdir = tempfile.mkdtemp(prefix=self.__class__.__name__,
+                                       suffix='tmp',
+                                       dir=self.test.tmpdir)
+
+    def run_once(self):
+        """
+        Called once only to exercize subject of sub-subtest
+        """
+        self.test.loginfo("%s run_once()", self.__class__.__name__)
+
+    def postprocess(self):
+        """
+        Called to process results of subject
+        """
+        self.test.loginfo("%s postprocess()", self.__class__.__name__)
+
+    def cleanup(self):
+        """
+        Always called, even dispite any exceptions thrown.
+        """
+        self.test.loginfo("%s cleanup()", self.__class__.__name__)
+        # tmpdir is cleaned up automatically by harness
+
+    def make_repo_name(self):
+        """
+        Convenience function to generate a unique test-repo name
+        """
+        prefix = self.test.config['repo_name_prefix']
+        name = os.path.basename(self.tmpdir)
+        postfix = self.test.config['repo_name_postfix']
+        return "%s%s%s" % (prefix, name, postfix)
+
+    def logdebug(self, message, *args):
+        """
+        Same as Subtest.logdebug
+        """
+        message = '%s: %s' % (self.__class__.__name__,  message)
+        return self.test.logdebug(message, *args)
+
+    def loginfo(self, message, *args):
+        """
+        Same as Subtest.loginfo
+        """
+        message = '%s: %s' % (self.__class__.__name__,  message)
+        return self.test.loginfo(message, *args)
+
+    def logwarning(self, message, *args):
+        """
+        Same as Subtest.logwarning
+        """
+        message = '%s: %s' % (self.__class__.__name__,  message)
+        return self.test.logwarning(message, *args)
+
+    def logerror(self, message, *args):
+        """
+        Same as Subtest.logerror
+        """
+        message = '%s: %s' % (self.__class__.__name__,  message)
+        return self.test.logerror(message, *args)
