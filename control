@@ -7,8 +7,7 @@ TEST_TYPE = "CLIENT"
 TIMEOUT = 60 * 60
 
 ##############################################################################
-import sys, imp, os, os.path, logging
-from autotest.client import test
+import sys, imp, os, os.path, logging, time
 
 def find_subtests(control_path):
     """
@@ -16,7 +15,6 @@ def find_subtests(control_path):
     """
     subtests = []
     logging.info("Searching for docker subtests")
-    subtest_basename = os.path.join(os.path.basename(control_path), 'subtests')
     subtest_path = os.path.join(control_path, 'subtests')
     # All subtest packages located beneath dir holding this control file
     for dirpath, dirnames, filenames in os.walk(subtest_path):
@@ -58,6 +56,16 @@ def step_init():
         tag = "test_%s-of-%s" % (index + 1, total)
         job.next_step(run_test, control_path, url, tag, TIMEOUT)
 
+def get_doc_version(control_path):
+    """
+    Parse version string from conf.py module w/o importing it.
+    """
+    version = None
+    for line in open(os.path.join(control_path, 'conf.py'), 'rb'):
+        if line.startswith('version ='):
+            version = line.split("'")[1]
+    return version
+
 def run_test(control_path, url, tag, timeout):
     """
     Wrapper function around job.run_test() and setup for subtest namespace.
@@ -65,7 +73,26 @@ def run_test(control_path, url, tag, timeout):
     # Don't share lib package context across tests
     dockertest = imp.load_module('dockertest',
                                  *imp.find_module('dockertest', [control_path]))
+    # Hold reference to module so subtests may use it
     sys.modules['dockertest'] = dockertest
-    job.run_test(url=url, tag=tag, timeout=TIMEOUT)
+    # Modules in packages not automatically loaded
+    version = imp.load_module('dockertest.version',
+                              *imp.find_module('version',
+                              dockertest.__path__))
+    doc_version = get_doc_version(control_path)
+    api_version = version.STRING
+    if version.compare(api_version, doc_version) != 0:
+        logging.error("")
+        logging.error("Test API version %s does not match "
+                      "Documentation version %s.  Update "
+                      "documentation content, then adjust it's "
+                      "version string in '%s' and commit",
+                      api_version, doc_version,
+                      os.path.relpath(version.__file__))
+        logging.error("")
+        # make sure it gets read
+        time.sleep(10)
+    # Run the subtest module through autotest job interface
+    job.run_test(url=url, tag=tag, timeout=timeout)
     # Make sure this gets unloaded each time.
     del sys.modules['dockertest']
