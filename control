@@ -61,6 +61,7 @@ def get_doc_version(control_path):
     Parse version string from conf.py module w/o importing it.
     """
     version = None
+    # Prevent documentation-generation mocks from clashing with testing
     for line in open(os.path.join(control_path, 'conf.py'), 'rb'):
         if line.startswith('version ='):
             version = line.split("'")[1]
@@ -81,16 +82,17 @@ def run_test(control_path, url, tag, timeout):
                               dockertest.__path__))
     doc_version = get_doc_version(control_path)
     api_version = version.STRING
+    # This must happen here since it is only place
+    # dockertest.version is also visible
     if version.compare(api_version, doc_version) != 0:
         logging.error("")
         logging.error("Test API version %s does not match "
                       "Documentation version %s.  Update "
                       "documentation content, then adjust it's "
                       "version string in '%s' and commit",
-                      api_version, doc_version,
-                      os.path.relpath(version.__file__))
+                      api_version, doc_version, 'conf.py')
         logging.error("")
-        # make sure it gets read
+        # make sure it error gets read
         time.sleep(10)
     # Run the subtest module through autotest job interface
     job.run_test(url=url, tag=tag, timeout=timeout)

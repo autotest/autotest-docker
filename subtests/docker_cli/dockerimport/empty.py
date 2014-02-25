@@ -2,10 +2,11 @@
 Sub-subtest module used by dockerimport test
 """
 
-import os
+import os, logging
 from autotest.client import utils
 from dockertest import output
 from dockertest.subtest import SubSubtest
+from dockertest.dockercmd import DockerCmd
 
 try:
     import docker
@@ -46,18 +47,17 @@ class empty(SubSubtest):
         else:
             repo = self.config.get('repo')
             if repo is not None:
-                docker_command = self.test.config['docker_path']
-                docker_options = self.test.config['docker_options']
-                command = ("%s %s rmi %s" % (docker_command, docker_options,
-                                             self.config['repo']))
-                utils.run(command)
+                DockerCmd(self.test, 'rmi', self.config['result_id'])
             else:
                 pass # Goal was repo removal
 
     def run_tar(self, tar_command, dkr_command):
         command = "%s | %s" % (tar_command, dkr_command)
         # Free, instance-specific namespace
-        self.config['cmdresult'] = utils.run(command, ignore_status=True)
+        cmdresult = utils.run(command, ignore_status=True)
+        self.config['cmdresult'] = cmdresult
+        self.loginfo("Command result: %s", cmdresult)
+        self.config['result_id'] = cmdresult.stdout.strip()
 
     def check_output(self):
         for out in (self.config['cmdresult'].stdout,
@@ -71,6 +71,7 @@ class empty(SubSubtest):
 
     def try_check_images(self):
         # Simple presence check via docker API if available
+        api_id = None
         if DOCKERAPI:
             client = docker.Client()
             results = client.images(name=self.config['repo'])
@@ -81,5 +82,23 @@ class empty(SubSubtest):
             self.test.failif(not condition, "Imported repo. name mismatch")
             condition = str(repo['Tag']) == self.config['tag']
             self.test.failif(not condition, "Imported repo. tag mismatch")
-            # Used in removal if DOCKERAPI
-            self.config['api_id'] = str(repo['Id'])
+            api_id = repo.get('Id')
+            if api_id is None:
+                logging.error("Could not retrieve repo %s's Id using "
+                              "docker python API.  Data returned: '%s'",
+                              self.config['repo'], str(repo))
+            else:
+                self.loginfo("Found Id %s with docker python API", api_id)
+        if api_id is None:
+            # fail -> raise exception
+            cmdresult = DockerCmd(self.test, 'images', '--quiet',
+                                  self.config['repo'])
+            api_id = cmdresult.stdout.strip()
+            self.loginfo("Found Id %s with docker command", api_id)
+        # Mimic behavior of throwing away all but first 12 characters of Id
+        result_id = self.config['result_id']
+        result_id = result_id[0:12]
+        self.config['api_id'] = api_id  #  used in cleanup()
+        condition = str(result_id) == str(api_id)
+        self.test.failif(not condition, "Repository Id's do not match (%s,%s)"
+                         % (result_id, api_id))

@@ -7,11 +7,11 @@ Test output of docker version command
 4. Run with empty option
 """
 
-from autotest.client import utils
 from dockertest import subtest, output
+from dockertest.dockercmd import DockerCmd, NoFailDockerCmd
 
 try:
-    import docker
+    from docker.client import Client
     DOCKERAPI = True
 except ImportError:
     DOCKERAPI = False
@@ -26,23 +26,17 @@ class version(subtest.Subtest):
     def run_once(self):
         super(version, self).run_once()
         # 1. Run with no options
-        docker_command = ("%s %s" % (self.config['docker_path'],
-                          self.config['docker_options']))
-        command = ("%s version") % docker_command
-        self.config['cmdresult1'] = utils.run(command=command)
+        self.config['cmdresult1'] = NoFailDockerCmd(self, "version")
         # 2. Run with valid option
-        command = ("%s %s version"
-                   % (docker_command, self.config['valid_option']))
-        self.config['cmdresult2'] = utils.run(command=command)
+        self.config['cmdresult2'] = NoFailDockerCmd(self,
+                                                    self.config['valid_option'],
+                                                    'version')
         # 3. Run with invalid option
-        command = ("%s %s version"
-                   % (docker_command, self.config['invalid_option']))
-        self.config['cmdresult3'] = utils.run(command=command,
-                                              ignore_status=True)
+        self.config['cmdresult3'] = DockerCmd(self,
+                                              self.config['invalid_option'],
+                                              'version')
         # 4. Run with empty option
-        command = ("%s '' version" % docker_command)
-        self.config['cmdresult4'] = utils.run(command=command,
-                                              ignore_status=True)
+        self.config['cmdresult4'] = DockerCmd(self, '" "', 'version')
 
     def postprocess(self):
 
@@ -50,7 +44,7 @@ class version(subtest.Subtest):
                     "cmdresult1 non-zero exit code")
         version_string = self.config['cmdresult1'].stdout.strip()
         docker_version = output.DockerVersion(version_string)
-        self.loginfo("Found docker versions client: %s server %s",
+        self.loginfo("Found docker versions client: %s server %s ",
                      docker_version.client, docker_version.server)
         self.try_verify_version(docker_version)
         # TODO: More comprehensive checks
@@ -63,11 +57,9 @@ class version(subtest.Subtest):
     def try_verify_version(self, docker_version):
         if not DOCKERAPI:
             return
-        from docker.client import Client
         client = Client()
         client_version = client.version()
         self.failif(client_version['Version'] != docker_version.client,
                     "Docker cli version does not match docker client API "
                     "version")
         self.loginfo("Docker cli version matches docker client API version")
-

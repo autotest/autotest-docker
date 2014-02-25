@@ -48,13 +48,24 @@ class Subtest(test.test):
         _sl = base_job.status_logger(self.job, _si)
         self._re = _sl.render_entry  # will return string w/ proper indentation
         # So tests don't need to set this up every time
-        self.config = config.Config()[self.config_section]
+        config_parser = config.Config()
+        self.config = config_parser.get(self.config_section)
+        if self.config is None:
+            logging.warning("No configuration section found '%s'",
+                            self.config_section)
+            self.config = config_parser['DEFAULTS']
+            # Mark this to not be checked, no config, no version info.
+            self.config['config_version'] = version.NOVERSIONCHECK
+        # Log original key/values before subtest could modify them
+        self.write_test_keyval(self.config)
+        # Optionally setup different iterations if option exists
+        self.iterations = self.config.get('iterations', self.iterations)
 
     # Private workaround due to job/test instance private attributes/methods :(
     def _log(self, level, message, *args):
         method = getattr(logging, level)
         message = '%s: %s' % (level.upper(), message)
-        sle = base_job.status_log_entry("RUNNING", None, message, '', {})
+        sle = base_job.status_log_entry("RUNNING", None, None, message, {})
         rendered = self._re(sle)
         return method(rendered, *args)
 
@@ -62,6 +73,7 @@ class Subtest(test.test):
 
     def execute(self, *args, **dargs):
         """**Do not override**, needed to pull data from super class"""
+        #self.job.add_sysinfo_command("", logfile="lspci.txt")
         super(Subtest, self).execute(iterations=self.iterations,
                                      *args, **dargs)
 
@@ -71,10 +83,6 @@ class Subtest(test.test):
         """
         self.loginfo("setup() for subtest version %s",
                      version.int2str(self.version))
-        # TODO: Add helpers for subtests to call in setup() that
-        # TODO: check testing-prerequsits.  For example, build test
-        # TODO: could verify Docker file exists, import test
-        # TODO: could check the 'tar' command exists, etc.
 
     def initialize(self):
         """
@@ -124,7 +132,7 @@ class Subtest(test.test):
             raise error.TestFail(reason)
 
     def logdebug(self, message, *args):
-        """
+        r"""
         Log a DEBUG level message to the controlling terminal **only**
 
         :param message: Same as logging.debug()
@@ -133,7 +141,7 @@ class Subtest(test.test):
         return self._log('debug', message, *args)
 
     def loginfo(self, message, *args):
-        """
+        r"""
         Log a INFO level message to the controlling terminal **only**
 
         :param message: Same as logging.info()
@@ -142,7 +150,7 @@ class Subtest(test.test):
         return self._log('info', message, *args)
 
     def logwarning(self, message, *args):
-        """
+        r"""
         Log a WARNING level message to the controlling terminal **only**
 
         :param message: Same as logging.warning()
@@ -151,7 +159,7 @@ class Subtest(test.test):
         return self._log('warning', message, *args)
 
     def logerror(self, message, *args):
-        """
+        r"""
         Log a ERROR level message to the controlling terminal **only**
 
         :param message: Same as logging.error()
@@ -181,9 +189,12 @@ class SubSubtest(object):
         :param parent_test: The Subtest instance calling this instance
         """
         self.test = parent_test
-        config_section = ('docker_cli/dockerimport/%s'
-                          % self.__class__.__name__)
+        config_section = (os.path.join(self.test.config_section,
+                                       self.__class__.__name__))
         self.config = config.Config()[config_section]
+        self.config['subsubtest_config_section'] = config_section
+        # Not automatically logged along with parent
+        self.test.write_test_keyval(self.config)
 
     def initialize(self):
         """

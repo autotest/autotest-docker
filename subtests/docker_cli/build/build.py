@@ -7,9 +7,10 @@ Test run of docker build command
 4. Remove image, change back to previous dir.
 """
 
-import os, os.path
+import os, os.path, logging
 from autotest.client import utils
 from dockertest import subtest, output
+from dockertest.dockercmd import DockerCmd
 
 try:
     import docker
@@ -89,7 +90,7 @@ class build(subtest.Subtest):
 
     def _try_repo_remove(self):
         success = False
-        if DOCKERAPI:
+        if DOCKERAPI and self.config.get('api_repo') is not None:
             try:
                 _id = self.config['api_repo']['Id']
                 self.config['api_client'].remove_image(_id)
@@ -97,10 +98,13 @@ class build(subtest.Subtest):
             except docker.client.APIError, detail:
                 self.logdebug("docker.client.APIError: %s", detail)
                 success = False
-        else:
-            command = ("%s rmi %s" % (self.config['docker_path'],
-                                      self.config['repo_name']))
-            cmdresult = utils.run(command, ignore_status=True)
+            except KeyError, detail:
+                # Make sure this gets into the result logs
+                logging.warning("Error removing image with docker api "
+                                "%s: %s", detail.__class__.__name__, detail)
+                success = False
+        if not success:
+            cmdresult = DockerCmd(self, "rmi", self.config['repo_name'])
             if cmdresult.exit_status == 0:
                 success = True
             else:

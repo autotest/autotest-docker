@@ -3,3 +3,4 @@
 *.pyc
 .*.swp
 docs_build
+config_custom

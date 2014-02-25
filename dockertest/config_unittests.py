@@ -7,11 +7,14 @@ class ConfigTestBase(unittest.TestCase):
     def setUp(self):
         import config
         self.config = config
-        self.config.CONFIGDIR = tempfile.mkdtemp(self.__class__.__name__)
+        self.config.CONFIGDEFAULT = tempfile.mkdtemp(self.__class__.__name__)
+        self.config.CONFIGCUSTOMS = tempfile.mkdtemp(self.__class__.__name__)
 
     def tearDown(self):
-        shutil.rmtree(self.config.CONFIGDIR, ignore_errors=True)
-        self.assertFalse(os.path.isdir(self.config.CONFIGDIR))
+        shutil.rmtree(self.config.CONFIGDEFAULT, ignore_errors=True)
+        shutil.rmtree(self.config.CONFIGCUSTOMS, ignore_errors=True)
+        self.assertFalse(os.path.isdir(self.config.CONFIGDEFAULT))
+        self.assertFalse(os.path.isdir(self.config.CONFIGCUSTOMS))
         del sys.modules['config']
 
 
@@ -19,7 +22,7 @@ class TestConfigSection(ConfigTestBase):
 
     def test_write_read(self):
         osfd, filename = tempfile.mkstemp(suffix='.ini',
-                                          dir=self.config.CONFIGDIR)
+                                          dir=self.config.CONFIGDEFAULT)
         os.close(osfd)
         testfile = open(filename, 'wb')
         foo = self.config.ConfigSection(None, 'TestSection')
@@ -36,7 +39,7 @@ class TestConfigDict(ConfigTestBase):
     def setUp(self):
         super(TestConfigDict, self).setUp()
         osfd, filename = tempfile.mkstemp(suffix='.ini',
-                                          dir=self.config.CONFIGDIR)
+                                          dir=self.config.CONFIGDEFAULT)
         os.close(osfd)
         self.testfile = open(filename, 'wb')
         # ConfigDict forbids writing
@@ -69,10 +72,10 @@ class TestConfigDict(ConfigTestBase):
 class TestConfig(ConfigTestBase):
 
     def setUp(self):
-        # Changes CONFIGDIR
+        # Changes CONFIGDEFAULT
         super(TestConfig, self).setUp()
         osfd, filename = tempfile.mkstemp(suffix='.ini',
-                                          dir=self.config.CONFIGDIR)
+                                          dir=self.config.CONFIGDEFAULT)
         os.close(osfd)
         self.config.DEFAULTSFILE = filename
         self.deffile = open(filename, 'wb')
@@ -87,7 +90,7 @@ class TestConfig(ConfigTestBase):
         foo.write(self.deffile)
         # Set up separate test config file
         osfd, filename = tempfile.mkstemp(suffix='.ini',
-                                          dir=self.config.CONFIGDIR)
+                                          dir=self.config.CONFIGDEFAULT)
         os.close(osfd)
         # in case a test needs it
         self.cfgfile = open(filename, 'wb')
@@ -118,7 +121,7 @@ class TestConfig(ConfigTestBase):
 
     def test_multi_sections(self):
         osfd, filename = tempfile.mkstemp(suffix='.ini',
-                                          dir=self.config.CONFIGDIR)
+                                          dir=self.config.CONFIGDEFAULT)
         os.close(osfd)
         cfgfile = open(filename, 'wb')
         foo = self.config.ConfigSection(None, 'AnotherTestSection')

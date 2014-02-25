@@ -5,19 +5,16 @@ Sub-subtest module used by dockerimport test
 from autotest.client import utils
 import tempfile, os, os.path, shutil
 from empty import empty
+from dockertest.dockercmd import DockerCmd
 
 class truncated(empty):
 
     def cleanup(self):
         repo = self.config.get('repo')
         if repo is not None:
-            docker_command = self.test.config['docker_path']
-            docker_options = self.test.config['docker_options']
-            command = ("%s %s rmi %s" % (docker_command, docker_options,
-                                         self.config['repo']))
-            cmdresult = utils.run(command, ignore_status=True)
+            cmdresult = DockerCmd(self.test, "rmi", self.config['repo'])
             self.test.failif(cmdresult.exit_status == 0,
-                            "Unexpected image removalsucceeded: %s" %
+                            "Unexpected image removal succeeded: %s" %
                             str(cmdresult))
         # expected repo not to exist!
 

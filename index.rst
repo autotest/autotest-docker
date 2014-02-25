@@ -63,7 +63,7 @@ Prerequisites
     *  Fedora 20 recommended
     *  Linux kernel 3.12.9 or later
 
-*  Autotest & Autotest Client
+*  Autotest & Autotest Client (0.15 or later)
 
     *  Git clone of https://github.com/autotest/autotest.git
 
@@ -72,7 +72,7 @@ Prerequisites
     *  Platform-specific binary package (e.g. ``autotest-framework``)
 
     *  Environment variable ``AUTOTEST_PATH`` set to absolute path where
-       autotest installed (if it's *not* in ``/usr/local/autotest``)
+       autotest installed (if *not* in ``/usr/local/autotest``)
 
 *  Core-utils or equivalent (i.e. ``cat``, ``mkdir``, ``tee``, etc.)
 *  Tar and supported compression programs
@@ -93,13 +93,12 @@ Quickstart
 #)  Clone the ``docker`` branch of `Docker Autotest Client Tests`_ repository
     into the ``tests`` subdirectory. e.g.
     ``git clone -b docker https://github... tests``
-#)  Run the autotest standalone client (``autotest-local``).
+#)  Run the autotest standalone client (``autotest-local run docker``).
+    (see below example for selecting only a few tests to run)
 
 .. _Docker Autotest Client Tests: https://github.com/cevich/autotest-client-tests.git
 
-
-The default behavior is to run all subtests. However, the example below
-demonstrates using the ``--args`` parameter to select *only two* sub-tests:
+For example:
 
 ::
 
@@ -118,6 +117,10 @@ demonstrates using the ``--args`` parameter to select *only two* sub-tests:
     Receiving objects: 100% (12285/12285), 65.61 MiB | 9.05 MiB/s, done.
     Resolving deltas: 100% (8773/8773), done.
     Checking connectivity... done.
+
+
+The default behavior is to run all subtests. However, the example below
+demonstrates using the ``--args`` parameter to select *only two* sub-tests:
 
 ::
 
@@ -154,7 +157,72 @@ demonstrates using the ``--args`` parameter to select *only two* sub-tests:
 be fully-qualified.  e.g. ``docker_cli/version`` refers to the subtest module
 ``subtests/docker_cli/version/version.py``.
 
-.. _subtests:
+-----------------
+Subtests
+-----------------
+
+All `subtest modules`_ reside beneath the ``subtest`` directory.  A subtest
+module must have the same name as the directory it is in (minus the ``.py``
+extension).  Other files/directories may exist at that level, but they
+will not be recognized as subtest modules by the Docker client test.  This
+ensures each subtest's code is kept separate from all others.
+
+The structure/layout of the ``subtest`` directory tree is not important
+for locating/executing subtests.  However it is relevant for the finding/loading
+of each subtests configuration_.  The configuration section name for any sub-tests
+is formed by the subtest name relative to the ``subtest`` directory.  For example,
+the subtest module ``subtests/docker_cli/version/version.py`` matches with
+the ``docker_cli/version`` configuration section (located in
+``config_defaults/subtests/docker_cli/version.ini``).
+
+--------------------
+Configuration
+--------------------
+
+The default configuration files are all located under the ``config_defaults``
+sub-directory.  These are intended to be bundled with the autotest docker test.
+To customize any subtest or global default configuration, copies should
+be made manually into the ``config_custom`` sub-directory.  Any content
+within ``config_custom`` will override anything found under
+``config_defaults``.  Nothing except for the example ``config_custom/example.ini``
+should be checked into version control.
+
+Configuration files use the familiar ``ini`` style format with separate
+sections (e.g. ``[<section name>]``) preventing option names from colliding.
+All configuration files are loaded into a single name-space, containing
+sub-name-spaces for each section. Section names which exactly match a subtest
+module name, are automatically loaded (see Subtests_).
+
+Default, global values for **all** sections are located within the
+special ``defaults.ini`` file's ``DEFAULTS`` section.  These option
+names and values stand in for same-named options that are undefined
+in any section. See `Default configuration options`_ for more details.
+
+Optional inline-value substitution is supported using the ``%(<option>)s`` format,
+where ``<option>`` is the name of another option.  The source option
+name may not reside outside the reference section, though options
+in the special ``DEFAULTS`` section are always available.
+
+------------------------
+Versioning Requirements
+------------------------
+
+In order to support external/private subtests and customized configurations,
+the Docker Autotest API version has been tightly coupled to execution.
+Further, to ensure any API changes are also reflected in documentation,
+it's version is also checked.
+
+Version comparison is only significant for the first two numbers (the major
+and minor versions).  The third (last) number represents insignificant
+revisions which do not alter the core test or subtest API.  This allows
+the API to be extended freely, but any changes which could affect external
+tests or configurations will be flagged when encountered.
+
+*Note:*  Each subtest sub-class also has a version number which is **not**
+associated with it's ``config_version`` configuration option or the API version.
+This separate version number is used by the autotest harness to allow tests
+with a ``setup()`` method to perform one-time operations.  It allows a subtest
+that builds complex code to only do so one-time per version number.
 
 ------------------
 Subtest Modules
@@ -163,19 +231,12 @@ Subtest Modules
 The following sections detail specific sub-tests, their configuration
 and any prerequisites or setup requirements.
 
-**Note**: The ``subtest`` directory is *not* setup as a python package
-on purpose.  This guaranteese no "accidents" are possible within the
-autotest client and that all subtest-state is kept segregated.  However,
-any files within the same directory as a subtest module are available
-for importing.  The global ``dockertest`` namespace is also available.
-
 Default configuration options
 ================================
 
-These options exist under the special ``DEFAULTS`` section in the
-``config.d/defaults.ini`` file.  Unlike all other sections,
-the ``DEFAULTS`` section is global.  All of it's contents will
-automatically appear in all other sections, unless overridden.
+Global default options that apply to all other sections are set in
+the special ``DEFAULTS`` section of the ``defaults.ini`` file.  This
+file is loaded *either* from ``config_defaults`` *or* ``config_custom``.
 
 *  The ``config_version`` option is special.  Because it is part
    of the lower-level `Subtest Module`_ interface, it must exist
@@ -311,75 +372,32 @@ for each sub-sub-test are also used.
   to use before sending the content into the docker import command.
 
 ----------------------------------
-Dockertest and Configuration API
+Dockertest API Reference
 ----------------------------------
 
-Summary
-========
-
-All `subtest modules`_ reside beneath the ``subtest`` directory.  A subtest
-module must have the same name as the directory it is in (minus the ``.py``
-extension).  Other files/directories may exist at that level, but they
-will not be recognized as subtest modules by the Docker client test.
-
-Optional `configuration files`_ are located beneath the ``config.d`` directory.
-They may be organized arbitrarily, however mirroring the structure of the
-``subtest`` directory and subtest module names is recommended.  Configuration
-options are global, however sub-tests may utilize an automatic and private
-name-space.
-
-The optional configuration name-space for sub-tests is defined as any
-section's content who's name exactly matches the subtest name.  For example,
-the subtest module ``subtests/docker_cli/version/version.py`` automatically
-receives all options defined in the ``docker_cli/version`` section
-(located in ``config.d/subtests/docker_cli/version.ini``).
-
-Configuration Files
-====================
-
-Configuration files are located beneath the ``config.d`` directory.
-They use the familiar ``ini`` style format with separate sections
-containing key/value pairs.  All configuration files are loaded
-into a single name-space, containing sub-name-spaces for each section.
-Section names which exactly match a subtest module name, are automatically
-loaded & available via the `Subtest Module`_'s ``config`` property.
-
-Default, global values for **all** sections are located within the
-special ``defaults.ini`` file's ``DEFAULTS`` section.  These option
-names and values will always be available in every section, unless
-overridden.
-
-Inline-value substitution is supported using the ``%(<option>)s`` format,
-where ``<option>`` is the name of another option.  The source option
-name may not reside outside the reference section, though options
-in the special ``DEFAULTS`` section are always available.
-
-Dockertest API
-================
-
 Dockertest Package
-------------------------
+========================
 
 .. automodule:: dockertest
    :no-members:
    :no-undoc-members:
 
 Version Module
-----------------
+================
 
 .. automodule:: dockertest.version
    :members:
    :no-undoc-members:
 
 Configuration Module
----------------------
+=====================
 
 .. automodule:: dockertest.config
    :members:
    :no-undoc-members:
 
 Subtest Module
-----------------
+================
 
 .. py:module:: dockertest.subtest
 
@@ -388,7 +406,7 @@ Adapt/extend autotest.client.test.test for Docker test sub-framework
 This module provides two helper classes intended to make writing
 subtests easier.  They hide some of the autotest ``test.test``
 complexity, while providing some helper methods for logging
-output to the controling terminal (only) and automatically
+output to the controlling terminal (only) and automatically
 loading the specified configuration section (see `configuration module`_)
 
 .. autoclass:: dockertest.subtest.Subtest
@@ -398,22 +416,29 @@ loading the specified configuration section (see `configuration module`_)
 .. autoclass:: dockertest.subtest.SubSubtest
    :members:
 
+Dockercmd Module
+=================
+
+.. automodule:: dockertest.dockercmd
+   :members:
+   :no-undoc-members:
+
 Output Module
----------------
+===============
 
 .. automodule:: dockertest.output
    :members:
    :no-undoc-members:
 
 Xceptions Module
--------------------
+===================
 
 .. automodule:: dockertest.xceptions
    :members:
    :undoc-members:
 
 Sphinx Conf Module
--------------------
+===================
 
 .. automodule:: conf
    :members:

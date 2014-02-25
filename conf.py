@@ -12,6 +12,13 @@ serve to show the default.
 
 import sys, os, types
 
+#: The documentation version for this instance of the test.  It is compared
+#: to the API version before every test.  This ensures any API changes
+#: are also reflected in documentation.
+#:
+#: The short X.Y version. This MUST be inside single ("'") quotes for parsing!!
+version = '0.1.1'
+
 #: If extensions (or modules to document with autodoc) are in another directory,
 #: add these directories to sys.path here. If the directory is relative to the
 #: documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -43,12 +50,6 @@ master_doc = 'index'
 project = u'Docker Autotest'
 copyright = u'2014, Chris Evich'
 
-#: The version info for the project you're documenting, acts as replacement for
-#: |version| and |release|, also used in various other places throughout the
-#: built documents.
-#:
-#: The short X.Y version. This MUST be inside single ("'") quotes.
-version = '0.0.1'
 #: The full version, including alpha/beta/rc tags.
 release = version
 
@@ -232,7 +233,7 @@ man_show_urls = False
 
 #: Grouping the document tree into Texinfo files. List of tuples
 #: (source start file, target name, title, author,
-#:  dir menu entry, description, category)
+#: dir menu entry, description, category)
 texinfo_documents = [
   ('index', 'DockerAutotest', u'Docker Autotest Documentation',
    u'Chris Evich', 'DockerAutotest', 'One line description of project.',
@@ -250,49 +251,32 @@ texinfo_show_urls = 'footnote'
 
 
 # -- Module mocking so we don't hang up on external dependencies ---------------
+def mock(mod_path):
+    """
+    Recursivly inject tree of mocked modules from entire mod_path
+    """
+    name_list = mod_path.split('.')
+    child_name = name_list.pop()
+    child_mod = sys.modules.get(mod_path, types.ModuleType(child_name))
+    if len(name_list) == 0:  # child_name is left-most basic module
+        if not sys.modules.has_key(child_name):
+            sys.modules[child_name] = child_mod
+        return sys.modules[child_name]
+    else:
+        # New or existing child becomes parent
+        recurse_path = ".".join(name_list)
+        parent_mod = mock(recurse_path)
+        if not hasattr(sys.modules[recurse_path], child_name):
+            setattr(parent_mod, child_name, child_mod)
+            # full-name also points at child module
+            sys.modules[mod_path] = child_mod
+        return sys.modules[mod_path]
 
-# TODO: Fix this so it's not hard-coded to autotest's structure
-# TODO: and so documentation for dockertest.subtest.Subtest
-# TODO: builds correctly.
-
-class autotest(types.ModuleType):
-    """A Fake instance standing in for the autotest package"""
-    __str__ = lambda *args, **dargs:"autotest"
-
-class client(types.ModuleType):
-    """Fake class standing in for autotest.client package"""
-    __str__ = lambda *args, **dargs:"client"
-
-    class job(object):
-        """Fake job class"""
-        pass
-
-    class test(object):
-        """Fake test class"""
-
-        class test(object):
-            """Fake test class"""
-
-class shared(types.ModuleType):
-    """Fake class standing in for autotest.client.shared package"""
-    __str__ = lambda *args, **dargs:"shared"
-
-    class error(object):
-        """Fake error class"""
-        pass
-
-    class base_job(object):
-        """Fake base_job class"""
-        pass
-
-class test(types.ModuleType):
-    """Fake class standing in for autotest.client.test package"""
-    __str__ = lambda *args, **dargs:"test"
-
-    class test(object):
-        """Fake test class"""
-        __str__ = lambda *args, **dargs:"test"
-
-sys.modules['autotest'] = autotest('autotest')
-sys.modules['autotest.client'] = client('client')
-sys.modules['autotest.client.shared'] = shared('shared')
+mock('autotest.client.shared')
+setattr(mock('autotest.client.utils'), 'CmdResult', type)
+# Mock module and test class in one call
+setattr(mock('autotest.client.test'), 'test', type)
+mock('autotest.client.shared.error')
+mock('autotest.client.shared.base_job')
+mock('autotest.client.shared.job')
+mock('autotest.client.job')

@@ -6,8 +6,8 @@ Test various odd-ball options/arguments produce usage info / helpful output
 3. Check results.
 """
 
-from autotest.client import utils
 from dockertest import subtest, output
+from dockertest.dockercmd import DockerCmd, NoFailDockerCmd
 
 # 'help()' is reserved in python
 class dockerhelp(subtest.Subtest):
@@ -28,15 +28,13 @@ class dockerhelp(subtest.Subtest):
     def run_once(self):
         super(dockerhelp, self).run_once() # Prints out basic info
         for option in self.config['success_option_list']:
-            command = '%s %s' % (self.config['docker_command'], option)
             # No successful command should throw an exception
-            self.config["success_cmdresults"].append(utils.run(command,
-                                                     ignore_status=False))
+            result = NoFailDockerCmd(self, option)
+            self.config["success_cmdresults"].append(result)
         for option in self.config['failure_option_list']:
-            command = '%s %s' % (self.config['docker_command'], option)
             # These are likely to return non-zero
-            self.config['failure_cmdresults'].append(utils.run(command,
-                                                     ignore_status=True))
+            result = DockerCmd(self, option)
+            self.config['failure_cmdresults'].append(result)
 
     def postprocess(self):
         super(dockerhelp, self).postprocess()  # Prints out basic info

@@ -5,11 +5,19 @@ Extension of standard ConfigParser.SafeConfigParser abstracting section names
 import sys, os, os.path, logging
 from collections import MutableMapping
 import xceptions
-from ConfigParser import SafeConfigParser
+from ConfigParser import SafeConfigParser, NoSectionError
 
+#: Absolute path to directory containing this module
 MYDIR = os.path.dirname(sys.modules[__name__].__file__)
+#: Parent directory of directory containing this module
 PARENTDIR = os.path.dirname(MYDIR)
-CONFIGDIR = os.path.join(PARENTDIR, 'config.d')
+#: Directory path relative to PARENTDIR containing default config files
+CONFIGDEFAULT = os.path.join(PARENTDIR, 'config_defaults')
+#: Directory path relative to PARENTDIR containing customized config files.
+CONFIGCUSTOMS = os.path.join(PARENTDIR, 'config_custom')
+#: Durectiry path relative to CONFIGDIR containing default config files
+DEFAULTSUBDIR = 'defaults'
+#: Name of file holding special DEFAULTS section and options
 DEFAULTSFILE = 'defaults.ini'
 
 class ConfigSection(object):
@@ -234,56 +242,86 @@ class ConfigDict(MutableMapping):
 
 class Config(dict):
     """
-    Dict-like of dict-like per section with default values from config.d files
+    Dict-like of dict-like per section with default values replaced by custom
     """
+    #: Public instance attribute cache of defaults parsing w/ non-clashing name
     defaults_ = None
+    #: Public instance attribute cache of configs parsing w/ non-clashing name
     configs_ = None
+    #: private class-attribute cache used to return copy as a dict in __new__()
     _singleton = None
 
     def __new__(cls, *args, **dargs):
         """
-        Return new dict copy based on parsing of config.d + defaults
+        Return copy of dict holding parsed defaults + custom configs
         """
         if cls._singleton is None:
             # Apply *args, *dargs _after_ making deep-copy
             cls._singleton = dict.__new__(cls)
         copy = cls._singleton.copy()  # deep-copy cache into regular dict
         copy.update(dict(*args, **dargs))
+        # Prevent any modifications from affecting cache and/or other tests
         return copy
 
     @property
     def defaults(self):
+        """
+        Read-only cached defaults.ini DEFAULTS section options as a dict.
+        """
         if self.__class__.defaults_ is None:
             defaults_ = SafeConfigParser()
-            defaults_.read(os.path.join(CONFIGDIR, DEFAULTSFILE))
-            self.__class__.defaults_ = dict(defaults_.items('DEFAULTS'))
+            default_defaults = os.path.join(CONFIGDEFAULT, DEFAULTSFILE)
+            custom_defaults =  os.path.join(CONFIGCUSTOMS, DEFAULTSFILE)
+            try:
+                defaults_.read(custom_defaults)
+                # Dump out all DEFAULTS section options into a dict. & cache it
+                self.__class__.defaults_ = dict(defaults_.items('DEFAULTS'))
+            except (IOError, NoSectionError):
+                defaults_.read(default_defaults)
+                self.__class__.defaults_ = dict(defaults_.items('DEFAULTS'))
+        # Return CACHED defaults dictionary
         return self.__class__.defaults_
+
+    @staticmethod
+    def load_config_dir(dirpath, filenames, configs_dict, defaults_dict):
+        """
+        Populate configs_dict with ConfigDict() for sections found in filenames
+        """
+        for filename in filenames:
+            fullpath = os.path.join(dirpath, filename)
+            if (filename.startswith('.') or
+                not filename.endswith('.ini')):
+                logging.warning("Skipping unknown config file '%s'",
+                                fullpath)
+                continue
+            config_file = open(fullpath, 'r')
+            # Temp use sections variable for reading sections list
+            sections = SafeConfigParser()
+            sections.readfp(config_file)
+            # Dump SafeConfigParser(), reassign as a list of strings
+            sections = sections.sections()
+            for section in sections:
+                # First call to defaults_dict will cache result
+                configs_dict[section] = ConfigDict(section, defaults_dict)
+                # Will seek(0), incorporate defaults & overwrite any dupes.
+                configs_dict[section].read(config_file)
 
     @property
     def configs(self):
+        """
+        Read-only cached dict of ConfigDict's by section, aggregating all ini's
+        """
         if self.__class__.configs_ is None:
-            # Save some typing in loops below by also setting local reference
-            configs_ = self.__class__.configs_ = {}
-            for dirpath, dirnames, filenames in os.walk(CONFIGDIR):
-                # These are not needed
-                del dirnames
-                for filename in filenames:
-                    fullpath = os.path.join(dirpath, filename)
-                    if (filename.startswith('.') or
-                        not filename.endswith('.ini')):
-                        logging.warning("Skipping unknown config file '%s'",
-                                        fullpath)
-                        continue
-                    config_file = open(fullpath, 'r')
-                    # Temp use sections variable for reading sections list
-                    sections = SafeConfigParser()
-                    sections.readfp(config_file)
-                    sections = sections.sections()
-                    for section in sections:
-                        # First call to self.defaults will cache result
-                        configs_[section] = ConfigDict(section, self.defaults)
-                        # Will seek(0) and incorporate defaults
-                        configs_[section].read(config_file)
+            self.__class__.configs_ = {}
+            # Overwrite section-by-section from customs after loading defaults
+            for dirpath, dirnames, filenames in os.walk(CONFIGDEFAULT):
+                del dirnames # not needed
+                self.load_config_dir(dirpath, filenames,
+                                     self.__class__.configs_, self.defaults)
+            for dirpath, dirnames, filenames in os.walk(CONFIGCUSTOMS):
+                del dirnames # not needed
+                self.load_config_dir(dirpath, filenames,
+                                     self.__class__.configs_, self.defaults)
         return self.__class__.configs_
 
     def copy(self):
@@ -291,7 +329,9 @@ class Config(dict):
         Return deep-copy/export as a regular dict containing regular dicts
         """
         the_copy = {}
+        # self.configs holds dict of ConfigDict()s
         for sec_key, sec_value in self.configs.items():
+            # convert each section from ConfigDict to regular dict.
             sec_copy = {}
             for cfg_key, cfg_value in sec_value.items():
                 sec_copy[cfg_key] = cfg_value

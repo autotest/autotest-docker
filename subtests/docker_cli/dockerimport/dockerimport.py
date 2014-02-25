@@ -78,7 +78,7 @@ class dockerimport(subtest.Subtest):
 
     def new_subsubtest(self, name):
         try:
-            mydir = os.path.dirname(sys.modules[__name__].__file__)
+            mydir = self.bindir
             mod = imp.load_module(name, *imp.find_module(name, [mydir]))
             cls = getattr(mod, name, None)
             if callable(cls):

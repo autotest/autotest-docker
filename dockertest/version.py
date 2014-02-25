@@ -2,22 +2,24 @@
 Module for standardized API version number processing/checking
 
 `Subtest modules`_ code, configuration, and documentation are critical
-to remain in agreement, therefor version checking is very important.
-Each subtest must override the default 'config_version' option with
-the version string of the dockertest API it was written against.
-Further, the documentation version in the top-level ``conf.py``
-module must also match.
+to remain in agreement in order to support use of external/private or
+customized configutations and tests.  Therefor  version checking is
+very important. Each subtest must override the default 'config_version'
+option with the version string of the dockertest API it was written
+against.  Further, the documentation version in the top-level ``conf.py``
+module must also match (less the REVIS number).
 """
 
+import logging
 import xceptions
 
 #: Major API version number, as an integer (range 0-255).
 MAJOR = 0
 
 #: Minor API version number, as an integer (range 0-255).
-MINOR = 0
+MINOR = 1
 
-#: API Revision number, as an integer (range 0-255).  Not significant
+#: API Revision number, as an integer (range 0-255).  Not significant!
 #: for version comparisons. e.g. ``0.0.1 == 0.0.2 != 0.2.2``
 REVIS = 1
 
@@ -26,6 +28,10 @@ FMTSTRING = "%d.%d.%d"
 
 #: String representation of MAJOR, MINOR, and REVIS using FMTSTRING
 STRING = (FMTSTRING % (MAJOR, MINOR, REVIS))
+
+#: If no subtest configuration could be loaded, use this value
+#: to signal version checking is impossible
+NOVERSIONCHECK = '@!NOVERSIONCHECK!@'
 
 def str2int(version_string):
     """
@@ -91,10 +97,20 @@ def compare(lhs, rhs):
 
 def check_version(config_section):
     """
-    Simple version check that config version >= library version
+    Simple version check that config version == library version
+
+    *Note:* Ignores REVIS, only MAJOR/MINOR compared.
 
     :raises: dockertest.xceptions.DockerVersionError
     """
-    config_version = config_section['config_version']
-    if compare(config_version, STRING) < 0:
-        raise xceptions.DockerVersionError(STRING, config_version)
+    config_version = config_section.get('config_version', NOVERSIONCHECK)
+    if config_version == NOVERSIONCHECK:
+        logging.warning("Could not check configuration version matches subtest "
+                        "API version.  No 'config_version' option specified "
+                        "in configuration")
+    else:
+        try:
+            if compare(config_version, STRING) != 0:
+                raise xceptions.DockerVersionError(STRING, config_version)
+        except (ValueError, TypeError):
+            raise xceptions.DockerVersionError(STRING, '<bad format>')
