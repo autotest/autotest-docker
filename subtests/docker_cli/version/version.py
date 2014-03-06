@@ -1,14 +1,17 @@
 """
 Test output of docker version command
 
-1. Run with no options
-2. Run with valid option
-3. Run with invalid option
-4. Run with empty option
+1. Run docker version command
+2. Check output
+3. compare to daemon API version
 """
 
-from dockertest import subtest, output
-from dockertest.dockercmd import DockerCmd, NoFailDockerCmd
+# Okay to be less-strict for these cautions/warnings in subtests
+# pylint: disable=C0103,C0111,R0904,C0103
+
+from dockertest import subtest
+from dockertest.output import OutputGood, DockerVersion
+from dockertest.dockercmd import NoFailDockerCmd
 
 try:
     from docker.client import Client
@@ -26,40 +29,36 @@ class version(subtest.Subtest):
     def run_once(self):
         super(version, self).run_once()
         # 1. Run with no options
-        self.config['cmdresult1'] = NoFailDockerCmd(self, "version")
-        # 2. Run with valid option
-        self.config['cmdresult2'] = NoFailDockerCmd(self,
-                                                    self.config['valid_option'],
-                                                    'version')
-        # 3. Run with invalid option
-        self.config['cmdresult3'] = DockerCmd(self,
-                                              self.config['invalid_option'],
-                                              'version')
-        # 4. Run with empty option
-        self.config['cmdresult4'] = DockerCmd(self, '" "', 'version')
+        nfdc = NoFailDockerCmd(self, "version")
+        self.config['cmdresult'] = nfdc.execute()
 
     def postprocess(self):
-
-        self.failif(self.config['cmdresult1'].exit_status != 0,
-                    "cmdresult1 non-zero exit code")
-        version_string = self.config['cmdresult1'].stdout.strip()
-        docker_version = output.DockerVersion(version_string)
+        # Raise exception on Go Panic or usage help message
+        outputgood = OutputGood(self.config['cmdresult'])
+        docker_version = DockerVersion(outputgood.stdout_strip)
         self.loginfo("Found docker versions client: %s server %s ",
                      docker_version.client, docker_version.server)
-        self.try_verify_version(docker_version)
-        # TODO: More comprehensive checks
-        msg1 = "Non-zero command exit status"
-        msg2 = "Unexpected 0 exit status"
-        self.failif(self.config['cmdresult2'].exit_status != 0, msg1)
-        self.failif(self.config['cmdresult3'].exit_status == 0, msg2)
-        self.failif(self.config['cmdresult4'].exit_status == 0, msg2)
+        self.verify_version(docker_version)
 
-    def try_verify_version(self, docker_version):
-        if not DOCKERAPI:
-            return
-        client = Client()
-        client_version = client.version()
-        self.failif(client_version['Version'] != docker_version.client,
+    def verify_version(self, docker_version):
+        # TODO: Make URL to daemon configurable
+        client_version = None
+        if DOCKERAPI:
+            client = Client()
+            _version = client.version()
+            client_version = _version['Version']
+        else:
+            import json
+            # There has **got** to be a better way
+            from autotest.client import utils
+            cmdresult = utils.run('echo -e "GET /version HTTP/1.1\r\n" |'
+                                  ' nc -U /var/run/docker.sock')
+            lines = cmdresult.stdout.strip().splitlines()
+            # content follows blank after headers
+            json_string = lines[lines.index('')+1]
+            json_obj = json.loads(json_string)
+            client_version = json_obj['Version']
+        self.failif(client_version != docker_version.client,
                     "Docker cli version does not match docker client API "
                     "version")
         self.loginfo("Docker cli version matches docker client API version")

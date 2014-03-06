@@ -2,6 +2,9 @@
 Extension of standard ConfigParser.SafeConfigParser abstracting section names
 """
 
+# Pylint runs from a different directory, it's fine to import this way
+# pylint: disable=W0403
+
 import sys, os, os.path, logging
 from collections import MutableMapping
 import xceptions

@@ -10,6 +10,9 @@ All configuration values have a default; values that are commented out
 serve to show the default.
 """
 
+# Okay to be less-strict for these
+# pylint: disable=C0103,C0111,R0904,C0103,C0301,W0622
+
 import sys, os, types
 
 #: The documentation version for this instance of the test.  It is compared
@@ -17,7 +20,7 @@ import sys, os, types
 #: are also reflected in documentation.
 #:
 #: The short X.Y version. This MUST be inside single ("'") quotes for parsing!!
-version = '0.1.1'
+version = '0.2.1'
 
 #: If extensions (or modules to document with autodoc) are in another directory,
 #: add these directories to sys.path here. If the directory is relative to the
@@ -251,6 +254,8 @@ texinfo_show_urls = 'footnote'
 
 
 # -- Module mocking so we don't hang up on external dependencies ---------------
+
+# DO NOT allow this function to get loose in the wild!
 def mock(mod_path):
     """
     Recursivly inject tree of mocked modules from entire mod_path
@@ -274,9 +279,12 @@ def mock(mod_path):
 
 mock('autotest.client.shared')
 setattr(mock('autotest.client.utils'), 'CmdResult', type)
+setattr(mock('autotest.client.utils'), 'run', object)
+setattr(mock('autotest.client.utils'), 'AsyncJob', object)
 # Mock module and test class in one call
 setattr(mock('autotest.client.test'), 'test', type)
-mock('autotest.client.shared.error')
+setattr(mock('autotest.client.shared.error'), 'CmdError', Exception)
+setattr(mock('autotest.client.shared.error'), 'TestFail', Exception)
 mock('autotest.client.shared.base_job')
 mock('autotest.client.shared.job')
 mock('autotest.client.job')

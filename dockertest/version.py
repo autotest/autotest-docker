@@ -10,6 +10,9 @@ against.  Further, the documentation version in the top-level ``conf.py``
 module must also match (less the REVIS number).
 """
 
+# Pylint runs from a different directory, it's fine to import this way
+# pylint: disable=W0403
+
 import logging
 import xceptions
 
@@ -17,7 +20,7 @@ import xceptions
 MAJOR = 0
 
 #: Minor API version number, as an integer (range 0-255).
-MINOR = 1
+MINOR = 2
 
 #: API Revision number, as an integer (range 0-255).  Not significant!
 #: for version comparisons. e.g. ``0.0.1 == 0.0.2 != 0.2.2``
@@ -56,19 +59,22 @@ def int2str(version_int):
     revis = (version_int & 0xFF)
     return (FMTSTRING % (major, minor, revis))
 
-def _bincmp(lhs, rhs):
+# for private, internal-use only
+def _bincmp(lhs, rhs):  # pylint: disable=C0111
     no_lrevis = lhs & 0xFFFF00  # mask off upper 24 bits and lower 8 bits
     no_rrevis = rhs & 0xFFFF00
     return cmp(no_lrevis, no_rrevis)
 
 
-def _tupcmp(lhs, rhs):
+# for private, internal-use only
+def _tupcmp(lhs, rhs):  # pylint: disable=C0111
     lhs_bin = lhs[0] << 16 | lhs[1] << 8 | lhs[2]
     rhs_bin = rhs[0] << 16 | rhs[1] << 8 | rhs[2]
     return _bincmp(lhs_bin, rhs_bin)
 
 
-def _strcmp(lhs, rhs):
+# for private, internal-use only
+def _strcmp(lhs, rhs):  # pylint: disable=C0111
     lhs_split = tuple(int(num) for num in lhs.split('.'))
     rhs_split = tuple(int(num) for num in rhs.split('.'))
     assert len(lhs_split) >= 3
@@ -112,5 +118,12 @@ def check_version(config_section):
         try:
             if compare(config_version, STRING) != 0:
                 raise xceptions.DockerVersionError(STRING, config_version)
+        except xceptions.DockerVersionError:  # it's a ValueError subclass
+            raise
         except (ValueError, TypeError):
-            raise xceptions.DockerVersionError(STRING, '<bad format>')
+            raise xceptions.DockerVersionError(STRING, '<not set for test>')
+        except AssertionError:
+            raise xceptions.DockerValueError("Internal version comparison "
+                                             "problem comparing '%s' to '%s'."
+                                             % (str(config_version),
+                                                str(STRING)))

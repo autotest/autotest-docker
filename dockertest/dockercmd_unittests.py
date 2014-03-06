@@ -1,8 +1,15 @@
 #!/usr/bin/env python
 
+# Pylint runs from a different directory, it's fine to import this way
+# pylint: disable=W0403
+
 import unittest, tempfile, shutil, os, sys, types
 
+# DO NOT allow this function to get loose in the wild!
 def mock(mod_path):
+    """
+    Recursivly inject tree of mocked modules from entire mod_path
+    """
     name_list = mod_path.split('.')
     child_name = name_list.pop()
     child_mod = sys.modules.get(mod_path, types.ModuleType(child_name))
@@ -20,27 +27,32 @@ def mock(mod_path):
             sys.modules[mod_path] = child_mod
         return sys.modules[mod_path]
 
+# Just pack whatever args received into attributes
 class FakeCmdResult(object):
     def __init__(self, **dargs):
         for key, val in dargs.items():
             setattr(self, key, val)
 
+# Don't actually run anything!
 def run(command, *args, **dargs):
-    command = "%s %s" % (command, " ".join(dargs['args']))
-    return FakeCmdResult(command=command.strip(),
-                         stdout=args,
-                         stderr=dargs,
-                         exit_status=len(args),
-                         duration=len(dargs))
+    return FakeCmdResult(command=command,
+                         args=args,
+                         dargs=dargs)
 
 # Mock module and mock function run in one command
 setattr(mock('autotest.client.utils'), 'run', run)
-setattr(mock('autotest.client.utils'), 'CmdResult', FakeCmdResult)
+# Similar enough to run
+setattr(mock('autotest.client.utils'), 'AsyncJob', run)
+# Mock module and class in one stroke
 setattr(mock('autotest.client.test'), 'test', object)
-mock('autotest.client.shared.error')
+# Mock module and exception class in one stroke
+setattr(mock('autotest.client.shared.error'), 'CmdError', Exception)
+setattr(mock('autotest.client.shared.error'), 'TestFail', Exception)
+# Need all three for Subtest class
 mock('autotest.client.shared.base_job')
 mock('autotest.client.shared.job')
 mock('autotest.client.job')
+
 
 class DockerCmdTestBase(unittest.TestCase):
 
@@ -120,33 +132,51 @@ class DockerCmdTestBase(unittest.TestCase):
 
 class DockerCmdTestBasic(DockerCmdTestBase):
 
-    defaults = {'docker_path':'/foo/bar', 'docker_options':'--not_exist'}
+    defaults = {'docker_path':'/foo/bar', 'docker_options':'--not_exist',
+                'docker_timeout':"42.0"}
     customs = {}
     config_section = "Foo/Bar/Baz"
 
-    def test_defaults(self):
-        docker_command = self.dockercmd.DockerCmd(self.fake_subtest, '')
-        self.assertEqual(docker_command.stdin_file, None)
-        self.assertEqual(docker_command.verbose, True)
-        self.assertEqual(docker_command.timeout, 60 * 60)
-        self.assertEqual(docker_command.ignore_status, True)
-        expected = ("%s %s" % (self.defaults['docker_path'],
-                               self.defaults['docker_options']))
-        self.assertEqual(docker_command.command, expected)
-        self.assertEqual(docker_command.exit_status, 0)
-        self.assertEqual(docker_command.duration, 5)
-
-    def test_props(self):
-        docker_command = self.dockercmd.DockerCmd(self.fake_subtest, '')
+    def test_base(self):
+        docker_command = self.dockercmd.DockerCmdBase(self.fake_subtest,
+                                                      'fake_subcommand')
+        self.assertEqual(docker_command.subtest, self.fake_subtest)
+        self.assertEqual(docker_command.subargs, [])
         self.assertEqual(docker_command.docker_options,
                          self.defaults['docker_options'])
         self.assertEqual(docker_command.docker_command,
                          self.defaults['docker_path'])
-        self.assertEqual(docker_command.args,
-                         (self.defaults['docker_options'], ''))
-        self.assertEqual(docker_command.full_command.strip(),
-                         ("%s %s" % (self.defaults['docker_path'],
-                                     self.defaults['docker_options'])))
+        self.assertEqual(docker_command.timeout,
+                         float(self.defaults['docker_timeout']))
+        # Make sure this remains mutable
+        docker_command.timeout = 24
+        self.assertEqual(docker_command.timeout, 24)
+        self.assertRaises(NotImplementedError, docker_command.execute,
+                           'not stdin')
+
+
+    def test_dockercmd(self):
+        docker_command = self.dockercmd.DockerCmd(self.fake_subtest,
+                                                  'fake_subcommand',
+                                                  ['fake', 'arg', 'list'],
+                                                  1234567)
+
+        expected = ("%s %s fake_subcommand fake arg list"
+                    % (self.defaults['docker_path'],
+                       self.defaults['docker_options']))
+        self.assertEqual(docker_command.command, expected)
+        cmdresult = docker_command.execute()
+        self.assertEqual(cmdresult.command, expected)
+        self.assertAlmostEqual(cmdresult.dargs['timeout'], 1234567.0)
+        # Verify can change some stuff
+        docker_command.timeout = 0
+        docker_command.subcmd = ''
+        docker_command.subargs = []
+        cmdresult = docker_command.execute()
+        expected = ("%s %s" % (self.defaults['docker_path'],
+                               self.defaults['docker_options']))
+        self.assertEqual(cmdresult.command, expected)
+        self.assertEqual(cmdresult.dargs['timeout'], 0)
 
 if __name__ == '__main__':
     unittest.main()

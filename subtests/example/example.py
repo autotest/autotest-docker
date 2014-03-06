@@ -2,10 +2,10 @@
 Call superclass during each stage
 """
 
-from dockertest import subtest
+# Okay to be less-strict for these cautions/warnings in subtests
+# pylint: disable=C0103,C0111,R0904,C0103
 
-# Use pylint from top-level test directory like this:
-# pylint -rn --init-hook="sys.path.append('$PWD')" subtests/example/example.py
+from dockertest import subtest
 
 class example(subtest.Subtest):
     version = "1.2.3"  #  Used to track when setup() should run

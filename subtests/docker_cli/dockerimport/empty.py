@@ -1,12 +1,19 @@
 """
 Sub-subtest module used by dockerimport test
+
+1. Create an empty tar file
+2. Pipe empty file into docker import command
+3. Check imported image is available
 """
+
+# Okay to be less-strict for these cautions/warnings in subtests
+# pylint: disable=C0103,C0111,R0904,C0103
 
 import os, logging
 from autotest.client import utils
 from dockertest import output
 from dockertest.subtest import SubSubtest
-from dockertest.dockercmd import DockerCmd
+from dockertest.dockercmd import DockerCmd, NoFailDockerCmd
 
 try:
     import docker
@@ -16,89 +23,101 @@ except ImportError:
 
 class empty(SubSubtest):
 
+    def initialize(self):
+        super(empty, self).initialize()
+        # FIXME: Need a standard way to do this
+        image_name_tag = ("%s%s%s"
+                          % (self.test.config['image_name_prefix'],
+                             utils.generate_random_string(4),
+                             self.test.config['image_name_postfix']))
+        image_name, image_tag = image_name_tag.split(':', 1)
+        self.config['image_name_tag'] = image_name_tag
+        self.config['image_name'] = image_name
+        self.config['image_tag'] = image_tag
+
     def run_once(self):
         super(empty, self).run_once()
         os.chdir(self.tmpdir)
         tar_command = self.config['tar_command']
         tar_options = self.config['tar_options']
-        docker_command = self.test.config['docker_path']
-        docker_options = self.test.config['docker_options']
-        repo_name = self.make_repo_name()
         tar_command = "%s %s" % (tar_command, tar_options)
-        dkr_command = ("%s %s import - %s" % (docker_command, docker_options,
-                                              repo_name))
-        self.run_tar(tar_command, dkr_command)
+        subargs = ['-', self.config['image_name_tag']]
+        docker_command = DockerCmd(self.test, 'import', subargs)
+        self.run_tar(tar_command, str(docker_command))
 
     def postprocess(self):
         super(empty, self).postprocess()
-        # Don't assume 'repo_name_postfix' contains a tag
-        repo_name = self.make_repo_name()
-        # name parameter cannot contain tag
-        self.config['repo'], self.config['tag'] = repo_name.split(':', 1)
+        # name parameter cannot contain tag, don't assume prefix/postfix content
         self.check_output()
         self.check_status()
-        self.try_check_images()
+        image_id = self.lookup_image_id(self.config['image_name'],
+                                        self.config['image_tag'])
+        self.config['image_id'] = image_id
+        self.image_check()
+
+    def image_check(self):
+        # Fail test if...
+        result_id = self.config['result_id']
+        image_id = self.config['image_id']
+        self.logdebug("Resulting ID: %s", result_id)
+        result_contains_id = result_id.count(image_id)
+        self.failif(not result_contains_id,
+                    "Repository Id's do not match (%s,%s)"
+                    % (result_id, image_id))
 
     def cleanup(self):
         super(empty, self).cleanup()
-        if DOCKERAPI and self.config.get('api_id') is not None:
-            client = docker.Client()
-            client.remove_image(self.config.get('api_id'))
-        else:
-            repo = self.config.get('repo')
-            if repo is not None:
-                DockerCmd(self.test, 'rmi', self.config['result_id'])
-            else:
-                pass # Goal was repo removal
+        if self.test.config['try_remove_after_test']:
+            dkrcmd = NoFailDockerCmd(self.test, 'rmi', [self.config['result_id']])
+            dkrcmd.execute()
 
     def run_tar(self, tar_command, dkr_command):
         command = "%s | %s" % (tar_command, dkr_command)
         # Free, instance-specific namespace
-        cmdresult = utils.run(command, ignore_status=True)
+        cmdresult = utils.run(command, ignore_status=True, verbose=False)
         self.config['cmdresult'] = cmdresult
-        self.loginfo("Command result: %s", cmdresult)
+        self.loginfo("Command result: %s", cmdresult.stdout.strip())
         self.config['result_id'] = cmdresult.stdout.strip()
 
     def check_output(self):
-        for out in (self.config['cmdresult'].stdout,
-                    self.config['cmdresult'].stderr):
-            output.usage_check(out)
-            output.crash_check(out)
+        outputgood = output.OutputGood(self.config['cmdresult'])
+        self.failif(not outputgood, str(outputgood))
 
     def check_status(self):
         condition = self.config['cmdresult'].exit_status == 0
-        self.test.failif(not condition, "Non-zero exit status")
+        self.failif(not condition, "Non-zero exit status")
 
-    def try_check_images(self):
-        # Simple presence check via docker API if available
-        api_id = None
+    def lookup_image_id(self, image_name, image_tag):
+        # FIXME: We need a standard way to do this
+        image_id = None
+        # Any API failures must not be fatal
         if DOCKERAPI:
             client = docker.Client()
-            results = client.images(name=self.config['repo'])
-            condition = len(results) == 1
-            self.test.failif(not condition, "Imported repo. does not exist")
-            repo = results[0]
-            condition = str(repo['Repository']) == self.config['repo']
-            self.test.failif(not condition, "Imported repo. name mismatch")
-            condition = str(repo['Tag']) == self.config['tag']
-            self.test.failif(not condition, "Imported repo. tag mismatch")
-            api_id = repo.get('Id')
-            if api_id is None:
-                logging.error("Could not retrieve repo %s's Id using "
-                              "docker python API.  Data returned: '%s'",
-                              self.config['repo'], str(repo))
-            else:
-                self.loginfo("Found Id %s with docker python API", api_id)
-        if api_id is None:
+            results = client.images(name=image_name)
+            image = None
+            if len(results) == 1:
+                image = results[0]
+                # Could be unicode strings
+                if ((str(image['Repository']) == image_name) and
+                    (str(image['Tag']) == image_tag)):
+                    image_id = image.get('Id')
+            if ((image_id is None) or (len(image_id) < 12)):
+                logging.error("Could not lookup image %s:%s Id using "
+                              "docker python API Data: '%s'",
+                              image_name, image_tag, str(image))
+                image_id = None
+        # Don't have DOCKERAPI or API failed (still need image ID)
+        if image_id is None:
+            subargs = ['--quiet', image_name]
+            dkrcmd = NoFailDockerCmd(self.test, 'images', subargs)
             # fail -> raise exception
-            cmdresult = DockerCmd(self.test, 'images', '--quiet',
-                                  self.config['repo'])
-            api_id = cmdresult.stdout.strip()
-            self.loginfo("Found Id %s with docker command", api_id)
-        # Mimic behavior of throwing away all but first 12 characters of Id
-        result_id = self.config['result_id']
-        result_id = result_id[0:12]
-        self.config['api_id'] = api_id  #  used in cleanup()
-        condition = str(result_id) == str(api_id)
-        self.test.failif(not condition, "Repository Id's do not match (%s,%s)"
-                         % (result_id, api_id))
+            cmdresult = dkrcmd.execute()
+            stdout_strip = cmdresult.stdout.strip()
+            # TODO: Better image ID validity check?
+            if len(stdout_strip) == 12:
+                image_id = stdout_strip
+            else:
+                self.loginfo("Error retrieving image id, unexpected length")
+        if image_id is not None:
+            self.loginfo("Found image Id '%s'", image_id)
+        return image_id

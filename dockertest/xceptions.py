@@ -2,9 +2,16 @@
 Exception subclasses specific to docker subtests
 """
 
+# Pylint runs from a different directory, it's fine to import this way
+# pylint: disable=W0403
+
+# The exception names don't need docstrings
+# pylint: disable=C0111
+
+from autotest.client.shared import error
 from ConfigParser import InterpolationError
 
-# Basic exception subclasses
+# Basic exception subclasses (help distinguish if internal raise or not)
 
 class DockerValueError(ValueError):
     pass
@@ -24,7 +31,10 @@ class DockerIOError(IOError):
 class DockerConfigError(InterpolationError):
     pass
 
-# Specific exception subclasses
+class DockerNotImplementedError(NotImplementedError):
+    pass
+
+# Specific exception subclasses (defined behavior)
 
 class DockerVersionError(DockerValueError):
 
@@ -35,8 +45,9 @@ class DockerVersionError(DockerValueError):
 
     def __str__(self):
         return ("Docker test library version %s incompatable with "
-                "configuration version %s."
-                % (self.lib_version, self.config_version))
+                "test configuration version %s.  Likely test code "
+                "needs to be updated, to use (possibly) changed "
+                "API." % (self.lib_version, self.config_version))
 
 class DockerOutputError(DockerValueError):
 
@@ -46,3 +57,11 @@ class DockerOutputError(DockerValueError):
 
     def __str__(self):
         return str(self.reason)
+
+class DockerCommandError(DockerOutputError):
+    """Errors coming from within dockercmd module classes"""
+    pass
+
+class DockerExecError(error.TestFail):
+    """Errors occuring from execution of docker commands"""
+    pass

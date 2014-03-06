@@ -2,7 +2,7 @@
 
 MSGFMT='{msg_id}:{line:3d},{column}: {obj}: {msg}'
 BLACKLIST='conf.py'
-DISABLEMSG="I0011"
+DISABLEMSG="I0011,R0801"
 INIT_HOOK="
 AP = os.environ.get('AUTOTEST_PATH', '/usr/local/autotest')
 sys.path.append(os.path.abspath(AP + '/..'))

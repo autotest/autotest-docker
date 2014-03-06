@@ -1,22 +1,30 @@
 """
 Sub-subtest module used by dockerimport test
+
+1. Create a tarball with some dummy content
+2. Chop the tarball at some pre-defined point
+3. Attempt to feed incomplete tarball into docker import
+4. Verify import failed
 """
+
+# Okay to be less-strict for these cautions/warnings in subtests
+# pylint: disable=C0103,C0111,R0904,C0103
 
 from autotest.client import utils
 import tempfile, os, os.path, shutil
 from empty import empty
-from dockertest.dockercmd import DockerCmd
+from dockertest.dockercmd import MustFailDockerCmd
 
 class truncated(empty):
 
     def cleanup(self):
-        repo = self.config.get('repo')
-        if repo is not None:
-            cmdresult = DockerCmd(self.test, "rmi", self.config['repo'])
-            self.test.failif(cmdresult.exit_status == 0,
-                            "Unexpected image removal succeeded: %s" %
-                            str(cmdresult))
-        # expected repo not to exist!
+        # Call empty parent's cleanup, not empty's.
+        super(empty, self).cleanup() # pylint: disable=E1003
+        # Fail test if **successful**
+        image_name = self.config['image_name']  #  assume id lookup failed
+        if self.test.config['try_remove_after_test']:
+            dkrcmd = MustFailDockerCmd(self.test, 'rmi', [image_name])
+            dkrcmd.execute()
 
     def run_tar(self, tar_command, dkr_command):
         self.copy_includes()
@@ -25,7 +33,7 @@ class truncated(empty):
                                     dir=os.path.dirname(self.tmpdir))
         command = "%s --file='%s'" % (tar_command, _fn)
         # Rely on any exceptions to propigate up
-        utils.run(command)
+        utils.run(command, verbose=False)
         stats = os.stat(_fn)
         truncate_percent = self.config['truncate_percent'] / 100.0
         length = int(stats.st_size * truncate_percent)
@@ -33,20 +41,25 @@ class truncated(empty):
         os.close(_fd)
         command = "cat %s | %s" % (_fn, dkr_command)
         # instance-specific namespace
-        self.config['cmdresult'] = utils.run(command, ignore_status=True)
-        self.test.logdebug("Expected to fail: %s", self.config['cmdresult'])
+        self.loginfo("Expected to fail: %s", command)
+        self.config['cmdresult'] = utils.run(command, ignore_status=True,
+                                             verbose=False)
 
     def check_status(self):
-        condition = self.config['cmdresult'].exit_status == 0
-        self.test.failif(condition, "Unexpected command success")
+        successful_exit = self.config['cmdresult'].exit_status == 0
+        self.failif(successful_exit, "Unexpected command success!")
+        self.loginfo("It failed as expected")
 
-    def try_check_images(self):
-        pass  # image checkd in cleanup
+    def image_check(self):
+        image_id = self.config.get('image_id')
+        self.failif(image_id is not None,
+                    "Image ID '%s' successfully retrieved after expected "
+                    "import failure!" % image_id)
 
     def copy_includes(self):
         include_dirs = self.config['include_dirs']
         for include_dir in include_dirs.split(','):
             include_dir = include_dir.strip()
-            self.logdebug('Copying tree at %s to repo tmp root', include_dir)
-            shutil.copytree(include_dir,
-                            os.path.join(self.tmpdir, 'junk'), symlinks=True)
+            dest_dir = os.path.join(self.tmpdir, 'junk')
+            self.logdebug('Copying tree at %s to %s', include_dir, dest_dir)
+            shutil.copytree(include_dir, dest_dir, symlinks=True)

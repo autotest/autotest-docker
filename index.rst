@@ -282,50 +282,44 @@ Simple test that checks the output of the ``docker version`` command.
 -------------------------------------
 
 This test requires the ``docker`` executable is available.  Optionally,
-if the ``python-docker-py`` package is available, it will compare
-the version number returned to the one obtained via the REST API.
+if the ``python-docker-py`` package is available, it will be used.  If
+it fails, a simple check using the REST API is used to compare
+the version number returned to the one obtained from the CLI. This check
+requires the 'nc' (netcat) command is available.
 
 ``docker_cli/version`` Configuration
 --------------------------------------
 
-Two comma-separated lists of individual arguments are provided.  The
-``valid_option`` list should contain arguments which will not cause
-any negative results when passed to the ``docker`` command.  The
-``invalid_option`` list is the opposite, every argument should cause
-either a ``usage:`` statement to appear or otherwise result in a
-non-zero exit code.
+Only the API version.
 
 
 ``docker_cli/build`` Sub-test
 ==============================
 
 Tests the ``docker build`` command operation with a set of options
-and pre-defined build-content.  The test subject is **not** individual
-stages build process stages.  Rather, this test is only concerned
-with the general behavior of the docker CLI  itself.
+and pre-defined build-content.
 
 ``docker_cli/build`` Prerequisites
 ------------------------------------------
 
-*  A base or "context" directory containing a ``Dockerfile`` including
-   any of it's requirements.
-*  The build must complete in a fixed amount of time (i.e. no
-   on external downloads, only local source content)
+* Tarballs bundled with the subtest
+* Statically linked 'busybox' executable available on PATH
+  in host environment.
 
 ``docker_cli/build`` Configuration
 -------------------------------------------
 
 *  The ``docker_build_options`` option specifies additional arguments
    to add in addition to the ``DEFAULTS`` option ``docker_options``.
-*  The ``docker_build_path_or_uri`` points to the absolute path
-   of the base or "context" path containing the ``Dockerfile``
 *  The ``build_timeout_seconds`` option specifies a fixed time (in
    seconds) the build must complete within)
 *  ``try_remove_after_test`` is a boolean option, selecting whether
    or not the built-image should be removed when the test is complete.
    (Any removal errors will be ignored)
-*  Both the ``repo_name_prefix`` and ``repo_name_postfix`` behave
+*  Both the ``image_name_prefix`` and ``image_name_postfix`` behave
    exactly like the `docker_cli/dockerimport sub-test`_ test.
+*  The location of the statically linked ``busybox`` executable
+   is specified by the ``busybox_path`` option.
 
 ``docker_cli/dockerimport`` Sub-test
 =======================================
@@ -356,7 +350,7 @@ Configuration for this subtest consists of a few options which
 control overall sub-sub-test execution.  Further, unique sections
 for each sub-sub-test are also used.
 
-* The ``repo_name_prefix`` and ``repo_name_postfix`` specify
+* The ``image_name_prefix`` and ``image_name_postfix`` specify
   values used to automatically generate a unique image name.
   The unique part will be sandwiched in-between these options
   values.
@@ -398,6 +392,10 @@ Configuration Module
 
 Subtest Module
 ================
+
+.. Have to list out contents one-by-one for this module
+   otherwise the Mock'd inherited test.test prevents
+   Subtest class from containing any detail
 
 .. py:module:: dockertest.subtest
 

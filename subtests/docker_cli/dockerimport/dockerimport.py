@@ -2,7 +2,10 @@
 Based on config['test_subsection_postfixes'] load module, call function.
 """
 
-import sys, imp, os.path
+# Okay to be less-strict for these cautions/warnings in subtests
+# pylint: disable=C0103,C0111,R0904,C0103
+
+import imp
 from autotest.client.shared import error
 from dockertest import subtest
 
@@ -24,7 +27,7 @@ class dockerimport(subtest.Subtest):
                     subsubtest.initialize()
                     # Allow run_once()
                     run_subsubtests[name] = subsubtest
-                except Exception, detail:
+                except error.AutotestError, detail:
                     # Log problem, don't add to run_subsubtests
                     self.logerror("%s failed to initialize: %s: %s", name,
                                   detail.__class__.__name__, detail)
@@ -37,7 +40,7 @@ class dockerimport(subtest.Subtest):
                 subsubtest.run_once()
                 # Allow postprocess()
                 post_subsubtests[name] = subsubtest
-            except Exception, detail:
+            except error.AutotestError, detail:
                 # Log problem, don't add to post_subsubtests
                 self.loginfo("%s failed in run_once: %s: %s", name,
                              detail.__class__.__name__, detail)
@@ -54,7 +57,7 @@ class dockerimport(subtest.Subtest):
                 final_subsubtests.add(name)
             # Fixme: How can this be avoided, yet guarantee cleanup() and
             #        postprocess for other subtests?
-            except Exception, detail:
+            except error.AutotestError, detail:
                 # Forms "failed" set by exclusion, but log problem
                 self.loginfo("%s failed in postprocess: %s: %s", name,
                              detail.__class__.__name__, detail)
@@ -68,7 +71,7 @@ class dockerimport(subtest.Subtest):
         for name, subsubtest in self.config['start_subsubtests'].items():
             try:
                 subsubtest.cleanup()
-            except Exception, detail:
+            except error.AutotestError, detail:
                 cleanup_failures.add(name)
                 self.logerror("%s failed to cleanup: %s: %s", name,
                               detail.__class__.__name__, detail)

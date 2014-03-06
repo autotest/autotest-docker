@@ -8,6 +8,9 @@ output to the controling terminal (only) and automatically
 loading the specified configuration section (see `configuration module`_)
 """
 
+# Pylint runs from a different directory, it's fine to import this way
+# pylint: disable=W0403
+
 import logging, tempfile, os.path
 from autotest.client.shared import error, base_job
 from autotest.client import job, test
@@ -56,6 +59,9 @@ class Subtest(test.test):
             self.config = config_parser['DEFAULTS']
             # Mark this to not be checked, no config, no version info.
             self.config['config_version'] = version.NOVERSIONCHECK
+        else:
+            # Fail test if configuration being used is too old
+            version.check_version(self.config)
         # Log original key/values before subtest could modify them
         self.write_test_keyval(self.config)
         # Optionally setup different iterations if option exists
@@ -89,8 +95,6 @@ class Subtest(test.test):
         Called every time the test is run.
         """
         self.loginfo("initialize()")
-        # Fail test if configuration being used is too old
-        version.check_version(self.config)
 
     def run_once(self):
         """
@@ -232,6 +236,9 @@ class SubSubtest(object):
         name = os.path.basename(self.tmpdir)
         postfix = self.test.config['repo_name_postfix']
         return "%s%s%s" % (prefix, name, postfix)
+
+    # Handy to have here also
+    failif = staticmethod(Subtest.failif)
 
     def logdebug(self, message, *args):
         """
