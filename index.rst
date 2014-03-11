@@ -176,6 +176,29 @@ the ``docker_cli/version`` configuration section (located in
 ``config_defaults/subtests/docker_cli/version.ini``).
 
 --------------------
+Images
+--------------------
+
+Multiple areas of documentation and output refer to *repository*, *images*,
+and *layers* almost interchangeably.  There are also multiple interfaces
+available for image creation, retrieval, comparison, etc. these items.  However,
+images are extremely central to working with containers in general, and
+with docker specifically.  A generalized interface for working with these
+items is provided by the `images module`_.
+
+This module wraps many concepts up inside constructs to provide a measured
+amount of abstraction.  It allows subtests and other callers to expand
+it's concepts while providing a high-level consistent, extensible and
+uniform set of helpers.  Most of them are designed to be agnostic toward
+the actual method of image access or representation.
+
+Though for internal use it is highly recommended to reference images only
+by their long (64-character) ID string.  Otherwise, for specific test-subjects,
+or use,  any of the provided interfaces may be used and/or specialized.  Extension
+of interfaces can be done within subtest modules directly, or some combination
+of sources.
+
+--------------------
 Configuration
 --------------------
 
@@ -365,6 +388,23 @@ for each sub-sub-test are also used.
   class of sub-test they list the tar-command location and options
   to use before sending the content into the docker import command.
 
+
+``docker_cli/images`` Sub-test
+=======================================
+
+Ultra-simple test to confirm output table-format of docker CLI
+'images' command.
+
+``docker_cli/images`` Prerequisites
+---------------------------------------------
+*  None
+
+``docker_cli/images`` Configuration
+--------------------------------------
+*  None
+
+
+
 ----------------------------------
 Dockertest API Reference
 ----------------------------------
@@ -374,20 +414,6 @@ Dockertest Package
 
 .. automodule:: dockertest
    :no-members:
-   :no-undoc-members:
-
-Version Module
-================
-
-.. automodule:: dockertest.version
-   :members:
-   :no-undoc-members:
-
-Configuration Module
-=====================
-
-.. automodule:: dockertest.config
-   :members:
    :no-undoc-members:
 
 Subtest Module
@@ -413,6 +439,13 @@ loading the specified configuration section (see `configuration module`_)
 
 .. autoclass:: dockertest.subtest.SubSubtest
    :members:
+
+Images Module
+===============
+
+.. automodule:: dockertest.images
+   :members:
+   :no-undoc-members:
 
 Dockercmd Module
 =================
@@ -441,6 +474,22 @@ Sphinx Conf Module
 .. automodule:: conf
    :members:
    :undoc-members:
+
+
+
+Version Module
+================
+
+.. automodule:: dockertest.version
+   :members:
+   :no-undoc-members:
+
+Configuration Module
+=====================
+
+.. automodule:: dockertest.config
+   :members:
+   :no-undoc-members:
 
 ----------------
 Further Reading

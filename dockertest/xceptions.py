@@ -65,3 +65,13 @@ class DockerCommandError(DockerOutputError):
 class DockerExecError(error.TestFail):
     """Errors occuring from execution of docker commands"""
     pass
+
+class DockerFullNameFormatError(DockerValueError):
+    def __init__(self, name):
+        super(DockerFullNameFormatError, self).__init__()
+        self.name = name
+
+    def __str__(self):
+        return ("Image name %s do not match docker Fully Qualified Image Name"
+                " format [registry_hostname[:port]/][user_name/]"
+                "(repository_name[:version_tag])" % self.name)
