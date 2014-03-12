@@ -340,3 +340,19 @@ class Config(dict):
                 sec_copy[cfg_key] = cfg_value
             the_copy[sec_key] = sec_copy
         return the_copy
+
+def none_if_empty(dict_like, key_name=None):
+    """
+    Set (stripped) empty strings in dict_like to None, if not specific key_name
+
+    :param dict_like: Instance with dict-like interface
+    :param key_name: Optional single key to check
+    """
+    if key_name is None:
+        keys = dict_like.keys()
+    else:
+        keys = [key_name]
+    for key_name in keys:
+        if(isinstance(dict_like[key_name], (str, unicode)) and
+           len(dict_like[key_name].strip()) < 1):
+            dict_like[key_name] = None

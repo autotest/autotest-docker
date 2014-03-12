@@ -27,6 +27,7 @@ Note: As in other places, the terms 'repo' and 'image' are used interchangeably.
 import re
 from autotest.client import utils
 from subtest import Subtest
+from config import none_if_empty
 from xceptions import DockerFullNameFormatError
 
 
@@ -145,6 +146,26 @@ class DockerImage(object): # pylint: disable=R0902
         component = zip(("%s/", "%s/", "%s", ":%s"),
                         (repo_addr, user, repo, tag))
         return "".join([c % v for c, v in component if not v is None])
+
+    @staticmethod
+    def full_name_from_defaults(config):
+        """
+        Return the FQIN based on '[DEFAULT]' options
+
+        :param config: Dict-like containing keys: ``docker_repo_name``,
+                       ``docker_repo_tag``, ``docker_registry_host``,
+                       ``docker_registry_user``
+        """
+        # Don't modify actual data
+        config = config.copy()
+        for key in ('docker_repo_name', 'docker_repo_tag',
+                    'docker_registry_host', 'docker_registry_user'):
+            none_if_empty(config, key)
+        return DockerImage.full_name_from_component(
+                                                config['docker_repo_name'],
+                                                config['docker_repo_tag'],
+                                                config['docker_registry_host'],
+                                                config['docker_registry_user'])
 
     def cmp_id(self, image_id):
         """
@@ -445,7 +466,6 @@ class DockerImagesCLI(DockerImagesBase):
         Fully Qualified Image Name.
         """
         self.last_cmdresult = self._docker_cmd("rmi %s" % full_name)
-
 
 #  __getattr__ method will take care of making more names available
 # pylint: disable=R0903

@@ -184,5 +184,22 @@ class TestConfig(ConfigTestBase):
         self.assertEqual(atestsection['testoptions'], "foobarbaz")  # default
         self.assertEqual(yatestsection['testoptionx'], False)  # overridden
 
+class TestUtilities(ConfigTestBase):
+
+    def test_nfe_all(self):
+        test_dict = {'foo':0, 'bar':None, 'baz':"      "}
+        self.config.none_if_empty(test_dict)
+        self.assertEqual(test_dict, {'foo':0, 'bar':None, 'baz':None})
+
+    def test_nfs_one(self):
+        test_dict = {'foo':0, 'bar':None, 'baz':"      "}
+        self.config.none_if_empty(test_dict, 'bar')
+        self.assertEqual(test_dict, {'foo':0, 'bar':None, 'baz':"      "})
+
+    def test_nfs_another(self):
+        test_dict = {'foo':0, 'bar':None, 'baz':"      "}
+        self.config.none_if_empty(test_dict, 'baz')
+        self.assertEqual(test_dict, {'foo':0, 'bar':None, 'baz':None})
+
 if __name__ == '__main__':
     unittest.main()
