@@ -54,7 +54,10 @@ def step_init():
     # Every step must be pickleable: use wrapper function + arguments
     for index, url in enumerate(subtests):
         tag = "test_%s-of-%s" % (index + 1, total)
-        job.next_step(run_test, control_path, url, tag, TIMEOUT)
+        subsubtest = None
+        if ":" in url:
+            url, subsubtest = url.rsplit(":")
+        job.next_step(run_test, control_path, url, tag, TIMEOUT, subsubtest)
 
 def get_doc_version(control_path):
     """
@@ -67,7 +70,7 @@ def get_doc_version(control_path):
             version = line.split("'")[1]
     return version
 
-def run_test(control_path, url, tag, timeout):
+def run_test(control_path, url, tag, timeout, subsubtest):
     """
     Wrapper function around job.run_test() and setup for subtest namespace.
     """
@@ -95,6 +98,6 @@ def run_test(control_path, url, tag, timeout):
         # make sure it error gets read
         time.sleep(10)
     # Run the subtest module through autotest job interface
-    job.run_test(url=url, tag=tag, timeout=timeout)
+    job.run_test(url=url, tag=tag, timeout=timeout, subsubtest=subsubtest)
     # Make sure this gets unloaded each time.
     del sys.modules['dockertest']

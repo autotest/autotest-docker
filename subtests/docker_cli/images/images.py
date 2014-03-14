@@ -13,7 +13,6 @@ from dockertest.images import DockerImages
 import logging
 
 class images(subtest.Subtest):
-    version = "0.1.1"
     config_section = 'docker_cli/images'
 
     def initialize(self):

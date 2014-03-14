@@ -1,5 +1,5 @@
 # TODO: Fill in FROM w/ in test code
-FROM registry.example.com/empty_base_image
+FROM empty_base_image
 MAINTAINER cevich@redhat.com
 ADD basic_tree.tar /
 ADD basic_devices.tar /

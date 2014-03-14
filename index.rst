@@ -58,10 +58,27 @@ a host-kernel panic or userspace become unresponsive.
 Prerequisites
 ----------------
 
+*  Docker
+
+    *  **Clean** environment (no images or other content),
+       running containers, or dependant services (besides ``docker -d``)
+       at the start of **every** Autotest run.
+    *  Docker installation (with ``docker -d`` running at startup)
+    *  Default settings for Docker on your platform/OS,
+       unless otherwise noted.
+    *  (Optional) The python-docker-py_ package for your platform
+
 *  `Supported Docker OS platform`_
 
     *  Fedora 20 recommended
     *  Linux kernel 3.12.9 or later
+
+*  Platform Applications/tools
+
+    *  Core-utils or equivalent (i.e. ``cat``, ``mkdir``, ``tee``, etc.)
+    *  Tar and supported compression programs
+    *  Git (and basic familiarity with it's operation)
+    *  Python 2.4 or greater (but not 3.0)
 
 *  Autotest & Autotest Client (0.15 or later)
 
@@ -74,12 +91,6 @@ Prerequisites
     *  Environment variable ``AUTOTEST_PATH`` set to absolute path where
        autotest installed (if *not* in ``/usr/local/autotest``)
 
-*  Core-utils or equivalent (i.e. ``cat``, ``mkdir``, ``tee``, etc.)
-*  Tar and supported compression programs
-*  Git (and basic familiarity with it's operation)
-*  Python 2.4 or greater (but not 3.0)
-*  Docker installation (with ``docker -d`` running at startup)
-*  (Optional) The python-docker-py_ package for your platform
 *  *Any specific requirements for particular* `subtest modules`_
 
 .. _Supported Docker OS platform: https://www.docker.io/gettingstarted/#h_installation
@@ -88,22 +99,17 @@ Prerequisites
 Quickstart
 ----------------
 
-#)  Double-check you meet all the requirements in `prerequisites`_.
-#)  Within your ``$AUTOTEST_PATH``, change to the ``client`` subdirectory.
-#)  Clone the ``docker`` branch of `Docker Autotest Client Tests`_ repository
-    into the ``tests`` subdirectory. e.g.
-    ``git clone -b docker https://github... tests``
-#)  Run the autotest standalone client (``autotest-local run docker``).
-    (see below example for selecting only a few tests to run)
-
-.. _Docker Autotest Client Tests: https://github.com/cevich/autotest-client-tests.git
-
-For example:
+1)  Double-check you meet all the requirements in `prerequisites`_.
+2)  Within your ``$AUTOTEST_PATH``, change to the ``client`` subdirectory.
 
 ::
 
     [root@docker ~]# cd $AUTOTEST_PATH
     [root@docker autotest]# cd client
+
+3)  Clone the ``docker`` branch of `Docker Autotest Client Tests`_ repository
+    into the ``tests`` subdirectory. e.g.
+    ``git clone -b docker https://github... tests``
 
 ::
 
@@ -118,9 +124,21 @@ For example:
     Resolving deltas: 100% (8773/8773), done.
     Checking connectivity... done.
 
+.. _Docker Autotest Client Tests: https://github.com/cevich/autotest-client-tests.git
 
-The default behavior is to run all subtests. However, the example below
-demonstrates using the ``--args`` parameter to select *only two* sub-tests:
+4)  Make a copy of default configuration, edit as appropriate.  Particularly
+    the options for ``docker_repo_name``, ``docker_repo_tag``,
+    ``docker_registry_host``, and ``docker_registry_user`` if required.
+
+::
+
+    [root@docker client]# cp -abi tests/docker/config_defaults/defaults.ini \
+                                  tests/docker/config_custom
+    [root@docker client]# vim tests/docker/config_custom/defaults.ini
+
+5)  Run the autotest standalone client (``autotest-local run docker``).  The
+    default behavior is to run all subtests.  However, the example below
+    demonstrates using the ``--args`` parameter to select *only two* sub-tests:
 
 ::
 
@@ -153,9 +171,9 @@ demonstrates using the ``--args`` parameter to select *only two* sub-tests:
 
 (timestamps and extra text removed for clarity)
 
-**Note:** Subtest names are all relative to the ``subtests`` sub-directory and must
-be fully-qualified.  e.g. ``docker_cli/version`` refers to the subtest module
-``subtests/docker_cli/version/version.py``.
+:Note: Subtest names are all relative to the ``subtests`` sub-directory and must
+       be fully-qualified.  e.g. ``docker_cli/version`` refers to the subtest module
+       ``subtests/docker_cli/version/version.py``.
 
 -----------------
 Subtests
@@ -169,11 +187,21 @@ ensures each subtest's code is kept separate from all others.
 
 The structure/layout of the ``subtest`` directory tree is not important
 for locating/executing subtests.  However it is relevant for the finding/loading
-of each subtests configuration_.  The configuration section name for any sub-tests
+of each subtests configuration_.  The configuration **section name** for any sub-tests
 is formed by the subtest name relative to the ``subtest`` directory.  For example,
 the subtest module ``subtests/docker_cli/version/version.py`` matches with
-the ``docker_cli/version`` configuration section (located in
-``config_defaults/subtests/docker_cli/version.ini``).
+the ``[docker_cli/version]`` *configuration section*.  The relative location
+of the configuration file does not matter, only the section name.
+
+Additionally, subtests may source their own static content.  If this content
+is further test components, please see the `Subtest Module`_ section regarding the
+``dockertest.subtest.SubSubtest`` class.  If static content needs to be built,
+or in some  way made environment-specific, this must happen by overriding
+the ``setup() method``.  Within this method, content it should be copied from
+from the path referenced in the ``bindir`` attribute, to the path referenced
+by the ``srcdir`` attribute.  The ``setup()`` method will ***only*** be called
+once per version number (including revisions).  State may be reset by clearing
+the autotest client ``tmp`` directory.
 
 --------------------
 Images
@@ -216,7 +244,7 @@ All configuration files are loaded into a single name-space, containing
 sub-name-spaces for each section. Section names which exactly match a subtest
 module name, are automatically loaded (see Subtests_).
 
-Default, global values for **all** sections are located within the
+The Default, global values for **all** sections are located within the
 special ``defaults.ini`` file's ``DEFAULTS`` section.  These option
 names and values stand in for same-named options that are undefined
 in any section. See `Default configuration options`_ for more details.
@@ -226,26 +254,25 @@ where ``<option>`` is the name of another option.  The source option
 name may not reside outside the reference section, though options
 in the special ``DEFAULTS`` section are always available.
 
+:Note: The relative locations of files under ``config_defaults`` and ``config_custom``
+       does not matter.  Multiple sections may appear in the same file.
+
 ------------------------
 Versioning Requirements
 ------------------------
 
 In order to support external/private subtests and customized configurations,
-the Docker Autotest API version has been tightly coupled to execution.
-Further, to ensure any API changes are also reflected in documentation,
-it's version is also checked.
+the Docker Autotest API version has been tightly coupled to test content,
+configuration, and documentation.  Version comparison is only significant
+for the first two numbers (the major and minor versions).  The third (last)
+number represents insignificant revisions which do not alter the core test
+or subtest API.
 
-Version comparison is only significant for the first two numbers (the major
-and minor versions).  The third (last) number represents insignificant
-revisions which do not alter the core test or subtest API.  This allows
-the API to be extended freely, but any changes which could affect external
-tests or configurations will be flagged when encountered.
-
-*Note:*  Each subtest sub-class also has a version number which is **not**
-associated with it's ``config_version`` configuration option or the API version.
-This separate version number is used by the autotest harness to allow tests
-with a ``setup()`` method to perform one-time operations.  It allows a subtest
-that builds complex code to only do so one-time per version number.
+This allows the API to be extended freely, but any changes
+which could affect external tests or custom configurations will be flagged
+when encountered.  The most likely cause for version problems is custom
+and/or outdated configurations.  Double-check any customizations within
+``config_custom`` match the current API.
 
 ------------------
 Subtest Modules
@@ -404,6 +431,45 @@ Ultra-simple test to confirm output table-format of docker CLI
 *  None
 
 
+``docker_cli/run_simple`` Sub-test
+=====================================
+
+Three simple tests that verify exit status and singnal pass-through capability
+
+``docker_cli/run_simple`` Prerequisites
+-----------------------------------------
+
+*  Container image with a ``/bin/bash`` shell executable
+*  Container image with a ``/bin/true`` executable returning zero
+*  Container image with a ``/bin/false`` executable returning non-zero
+
+``docker_cli/run_simple`` Configuration
+-----------------------------------------
+
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
+
+
+``docker_cli/pull`` Sub-test
+=======================================
+
+Several variations of running the pull command against a registry server.
+
+``docker_cli/pull`` Prerequisites
+---------------------------------------------
+
+*  A remote registry server
+*  Image on remote registry with 'latest' and some other tag
+
+``docker_cli/pull`` Configuration
+--------------------------------------
+
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
 
 ----------------------------------
 Dockertest API Reference
@@ -474,8 +540,6 @@ Sphinx Conf Module
 .. automodule:: conf
    :members:
    :undoc-members:
-
-
 
 Version Module
 ================

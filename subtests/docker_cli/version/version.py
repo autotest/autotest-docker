@@ -20,8 +20,6 @@ except ImportError:
     DOCKERAPI = False
 
 class version(subtest.Subtest):
-    version = "0.0.1"
-    config_section = 'docker_cli/version'
 
     def initialize(self):
         super(version, self).initialize()
@@ -30,11 +28,11 @@ class version(subtest.Subtest):
         super(version, self).run_once()
         # 1. Run with no options
         nfdc = NoFailDockerCmd(self, "version")
-        self.config['cmdresult'] = nfdc.execute()
+        self.stuff['cmdresult'] = nfdc.execute()
 
     def postprocess(self):
         # Raise exception on Go Panic or usage help message
-        outputgood = OutputGood(self.config['cmdresult'])
+        outputgood = OutputGood(self.stuff['cmdresult'])
         docker_version = DockerVersion(outputgood.stdout_strip)
         self.loginfo("Found docker versions client: %s server %s ",
                      docker_version.client, docker_version.server)
@@ -49,7 +47,7 @@ class version(subtest.Subtest):
             client_version = _version['Version']
         else:
             import json
-            # There has **got** to be a better way
+            # FIXME: use httplib to do this properly
             from autotest.client import utils
             cmdresult = utils.run('echo -e "GET /version HTTP/1.1\r\n" |'
                                   ' nc -U /var/run/docker.sock')

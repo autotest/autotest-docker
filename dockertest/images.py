@@ -21,15 +21,14 @@ Where/when ***possible***, both parameters and return values follow this order:
 Note: As in other places, the terms 'repo' and 'image' are used interchangeably.
 """
 
-# Pylint runs from a different directory, it's fine to import this way
+# Pylint runs from another directory, ignore relative import warnings
 # pylint: disable=W0403
 
 import re
+from config import none_if_empty
 from autotest.client import utils
 from subtest import Subtest
-from config import none_if_empty
 from xceptions import DockerFullNameFormatError
-
 
 # Many attributes simply required here
 class DockerImage(object): # pylint: disable=R0902
@@ -148,24 +147,31 @@ class DockerImage(object): # pylint: disable=R0902
         return "".join([c % v for c, v in component if not v is None])
 
     @staticmethod
-    def full_name_from_defaults(config):
+    def full_name_from_defaults(config, min_length=4):
         """
         Return the FQIN based on '[DEFAULT]' options
 
         :param config: Dict-like containing keys: ``docker_repo_name``,
                        ``docker_repo_tag``, ``docker_registry_host``,
                        ``docker_registry_user``
+        :param min_length: Minimum length of full name, raise ValueError
+                           if less.
+        :return: Fully Qualified Image Name string.
         """
         # Don't modify actual data
         config = config.copy()
         for key in ('docker_repo_name', 'docker_repo_tag',
                     'docker_registry_host', 'docker_registry_user'):
             none_if_empty(config, key)
-        return DockerImage.full_name_from_component(
+        fqin = DockerImage.full_name_from_component(
                                                 config['docker_repo_name'],
                                                 config['docker_repo_tag'],
                                                 config['docker_registry_host'],
                                                 config['docker_registry_user'])
+        if len(fqin) < min_length:
+            raise ValueError("FQIN '%s' likely wrong, from configuration %s"
+                            % (fqin, config))
+        return fqin
 
     def cmp_id(self, image_id):
         """
@@ -278,8 +284,7 @@ class DockerImagesBase(object):
         self.subtest = subtest
 
     # Not defined static on purpose
-    # pylint: disable=R0201
-    def get_dockerimages_list(self):
+    def get_dockerimages_list(self): # pylint: disable=R0201
         """
         Standard name for behavior specific to subclass implementation details
 
@@ -401,18 +406,34 @@ class DockerImagesBase(object):
         Remove an image by 64-character (long) or 12-character (short) image ID.
 
         :raise: RuntimeError when implementation does not permit image removal
+        :raise: Implementation-specific exception
+        :return: Implementation specific value
         """
         del image_id  # keep pylint happy
         raise RuntimeError()
+        return None
 
-    def remove_image_by_image_full_name(self, full_name):
+    def remove_image_by_full_name(self, full_name):
         """
         Remove an image by FQIN Fully Qualified Image Name.
 
         :raise: RuntimeError when implementation does not permit image removal
+        :raise: Implementation-specific exception
+        :return: Implementation specific value
         """
         del full_name  # keep pylint happy
         raise RuntimeError()
+        return None
+
+    def remove_image_by_image_obj(self, image_obj):
+        """
+        Alias for remove_image_by_full_name(image_obj.full_name)
+
+        :raise: Same as remove_image_by_full_name()
+        :raise: Implementation-specific exception
+        :return: Same as remove_image_by_full_name()
+        """
+        return self.remove_image_by_full_name(image_obj.full_name)
 
 
 class DockerImagesCLI(DockerImagesBase):
@@ -420,20 +441,19 @@ class DockerImagesCLI(DockerImagesBase):
     Docker command supported DockerImage-like instance collection and helpers
     """
 
-    #: In case caller need this for checking/reporting
-    last_cmdresult = None
-
     def _docker_cmd(self, cmd, timeout=None):
         """
         :param cmd: Command which should be called using docker
+        :param timeout: Override self.timeout if not None
+        :return: autotest.client.utils.CmdResult instance
         """
         docker_image_cmd = ("%s %s" % (self.subtest.config['docker_path'],
                                        cmd))
         if timeout is None:
             timeout = self.timeout
-        cmd_r = utils.run(docker_image_cmd, verbose=self.verbose,
-                          timeout=timeout)
-        return cmd_r
+        return utils.run(docker_image_cmd,
+                         verbose=self.verbose,
+                         timeout=timeout)
 
     # private methods don't need docstrings
     def _get_images_list(self):  # pylint: disable=C0111
@@ -457,18 +477,28 @@ class DockerImagesCLI(DockerImagesBase):
     def remove_image_by_id(self, image_id):
         """
         Use docker CLI to removes image matching long or short image_ID
-        """
-        self.last_cmdresult = self._docker_cmd("rmi %s" % image_id)
 
-    def remove_image_by_image_full_name(self, full_name):
+        :returns: autotest.client.utils.CmdResult instance
         """
-        Use docker CLI to remove an image by FQIN
-        Fully Qualified Image Name.
-        """
-        self.last_cmdresult = self._docker_cmd("rmi %s" % full_name)
+        return self._docker_cmd("rmi %s" % image_id)
 
-#  __getattr__ method will take care of making more names available
-# pylint: disable=R0903
+    def remove_image_by_full_name(self, full_name):
+        """
+        Remove an image by FQIN Fully Qualified Image Name.
+
+        :returns: autotest.client.utils.CmdResult instance
+        """
+        return self._docker_cmd("rmi %s" % full_name)
+
+    def remove_image_by_image_obj(self, image_obj):
+        """
+        Use docker CLI to remove an image by DockerImage
+
+        :returns: autotest.client.utils.CmdResult instance
+        """
+        return self.remove_image_by_full_name(image_obj.full_name)
+
+
 class DockerImages(object):
     """
     Encapsulates DockerImage interfaces for manipulation with docker images.
@@ -497,10 +527,36 @@ class DockerImages(object):
             self.subtest = subtest
 
         _dic = self.interfaces[interface_name]
-        self.interface = _dic(self.subtest, timeout, verbose)
+        self._interface = _dic(self.subtest, timeout, verbose)
 
     def __getattr__(self, name):
         """
         Hide interface choice while allowing attribute/method access.
         """
-        return getattr(self.interface, name)
+        return getattr(self._interface, name)
+
+    @property
+    def interface(self):
+        """
+        Interface class being encapsulated (read-only property)
+        """
+        return self._interface.__class__
+
+    @property
+    def interface_name(self):
+        """
+        Class name of interface being encapsulated (read-only property)
+        """
+        return self.interface.__name__
+
+    @property
+    def interface_shortname(self):
+        """
+        Short-name used to create this instance (read-only property)
+        """
+        keys = self.interfaces.keys()
+        values = self.interfaces.values()
+        try:
+            return keys[values.index(self.interface)]
+        except ValueError, detail:
+            raise KeyError(detail)

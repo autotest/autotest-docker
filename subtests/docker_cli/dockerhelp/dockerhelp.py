@@ -15,7 +15,6 @@ from dockertest.dockercmd import DockerCmd, NoFailDockerCmd
 
 # 'help()' is reserved in python
 class dockerhelp(subtest.Subtest):
-    version = "0.0.1"  #  Used to track when setup() should run
     config_section = 'docker_cli/dockerhelp'
 
     def initialize(self):
@@ -23,25 +22,25 @@ class dockerhelp(subtest.Subtest):
         # Names are too long to put on one line
         sol = 'success_option_list'
         fol = 'failure_option_list'
-        self.config[sol] = self.config[sol].split(',')
-        self.config[fol] = self.config[fol].split(',')
-        self.config["success_cmdresults"] = []
-        self.config['failure_cmdresults'] = []
+        self.stuff[sol] = self.config[sol].split(',')
+        self.stuff[fol] = self.config[fol].split(',')
+        self.stuff["success_cmdresults"] = []
+        self.stuff['failure_cmdresults'] = []
 
     def run_once(self):
         super(dockerhelp, self).run_once() # Prints out basic info
-        for option in self.config['success_option_list']:
+        for option in self.stuff['success_option_list']:
             # No successful command should throw an exception
             dkrcmd = NoFailDockerCmd(self, option)
-            self.config["success_cmdresults"].append(dkrcmd.execute())
-        for option in self.config['failure_option_list']:
+            self.stuff["success_cmdresults"].append(dkrcmd.execute())
+        for option in self.stuff['failure_option_list']:
             # These are likely to return non-zero
             dkrcmd = DockerCmd(self, option)
-            self.config['failure_cmdresults'].append(dkrcmd.execute())
+            self.stuff['failure_cmdresults'].append(dkrcmd.execute())
 
     def postprocess(self):
         super(dockerhelp, self).postprocess()  # Prints out basic info
-        for cmdresult in self.config["success_cmdresults"]:
+        for cmdresult in self.stuff["success_cmdresults"]:
             self.loginfo("command: '%s'" % cmdresult.command)
             self.failif(cmdresult.exit_status != 0,
                         "Docker command returned non-zero exit status")
@@ -53,7 +52,7 @@ class dockerhelp(subtest.Subtest):
             outputgood = OutputGood(cmdresult, ignore_error=True,
                                     skip=['usage_check'])
             self.failif(not outputgood, str(outputgood))
-        for cmdresult in self.config['failure_cmdresults']:
+        for cmdresult in self.stuff['failure_cmdresults']:
             self.loginfo("command: '%s'" % cmdresult.command)
             self.failif(cmdresult.exit_status == 0,
                         "Invalid docker option returned exit status of '0'")

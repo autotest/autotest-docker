@@ -8,8 +8,9 @@ Frequently used docker CLI operations/data
 from autotest.client.shared import error
 from autotest.client import utils
 from subtest import Subtest
-from xceptions import DockerExecError, DockerCommandError
+from xceptions import DockerCommandError
 from xceptions import  DockerNotImplementedError
+from xceptions import DockerExecError
 
 class DockerCmdBase(object):
     """
@@ -53,7 +54,7 @@ class DockerCmdBase(object):
         """
         return self.command
 
-    def execute(self, stdin):
+    def execute(self, stdin):  # pylint: disable=R0201
         """
         Execute docker subcommand
 

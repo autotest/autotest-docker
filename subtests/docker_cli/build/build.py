@@ -14,17 +14,12 @@ Test run of docker build command
 import os, os.path, shutil, time, logging
 from autotest.client import utils
 from dockertest import subtest
+from dockertest.images import DockerImages
 from dockertest.output import OutputGood
-from dockertest.dockercmd import AsyncDockerCmd, NoFailDockerCmd
-
-try:
-    import docker
-    DOCKERAPI = True
-except ImportError:
-    DOCKERAPI = False
+from dockertest.dockercmd import AsyncDockerCmd
+from dockertest.dockercmd import NoFailDockerCmd
 
 class build(subtest.Subtest):
-    version = "0.0.2"
     config_section = 'docker_cli/build'
 
     def setup(self):
@@ -50,15 +45,18 @@ class build(subtest.Subtest):
                              utils.generate_random_string(4),
                              self.config['image_name_postfix']))
         image_name, image_tag = image_name_tag.split(':', 1)
-        self.config['image_name_tag'] = image_name_tag
-        self.config['image_name'] = image_name
-        self.config['image_tag'] = image_tag
-        # TODO: Supply 'FROM' contents to Dockerfile (See Dockerfile)
+        self.stuff['image_name_tag'] = image_name_tag
+        self.stuff['image_name'] = image_name
+        self.stuff['image_tag'] = image_tag
+        # Must build from a base-image, import an empty one
+        tarball = open(os.path.join(self.bindir, 'empty_base_image.tar'), 'rb')
+        dc = NoFailDockerCmd(self, 'import', ["-", "empty_base_image"])
+        dc.execute(stdin=tarball)
 
     def run_once(self):
         super(build, self).run_once()
         subargs = [self.config['docker_build_options'],
-                   "-t", self.config['image_name_tag'],
+                   "-t", self.stuff['image_name_tag'],
                    self.srcdir]
         # Don't really need async here, just exercizing class
         dkrcmd = AsyncDockerCmd(self, 'build', subargs,
@@ -68,63 +66,32 @@ class build(subtest.Subtest):
         while not dkrcmd.done:
             self.loginfo("Building...")
             time.sleep(3)
-        self.config["cmdresult"] = dkrcmd.wait()
+        self.stuff["cmdresult"] = dkrcmd.wait()
 
     def postprocess(self):
         super(build, self).postprocess()
         # Raise exception if problems found
-        OutputGood(self.config['cmdresult'])
-        self.failif(self.config['cmdresult'].exit_status != 0,
+        OutputGood(self.stuff['cmdresult'])
+        self.failif(self.stuff['cmdresult'].exit_status != 0,
                     "Non-zero build exit status: %s"
-                    % self.config['cmdresult'])
-        image_name = self.config['image_name']
-        image_tag = self.config['image_tag']
-        self.config['image_id'] = self.lookup_image_id(image_name, image_tag)
-        self.failif(self.config['image_id'] is None,
+                    % self.stuff['cmdresult'])
+        image_name = self.stuff['image_name']
+        image_tag = self.stuff['image_tag']
+        di = DockerImages(self)
+        imgs = di.list_imgs_with_full_name_components(repo=image_name,
+                                                      tag=image_tag)
+        self.failif(len(imgs) < 1, "Test image build result was not found")
+        self.stuff['image_id'] = imgs[0].long_id  # assume first one is match
+        self.failif(self.stuff['image_id'] is None,
                     "Failed to look up image ID from build")
+        self.loginfo("Found image: %s", imgs[0])
 
     def cleanup(self):
         super(build, self).cleanup()
         # Auto-converts "yes/no" to a boolean
         if (self.config['try_remove_after_test'] and
-                                             self.config.has_key('image_id')):
-            NoFailDockerCmd(self, "rmi", self.config['image_id'])
-            self.loginfo("Successfully removed test image")
-
-    def lookup_image_id(self, image_name, image_tag):
-        # FIXME: Need a standard way to do this
-        image_id = None
-        # Any API failures must not be fatal
-        if DOCKERAPI:
-            client = docker.Client()
-            results = client.images(name=image_name)
-            image = None
-            if len(results) == 1:
-                image = results[0]
-                # Could be unicode strings
-                if ((str(image['Repository']) == image_name) and
-                    (str(image['Tag']) == image_tag)):
-                    image_id = image.get('Id')
-            if ((image_id is None) or (len(image_id) < 12)):
-                logging.error("Could not lookup image %s:%s Id using "
-                              "docker python API Data: '%s'",
-                              image_name, image_tag, str(image))
-                image_id = None
-        # Don't have DOCKERAPI or API failed (still need image ID)
-        if image_id is None:
-            # Blah! This only works with name, not tag :S
-            subargs = ['--quiet', image_name]
-            dkrcmd = NoFailDockerCmd(self, 'images', subargs)
-            # fail -> raise exception
-            cmdresult = dkrcmd.execute()
-            # Not found, exits with 0 and no output
-            # Multiple found, exits with all IDs + no tags mapping :S
-            stdout_strip = cmdresult.stdout.strip()
-            # TODO: Better image ID validity check?
-            if len(stdout_strip) == 12:
-                image_id = stdout_strip
-            else:
-                self.loginfo("Error retrieving image id, unexpected length")
-        if image_id is not None:
-            self.loginfo("Found image Id '%s'", image_id)
-        return image_id
+                                             self.stuff.has_key('image_id')):
+            di = DockerImages(self)
+            di.remove_image_by_id(self.stuff['image_id'])
+            di.remove_image_by_full_name("empty_base_image")
+            self.loginfo("Successfully removed test images")

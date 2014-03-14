@@ -4,3 +4,5 @@
 .*.swp
 docs_build
 config_custom
+cscope.files
+cscope.out
