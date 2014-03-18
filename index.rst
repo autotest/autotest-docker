@@ -31,9 +31,10 @@ Introduction
 ----------------
 
 Docker Autotest_ is a sub-framework for standalone testing of docker_.
-It does not strictly depend on docker itself, though it will make use
+It does not strictly depend on docker itself, though it can make use
 of the python-docker-py_ package (currently a reference implementation)
-if/when available.
+if/when available.  Functionally, testing occurs within a number of sub-test
+modules, which in some cases also include a number of sub-sub-tests.
 
 It is designed to support extremely simple linear and iterative testing
 of arbitrary external commands under control of test-specific and default
@@ -79,6 +80,9 @@ Prerequisites
     *  Tar and supported compression programs
     *  Git (and basic familiarity with it's operation)
     *  Python 2.4 or greater (but not 3.0)
+    *  Optional (for building documentation), ``make`` and ``python-sphinx``
+       or the equivilent for your platform (supplying the ``sphinx-build``
+       executable)
 
 *  Autotest & Autotest Client (0.15 or later)
 
@@ -101,47 +105,51 @@ Quickstart
 
 1)  Double-check you meet all the requirements in `prerequisites`_.
 2)  Within your ``$AUTOTEST_PATH``, change to the ``client`` subdirectory.
+3)  Create and change into the ``tests`` subdirectory (if it doesn't already exist)
 
 ::
 
     [root@docker ~]# cd $AUTOTEST_PATH
     [root@docker autotest]# cd client
+    [root@docker client]# mkdir tests
+    [root@docker client]# cd tests
+    [root@docker tests]#
 
-3)  Clone the ``docker`` branch of `Docker Autotest Client Tests`_ repository
-    into the ``tests`` subdirectory. e.g.
-    ``git clone -b docker https://github... tests``
+4)  Clone the `autotest-docker`_ repository into the ``docker`` subdirectory.
 
 ::
 
-    [root@docker client]# git clone -b docker \
-         https://github.com/cevich/autotest-client-tests.git tests
-    Cloning into 'tests'...
-    remote: Reusing existing pack: 12213, done.
-    remote: Counting objects: 72, done.
-    remote: Compressing objects: 100% (50/50), done.
-    remote: Total 12285 (delta 14), reused 61 (delta 12)
-    Receiving objects: 100% (12285/12285), 65.61 MiB | 9.05 MiB/s, done.
-    Resolving deltas: 100% (8773/8773), done.
+    [root@docker tests]# git clone https://github.com/autotest/autotest-docker.git docker
+    Cloning into 'docker'...
+    remote: Reusing existing pack: ... done.
+    remote: Counting objects: ..., done.
+    remote: Compressing objects: ..., done.
+    remote: Total .., reused ...
+    Receiving objects: ..., done.
+    Resolving deltas: ..., done.
     Checking connectivity... done.
 
-.. _Docker Autotest Client Tests: https://github.com/cevich/autotest-client-tests.git
+.. _autotest-docker: https://github.com/autotest/autotest-docker.git
 
-4)  Make a copy of default configuration, edit as appropriate.  Particularly
+5)  Change into newly checked out repository directory.
+6)  Make a copy of default configuration, edit as appropriate.  Particularly
     the options for ``docker_repo_name``, ``docker_repo_tag``,
     ``docker_registry_host``, and ``docker_registry_user`` if required.
 
 ::
 
-    [root@docker client]# cp -abi tests/docker/config_defaults/defaults.ini \
-                                  tests/docker/config_custom
-    [root@docker client]# vim tests/docker/config_custom/defaults.ini
+    [root@docker tests]# cd docker
+    [root@docker docker]# cp -abi config_defaults/defaults.ini config_custom/
+    [root@docker docker]# vi config_custom/defaults.ini
 
-5)  Run the autotest standalone client (``autotest-local run docker``).  The
+7)  Change back into the autotest client directory.
+8)  Run the autotest standalone client (``autotest-local run docker``).  The
     default behavior is to run all subtests.  However, the example below
     demonstrates using the ``--args`` parameter to select *only two* sub-tests:
 
 ::
 
+    [root@docker docker]# cd ../../
     [root@docker client]# ./autotest-local run docker --args=example,docker_cli/version
     Writing results to /usr/local/autotest/client/results/default
     START   ----    ----
