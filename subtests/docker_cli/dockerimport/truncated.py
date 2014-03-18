@@ -14,6 +14,7 @@ from autotest.client import utils
 import tempfile, os, os.path, shutil
 from empty import empty
 from dockertest.dockercmd import MustFailDockerCmd
+from dockertest import output
 
 class truncated(empty):
 
@@ -44,6 +45,12 @@ class truncated(empty):
         self.loginfo("Expected to fail: %s", command)
         self.subStuff['cmdresult'] = utils.run(command, ignore_status=True,
                                              verbose=False)
+
+    def check_output(self):
+        outputgood = output.OutputGood(self.subStuff['cmdresult'],
+                                       ignore_error=True)
+        # This is SUPPOSE to fail, fail test if it succeeds!
+        self.failif(outputgood, str(outputgood))
 
     def check_status(self):
         successful_exit = self.subStuff['cmdresult'].exit_status == 0

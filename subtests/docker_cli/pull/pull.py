@@ -21,13 +21,6 @@ from dockertest import config
 # Okay to be less-strict for these cautions/warnings in subtests
 # pylint: disable=C0103,C0111,R0904,C0103
 
-try:
-    import docker
-    DOCKERAPI = True
-except ImportError:
-    DOCKERAPI = False
-
-
 class pull(subtest.SubSubtestCaller):
     config_section = 'docker_cli/pull'
 
@@ -65,10 +58,13 @@ class pull_base(SubSubtest):
 
         return [full_name]
 
-    def postprocess(self):
-        super(pull_base, self).postprocess()
+    def outputcheck(self):
         # Raise exception if problems found
         OutputGood(self.subStuff['cmdresult'])
+
+    def postprocess(self):
+        super(pull_base, self).postprocess()
+        self.outputcheck()
         if self.config["docker_expected_result"] == "PASS":
             self.failif(self.subStuff['cmdresult'].exit_status != 0,
                         "Non-zero pull exit status: %s"

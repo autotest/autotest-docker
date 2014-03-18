@@ -30,6 +30,8 @@ def mock(mod_path):
 # Mock module and exception class in one stroke
 setattr(mock('autotest.client.shared.error'), 'CmdError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestFail', Exception)
+setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
+setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
 
 class VersionTestBase(unittest.TestCase):
 

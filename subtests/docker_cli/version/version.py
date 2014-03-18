@@ -57,6 +57,6 @@ class version(subtest.Subtest):
             json_obj = json.loads(json_string)
             client_version = json_obj['Version']
         self.failif(client_version != docker_version.client,
-                    "Docker cli version does not match docker client API "
-                    "version")
+                    "Docker cli version %s does not match docker client API "
+                    "version %s" % (client_version, docker_version.client))
         self.loginfo("Docker cli version matches docker client API version")

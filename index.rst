@@ -479,6 +479,25 @@ Several variations of running the pull command against a registry server.
    i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
    and modify the values.
 
+``docker_cli/commit`` Sub-test
+=======================================
+
+Several variations of running the commit command
+
+``docker_cli/commit`` Prerequisites
+---------------------------------------------
+
+*  A remote registry server
+*  Image on remote registry with 'latest' and some other tag
+
+``docker_cli/commit`` Configuration
+--------------------------------------
+
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
+
 ----------------------------------
 Dockertest API Reference
 ----------------------------------
@@ -514,10 +533,27 @@ loading the specified configuration section (see `configuration module`_)
 .. autoclass:: dockertest.subtest.SubSubtest
    :members:
 
+.. autoclass:: dockertest.subtest.SubSubtestCaller
+   :members:
+
 Images Module
 ===============
 
 .. automodule:: dockertest.images
+   :members:
+   :no-undoc-members:
+
+Containers Module
+==================
+
+.. automodule:: dockertest.containers
+   :members:
+   :no-undoc-members:
+
+Networking Module
+==================
+
+.. automodule:: dockertest.networking
    :members:
    :no-undoc-members:
 

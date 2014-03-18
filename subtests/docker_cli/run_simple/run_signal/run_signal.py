@@ -5,7 +5,8 @@ Test catching a sgnal inside a container
 # Okay to be less-strict for these cautions/warnings in subtests
 # pylint: disable=C0103,C0111,R0904,C0103
 
-import time, signal, os
+import time, signal
+from autotest.client import utils
 from dockertest import subtest, images
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.output import OutputGood
@@ -41,7 +42,7 @@ class run_signal(subtest.Subtest):
 
         self.loginfo("Signaling pid %d with signal %s",
                      pid, self.config['listen_signal'])
-        os.kill(pid, sig)
+        utils.signal_pid(pid, sig)
         self.loginfo("Waiting up to %d seconds for exit",
                      dkrcmd.timeout)
         # Throw exception if takes > docker_timeout to exit

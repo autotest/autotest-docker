@@ -27,6 +27,7 @@ Note: As in other places, the terms 'repo' and 'image' are used interchangeably.
 import re
 from config import none_if_empty
 from autotest.client import utils
+from output import OutputGood
 from subtest import Subtest
 from xceptions import DockerFullNameFormatError
 
@@ -401,7 +402,8 @@ class DockerImagesBase(object):
         dis = self.get_dockerimages_list()
         return [di for di in dis if di.cmp_id(image_id)]
 
-    def remove_image_by_id(self, image_id):
+    # Disbled by default extension point, can't be static.
+    def remove_image_by_id(self, image_id):  # pylint: disable=R0201
         """
         Remove an image by 64-character (long) or 12-character (short) image ID.
 
@@ -411,9 +413,11 @@ class DockerImagesBase(object):
         """
         del image_id  # keep pylint happy
         raise RuntimeError()
-        return None
+        # Return value is defined as undefined
+        return None  # pylint: disable=W0101
 
-    def remove_image_by_full_name(self, full_name):
+    # Disbled by default extension point, can't be static.
+    def remove_image_by_full_name(self, full_name):  # pylint: disable=R0201
         """
         Remove an image by FQIN Fully Qualified Image Name.
 
@@ -423,7 +427,8 @@ class DockerImagesBase(object):
         """
         del full_name  # keep pylint happy
         raise RuntimeError()
-        return None
+        # Return value is defined as undefined
+        return None  # pylint: disable=W0101
 
     def remove_image_by_image_obj(self, image_obj):
         """
@@ -441,23 +446,14 @@ class DockerImagesCLI(DockerImagesBase):
     Docker command supported DockerImage-like instance collection and helpers
     """
 
-    def _docker_cmd(self, cmd, timeout=None):
-        """
-        :param cmd: Command which should be called using docker
-        :param timeout: Override self.timeout if not None
-        :return: autotest.client.utils.CmdResult instance
-        """
-        docker_image_cmd = ("%s %s" % (self.subtest.config['docker_path'],
-                                       cmd))
-        if timeout is None:
-            timeout = self.timeout
-        return utils.run(docker_image_cmd,
-                         verbose=self.verbose,
-                         timeout=timeout)
+    def __init__(self, subtest, timeout=None, verbose=False):
+        super(DockerImagesCLI, self).__init__(subtest,
+                                              timeout,
+                                              verbose)
 
     # private methods don't need docstrings
     def _get_images_list(self):  # pylint: disable=C0111
-        return self._docker_cmd("images --no-trunc")
+        return self.docker_cmd("images --no-trunc", self.timeout)
 
     # private methods don't need docstrings
     @staticmethod
@@ -470,6 +466,22 @@ class DockerImagesCLI(DockerImagesBase):
             images.append(DockerImage(*col))  # pylint: disable=W0142
         return images
 
+    def docker_cmd(self, cmd, timeout):
+        """
+        Called on to execute the docker command cmd with timeout
+
+        :param cmd: Command which should be called using docker
+        :param timeout: Override self.timeout if not None
+        :return: autotest.client.utils.CmdResult instance
+        """
+        docker_image_cmd = ("%s %s" % (self.subtest.config['docker_path'],
+                                       cmd))
+        if timeout is None:
+            timeout = self.timeout
+        return utils.run(docker_image_cmd,
+                         verbose=self.verbose,
+                         timeout=timeout)
+
     def get_dockerimages_list(self):
         stdout = self._get_images_list().stdout
         return self._parse_colums(stdout)
@@ -480,7 +492,7 @@ class DockerImagesCLI(DockerImagesBase):
 
         :returns: autotest.client.utils.CmdResult instance
         """
-        return self._docker_cmd("rmi %s" % image_id)
+        return self.docker_cmd("rmi %s" % image_id, self.timeout)
 
     def remove_image_by_full_name(self, full_name):
         """
@@ -488,7 +500,7 @@ class DockerImagesCLI(DockerImagesBase):
 
         :returns: autotest.client.utils.CmdResult instance
         """
-        return self._docker_cmd("rmi %s" % full_name)
+        return self.docker_cmd("rmi %s" % full_name, self.timeout)
 
     def remove_image_by_image_obj(self, image_obj):
         """
@@ -499,6 +511,22 @@ class DockerImagesCLI(DockerImagesBase):
         return self.remove_image_by_full_name(image_obj.full_name)
 
 
+class DockerImagesCLICheck(DockerImagesCLI):
+    """
+    Extended DockerContainersCLI for passing test options and checking output
+    """
+
+    #: This is probably test-subject related, be a bit more noisy
+    verbose = True
+
+    def docker_cmd(self, cmd, timeout):
+        cmdresult = super(DockerImagesCLICheck,
+                          self).docker_cmd(cmd, timeout)
+        # Throws exception if checks fail
+        OutputGood(cmdresult)
+        return cmdresult
+
+
 class DockerImages(object):
     """
     Encapsulates DockerImage interfaces for manipulation with docker images.
@@ -506,7 +534,7 @@ class DockerImages(object):
 
     #: Mapping of interface short-name string to DockerImagesBase subclass.
     #: (shortens line-length when instantiating)
-    interfaces = {"cli": DockerImagesCLI}
+    interfaces = {"cli": DockerImagesCLI, 'clic':DockerImagesCLICheck}
 
     def __init__(self, subtest, interface_name="cli",
                  timeout=None, verbose=False):

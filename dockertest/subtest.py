@@ -311,7 +311,7 @@ class SubSubtestCaller(Subtest):
     _sscd = None
 
     def __init__(self, *args, **dargs):
-        """
+        r"""
         Call subtest __init__ and setup local attributes
 
         :param \*args: Opaque, passed through to super-class

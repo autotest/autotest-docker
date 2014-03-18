@@ -49,8 +49,10 @@ class dockerhelp(subtest.Subtest):
             self.failif(cmdresult.stderr.count('Commands:') < 1,
                         "Docker command did not return command-line help "
                         "on stderr.")
+            # TODO: Split each help command into a subtest so can check
+            #       negative results properly, instead of skipping (below)
             outputgood = OutputGood(cmdresult, ignore_error=True,
-                                    skip=['usage_check'])
+                                    skip=['usage_check', 'error_check'])
             self.failif(not outputgood, str(outputgood))
         for cmdresult in self.stuff['failure_cmdresults']:
             self.loginfo("command: '%s'" % cmdresult.command)

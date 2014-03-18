@@ -89,7 +89,8 @@ class ConfigSection(object):
         """
         return self._scp.has_option(self._section, option)
 
-    def _prune_sections(self):
+    # Private method doesn't need docstring
+    def _prune_sections(self):  # pylint: disable=C0111
         for section in self._scp.sections():
             if section != self._section:
                 self._scp.remove_section(section)
@@ -104,7 +105,8 @@ class ConfigSection(object):
         self._prune_sections()
         return result
 
-    def readfp(self, fp, filename=None):
+    # Short name 'fp' mirrors use in ConfigParser module
+    def readfp(self, fp, filename=None):  # pylint: disable=C0103
         """
         Replace current contents with content from file
 
@@ -193,7 +195,8 @@ class ConfigDict(MutableMapping):
         self._config_section = ConfigSection(defaults=defaults, section=section)
         super(ConfigDict, self).__init__(*args, **dargs)
 
-    def _keyset(self):
+    # Private method doesn't need docstring
+    def _keyset(self):  # pylint: disable=C0111
         mine = set([val.lower()
                     for val in self._config_section.options()])
         default = set([val.lower()
