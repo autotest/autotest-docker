@@ -228,6 +228,10 @@ class DockerImageTestBasic(ImageTestBase):
                           self.images.DockerImage.split_to_component,
                           ["dd/aa:aa/ss"])
 
+        self.assertRaises(self.images.DockerFullNameFormatError,
+                          self.images.DockerImage.split_to_component,
+                          ["<none>:<none>"])
+
         self.assertEqual(self.images.DockerImage.full_name_from_component(
                                     repo, tag, repo_addr, user), full_name)
 

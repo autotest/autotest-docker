@@ -45,7 +45,7 @@ class DockerImage(object): # pylint: disable=R0902
     #: parsing, spec defined in docker-io documentation.  e.g.
     #: ``[registry_hostname[:port]/][user_name/]
     #: (repository_name[:version_tag])``
-    repo_split_p = re.compile(r"(.+?(:\w+?)?/)?(\w+/)?([^:.]+)(:\w+)?")
+    repo_split_p = re.compile(r"(.+?(:\w+?)?/)?([<\w>]+/)?([^:.]+)(:[<\w>]+)?")
 
     # Many arguments are simply required here
     # pylint: disable=R0913
