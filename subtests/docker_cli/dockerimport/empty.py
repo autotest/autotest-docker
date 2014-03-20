@@ -81,7 +81,8 @@ class empty(SubSubtest):
         self.subStuff['result_id'] = cmdresult.stdout.strip()
 
     def check_output(self):
-        outputgood = output.OutputGood(self.subStuff['cmdresult'])
+        outputgood = output.OutputGood(self.subStuff['cmdresult'],
+                                       ignore_error=True)
         self.failif(not outputgood, str(outputgood))
 
     def check_status(self):

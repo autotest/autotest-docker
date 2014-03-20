@@ -58,12 +58,24 @@ class DockerOutputError(DockerValueError):
     def __str__(self):
         return str(self.reason)
 
-class DockerCommandError(DockerOutputError):
+class DockerCommandError(error.CmdError):
     """Errors coming from within dockercmd module classes"""
     pass
 
 class DockerExecError(error.TestFail):
     """Errors occuring from execution of docker commands"""
+    pass
+
+class DockerTestNAError(error.TestNAError):
+    """Test skip from execution of docker autotest subtest/subsubtest"""
+    pass
+
+class DockerTestError(error.TestError):
+    """Code Error in execution of docker autotest subtest/subsubtest"""
+    pass
+
+class DockerTestFail(error.TestFail):
+    """Test failure in execution of docker autotest subtest/subsubtest"""
     pass
 
 class DockerFullNameFormatError(DockerValueError):

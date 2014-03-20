@@ -11,7 +11,7 @@ Test run of docker build command
 # Okay to be less-strict for these cautions/warnings in subtests
 # pylint: disable=C0103,C0111,R0904,C0103
 
-import os, os.path, shutil, time, logging
+import os, os.path, shutil, time
 from autotest.client import utils
 from dockertest import subtest
 from dockertest.images import DockerImages
@@ -84,7 +84,7 @@ class build(subtest.Subtest):
         self.stuff['image_id'] = imgs[0].long_id  # assume first one is match
         self.failif(self.stuff['image_id'] is None,
                     "Failed to look up image ID from build")
-        self.loginfo("Found image: %s", imgs[0])
+        self.loginfo("Found image: %s", imgs[0].full_name)
 
     def cleanup(self):
         super(build, self).cleanup()
@@ -95,3 +95,5 @@ class build(subtest.Subtest):
             di.remove_image_by_id(self.stuff['image_id'])
             di.remove_image_by_full_name("empty_base_image")
             self.loginfo("Successfully removed test images")
+        else:
+            self.loginfo("NOT removing image")

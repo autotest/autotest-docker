@@ -51,7 +51,8 @@ setattr(mock('autotest.client.utils'), 'CmdResult', FakeCmdResult)
 setattr(mock('autotest.client.test'), 'test', object)
 setattr(mock('autotest.client.shared.error'), 'TestFail', Exception)
 setattr(mock('autotest.client.shared.error'), 'CmdError', Exception)
-
+setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
+setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
 mock('autotest.client.shared.base_job')
 mock('autotest.client.shared.job')
 mock('autotest.client.job')
@@ -226,6 +227,10 @@ class DockerImageTestBasic(ImageTestBase):
         self.assertRaises(self.images.DockerFullNameFormatError,
                           self.images.DockerImage.split_to_component,
                           ["dd/aa:aa/ss"])
+
+        self.assertRaises(self.images.DockerFullNameFormatError,
+                          self.images.DockerImage.split_to_component,
+                          ["<none>:<none>"])
 
         self.assertEqual(self.images.DockerImage.full_name_from_component(
                                     repo, tag, repo_addr, user), full_name)

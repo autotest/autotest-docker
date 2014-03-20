@@ -181,4 +181,17 @@ class OutputGood(OutputGoodBase):
                 return False  # usage message found
         return True  # usage message not found
 
+    @staticmethod
+    def error_check(output):
+        """
+        Return False if 'Error: ' pattern found in output
+
+        :param output: Stripped output string
+        :return: True if 'Error: ' does **not** sppear
+        """
+        for line in output.splitlines():
+            if line.lower().strip().count('error: '):
+                return False
+        return True
+
     #TODO: Other checks?
