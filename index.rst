@@ -483,6 +483,30 @@ Three simple subsubtests that verify exit status and singnal pass-through capabi
    and modify the values.
 
 
+``docker_cli/rmi`` Sub-test
+=======================================
+
+Several variations of running the rmi command.
+
+``docker_cli/rmi`` Prerequisites
+---------------------------------------------
+
+*  Same as `docker_cli/run_simple Prerequisites`_
+*  An existing, standard test image to work with.
+*  Image on remote registry with 'latest' and some other tag
+
+``docker_cli/rmi`` Configuration
+--------------------------------------
+
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
+*  The ``remove_after_test`` option controls cleanup after all sub-subtests.
+*  The ``docker_rmi_force`` option causes sub-subtests to force remove images
+*  ``docker_expected_result`` should be "PASS" or "FAIL" to indicate result
+   handling behavior of sub-subtests.
+
 ``docker_cli/pull`` Sub-test
 =======================================
 
