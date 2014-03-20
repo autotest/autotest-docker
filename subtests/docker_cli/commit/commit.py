@@ -1,0 +1,159 @@
+"""
+Test output of docker Commit command
+
+Initialize
+1. Make new image name.
+2. Make changes in image by docker run [dockerand_data_prepare_cmd].
+run_once
+3. commit changes.
+postprocess
+4. check if commited image exists.
+5. check if values in changed files for image are correct.
+clean
+6. remote committed image from local repo.
+"""
+
+import time
+from autotest.client import utils
+from dockertest.subtest import SubSubtest
+from dockertest.images import DockerImages
+from dockertest.images import DockerImage
+from dockertest.output import OutputGood
+from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
+from dockertest import subtest
+from dockertest import config
+from dockertest import xceptions
+
+# Okay to be less-strict for these cautions/warnings in subtests
+# pylint: disable=C0103,C0111,R0904,C0103
+
+class commit(subtest.SubSubtestCaller):
+    config_section = 'docker_cli/commit'
+
+class commit_base(SubSubtest):
+
+    def check_image_exists(self, full_name):
+        di = DockerImages(self.parentSubtest)
+        return di.list_imgs_with_full_name(full_name)
+
+    def initialize(self):
+        super(commit_base, self).initialize()
+        config.none_if_empty(self.config)
+
+        name_prefix = self.config["commit_repo_name_prefix"]
+        new_img_name = "%s_%s" % (name_prefix,
+                                  utils.generate_random_string(8))
+        self.subStuff["new_image_name"] = new_img_name
+
+        self.subStuff['rand_data'] = utils.generate_random_string(8)
+        cmd_with_rand = (self.config['docker_data_prepare_cmd']
+                         % self.subStuff['rand_data'])
+
+        fqin = DockerImage.full_name_from_defaults(self.config)
+        prep_changes = DockerCmd(self.parentSubtest, "run",
+                                 ["--detach",
+                                  fqin,
+                                  cmd_with_rand],
+                                 self.config['docker_commit_timeout'])
+
+        results = prep_changes.execute()
+        if results.exit_status:
+            raise xceptions.DockerTestNAError("Problems during "
+                                              "initialization of"
+                                              " test: %s", results)
+        else:
+            self.subStuff["container"] = results.stdout.strip()
+
+    def complete_docker_command_line(self):
+        c_author = self.config["commit_author"]
+        c_msg = self.config["commit_message"]
+        run_params = self.config["commit_run_params"]
+        repo_addr = self.subStuff["new_image_name"]
+
+        cmd = []
+        if c_author:
+            cmd.append("-a %s" % c_author)
+        if c_msg:
+            cmd.append("-m %s" % c_msg)
+        if run_params:
+            cmd.append("--run=%s" % run_params)
+
+        cmd.append(self.subStuff["container"])
+        cmd.append(repo_addr)
+        self.subStuff["commit_cmd"] = cmd
+        return cmd
+
+    def run_once(self):
+        super(commit_base, self).run_once()
+        dkrcmd = AsyncDockerCmd(self.parentSubtest, 'commit',
+                                self.complete_docker_command_line(),
+                                self.config['docker_commit_timeout'])
+        self.loginfo("Executing background command: %s" % dkrcmd)
+        dkrcmd.execute()
+        while not dkrcmd.done:
+            self.loginfo("Commiting...")
+            time.sleep(3)
+        self.subStuff["cmdresult"] = dkrcmd.wait()
+
+    def postprocess(self):
+        super(commit_base, self).postprocess()
+        if self.config["docker_expected_result"] == "PASS":
+            # Raise exception if problems found
+            OutputGood(self.subStuff['cmdresult'])
+            self.failif(self.subStuff['cmdresult'].exit_status != 0,
+                        "Non-zero commit exit status: %s"
+                        % self.subStuff['cmdresult'])
+
+            im = self.check_image_exists(self.subStuff["new_image_name"])
+            # Needed for cleanup
+            self.subStuff['image_list'] = im
+            self.failif(len(im) < 1,
+                        "Failed to look up commited image ")
+            self.check_file_in_image()
+
+        elif self.config["docker_expected_result"] == "FAIL":
+            og = OutputGood(self.subStuff['cmdresult'], ignore_error=True)
+            es = self.subStuff['cmdresult'].exit_status == 0
+            self.failif(not og or not es,
+                        "Zero commit exit status: Command should fail due to"
+                        " wrong command arguments.")
+
+    def cleanup(self):
+        super(commit_base, self).cleanup()
+        # Auto-converts "yes/no" to a boolean
+        if (self.config['remove_after_test'] and
+                               'image_list' in self.subStuff):
+            dkrcmd = DockerCmd(self.parentSubtest, "rm",
+                               ['--volumes', '--force',
+                                self.subStuff["container"]])
+            cmdresult = dkrcmd.execute()
+            msg = (" removed test container: %s" % self.subStuff["container"])
+            if cmdresult.exit_status == 0:
+                self.loginfo("Successfully" + msg)
+            else:
+                self.logwarning("Failed" + msg)
+            for image in self.subStuff["image_list"]:
+                di = DockerImages(self.parentSubtest)
+                self.logdebug("Removing image %s", image.full_name)
+                di.remove_image_by_image_obj(image)
+                self.loginfo("Successfully removed test image: %s",
+                             image.full_name)
+
+    def check_file_in_image(self):
+        commit_changed_files = self.config["commit_changed_files"]
+        repo_addr = self.subStuff["new_image_name"]
+        for f_name in commit_changed_files.split(";"):
+            f_read_cmd = self.config['docker_read_file_cmd'] % f_name
+
+            cm = DockerCmd(self.parentSubtest, "run",
+                                ["--rm", repo_addr, f_read_cmd],
+                                self.config['docker_commit_timeout'])
+            results = cm.execute()
+            if results.exit_status == 0:
+                self.failif((results.stdout.strip() !=
+                             self.subStuff["rand_data"]),
+                            "Data read from image do not match"
+                            " data written to container during"
+                            " test initialization: %s != %s" %
+                                                (results.stdout.strip(),
+                                                 self.subStuff["rand_data"]))

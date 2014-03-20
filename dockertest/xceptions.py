@@ -58,7 +58,7 @@ class DockerOutputError(DockerValueError):
     def __str__(self):
         return str(self.reason)
 
-class DockerCommandError(DockerOutputError):
+class DockerCommandError(error.CmdError):
     """Errors coming from within dockercmd module classes"""
     pass
 
