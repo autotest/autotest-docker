@@ -466,7 +466,7 @@ class DockerImagesCLI(DockerImagesBase):
             images.append(DockerImage(*col))  # pylint: disable=W0142
         return images
 
-    def docker_cmd(self, cmd, timeout):
+    def docker_cmd(self, cmd, timeout=None):
         """
         Called on to execute the docker command cmd with timeout
 

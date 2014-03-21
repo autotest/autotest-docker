@@ -24,6 +24,8 @@ Where/when ***possible***, both parameters and return values follow this order:
 # pylint: disable=W0403
 
 import re
+import json
+from autotest.client.shared import error
 from autotest.client import utils
 from output import OutputGood
 from images import DockerImages
@@ -142,7 +144,7 @@ class DockerContainersBase(object):
         self.subtest = subtest
 
     # Not defined static on purpose
-    def get_container_list(self): # pylint: disable=R0201
+    def get_container_list(self):  # pylint: disable=R0201
         """
         Standard name for behavior specific to subclass implementation details
 
@@ -162,9 +164,55 @@ class DockerContainersBase(object):
         """
         Return a python-list of **possibly overlapping** DockerContainer-like
         instances
+
+        :param container_name: String name of container
+        :return: Python list of DockerContainer-like instances
         """
         clist = self.list_containers()
         return [cnt for cnt in clist if cnt.cmp_name(container_name)]
+
+    # Not defined static on purpose
+    def get_container_metadata(self, long_id):  # pylint: disable=R0201
+        """
+        Return implementation-specific metadata for container with long_id
+
+        :param long_id: String of long-id for container
+        :return: None if long_id invalid/not found or
+                 implementation-specific value
+        """
+        del long_id  #  Keep pylint quiet
+        return None
+
+    # Disbled by default extension point, can't be static.
+    def json_by_long_id(self, long_id):  # pylint: disable=R0201
+        """
+        Return json-object for container with long_id if supported by
+        implementation
+
+        :param long_id: String of long-id for container
+        :return: JSON object
+        :raise ValueError: on invalid/not found long_id
+        :raise RuntimeError: on not supported by implementation
+        """
+        del long_id  #  Keep pylint quiet
+        raise RuntimeError()
+
+    def json_by_name(self, container_name):
+        """
+        Return json-object for container with name if supported by
+        implementation
+
+        :param container_name: String name of container
+        :return: JSON object
+        :raise ValueError: on invalid/not found long_id
+        :raise RuntimeError: on not supported by implementation
+        """
+        cnts = self.list_containers_with_name(str(container_name))
+        if len(cnts) == 1:
+            return self.json_by_long_id(cnts[0].long_id)
+        else:
+            raise ValueError("Container not found with name %s"
+                             % container_name)
 
     # TODO: Add more filter methods
 
@@ -241,7 +289,7 @@ class DockerContainersCLI(DockerContainersBase):
         return (long_id, image_name, command, created, status,
                 portstrs, container_name, size)
 
-    def docker_cmd(self, cmd, timeout):
+    def docker_cmd(self, cmd, timeout=None):
         """
         Called on to execute docker subcommand cmd with timeout
 
@@ -251,6 +299,8 @@ class DockerContainersCLI(DockerContainersBase):
         """
         docker_cmd = ("%s %s" % (self.subtest.config['docker_path'],
                                  cmd))
+        if timeout is None:
+            timeout = self.timeout
         return utils.run(docker_cmd,
                          verbose=self.verbose,
                          timeout=timeout)
@@ -258,6 +308,27 @@ class DockerContainersCLI(DockerContainersBase):
     def get_container_list(self):
         stdout = self._get_container_list().stdout
         return self._parse_lines(stdout)
+
+    def get_container_metadata(self, long_id):
+        try:
+            cmdresult = self.docker_cmd('inspect "%s"' % str(long_id),
+                                        self.timeout)
+            if cmdresult.exit_status == 0:
+                return json.loads(cmdresult.stdout.strip())
+        except (TypeError, ValueError, error.CmdError), details:
+            self.subtest.logdebug("docker inspect %s raised: %s: %s",
+                                  long_id, details.__class__.__name__,
+                                  str(details))
+            return None
+
+    def json_by_long_id(self, long_id):
+        _json = self.get_container_metadata(long_id)
+        if _json is None:
+            raise ValueError("Metadata retrieval for container with long_id "
+                             "%s not found or not supported" % long_id)
+        else:
+            return _json
+
 
 class DockerContainersCLICheck(DockerContainersCLI):
     """
@@ -267,7 +338,7 @@ class DockerContainersCLICheck(DockerContainersCLI):
     #: This is probably test-subject related, be a bit more noisy
     verbose = True
 
-    def docker_cmd(self, cmd, timeout):
+    def docker_cmd(self, cmd, timeout=None):
         cmdresult = super(DockerContainersCLICheck,
                           self).docker_cmd(cmd, timeout)
         # Throws exception if checks fail

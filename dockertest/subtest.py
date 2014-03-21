@@ -215,7 +215,11 @@ class SubSubtest(object):
                                        self.__class__.__name__))
         # Allow child to inherit but also override parent config
         self.config = self.parentSubtest.config.copy()
-        self.config.update(config.Config()[config_section])
+        all_config = config.Config()
+        # Any config namespace mangling lost on destruction
+        if all_config.has_key(config_section):
+            # Sub-subtest configuration is optional
+            self.config.update(all_config[config_section])
         self.config['subsubtest_config_section'] = config_section
         # Not automatically logged along with parent subtest
         # for records/archival/logging purposes
@@ -229,7 +233,7 @@ class SubSubtest(object):
         """
         Called every time the test is run.
         """
-        self.parentSubtest.loginfo("%s initialize()", self.__class__.__name__)
+        self.loginfo("%s initialize()", self.__class__.__name__)
         self.tmpdir = tempfile.mkdtemp(prefix=self.__class__.__name__,
                                        suffix='tmp',
                                        dir=self.parentSubtest.tmpdir)
@@ -238,19 +242,19 @@ class SubSubtest(object):
         """
         Called once only to exercize subject of sub-subtest
         """
-        self.parentSubtest.loginfo("%s run_once()", self.__class__.__name__)
+        self.loginfo("%s run_once()", self.__class__.__name__)
 
     def postprocess(self):
         """
         Called to process results of subject
         """
-        self.parentSubtest.loginfo("%s postprocess()", self.__class__.__name__)
+        self.loginfo("%s postprocess()", self.__class__.__name__)
 
     def cleanup(self):
         """
         Always called, even dispite any exceptions thrown.
         """
-        self.parentSubtest.loginfo("%s cleanup()", self.__class__.__name__)
+        self.loginfo("%s cleanup()", self.__class__.__name__)
         # tmpdir is cleaned up automatically by harness
 
     def make_repo_name(self):
@@ -407,12 +411,25 @@ class SubSubtestCaller(Subtest):
 
     def new_subsubtest(self, name):
         """
-        Attempt to import named subsubtest subclass from module name in this dir
+        Attempt to import named subsubtest subclass from subtest module or
+        module name.
+
+        :param name: Class name, optionally external module-file name.
         """
+        # Try in external module-file named 'name' also
         mydir = self.bindir
-        mod = imp.load_module(name, *imp.find_module(name, [mydir]))
+        # This module's name is the same as it's subclass name
+        myname = self.__class__.__name__
+        mod = imp.load_module(name, *imp.find_module(myname, [mydir]))
         cls = getattr(mod, name, None)
-        if callable(cls):
+        # Try look in external module file with same name
+        if cls is None:
+            # Only look in "this" directory
+            mod = imp.load_module(name, *imp.find_module(name, [mydir]))
+            cls = getattr(mod, name, None)
+        if issubclass(cls, SubSubtest):
+            # Create instance, pass this subtest subclass as only parameter
             return cls(self)
+        # Non-fatal error
         self.logerror("Failed importing sub-subtest %s")
         return None

@@ -4,10 +4,12 @@ Module for standardized API version number processing/checking
 `Subtest modules`_ code, configuration, and documentation are critical
 to remain in agreement in order to support use of external/private or
 customized configutations and tests.  Therefor  version checking is
-very important. Each subtest must override the default 'config_version'
+very important. Each subtest must inherit the default 'config_version'
 option with the version string of the dockertest API it was written
-against.  Further, the documentation version in the top-level ``conf.py``
-module must also match (less the REVIS number).
+against.  This may come from ``config_defaults/defaults.ini`` or
+``config_custom/defaults.ini`` if it has been customized.  Further,
+the documentation version in the top-level ``conf.py`` module must
+also match (less the REVIS number).
 """
 
 # Pylint runs from a different directory, it's fine to import this way
@@ -24,7 +26,7 @@ MINOR = 3
 
 #: API Revision number, as an integer (range 0-255).  Not significant!
 #: for version comparisons. e.g. ``0.0.1 == 0.0.2 != 0.2.2``
-REVIS = 2
+REVIS = 3
 
 #: String format representation for MAJOR, MINOR, and REVIS
 FMTSTRING = "%d.%d.%d"

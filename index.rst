@@ -17,14 +17,9 @@ Docker Autotest
 temporary. Interfaces/Usage could change, or the entire contents could disappear
 without warning.
 
--------------
-Contents
--------------
-
-.. toctree::
-   :maxdepth: 2
-
-.. contents:: \
+.. contents:: **Contents**
+   :depth: 2
+   :local:
 
 ----------------
 Introduction
@@ -211,6 +206,8 @@ by the ``srcdir`` attribute.  The ``setup()`` method will ***only*** be called
 once per version number (including revisions).  State may be reset by clearing
 the autotest client ``tmp`` directory.
 
+:Note: setup() runs **after** initialize()
+
 --------------------
 Images
 --------------------
@@ -280,7 +277,9 @@ This allows the API to be extended freely, but any changes
 which could affect external tests or custom configurations will be flagged
 when encountered.  The most likely cause for version problems is custom
 and/or outdated configurations.  Double-check any customizations within
-``config_custom`` match the current API.
+``config_custom`` match the current API.  The same goes for any private
+or local tests, this is probably the only warning you will receive on
+API changes.
 
 ------------------
 Subtest Modules
@@ -296,13 +295,12 @@ Global default options that apply to all other sections are set in
 the special ``DEFAULTS`` section of the ``defaults.ini`` file.  This
 file is loaded *either* from ``config_defaults`` *or* ``config_custom``.
 
-*  The ``config_version`` option is special.  Because it is part
-   of the lower-level `Subtest Module`_ interface, it must exist
-   in all sections.  However it's actual value is subtest dependent
-   so therefor must also be overridden by each subtest.  The value
-   used here is both a reminder and a fail-safe.  Sub-tests that
-   neglect to override it's value will result in an immediate error
-   and fail to execute.
+*  The ``config_version`` option is set to the API version
+   it was setup for.  Because overriding requires copying
+   this file, and ``config_version`` will be inherited by
+   all subtests, it will flag custom configurations and
+   custom subtests with an API version mismatch.  This
+   option must **not** be overriden in subtest configs.
 *  The ``docker_path`` option specifies the absolute path to the
    docker executable under test.  This permits both the framework
    and/or individual sub-tests to utilize a separate compiled
@@ -310,7 +308,17 @@ file is loaded *either* from ``config_defaults`` *or* ``config_custom``.
 *  The ``docker_options`` option specifies the command-line
    interface options to use **before** any sub-commands and
    their options.
-
+*  Any operations calling the docker CLI will by default,
+   use the value in ``docker_timeout``.  This may be an
+   integer or floating-point number specifying the number
+   of seconds to allow any single command to complete.
+*  For subtests which benefit from a global default standard
+   test image/repository, it's name may be specified by
+   the ``docker_repo_name`` option.  Similar for, ``docker_repo_tag``
+   ``docker_registry_host``, and ``docker_registry_user``.
+   The `images module`_ ``DockerImage.full_name_from_defaults()``
+   method may be utilized along with these options to
+   produce a standard FQIN (Fully Qualified Image Name).
 
 ``example`` Sub-test
 =======================
@@ -327,9 +335,27 @@ The example subtest has no prerequisites.
 ``example`` Configuration
 -----------------------------
 
-The example subtest configuration provides the bare_minimum
-``config_version`` option.  This is required to be overridden
-by all sub-tests.
+The example subtest configuration is to demonstrate its values
+are overridden by the ``example.ini`` under ``config_custom``.
+
+``subexample`` Sub-test
+=======================
+
+A boiler-plate example subtest with subsubtests, intended as a
+starting place for new sub-tests.  Not all methods are required,
+those not overridden will simply inherit default behavior.
+
+``subexample`` Prerequisites
+------------------------------
+
+The example subtest has no prerequisites.
+
+``subexample`` Configuration
+-----------------------------
+
+Includes the requesite ``subsubtests`` CSV option, specifying
+the subtest names to include.  Their actual execution order
+us not defined.
 
 ``docker_cli/version`` Sub-test
 =================================
@@ -606,12 +632,18 @@ Further Reading
 *  `Docker documentation`_
 *  Autotest `results specification`_
 *  `Multi-host synchronization`_ and testing
+*  `reStructuredText spec`_ for docstring and ``index.rst``  updates
+*  Building docs, and for autodoc extension, see the `Sphinx documentation`_
 
 .. _`Docker documentation`: http://docs.docker.io
 
 .. _`results specification`: https://github.com/autotest/autotest/wiki/ResultsSpecification
 
 .. _`Multi-host synchronization`: https://github.com/autotest/autotest/wiki/Synchronizationclientsinmultihoststest
+
+.. _`reStructuredText spec`: http://docutils.sourceforge.net/rst.html
+
+.. _`Sphinx documentation`: http://sphinx-doc.org/contents.html
 
 -------------------
 Indices and Tables
