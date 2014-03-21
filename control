@@ -74,20 +74,35 @@ def run_test(control_path, url, tag, timeout, subsubtest):
     """
     Wrapper function around job.run_test() and setup for subtest namespace.
     """
-    # Don't share lib package context across tests
+    # Threads are/may be in use, so be careful with this stuff...
+    imp.acquire_lock()
     dockertest = imp.load_module('dockertest',
                                  *imp.find_module('dockertest', [control_path]))
     # Hold reference to module so subtests may use it
-    sys.modules['dockertest'] = dockertest
+    sys.modules['dockertest'] = dockertest  # dockertest deleted below
     # Modules in packages not automatically loaded
     version = imp.load_module('dockertest.version',
                               *imp.find_module('version',
                               dockertest.__path__))
+    sys.modules['dockertest.version'] = version  # version deleted below
+    imp.release_lock()
+
+    # Get docs version for comparison so modules can be unloaded
     doc_version = get_doc_version(control_path)
     api_version = version.STRING
-    # This must happen here since it is only place
-    # dockertest.version is also visible
-    if version.compare(api_version, doc_version) != 0:
+    # This must happen here since subtests MUST NOT access docs conf.py
+    doc_eq_api = version.compare(api_version, doc_version) == 0
+
+    # Get rid of local references, so they may be cleaned from sys.modules later
+    imp.acquire_lock()
+    # hold onto sys.modules['dockertest'] for subtest use
+    del dockertest  # not needed here anymore
+    del version     # this one too
+    del sys.modules['dockertest.version'] #  Not needed here anymore
+    imp.release_lock()
+
+    # Docs version mismatch is not fatal, but annoying. Make sure it's annoying.
+    if not doc_eq_api:
         logging.error("")
         logging.error("Test API version %s does not match "
                       "Documentation version %s.  Update "
@@ -97,7 +112,16 @@ def run_test(control_path, url, tag, timeout, subsubtest):
         logging.error("")
         # make sure it error gets read
         time.sleep(10)
+
     # Run the subtest module through autotest job interface
-    job.run_test(url=url, tag=tag, timeout=timeout, subsubtest=subsubtest)
-    # Make sure this gets unloaded each time.
-    del sys.modules['dockertest']
+    try:
+        job.run_test(url=url, tag=tag, timeout=timeout, subsubtest=subsubtest)
+    # Guarantee cleanup of any docker related modules
+    finally:
+        imp.acquire_lock()
+        # Filter by internal module name, not sys.modules key.
+        modnames = [modname for (modname, module) in sys.modules.items()
+                    if module is not None and module.__name__.count('docker')]
+        for modname in modnames:
+            del sys.modules[modname]
+        imp.release_lock()
