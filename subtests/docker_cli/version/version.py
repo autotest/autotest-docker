@@ -10,14 +10,11 @@ Test output of docker version command
 # pylint: disable=C0103,C0111,R0904,C0103
 
 from dockertest import subtest
-from dockertest.output import OutputGood, DockerVersion
+from dockertest.output import OutputGood
+from dockertest.output import DockerVersion
 from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.docker_daemon import SocketClient
 
-try:
-    from docker.client import Client
-    DOCKERAPI = True
-except ImportError:
-    DOCKERAPI = False
 
 class version(subtest.Subtest):
 
@@ -40,22 +37,9 @@ class version(subtest.Subtest):
 
     def verify_version(self, docker_version):
         # TODO: Make URL to daemon configurable
-        client_version = None
-        if DOCKERAPI:
-            client = Client()
-            _version = client.version()
-            client_version = _version['Version']
-        else:
-            import json
-            # FIXME: use httplib to do this properly
-            from autotest.client import utils
-            cmdresult = utils.run('echo -e "GET /version HTTP/1.1\r\n" |'
-                                  ' nc -U /var/run/docker.sock')
-            lines = cmdresult.stdout.strip().splitlines()
-            # content follows blank after headers
-            json_string = lines[lines.index('')+1]
-            json_obj = json.loads(json_string)
-            client_version = json_obj['Version']
+        client = SocketClient()
+        _version = client.version()
+        client_version = _version['Version']
         self.failif(client_version != docker_version.client,
                     "Docker cli version %s does not match docker client API "
                     "version %s" % (client_version, docker_version.client))

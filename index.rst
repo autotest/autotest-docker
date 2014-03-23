@@ -365,16 +365,12 @@ Simple test that checks the output of the ``docker version`` command.
 ``docker_cli/version`` Prerequisites
 -------------------------------------
 
-This test requires the ``docker`` executable is available.  Optionally,
-if the ``python-docker-py`` package is available, it will be used.  If
-it fails, a simple check using the REST API is used to compare
-the version number returned to the one obtained from the CLI. This check
-requires the 'nc' (netcat) command is available.
+Docker daemon is running and accessable by it's unix socket.
 
 ``docker_cli/version`` Configuration
 --------------------------------------
 
-Only the API version.
+None
 
 
 ``docker_cli/build`` Sub-test
@@ -581,6 +577,13 @@ Networking Module
 .. automodule:: dockertest.networking
    :members:
    :no-undoc-members:
+
+Docker_Daemon Module
+======================
+
+.. automodule:: dockertest.docker_daemon
+    :members:
+    :no-undoc-members:
 
 Dockercmd Module
 =================
