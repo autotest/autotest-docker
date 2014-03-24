@@ -46,7 +46,7 @@ def str2int(version_string):
     Convert an 'x.y.z' string into binary form
     """
     version_tuple = tuple(int(num) for num in version_string.split('.'))
-    assert len(version_tuple) >= 3
+    assert len(version_tuple) == 3
     for num in version_tuple:
         assert num <= 255  # 8-bit cap on all
     version_int = version_tuple[0] << 16
@@ -84,8 +84,8 @@ def _tupcmp(lhs, rhs):  # pylint: disable=C0111
 def _strcmp(lhs, rhs):  # pylint: disable=C0111
     lhs_split = tuple(int(num) for num in lhs.split('.'))
     rhs_split = tuple(int(num) for num in rhs.split('.'))
-    assert len(lhs_split) >= 3
-    assert len(rhs_split) >= 3
+    assert len(lhs_split) == 3
+    assert len(rhs_split) == 3
     for side in (lhs_split, rhs_split):
         for num in side:
             assert num <= 255  # 8-bit cap on all 3
