@@ -26,7 +26,7 @@ class Subtest(test.test):
     """
     #: Version number from configuration, read-only / setup inside __init__
     #: affects one-time building of bundled content in 'self.srcdir' by
-    #: controlling the call to setup() method only when it chanes.  Compared
+    #: controlling the call to setup() method only when it changes.  Compared
     #: to dockertest API, when specified in configuration.  Test will not
     #: execute if there is a MAJOR/MINOR mismatch (revision is okay).
     version = None
@@ -38,8 +38,9 @@ class Subtest(test.test):
     config_section = 'DEFAULTS'
     #: Private namespace for use by subclasses **ONLY**.  This attribute
     #: is completely ignored everywhere inside the dockertest API.  Subtests
-    #: are encourraged to use it for temporarily storing results/info. for
-    #: internal subclass-use.
+    #: are encouraged to use it for temporarily storing results/info. It is
+    #: initialized to an empty dictionary, but subtests can reassign it to any
+    #: type needed.
     stuff = None
     #: private method used by log*() methods internally, do not use.
     _re = None
@@ -196,8 +197,9 @@ class SubSubtest(object):
     tmpdir = None  # automatically determined in initialize()
     #: Private namespace for use by subclasses **ONLY**.  This attribute
     #: is completely ignored everywhere inside the dockertest API.  Subtests
-    #: are encourraged to use it for temporarily storing results/info. for
-    #: internal subclass-use.
+    #: are encouraged to use it for temporarily storing results/info.  It
+    #: is initialized to an empty dictionary, however subsubtests may
+    #: re-assign it to any other type as needed.
     sub_stuff = None
 
     def __init__(self, parent_subtest):
@@ -240,7 +242,7 @@ class SubSubtest(object):
 
     def run_once(self):
         """
-        Called once only to exercize subject of sub-subtest
+        Called once only to exercise subject of sub-subtest
         """
         self.loginfo("%s run_once()", self.__class__.__name__)
 
@@ -252,7 +254,7 @@ class SubSubtest(object):
 
     def cleanup(self):
         """
-        Always called, even dispite any exceptions thrown.
+        Always called, even despite any exceptions thrown.
         """
         self.loginfo("%s cleanup()", self.__class__.__name__)
         # tmpdir is cleaned up automatically by harness
