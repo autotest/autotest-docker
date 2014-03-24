@@ -16,7 +16,9 @@ also match (less the REVIS number).
 # pylint: disable=W0403
 
 import logging
+
 import xceptions
+
 
 #: Major API version number, as an integer (range 0-255).
 MAJOR = 0
@@ -38,6 +40,7 @@ STRING = (FMTSTRING % (MAJOR, MINOR, REVIS))
 #: to signal version checking is impossible
 NOVERSIONCHECK = '@!NOVERSIONCHECK!@'
 
+
 def str2int(version_string):
     """
     Convert an 'x.y.z' string into binary form
@@ -51,6 +54,7 @@ def str2int(version_string):
     version_int |= version_tuple[2]
     return version_int & 0xFFFFFF
 
+
 def int2str(version_int):
     """
     Convert a binary form into an 'x.y.z' string
@@ -59,7 +63,8 @@ def int2str(version_int):
     major = (version_int & 0xFF0000) >> 16
     minor = (version_int & 0xFF00) >> 8
     revis = (version_int & 0xFF)
-    return (FMTSTRING % (major, minor, revis))
+    return FMTSTRING % (major, minor, revis)
+
 
 # for private, internal-use only
 def _bincmp(lhs, rhs):  # pylint: disable=C0111
@@ -103,6 +108,7 @@ def compare(lhs, rhs):
         raise ValueError("lhs and rhs must both be string, list, "
                          "tuple, or number")
 
+
 def check_version(config_section):
     """
     Simple version check that config version == library version
@@ -113,8 +119,8 @@ def check_version(config_section):
     """
     config_version = config_section.get('config_version', NOVERSIONCHECK)
     if config_version == NOVERSIONCHECK:
-        logging.warning("Could not check configuration version matches subtest "
-                        "API version.  No 'config_version' option specified "
+        logging.warning("Could not check configuration version matches subtest"
+                        " API version.  No 'config_version' option specified "
                         "in configuration")
     else:
         try:
