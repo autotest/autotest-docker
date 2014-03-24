@@ -542,8 +542,8 @@ class DockerImages(object):
         """
         # Prevent accidental test.test instance passing
         if not isinstance(subtest, Subtest):
-            raise TypeError("Subtest is not a Subtest instance or "
-                            "subclass.")
+            raise TypeError("Instance %s is not a Subtest instance or "
+                            "subclass." % str(subtest))
         else:
             self.subtest = subtest
 

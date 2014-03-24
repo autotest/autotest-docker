@@ -171,6 +171,16 @@ class DockerContainersBase(object):
         clist = self.list_containers()
         return [cnt for cnt in clist if cnt.cmp_name(container_name)]
 
+    def list_containers_with_cid(self, cid):
+        """
+        Return a python-list of DockerContainer-like instances
+
+        :param cid: String of long or short container id
+        :return: Python list of DockerContainer-like instances
+        """
+        clist = self.list_containers()
+        return [cnt for cnt in clist if cnt.cmp_id(cid)]
+
     # Not defined static on purpose
     def get_container_metadata(self, long_id):  # pylint: disable=R0201
         """
@@ -328,6 +338,51 @@ class DockerContainersCLI(DockerContainersBase):
                              "%s not found or not supported" % long_id)
         else:
             return _json
+
+    # TODO: Decide if this should be abstract similar to json_by_long_id
+    def kill_container_by_long_id(self, long_id, signal=None):
+        """
+        Use docker CLI 'kill' command on container's long_id
+
+        :param long_id: String of long-id for container
+        :param signal:  String of signal name, None for default
+        :return: pid of container's process
+        :raise: KeyError if container not found
+        :raise: ValueError if container not running, defunct, or zombie
+        """
+        # Raise KeyError if not found
+        try:
+            _json = self.json_by_long_id(long_id)
+        except TypeError:  # NoneType object blah blah blah
+            raise KeyError("Container %s not found" % long_id)
+        pid = _json[0]["State"]["Pid"]
+        if not _json[0]["State"]["Running"] or not utils.pid_is_alive(pid):
+            raise ValueError("Cannot kill container %s, it is not running,"
+                             " or is a defunct or zombie process" % long_id)
+        cmd = 'kill'
+        if signal is not None:
+            if signal.upper().startswith('SIG'):
+                signal = signal[3:]
+            cmd += " --signal=%s " % str(signal)
+        cmd += str(long_id)
+        # Raise exception if not exit zero
+        self.docker_cmd(cmd)
+        return pid
+
+    # TODO: Decide if this should be abstract similar to json_by_long_id
+    def kill_container_by_name(self, container_name, signal=None):
+        """
+        Use docker CLI 'kill' command on container's long_id, by name lookup.
+
+        :param long_id: String of long-id for container
+        :param signal:  String of signal name, None for default
+        :return: pid of container's process
+        :raise: KeyError if container not found
+        :raise: ValueError if container not running, defunct, or zombie
+        """
+        cntrs = self.list_containers_with_name(str(container_name))
+        # Raise KeyError if not found
+        return self.kill_container_by_long_id(cntrs[0].long_id, signal)
 
 
 class DockerContainersCLICheck(DockerContainersCLI):
