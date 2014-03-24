@@ -3,18 +3,21 @@
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
-import unittest, tempfile, shutil, os, sys, types
+import sys
+import types
+import unittest
+
 
 # DO NOT allow this function to get loose in the wild!
 def mock(mod_path):
     """
-    Recursivly inject tree of mocked modules from entire mod_path
+    Recursively inject tree of mocked modules from entire mod_path
     """
     name_list = mod_path.split('.')
     child_name = name_list.pop()
     child_mod = sys.modules.get(mod_path, types.ModuleType(child_name))
     if len(name_list) == 0:  # child_name is left-most basic module
-        if not sys.modules.has_key(child_name):
+        if child_name not in sys.modules:
             sys.modules[child_name] = child_mod
         return sys.modules[child_name]
     else:
@@ -34,16 +37,19 @@ setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
 setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
 
+
 class VersionTestBase(unittest.TestCase):
 
     def setUp(self):
         import version
         self.version = version
 
+
 class VersionTest(VersionTestBase):
 
     def test_types(self):
-        for thing in self.version.MAJOR, self.version.MINOR, self.version.REVIS:
+        for thing in (self.version.MAJOR, self.version.MINOR,
+                      self.version.REVIS):
             self.assertTrue(isinstance(thing, int))
         self.assertTrue(isinstance(self.version.FMTSTRING, (str, unicode)))
         self.assertTrue(isinstance(self.version.STRING, (str, unicode)))
@@ -53,11 +59,11 @@ class VersionTest(VersionTestBase):
         minor = self.version.MINOR
         revis = self.version.REVIS
         lstr = self.version.STRING
-        rstr = (self.version.FMTSTRING % (major, minor, revis+1))
+        rstr = (self.version.FMTSTRING % (major, minor, revis + 1))
         self.assertEqual(self.version.compare(lstr, rstr), 0)  # equal
-        rstr = (self.version.FMTSTRING % (major, minor+1, revis+1))
+        rstr = (self.version.FMTSTRING % (major, minor + 1, revis + 1))
         self.assertEqual(self.version.compare(lstr, rstr), -1)  # less
-        lstr = (self.version.FMTSTRING % (major, minor+10, revis))
+        lstr = (self.version.FMTSTRING % (major, minor + 10, revis))
         self.assertEqual(self.version.compare(lstr, rstr), 1)  # greater
 
     def test_compare_tup(self):
