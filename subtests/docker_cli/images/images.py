@@ -12,6 +12,7 @@ from dockertest import subtest
 from dockertest.images import DockerImages
 import logging
 
+
 class images(subtest.Subtest):
     config_section = 'docker_cli/images'
 

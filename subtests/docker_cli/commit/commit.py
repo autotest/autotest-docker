@@ -7,7 +7,7 @@ Initialize
 run_once
 3. commit changes.
 postprocess
-4. check if commited image exists.
+4. check if committed image exists.
 5. check if values in changed files for image are correct.
 clean
 6. remote committed image from local repo.
@@ -27,8 +27,10 @@ from dockertest import xceptions
 # Okay to be less-strict for these cautions/warnings in subtests
 # pylint: disable=C0103,C0111,R0904,C0103
 
+
 class commit(subtest.SubSubtestCaller):
     config_section = 'docker_cli/commit'
+
 
 class commit_base(SubSubtest):
 
@@ -91,7 +93,7 @@ class commit_base(SubSubtest):
         self.loginfo("Executing background command: %s" % dkrcmd)
         dkrcmd.execute()
         while not dkrcmd.done:
-            self.loginfo("Commiting...")
+            self.loginfo("Committing...")
             time.sleep(3)
         self.sub_stuff["cmdresult"] = dkrcmd.wait()
 
@@ -108,7 +110,7 @@ class commit_base(SubSubtest):
             # Needed for cleanup
             self.sub_stuff['image_list'] = im
             self.failif(len(im) < 1,
-                        "Failed to look up commited image ")
+                        "Failed to look up committed image ")
             self.check_file_in_image()
 
         elif self.config["docker_expected_result"] == "FAIL":
@@ -122,7 +124,7 @@ class commit_base(SubSubtest):
         super(commit_base, self).cleanup()
         # Auto-converts "yes/no" to a boolean
         if (self.config['remove_after_test'] and
-                               'image_list' in self.sub_stuff):
+           'image_list' in self.sub_stuff):
             dkrcmd = DockerCmd(self.parent_subtest, "rm",
                                ['--volumes', '--force',
                                 self.sub_stuff["container"]])
@@ -146,8 +148,8 @@ class commit_base(SubSubtest):
             f_read_cmd = self.config['docker_read_file_cmd'] % f_name
 
             cm = DockerCmd(self.parent_subtest, "run",
-                                ["--rm", repo_addr, f_read_cmd],
-                                self.config['docker_commit_timeout'])
+                           ["--rm", repo_addr, f_read_cmd],
+                           self.config['docker_commit_timeout'])
             results = cm.execute()
             if results.exit_status == 0:
                 self.failif((results.stdout.strip() !=
@@ -155,5 +157,5 @@ class commit_base(SubSubtest):
                             "Data read from image do not match"
                             " data written to container during"
                             " test initialization: %s != %s" %
-                                                (results.stdout.strip(),
-                                                 self.sub_stuff["rand_data"]))
+                           (results.stdout.strip(),
+                            self.sub_stuff["rand_data"]))

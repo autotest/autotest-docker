@@ -5,13 +5,13 @@ results.
 # Okay to be less-strict for these cautions/warnings in subtests
 # pylint: disable=C0103,C0111,R0904,C0103
 
-from dockertest.subtest import SubSubtest, SubSubtestCaller
+from dockertest.subtest import SubSubtest, SubSubtestCallerSimultaneous
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import OutputGood
 from dockertest.images import DockerImage
 
 
-class run_simple(SubSubtestCaller):
+class run_simple(SubSubtestCallerSimultaneous):
     config_section = 'docker_cli/run_simple'
 
 
@@ -28,7 +28,9 @@ class run_base(SubSubtest):
 
     def run_once(self):
         super(run_base, self).run_once()    # Prints out basic info
-        dkrcmd = DockerCmd(self.parent_subtest, 'run', self.sub_stuff['subargs'])
+        dkrcmd = DockerCmd(self.parent_subtest, 'run',
+                           self.sub_stuff['subargs'])
+        dkrcmd.verbose = True
         self.sub_stuff['cmdresult'] = dkrcmd.execute()
 
     def postprocess(self):
@@ -46,6 +48,3 @@ class run_true(run_base):
 
 class run_false(run_base):
     pass  # Only change is in configuration
-
-
-

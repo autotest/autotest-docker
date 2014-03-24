@@ -6,6 +6,7 @@ Handlers for command-line output processing, crash/panic detection, etc.
 # pylint: disable=W0403
 
 import re, logging
+from autotest.client import utils
 import xceptions
 
 class DockerVersion(object):
@@ -101,10 +102,8 @@ class OutputGoodBase(object):
         self.stderr_strip = cmdresult.stderr.strip()
         self.output_good = {}
         for checker in [name for name in dir(self) if name.endswith('_check')]:
-            if checker in skip:
-                continue
             method = getattr(self, checker)
-            if callable(method):
+            if callable(method) and checker not in skip:
                 self.output_good[checker] = self.check_outerr(method)
         # Not nonzero means One or more checkers returned False
         if not ignore_error and not self.__nonzero__():
@@ -147,6 +146,7 @@ class OutputGoodBase(object):
             return ("Output checkers %s passed, but %s failed for command %s "
                     "with exit code %d (see debug log for details)"
                     % (passed, failed, command, exit_code))
+
 
 class OutputGood(OutputGoodBase):
     """

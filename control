@@ -4,7 +4,7 @@ NAME = "Docker"
 TIME = "SHORT"
 TEST_TYPE = "CLIENT"
 # timeout in seconds
-TIMEOUT = 60 * 60
+TIMEOUT = 600
 
 ##############################################################################
 import sys, imp, os, os.path, logging, time
@@ -54,10 +54,7 @@ def step_init():
     # Every step must be pickleable: use wrapper function + arguments
     for index, url in enumerate(subtests):
         tag = "test_%s-of-%s" % (index + 1, total)
-        subsubtest = None
-        if ":" in url:
-            url, subsubtest = url.rsplit(":")
-        job.next_step(run_test, control_path, url, tag, TIMEOUT, subsubtest)
+        job.next_step(run_test, control_path, url, tag, TIMEOUT)
 
 def get_doc_version(control_path):
     """
@@ -70,7 +67,7 @@ def get_doc_version(control_path):
             version = line.split("'")[1]
     return version
 
-def run_test(control_path, url, tag, timeout, subsubtest):
+def run_test(control_path, url, tag, timeout):
     """
     Wrapper function around job.run_test() and setup for subtest namespace.
     """
@@ -115,7 +112,7 @@ def run_test(control_path, url, tag, timeout, subsubtest):
 
     # Run the subtest module through autotest job interface
     try:
-        job.run_test(url=url, tag=tag, timeout=timeout, subsubtest=subsubtest)
+        job.run_test(url=url, tag=tag, timeout=timeout)
     # Guarantee cleanup of any docker related modules
     finally:
         imp.acquire_lock()
