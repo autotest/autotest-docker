@@ -26,7 +26,7 @@ class Subtest(test.test):
     """
     #: Version number from configuration, read-only / setup inside __init__
     #: affects one-time building of bundled content in 'self.srcdir' by
-    #: controlling the call to setup() method only when it chanes.  Compared
+    #: controlling the call to setup() method only when it changes.  Compared
     #: to dockertest API, when specified in configuration.  Test will not
     #: execute if there is a MAJOR/MINOR mismatch (revision is okay).
     version = None
@@ -38,8 +38,9 @@ class Subtest(test.test):
     config_section = 'DEFAULTS'
     #: Private namespace for use by subclasses **ONLY**.  This attribute
     #: is completely ignored everywhere inside the dockertest API.  Subtests
-    #: are encourraged to use it for temporarily storing results/info. for
-    #: internal subclass-use.
+    #: are encouraged to use it for temporarily storing results/info. It is
+    #: initialized to an empty dictionary, but subtests can reassign it to any
+    #: type needed.
     stuff = None
     #: private method used by log*() methods internally, do not use.
     _re = None
@@ -187,7 +188,7 @@ class SubSubtest(object):
             the same interface as the Subtest class (above).
     """
     #: Reference to outer, parent test.  Read-only / set in __init__
-    parentSubtest = None
+    parent_subtest = None
     #: subsubsub test config instance, read-write, setup in __init__ but
     #: persists across iterations.  Handy for storing temporary results.
     config = None
@@ -196,25 +197,26 @@ class SubSubtest(object):
     tmpdir = None  # automatically determined in initialize()
     #: Private namespace for use by subclasses **ONLY**.  This attribute
     #: is completely ignored everywhere inside the dockertest API.  Subtests
-    #: are encourraged to use it for temporarily storing results/info. for
-    #: internal subclass-use.
-    subStuff = None
+    #: are encouraged to use it for temporarily storing results/info.  It
+    #: is initialized to an empty dictionary, however subsubtests may
+    #: re-assign it to any other type as needed.
+    sub_stuff = None
 
     def __init__(self, parent_subtest):
         """
         Initialize sub-subtest
 
-        :param parentSubtest: The Subtest instance calling this instance
+        :param parent_subtest: The Subtest instance calling this instance
         """
         # Allow parent_subtest to use any interface this
         # class is setup to support. Don't check type.
-        self.parentSubtest = parent_subtest
+        self.parent_subtest = parent_subtest
         # Append this subclass's name onto parent's section name
         # e.g. [parent_config_section/child_class_name]
-        config_section = (os.path.join(self.parentSubtest.config_section,
+        config_section = (os.path.join(self.parent_subtest.config_section,
                                        self.__class__.__name__))
         # Allow child to inherit but also override parent config
-        self.config = self.parentSubtest.config.copy()
+        self.config = self.parent_subtest.config.copy()
         all_config = config.Config()
         # Any config namespace mangling lost on destruction
         if all_config.has_key(config_section):
@@ -224,10 +226,10 @@ class SubSubtest(object):
         # Not automatically logged along with parent subtest
         # for records/archival/logging purposes
         note = {'Configuration_for_Subsubtest':config_section}
-        self.parentSubtest.write_test_keyval(note)
-        self.parentSubtest.write_test_keyval(self.config)
+        self.parent_subtest.write_test_keyval(note)
+        self.parent_subtest.write_test_keyval(self.config)
         # subclasses can do whatever they like with this
-        self.subStuff = {}
+        self.sub_stuff = {}
 
     def initialize(self):
         """
@@ -236,11 +238,11 @@ class SubSubtest(object):
         self.loginfo("%s initialize()", self.__class__.__name__)
         self.tmpdir = tempfile.mkdtemp(prefix=self.__class__.__name__,
                                        suffix='tmp',
-                                       dir=self.parentSubtest.tmpdir)
+                                       dir=self.parent_subtest.tmpdir)
 
     def run_once(self):
         """
-        Called once only to exercize subject of sub-subtest
+        Called once only to exercise subject of sub-subtest
         """
         self.loginfo("%s run_once()", self.__class__.__name__)
 
@@ -252,7 +254,7 @@ class SubSubtest(object):
 
     def cleanup(self):
         """
-        Always called, even dispite any exceptions thrown.
+        Always called, even despite any exceptions thrown.
         """
         self.loginfo("%s cleanup()", self.__class__.__name__)
         # tmpdir is cleaned up automatically by harness
@@ -261,9 +263,9 @@ class SubSubtest(object):
         """
         Convenience function to generate a unique test-repo name
         """
-        prefix = self.parentSubtest.config['repo_name_prefix']
+        prefix = self.parent_subtest.config['repo_name_prefix']
         name = os.path.basename(self.tmpdir)
-        postfix = self.parentSubtest.config['repo_name_postfix']
+        postfix = self.parent_subtest.config['repo_name_postfix']
         return "%s%s%s" % (prefix, name, postfix)
 
     # Handy to have here also
@@ -273,28 +275,28 @@ class SubSubtest(object):
         Same as Subtest.logdebug
         """
         newmsg = 'SubSubtest %s DEBUG: %s' % (self.__class__.__name__, message)
-        return self.parentSubtest.logdebug(newmsg, *args)
+        return self.parent_subtest.logdebug(newmsg, *args)
 
     def loginfo(self, message, *args):
         """
         Same as Subtest.loginfo
         """
         newmsg = 'SubSubtest %s INFO: %s' % (self.__class__.__name__, message)
-        return self.parentSubtest.loginfo(newmsg, *args)
+        return self.parent_subtest.loginfo(newmsg, *args)
 
     def logwarning(self, message, *args):
         """
         Same as Subtest.logwarning
         """
         newmsg = 'SubSubtest %s WARN: %s' % (self.__class__.__name__, message)
-        return self.parentSubtest.logwarning(newmsg, *args)
+        return self.parent_subtest.logwarning(newmsg, *args)
 
     def logerror(self, message, *args):
         """
         Same as Subtest.logerror
         """
         newmsg = 'SubSubtest %s ERROR: %s' % (self.__class__.__name__, message)
-        return self.parentSubtest.logerror(newmsg, *args)
+        return self.parent_subtest.logerror(newmsg, *args)
 
 
 class SubSubtestCaller(Subtest):
@@ -322,7 +324,7 @@ class SubSubtestCaller(Subtest):
         :param \*\*dargs: Opaque, passed through to super-class
         """
         super(SubSubtestCaller, self).__init__(*args, **dargs)
-        #: Need separate private dict similar to `subStuff` but different name
+        #: Need separate private dict similar to `sub_stuff` but different name
         self._sscd = {}
 
     def initialize(self):
@@ -431,5 +433,5 @@ class SubSubtestCaller(Subtest):
             # Create instance, pass this subtest subclass as only parameter
             return cls(self)
         # Non-fatal error
-        self.logerror("Failed importing sub-subtest %s")
+        self.logerror("Failed importing sub-subtest %s", name)
         return None

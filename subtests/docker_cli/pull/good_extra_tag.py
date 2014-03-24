@@ -31,7 +31,7 @@ class good_extra_tag(pull_base):
                                                                 tag,
                                                                 registry_addr,
                                                                 user)
-        self.subStuff["img_fn"] = format_full_name
+        self.sub_stuff["img_fn"] = format_full_name
 
         full_name_wo_tag = DockerImage.full_name_from_component(repository,
                                                                 None,

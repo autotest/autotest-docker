@@ -31,8 +31,20 @@ class build(subtest.Subtest):
             dst = os.path.join(self.srcdir, filename)
             shutil.copy(src, dst)
         # Must exist w/in directory holding Dockerfile
-        bb_dst = os.path.join(self.srcdir, 'busybox')
-        shutil.copy(self.config['busybox_path'], bb_dst)
+        from httplib import HTTPConnection
+        import logging
+        url = self.config['busybox_url'].split("/", 1)
+        logging.debug("Downloading busybox from http://%s%s location",
+                      url[0], url[1])
+        url[1] = "/" + url[1]     # Add the removed '/'
+        conn = HTTPConnection(url[0])
+        conn.request("GET", url[1])
+        resp = conn.getresponse()
+        data = resp.read()
+        busybox = os.open(os.path.join(self.srcdir, 'busybox'),
+                          os.O_WRONLY | os.O_CREAT, 0755)
+        os.write(busybox, data)
+        os.close(busybox)
 
     def initialize(self):
         super(build, self).initialize()

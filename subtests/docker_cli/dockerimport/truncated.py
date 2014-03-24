@@ -22,9 +22,9 @@ class truncated(empty):
         # Call empty parent's cleanup, not empty's.
         super(empty, self).cleanup() # pylint: disable=E1003
         # Fail test if **successful**
-        image_name = self.subStuff['image_name']  #  assume id lookup failed
-        if self.parentSubtest.config['try_remove_after_test']:
-            dkrcmd = MustFailDockerCmd(self.parentSubtest, 'rmi', [image_name])
+        image_name = self.sub_stuff['image_name']  #  assume id lookup failed
+        if self.parent_subtest.config['try_remove_after_test']:
+            dkrcmd = MustFailDockerCmd(self.parent_subtest, 'rmi', [image_name])
             dkrcmd.execute()
 
     def run_tar(self, tar_command, dkr_command):
@@ -43,22 +43,22 @@ class truncated(empty):
         command = "cat %s | %s" % (_fn, dkr_command)
         # instance-specific namespace
         self.loginfo("Expected to fail: %s", command)
-        self.subStuff['cmdresult'] = utils.run(command, ignore_status=True,
+        self.sub_stuff['cmdresult'] = utils.run(command, ignore_status=True,
                                              verbose=False)
 
     def check_output(self):
-        outputgood = output.OutputGood(self.subStuff['cmdresult'],
+        outputgood = output.OutputGood(self.sub_stuff['cmdresult'],
                                        ignore_error=True)
         # This is SUPPOSE to fail, fail test if it succeeds!
         self.failif(outputgood, str(outputgood))
 
     def check_status(self):
-        successful_exit = self.subStuff['cmdresult'].exit_status == 0
+        successful_exit = self.sub_stuff['cmdresult'].exit_status == 0
         self.failif(successful_exit, "Unexpected command success!")
         self.loginfo("It failed as expected")
 
     def image_check(self):
-        image_id = self.subStuff.get('image_id')
+        image_id = self.sub_stuff.get('image_id')
         self.failif(image_id is not None,
                     "Image ID '%s' successfully retrieved after expected "
                     "import failure!" % image_id)

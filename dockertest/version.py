@@ -22,11 +22,11 @@ import xceptions
 MAJOR = 0
 
 #: Minor API version number, as an integer (range 0-255).
-MINOR = 3
+MINOR = 4
 
 #: API Revision number, as an integer (range 0-255).  Not significant!
 #: for version comparisons. e.g. ``0.0.1 == 0.0.2 != 0.2.2``
-REVIS = 3
+REVIS = 1
 
 #: String format representation for MAJOR, MINOR, and REVIS
 FMTSTRING = "%d.%d.%d"

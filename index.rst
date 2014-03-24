@@ -365,16 +365,12 @@ Simple test that checks the output of the ``docker version`` command.
 ``docker_cli/version`` Prerequisites
 -------------------------------------
 
-This test requires the ``docker`` executable is available.  Optionally,
-if the ``python-docker-py`` package is available, it will be used.  If
-it fails, a simple check using the REST API is used to compare
-the version number returned to the one obtained from the CLI. This check
-requires the 'nc' (netcat) command is available.
+Docker daemon is running and accessable by it's unix socket.
 
 ``docker_cli/version`` Configuration
 --------------------------------------
 
-Only the API version.
+None
 
 
 ``docker_cli/build`` Sub-test
@@ -387,8 +383,7 @@ and pre-defined build-content.
 ------------------------------------------
 
 * Tarballs bundled with the subtest
-* Statically linked 'busybox' executable available on PATH
-  in host environment.
+* Statically linked 'busybox' executable available over HTTP
 
 ``docker_cli/build`` Configuration
 -------------------------------------------
@@ -403,7 +398,7 @@ and pre-defined build-content.
 *  Both the ``image_name_prefix`` and ``image_name_postfix`` behave
    exactly like the `docker_cli/dockerimport sub-test`_ test.
 *  The location of the statically linked ``busybox`` executable
-   is specified by the ``busybox_path`` option.
+   is specified by the ``busybox_url`` option.
 
 ``docker_cli/dockerimport`` Sub-test
 =======================================
@@ -468,7 +463,7 @@ Ultra-simple test to confirm output table-format of docker CLI
 ``docker_cli/run_simple`` Sub-test
 =====================================
 
-Three simple tests that verify exit status and singnal pass-through capability
+Three simple subsubtests that verify exit status and singnal pass-through capability
 
 ``docker_cli/run_simple`` Prerequisites
 -----------------------------------------
@@ -476,6 +471,8 @@ Three simple tests that verify exit status and singnal pass-through capability
 *  Container image with a ``/bin/bash`` shell executable
 *  Container image with a ``/bin/true`` executable returning zero
 *  Container image with a ``/bin/false`` executable returning non-zero
+*  Container image with a ``/bin/date`` executable
+*  Accurate (relative to host) timekeeping in container
 
 ``docker_cli/run_simple`` Configuration
 -----------------------------------------
@@ -582,6 +579,13 @@ Networking Module
 .. automodule:: dockertest.networking
    :members:
    :no-undoc-members:
+
+Docker_Daemon Module
+======================
+
+.. automodule:: dockertest.docker_daemon
+    :members:
+    :no-undoc-members:
 
 Dockercmd Module
 =================

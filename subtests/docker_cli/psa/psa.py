@@ -32,7 +32,7 @@ class psa(subtest.Subtest):
         subargs.append('-c')
         # Write to a file when signal received
         # Loop forever until marker-file exists
-        command = ("\"trap '/usr/bin/date > stop' SIGURG; "
+        command = ("\"rm -f stop; trap '/usr/bin/date > stop' SIGURG; "
                    "while ! [ -f stop ]; do :; done\"")
         subargs.append(command)
         self.stuff['cl0'] = DockerContainers(self, 'cli').get_container_list()

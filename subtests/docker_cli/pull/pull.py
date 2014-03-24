@@ -34,7 +34,7 @@ class pull_base(SubSubtest):
         super(pull_base, self).run_once()
         # 1. Run with no options
 
-        dkrcmd = AsyncDockerCmd(self.parentSubtest, 'pull',
+        dkrcmd = AsyncDockerCmd(self.parent_subtest, 'pull',
                                 self.complete_docker_command_line(),
                                 self.config['docker_pull_timeout'])
         self.loginfo("Executing background command: %s" % dkrcmd)
@@ -42,7 +42,7 @@ class pull_base(SubSubtest):
         while not dkrcmd.done:
             self.loginfo("Pulling...")
             time.sleep(3)
-        self.subStuff["cmdresult"] = dkrcmd.wait()
+        self.sub_stuff["cmdresult"] = dkrcmd.wait()
 
     def complete_docker_command_line(self):
         registry_addr = self.config["docker_registry_host"]
@@ -54,30 +54,30 @@ class pull_base(SubSubtest):
                                                          tag,
                                                          registry_addr,
                                                          user)
-        self.subStuff["img_fn"] = full_name
+        self.sub_stuff["img_fn"] = full_name
 
         return [full_name]
 
     def outputcheck(self):
         # Raise exception if problems found
-        OutputGood(self.subStuff['cmdresult'])
+        OutputGood(self.sub_stuff['cmdresult'])
 
     def postprocess(self):
         super(pull_base, self).postprocess()
         self.outputcheck()
         if self.config["docker_expected_result"] == "PASS":
-            self.failif(self.subStuff['cmdresult'].exit_status != 0,
+            self.failif(self.sub_stuff['cmdresult'].exit_status != 0,
                         "Non-zero pull exit status: %s"
-                        % self.subStuff['cmdresult'])
+                        % self.sub_stuff['cmdresult'])
 
-            di = DockerImages(self.parentSubtest)
-            image_list = di.list_imgs_with_full_name(self.subStuff["img_fn"])
-            self.subStuff['image_list'] = image_list
-            self.failif(self.subStuff['image_list'] == [],
+            di = DockerImages(self.parent_subtest)
+            image_list = di.list_imgs_with_full_name(self.sub_stuff["img_fn"])
+            self.sub_stuff['image_list'] = image_list
+            self.failif(self.sub_stuff['image_list'] == [],
                         "Failed to look up image ")
 
         elif self.config["docker_expected_result"] == "FAIL":
-            self.failif(self.subStuff['cmdresult'].exit_status == 0,
+            self.failif(self.sub_stuff['cmdresult'].exit_status == 0,
                         "Zero pull exit status: Command should fail due to"
                         " wrong command arguments.")
 
@@ -85,10 +85,10 @@ class pull_base(SubSubtest):
         super(pull_base, self).cleanup()
         # Auto-converts "yes/no" to a boolean
         if (self.config['remove_after_test'] and
-            'image_list' in self.subStuff):
-            for image in self.subStuff["image_list"]:
+            'image_list' in self.sub_stuff):
+            for image in self.sub_stuff["image_list"]:
                 try:
-                    di = DockerImages(self.parentSubtest)
+                    di = DockerImages(self.parent_subtest)
                     di.remove_image_by_image_obj(image)
                     self.loginfo("Successfully removed test image")
                 except error.CmdError:
