@@ -30,12 +30,27 @@ def mock(mod_path):
             sys.modules[mod_path] = child_mod
         return sys.modules[mod_path]
 
+
+class DockerVersionError(IOError):
+    """ Dummy exception """
+    pass
+
+
+class DockerValueError(IOError):
+    """ Dummy exception """
+    pass
+
+
 # Mock module and exception class in one stroke
 setattr(mock('autotest.client.shared.error'), 'CmdError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestFail', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
 setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
+setattr(mock('xceptions'), 'DockerVersionError', DockerVersionError)
+setattr(mock('xceptions'), 'DockerValueError', DockerValueError)
+setattr(mock('dockertest.xceptions'), 'DockerVersionError', DockerVersionError)
+setattr(mock('dockertest.xceptions'), 'DockerValueError', DockerValueError)
 
 
 class VersionTestBase(unittest.TestCase):
@@ -77,6 +92,48 @@ class VersionTest(VersionTestBase):
         lhs = (0, 100, 0)
         self.assertEqual(self.version.compare(lhs, rhs), -1)  # less
         self.assertEqual(self.version.compare(rhs, lhs), 1)  # greater
+        # Incorrect value
+        self.assertRaises(ValueError, self.version.compare, None, None)
+
+    def test_str2int(self):
+        self.assertEqual(self.version.str2int("3.1.5"), 196869)
+        self.assertRaises(AssertionError, self.version.str2int, "256.1.5")
+        self.assertRaises(AssertionError, self.version.str2int, "1.1.5.1")
+
+    def test_int2str(self):
+        self.assertEqual(self.version.int2str(123456), "1.226.64")
+
+    def test_check_version(self):
+        def increment(*_args, **_kwargs):
+            self.__counter += 1
+
+        _version = self.version.STRING
+        self.version.STRING = '1.2.3'
+        config = {'config_version': '1.2.3'}    # Correct version
+        self.assertEqual(self.version.check_version(config), None)
+
+        config['config_version'] = '2.0.0'      # Incorrect version
+        self.assertRaises(DockerVersionError,
+                          self.version.check_version, config)
+        self.version.STRING = _version
+
+        config['config_version'] = ""         # Bad type
+        self.assertRaises(DockerVersionError,
+                          self.version.check_version, config)
+
+        config['config_version'] = None         # Incorrect type
+        self.assertRaises(DockerValueError,
+                          self.version.check_version, config)
+
+        config['config_version'] = '@!NOVERSIONCHECK!@'
+        self.__counter = 0
+        _logging_mock = mock('logging')     # Don't spam the output
+        _logging_orig = getattr(_logging_mock, 'warning')
+        setattr(_logging_mock, 'warning', increment)
+        self.assertEqual(self.version.check_version(config), None)
+        setattr(_logging_mock, 'warning', _logging_orig)    # cleanup
+        self.assertEqual(self.__counter, 1, "logging.warn was not used while "
+                         "checking version with NOVERSIONCHECK")
 
 if __name__ == '__main__':
     unittest.main()
