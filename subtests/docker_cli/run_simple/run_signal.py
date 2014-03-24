@@ -13,19 +13,20 @@ from run_simple import run_base
 
 
 class run_signal(run_base):
-    config_section = 'docker_cli/run_simple/run_true'
 
     def run_once(self):
         super(run_base, self).run_once()    # Prints out basic info
         sig = getattr(signal, self.config['listen_signal'])
-        dkrcmd = AsyncDockerCmd(self.parentSubtest, 'run',
-                                self.subStuff['subargs'])
+        dkrcmd = AsyncDockerCmd(self.parent_subtest, 'run',
+                                self.sub_stuff['subargs'],
+                                timeout=self.config['docker_timeout'])
         # Runs in background
-        self.subStuff['cmdresult'] = dkrcmd.execute()
+        self.sub_stuff['cmdresult'] = dkrcmd.execute()
         pid = dkrcmd.process_id
         self.loginfo("Container running, waiting %d seconds to send signal"
                      % self.config['wait_start'])
-        # Don't signal until contained-shell is most likely running
+        # Allow noticable time difference for date command,
+        # and eat into dkrcmd timeout after receiving signal.
         time.sleep(self.config['wait_start'])
 
         self.loginfo("Signaling pid %d with signal %s",
@@ -35,3 +36,6 @@ class run_signal(run_base):
                      dkrcmd.timeout)
         # Throw exception if takes > docker_timeout to exit
         dkrcmd.wait()
+
+    # TODO: Verify date in 'stop' file advanced by ~10 seconds
+    #       def post_process(self):

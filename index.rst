@@ -463,7 +463,7 @@ Ultra-simple test to confirm output table-format of docker CLI
 ``docker_cli/run_simple`` Sub-test
 =====================================
 
-Three simple tests that verify exit status and singnal pass-through capability
+Three simple subsubtests that verify exit status and singnal pass-through capability
 
 ``docker_cli/run_simple`` Prerequisites
 -----------------------------------------
@@ -471,6 +471,8 @@ Three simple tests that verify exit status and singnal pass-through capability
 *  Container image with a ``/bin/bash`` shell executable
 *  Container image with a ``/bin/true`` executable returning zero
 *  Container image with a ``/bin/false`` executable returning non-zero
+*  Container image with a ``/bin/date`` executable
+*  Accurate (relative to host) timekeeping in container
 
 ``docker_cli/run_simple`` Configuration
 -----------------------------------------

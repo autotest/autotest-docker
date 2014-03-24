@@ -19,24 +19,33 @@ class run_base(SubSubtest):
 
     def initialize(self):
         super(run_base, self).initialize()
-        self.subStuff['subargs'] = self.config['run_options_csv'].split(',')
+        self.sub_stuff['subargs'] = self.config['run_options_csv'].split(',')
         fin = DockerImage.full_name_from_defaults(self.config)
-        self.subStuff['subargs'].append(fin)
-        self.subStuff['subargs'].append('/bin/bash')
-        self.subStuff['subargs'].append('-c')
-        self.subStuff['subargs'].append(self.config['cmd'])
+        self.sub_stuff['subargs'].append(fin)
+        self.sub_stuff['subargs'].append('/bin/bash')
+        self.sub_stuff['subargs'].append('-c')
+        self.sub_stuff['subargs'].append(self.config['cmd'])
 
     def run_once(self):
         super(run_base, self).run_once()    # Prints out basic info
-        dkrcmd = DockerCmd(self.parentSubtest, 'run', self.subStuff['subargs'])
-        self.subStuff['cmdresult'] = dkrcmd.execute()
+        dkrcmd = DockerCmd(self.parent_subtest, 'run', self.sub_stuff['subargs'])
+        self.sub_stuff['cmdresult'] = dkrcmd.execute()
 
     def postprocess(self):
         super(run_base, self).postprocess()  # Prints out basic info
         # Fail test if bad command or other stdout/stderr problems detected
-        OutputGood(self.subStuff['cmdresult'])
+        OutputGood(self.sub_stuff['cmdresult'])
         expected = self.config['exit_status']
-        self.failif(self.subStuff['cmdresult'].exit_status != expected,
+        self.failif(self.sub_stuff['cmdresult'].exit_status != expected,
                     "Exit status of /bin/true non-zero: %s"
-                    % self.subStuff['cmdresult'])
-        self.logdebug(self.subStuff['cmdresult'])
+                    % self.sub_stuff['cmdresult'])
+        self.logdebug(self.sub_stuff['cmdresult'])
+
+class run_true(run_base):
+    pass  # Only change is in configuration
+
+class run_false(run_base):
+    pass  # Only change is in configuration
+
+
+
