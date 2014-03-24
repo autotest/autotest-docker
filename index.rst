@@ -387,8 +387,7 @@ and pre-defined build-content.
 ------------------------------------------
 
 * Tarballs bundled with the subtest
-* Statically linked 'busybox' executable available on PATH
-  in host environment.
+* Statically linked 'busybox' executable available over HTTP
 
 ``docker_cli/build`` Configuration
 -------------------------------------------
@@ -403,7 +402,7 @@ and pre-defined build-content.
 *  Both the ``image_name_prefix`` and ``image_name_postfix`` behave
    exactly like the `docker_cli/dockerimport sub-test`_ test.
 *  The location of the statically linked ``busybox`` executable
-   is specified by the ``busybox_path`` option.
+   is specified by the ``busybox_url`` option.
 
 ``docker_cli/dockerimport`` Sub-test
 =======================================
