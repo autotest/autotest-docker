@@ -38,7 +38,7 @@ class one(SubSubtest):
         super(one, self).initialize() # Prints out basic info
         self.logdebug("debug console logging works in sub-subtests")
         # Keep track of whatever you like here
-        self.subStuff = ", and sub-subtest private stuff here"
+        self.sub_stuff = ", and sub-subtest private stuff here"
         # Do Something useful here, store run_once input in 'stuff'
 
     def run_once(self):
@@ -47,7 +47,7 @@ class one(SubSubtest):
         """
         super(one, self).run_once() # Prints out basic info
         # Use parent subtest instance as needed
-        self.parentSubtest.special_function(self.subStuff)
+        self.parent_subtest.special_function(self.sub_stuff)
         # Do Something useful here, store results in 'stuff'
 
     def postprocess(self):

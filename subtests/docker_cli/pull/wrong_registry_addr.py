@@ -17,7 +17,7 @@ class wrong_registry_addr(pull_base):
     config_section = 'docker_cli/pull/wrong_registry_addr'
 
     def outputcheck(self):
-        outputgood = output.OutputGood(self.subStuff['cmdresult'],
+        outputgood = output.OutputGood(self.sub_stuff['cmdresult'],
                                        ignore_error=True)
         # This is SUPPOSE to fail, fail test if it succeeds!
         self.failif(outputgood, str(outputgood))

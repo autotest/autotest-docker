@@ -17,4 +17,4 @@ class two(SubSubtest):
         Called to run test
         """
         super(two, self).run_once() # Prints out basic info
-        self.parentSubtest.special_function(", or don't use it if not needed")
+        self.parent_subtest.special_function(", or don't use it if not needed")
