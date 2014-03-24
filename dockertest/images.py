@@ -519,7 +519,7 @@ class DockerImagesCLICheck(DockerImagesCLI):
     #: This is probably test-subject related, be a bit more noisy
     verbose = True
 
-    def docker_cmd(self, cmd, timeout):
+    def docker_cmd(self, cmd, timeout=None):
         cmdresult = super(DockerImagesCLICheck,
                           self).docker_cmd(cmd, timeout)
         # Throws exception if checks fail
