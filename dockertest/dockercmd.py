@@ -5,13 +5,12 @@ Frequently used docker CLI operations/data
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
-from autotest.client.shared import error
 from autotest.client import utils
+from autotest.client.shared import error
 from subtest import Subtest
-from xceptions import DockerCommandError
-from xceptions import DockerValueError
-from xceptions import  DockerNotImplementedError
-from xceptions import DockerExecError
+from xceptions import (DockerNotImplementedError, DockerCommandError,
+                       DockerExecError, DockerValueError)
+
 
 class DockerCmdBase(object):
     """
@@ -101,6 +100,7 @@ class DockerCmdBase(object):
                                   self.docker_options,
                                   self.subcmd)).strip()
 
+
 class DockerCmd(DockerCmdBase):
     """
     Setup a call docker subcommand as if by CLI w/ subtest config integration
@@ -123,6 +123,7 @@ class DockerCmd(DockerCmdBase):
             # Something internal must have gone wrong
             raise DockerCommandError(self.command, detail.result_obj)
 
+
 class NoFailDockerCmd(DockerCmd):
     """
     Setup a call docker subcommand as if by CLI w/ subtest config integration
@@ -134,7 +135,7 @@ class NoFailDockerCmd(DockerCmd):
 
         :param stdin: String or file-like containing standard input contents
         :raise: DockerCommandError on incorrect usage
-        :raise: DockerExecError on if command retuns non-zero exit code
+        :raise: DockerExecError on if command returns non-zero exit code
         :return: A CmdResult instance
         """
         try:
@@ -143,6 +144,7 @@ class NoFailDockerCmd(DockerCmd):
         # Prevent caller from needing to import this exception class
         except error.CmdError, detail:
             raise DockerExecError(str(detail.result_obj))
+
 
 class MustFailDockerCmd(DockerCmd):
     """
@@ -155,7 +157,7 @@ class MustFailDockerCmd(DockerCmd):
 
         :param stdin: String or file-like containing standard input contents
         :raise: DockerCommandError on incorrect usage
-        :raise: DockerExecError on if command retuns zero exit code
+        :raise: DockerExecError on if command returns zero exit code
         :return: A CmdResult instance
         """
         try:
@@ -170,6 +172,7 @@ class MustFailDockerCmd(DockerCmd):
                                   % str(cmdresult))
         else:
             return cmdresult
+
 
 class AsyncDockerCmd(DockerCmdBase):
     """
