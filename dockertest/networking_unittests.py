@@ -67,5 +67,14 @@ class ContainerPortTest(NetworkingTestBase):
         self.assertFalse(cp.cmp_portstr_with_component(4321, 1234,
                                                       "1.2.3.4"))
 
+    def test_split_to_component(self):
+        # host_ip:host_port->container_port/protocol
+        result = self.CP.split_to_component("4.2.2.1:5678->9876/tux")
+        # container_port, host_port, host_ip, protocol
+        self.assertEqual(result[0], 9876)
+        self.assertEqual(result[1], 5678)
+        self.assertEqual(result[2], "4.2.2.1")
+        self.assertEqual(result[3], 'tux')
+
 if __name__ == '__main__':
     unittest.main()
