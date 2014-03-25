@@ -41,7 +41,7 @@ fedora                        20                  58394af373423902a1b97f209a31e3
 fedora                        heisenbug           58394af373423902a1b97f209a31e3777932d9321ef10e64feaaa7b4df609cf9   5 weeks ago         385.5 MB
 fedora                        latest              58394af373423902a1b97f209a31e3777932d9321ef10e64feaaa7b4df609cf9   5 weeks ago         385.5 MB
 """,
-                         stderr=dargs,
+                         stderr=str(dargs),
                          exit_status=len(args),
                          duration=len(dargs))
 
@@ -175,14 +175,22 @@ class DockerImageTestBasic(ImageTestBase):
                          "[DockerImage(full_name:fedora:rawhide LONG_ID:0d20aec6529d5d396b195182c0eaa82bfe014c3e82ab390203ed56a774d2c404 CREATED:5 weeks ago SIZE:387 MB)]")
 
         images = str(d.list_imgs_with_full_name("fedora:latest"))
-        self.assertEqual(images,
-                         "[DockerImage(full_name:192.168.122.245:5000/fedora:latest LONG_ID:58394af373423902a1b97f209a31e3777932d9321ef10e64feaaa7b4df609cf9 CREATED:5 weeks ago SIZE:385.5 MB),"
-                         " DockerImage(full_name:fedora:latest LONG_ID:58394af373423902a1b97f209a31e3777932d9321ef10e64feaaa7b4df609cf9 CREATED:5 weeks ago SIZE:385.5 MB)]")
+        exp = ("[DockerImage(full_name:192.168.122.245:5000/fedora:latest LONG_ID:58394af373423902a1b97f209a31e3777932d9321ef10e64feaaa7b4df609cf9 CREATED:5 weeks ago SIZE:385.5 MB),"
+               " DockerImage(full_name:fedora:latest LONG_ID:58394af373423902a1b97f209a31e3777932d9321ef10e64feaaa7b4df609cf9 CREATED:5 weeks ago SIZE:385.5 MB)]")
+        self.assertEqual(images, exp)
+
+        act = self.images.DockerImagesBase.filter_list_full_name(all_images,
+                                                                 "fedora:"
+                                                                 "latest")
+        self.assertEqual(str(act), exp)
 
         images = str(d.list_imgs_with_full_name_components(repo_addr="192.168.122.245:5000"))
-        self.assertEqual(images,
-                         "[DockerImage(full_name:192.168.122.245:5000/fedora:32 LONG_ID:0d20aec6529d5d396b195182c0eaa82bfe014c3e82ab390203ed56a774d2c404 CREATED:5 weeks ago SIZE:387 MB),"
-                         " DockerImage(full_name:192.168.122.245:5000/fedora:latest LONG_ID:58394af373423902a1b97f209a31e3777932d9321ef10e64feaaa7b4df609cf9 CREATED:5 weeks ago SIZE:385.5 MB)]")
+        exp = ("[DockerImage(full_name:192.168.122.245:5000/fedora:32 LONG_ID:0d20aec6529d5d396b195182c0eaa82bfe014c3e82ab390203ed56a774d2c404 CREATED:5 weeks ago SIZE:387 MB),"
+               " DockerImage(full_name:192.168.122.245:5000/fedora:latest LONG_ID:58394af373423902a1b97f209a31e3777932d9321ef10e64feaaa7b4df609cf9 CREATED:5 weeks ago SIZE:385.5 MB)]")
+        self.assertEqual(images, exp)
+        act = self.images.DockerImagesBase.filter_list_by_components(all_images,
+                                                                     repo_addr='192.168.122.245:5000')
+        self.assertEqual(str(act), exp)
 
         images = str(d.list_imgs_with_full_name_components(repo_addr="192.168.122.245:5000",
                                                                  tag="32"))
@@ -263,9 +271,46 @@ class DockerImageTestBasic(ImageTestBase):
                                                              "fedora_addr:44",
                                                              "user_user"))
 
+        self.assertTrue(di_ref.cmp_id(di_ref2.short_id))
+        self.assertTrue(di_ref.cmp_id(di_ref2.long_id))
+        self.assertFalse(di_ref.cmp_id('11111111111'))
+        self.assertFalse(di_ref.cmp_id('1111111111111111111111111111111111'))
+
+        self.assertTrue(di_ref.cmp_full_name(di_ref2.full_name))
+        self.assertFalse(di_ref.cmp_full_name(di_dif.full_name))
+
+        config = {'docker_repo_name': 'fedora', 'docker_repo_tag': '',
+                  'docker_registry_user': '', 'docker_registry_host': ''}
+        act = self.images.DockerImage.full_name_from_defaults(config)
+        self.assertEqual(act, 'fedora')
 
     def test_remove_cli(self):
-        d = self.images.DockerImages(self.fake_subtest)
+        d = self.images.DockerImages(self.fake_subtest, 'cli', 1.0, True)
+        self.assertEqual(d.remove_image_by_id('123456789012').command,
+                         "/foo/bar rmi 123456789012")
+        self.assertEqual(d.remove_image_by_id('123456789012').command,
+                         "/foo/bar rmi 123456789012")
+        self.assertEqual(d.remove_image_by_full_name('fedora:latest').command,
+                         "/foo/bar rmi fedora:latest")
+        image_obj = self.images.DockerImage("fedora_repo", "last_tag",
+                                            ("0d20aec6529d5d396b195182c0eaa"
+                                             "82bfe014c3e82ab390203ed56a774"
+                                             "d2c404"),
+                                            "dd",
+                                            "50 MB",
+                                            None, "user_user")
+        self.assertEqual(d.remove_image_by_image_obj(image_obj).command,
+                         "/foo/bar rmi user_user/fedora_repo:last_tag")
+
+    def test_docker_images_lowlevel(self):
+        self.assertRaises(KeyError, self.images.DockerImages,
+                          self.fake_subtest, 'missing')
+        images = self.images.DockerImages(self.fake_subtest, "clic")
+        self.assertEqual(images.interface_name, "DockerImagesCLICheck")
+        self.assertEqual(images.interface_shortname, "clic")
+
+        self.assertEqual(images.docker_cmd("command_pass").command,
+                         '/foo/bar command_pass')
 
 
 if __name__ == '__main__':
