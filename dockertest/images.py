@@ -18,7 +18,8 @@ Where/when ***possible***, both parameters and return values follow this order:
 *  ``repo_addr``
 *  ``user``
 
-Note: As in other places, the terms 'repo' and 'image' are used interchangeably.
+Note: As in other places, the terms 'repo' and 'image' are used
+      interchangeably.
 """
 
 # Pylint runs from another directory, ignore relative import warnings
@@ -31,8 +32,9 @@ from output import OutputGood
 from subtest import Subtest
 from xceptions import DockerFullNameFormatError
 
+
 # Many attributes simply required here
-class DockerImage(object): # pylint: disable=R0902
+class DockerImage(object):  # pylint: disable=R0902
     """
     Represent a repository or image as a set of instance attributes.
     """
@@ -106,7 +108,6 @@ class DockerImage(object): # pylint: disable=R0902
         Return python-standard representation of instance
         """
         return "DockerImage(%s)" % str(self)
-
 
     @staticmethod
     def split_to_component(full_name):
@@ -230,15 +231,20 @@ class DockerImage(object): # pylint: disable=R0902
 
         :return: True/false on all Non-None argument equality to instance
         """
-        args = (repo, tag, repo_addr, user)
-        t_args = (self.repo, self.tag, self.repo_addr, self.user)
-        #: if args[x] is not None fill s_args[x]=t_args[x] else s_args[x]=None
-        s_args = [y if x is not None else None for x, y in zip(args, t_args)]
-        return tuple(s_args) == args
+        if repo is not None and repo != self.repo:
+            return False
+        if tag is not None and tag != self.tag:
+            return False
+        if repo_addr is not None and repo_addr != self.repo_addr:
+            return False
+        if user is not None and user != self.user:
+            return False
+        return True
 
     def cmp_greedy_full_name(self, full_name):
         """
-        Compare instance full_name's components to Non-None full_name components
+        Compare instance full_name's components to Non-None full_name
+        components
 
         :param full_name: FQIN string, Fully Qualified Image Name
                           possibly containing
@@ -251,7 +257,8 @@ class DockerImage(object): # pylint: disable=R0902
 
 class DockerImagesBase(object):
     """
-    Implementation defined collection of DockerImage-like instances with helpers
+    Implementation defined collection of DockerImage-like instances with
+    helpers
     """
 
     #: Operational timeout, may be overridden by subclasses and/or parameters.
@@ -285,7 +292,7 @@ class DockerImagesBase(object):
         self.subtest = subtest
 
     # Not defined static on purpose
-    def get_dockerimages_list(self): # pylint: disable=R0201
+    def get_dockerimages_list(self):    # pylint: disable=R0201
         """
         Standard name for behavior specific to subclass implementation details
 
@@ -354,8 +361,8 @@ class DockerImagesBase(object):
 
     def list_imgs_ids(self):
         """
-        Return python-list of **possibly overlapping** 64-character (long) image
-        IDs
+        Return python-list of **possibly overlapping** 64-character (long)
+        image IDs
 
         :return: **possibly overlapping** [long ID, long ID, ...]
         """
@@ -393,8 +400,8 @@ class DockerImagesBase(object):
 
     def list_imgs_with_image_id(self, image_id):
         """
-        Return python-list of **possibly overlapping** 64-character (long) image
-        IDs
+        Return python-list of **possibly overlapping** 64-character (long)
+        image IDs
 
         :return: **possibly overlapping**
                  [DockerImage-like, DockerImage-like, ...] greedy-matching
@@ -403,10 +410,10 @@ class DockerImagesBase(object):
         dis = self.get_dockerimages_list()
         return [di for di in dis if di.cmp_id(image_id)]
 
-    # Disbled by default extension point, can't be static.
+    # Disabled by default extension point, can't be static.
     def remove_image_by_id(self, image_id):  # pylint: disable=R0201
         """
-        Remove an image by 64-character (long) or 12-character (short) image ID.
+        Remove image by 64-character (long) or 12-character (short) image ID.
 
         :raise: RuntimeError when implementation does not permit image removal
         :raise: Implementation-specific exception
@@ -417,7 +424,7 @@ class DockerImagesBase(object):
         # Return value is defined as undefined
         return None  # pylint: disable=W0101
 
-    # Disbled by default extension point, can't be static.
+    # Disabled by default extension point, can't be static.
     def remove_image_by_full_name(self, full_name):  # pylint: disable=R0201
         """
         Remove an image by FQIN Fully Qualified Image Name.
@@ -527,7 +534,7 @@ class DockerImages(object):
 
     #: Mapping of interface short-name string to DockerImagesBase subclass.
     #: (shortens line-length when instantiating)
-    interfaces = {"cli": DockerImagesCLI, 'clic':DockerImagesCLICheck}
+    interfaces = {"cli": DockerImagesCLI, 'clic': DockerImagesCLICheck}
 
     def __init__(self, subtest, interface_name="cli",
                  timeout=None, verbose=False):

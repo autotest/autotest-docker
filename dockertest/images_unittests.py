@@ -3,14 +3,20 @@
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
-import unittest, tempfile, shutil, os, sys, types
+import os
+import shutil
+import sys
+import tempfile
+import types
+import unittest
+
 
 def mock(mod_path):
     name_list = mod_path.split('.')
     child_name = name_list.pop()
     child_mod = sys.modules.get(mod_path, types.ModuleType(child_name))
     if len(name_list) == 0:  # child_name is left-most basic module
-        if not sys.modules.has_key(child_name):
+        if child_name not in sys.modules:
             sys.modules[child_name] = child_mod
         return sys.modules[child_name]
     else:
@@ -23,10 +29,12 @@ def mock(mod_path):
             sys.modules[mod_path] = child_mod
         return sys.modules[mod_path]
 
+
 class FakeCmdResult(object):
     def __init__(self, **dargs):
         for key, val in dargs.items():
             setattr(self, key, val)
+
 
 def run(command, *args, **dargs):
     command = "%s" % (command)
@@ -109,7 +117,7 @@ class ImageTestBase(unittest.TestCase):
                                'cleanup', 'failif',):
                     setattr(fake_self, symbol, FakeSubtestException)
                 for symbol in ('logdebug', 'loginfo', 'logwarning', 'logerror'):
-                    setattr(fake_self, symbol, lambda *a, **d: None)
+                    setattr(fake_self, symbol, lambda *_a, **_d: None)
 
         return FakeSubtest()
 
