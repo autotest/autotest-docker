@@ -5,6 +5,7 @@
 
 import unittest
 
+
 class NetworkingTestBase(unittest.TestCase):
 
     def setUp(self):
@@ -14,6 +15,7 @@ class NetworkingTestBase(unittest.TestCase):
 
     def tearDown(self):
         del self.networking
+
 
 class ContainerPortTest(NetworkingTestBase):
 

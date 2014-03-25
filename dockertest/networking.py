@@ -18,6 +18,7 @@ and defaults:
 
 import re
 
+
 class ContainerPort(object):
     """
     Represents a private container port mapping to public host ip, and port.
@@ -78,7 +79,6 @@ class ContainerPort(object):
         Return python-standard representation of instance
         """
         return "ContainerPort(%s)" % str(self)
-
 
     @staticmethod
     def split_to_component(portstr):
