@@ -5,9 +5,11 @@ Handlers for command-line output processing, crash/panic detection, etc.
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
-import re, logging
-from autotest.client import utils
+import logging
+import re
+
 import xceptions
+
 
 class DockerVersion(object):
     """
@@ -68,6 +70,7 @@ class DockerVersion(object):
             raise xceptions.DockerOutputError("Couldn't parse server version "
                                               "from %s" % self.version_string)
         return self._server
+
 
 class OutputGoodBase(object):
     """
@@ -132,10 +135,11 @@ class OutputGoodBase(object):
 
     def __str__(self):
         """
-        Make results of individual checkers accessable
+        Make results of individual checkers accessible
         """
         passed = [chkr for (chkr, good) in self.output_good.items() if good]
-        failed = [chkr for (chkr, good) in self.output_good.items() if not good]
+        failed = [chkr for (chkr, good) in self.output_good.items()
+                  if not good]
         command = self.cmdresult.command
         exit_code = self.cmdresult.exit_status
         if self:  # Boolean instance

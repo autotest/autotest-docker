@@ -3,18 +3,21 @@
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
-import unittest, sys, types
+import sys
+import types
+import unittest
+
 
 # DO NOT allow this function to get loose in the wild!
 def mock(mod_path):
     """
-    Recursivly inject tree of mocked modules from entire mod_path
+    Recursively inject tree of mocked modules from entire mod_path
     """
     name_list = mod_path.split('.')
     child_name = name_list.pop()
     child_mod = sys.modules.get(mod_path, types.ModuleType(child_name))
     if len(name_list) == 0:  # child_name is left-most basic module
-        if not sys.modules.has_key(child_name):
+        if child_name not in sys.modules:
             sys.modules[child_name] = child_mod
         return sys.modules[child_name]
     else:
@@ -35,6 +38,7 @@ setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
 setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
 
+
 class FakeCmdResult(object):
     def __init__(self, command, exit_status=0,
                  stdout='', stderr='', duration=0):
@@ -43,6 +47,7 @@ class FakeCmdResult(object):
         self.stdout = stdout
         self.stderr = stderr
         self.duration = duration
+
 
 class BaseInterfaceTest(unittest.TestCase):
 
@@ -61,9 +66,10 @@ class BaseInterfaceTest(unittest.TestCase):
             self.assertTrue(self.output.OutputGoodBase(cmdresult,
                                                        ignore_error=True))
 
+    # Following cases create classes with fake self pylint: disable=E0213
     def test_all_good(self):
         class all_good(self.output.OutputGoodBase):
-            def good_check(self_, output):
+            def good_check(fake_self, output):
                 return True
         for cmdresult in (self.good_cmdresult, self.bad_cmdresult):
             self.assertTrue(all_good(cmdresult, ignore_error=False))
@@ -71,26 +77,27 @@ class BaseInterfaceTest(unittest.TestCase):
 
     def test_multi_actual(self):
         class Actual(self.output.OutputGoodBase):
-            def good_check(self_, output):
+            def good_check(fake_self, output):
                 return True
-            def actual_check(self_, output):
-                return self_.cmdresult.exit_status == 0
+            def actual_check(fake_self, output):
+                return fake_self.cmdresult.exit_status == 0
         self.assertTrue(Actual(self.good_cmdresult, ignore_error=True))
         self.assertFalse(Actual(self.bad_cmdresult, ignore_error=True))
         self.assertRaises(self.DockerOutputError, Actual, self.bad_cmdresult)
 
     def test_output_map(self):
         class Actual(self.output.OutputGoodBase):
-            def good_check(self_, output):
+            def good_check(fake_self, output):
                 return True
-            def actual_check(self_, output):
-                return self_.cmdresult.exit_status == 0
+            def actual_check(fake_self, output):
+                return fake_self.cmdresult.exit_status == 0
         actual = Actual(self.bad_cmdresult, ignore_error=True)
         self.assertTrue(actual.output_good['good_check'])
         self.assertFalse(actual.output_good['actual_check'])
         actual = Actual(self.good_cmdresult, ignore_error=True)
         self.assertTrue(actual.output_good['good_check'])
         self.assertTrue(actual.output_good['actual_check'])
+    # End of classes with fake self pylint: enable=E0213
 
 if __name__ == '__main__':
     unittest.main()
