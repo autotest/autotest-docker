@@ -35,9 +35,22 @@ class FakeCmdResult(object):
 
 # Don't actually run anything!
 def run(command, *args, **dargs):
-    return FakeCmdResult(command=command,
-                         args=args,
-                         dargs=dargs)
+    result = FakeCmdResult(command=command, args=args, dargs=dargs)
+    # store myself to allow special AsyncJob magic
+    result.result = result
+    if 'unittest_fail' in command:
+        result.exit_status = 1
+        if not dargs['ignore_status']:
+            exc = Exception()   # We mock the CmdError, create suitable Exc here
+            exc.command = command
+            exc.result_obj = result
+            raise exc
+    else:
+        result.exit_status = 0
+    return result
+
+class DummyClass:
+    pass
 
 # Mock module and mock function run in one command
 setattr(mock('autotest.client.utils'), 'run', run)
@@ -128,9 +141,14 @@ class DockerCmdTestBase(unittest.TestCase):
         del self.config
         del self.dockercmd
         del self.subtest
-        del sys.modules['config']
-        del sys.modules['dockercmd']
-        del sys.modules['subtest']
+        if 'dockertest.config' in sys.modules:  # Running from outer dir
+            del sys.modules['dockertest.config']
+            del sys.modules['dockertest.dockercmd']
+            del sys.modules['dockertest.subtest']
+        else:   # Running from this dir
+            del sys.modules['config']
+            del sys.modules['dockercmd']
+            del sys.modules['subtest']
 
 
 class DockerCmdTestBasic(DockerCmdTestBase):
@@ -157,6 +175,10 @@ class DockerCmdTestBasic(DockerCmdTestBase):
         self.assertRaises(NotImplementedError, docker_command.execute,
                            'not stdin')
 
+        self.assertRaises(self.dockercmd.DockerCommandError,
+                          self.dockercmd.DockerCmdBase, "ThisIsNotSubtest",
+                          "fake_subcmd")
+
 
     def test_dockercmd(self):
         docker_command = self.dockercmd.DockerCmd(self.fake_subtest,
@@ -168,6 +190,7 @@ class DockerCmdTestBasic(DockerCmdTestBase):
                     % (self.defaults['docker_path'],
                        self.defaults['docker_options']))
         self.assertEqual(docker_command.command, expected)
+        self.assertEqual(str(docker_command), expected)
         cmdresult = docker_command.execute()
         self.assertEqual(cmdresult.command, expected)
         self.assertAlmostEqual(cmdresult.dargs['timeout'], 1234567.0)
@@ -180,6 +203,64 @@ class DockerCmdTestBasic(DockerCmdTestBase):
                                self.defaults['docker_options']))
         self.assertEqual(cmdresult.command, expected)
         self.assertEqual(cmdresult.dargs['timeout'], 0)
+
+    def test_no_fail_docker_cmd(self):
+        docker_command = self.dockercmd.NoFailDockerCmd(self.fake_subtest,
+                                                        'fake_subcommand')
+        self.assertTrue(docker_command.execute())
+
+        docker_command = self.dockercmd.NoFailDockerCmd(self.fake_subtest,
+                                                        'unittest_fail')
+        self.assertRaises(self.dockercmd.DockerExecError,
+                          docker_command.execute)
+
+    def test_must_fail_docker_cmd(self):
+        docker_command = self.dockercmd.MustFailDockerCmd(self.fake_subtest,
+                                                          'fake_subcommand')
+        self.assertRaises(self.dockercmd.DockerExecError,
+                          docker_command.execute)
+
+        docker_command = self.dockercmd.MustFailDockerCmd(self.fake_subtest,
+                                                          'unittest_fail')
+        self.assertTrue(docker_command.execute())
+
+
+class AsyncDockerCmd(DockerCmdTestBase):
+    defaults = {'docker_path':'/foo/bar', 'docker_options':'--not_exist',
+                'docker_timeout':"42.0"}
+    customs = {}
+    config_section = "Foo/Bar/Baz"
+
+    def test_basi_workflow(self):
+        docker_cmd = self.dockercmd.AsyncDockerCmd(self.fake_subtest,
+                                                   'fake_subcommand',
+                                                   timeout=123)
+
+        # Raise error when command not yet executed
+        self.assertRaises(self.dockercmd.DockerCommandError, docker_cmd.wait)
+        for prop in ('done', 'stdout', 'stderr', 'process_id'):
+            self.assertRaises(self.dockercmd.DockerCommandError,
+                              getattr, docker_cmd, prop)
+
+        # Modified run returns the async_job instead of the real results...
+        async_job = docker_cmd.execute()
+        async_job.sp = DummyClass()
+
+        async_job.wait_for = lambda x: x    # instead waiting return timeout
+        self.assertEqual(docker_cmd.wait(), 123)
+
+        async_job.sp.poll = lambda: True
+        self.assertTrue(docker_cmd.done)
+
+        async_job.get_stdout = "STDOUT"
+        self.assertEqual(docker_cmd.stdout, "STDOUT")
+
+        async_job.get_stderr = "STDERR"
+        self.assertEqual(docker_cmd.stderr, "STDERR")
+
+        async_job.sp.pid = -1
+        self.assertEqual(docker_cmd.process_id, -1)
+
 
 if __name__ == '__main__':
     unittest.main()
