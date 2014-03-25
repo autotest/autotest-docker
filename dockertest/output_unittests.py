@@ -99,5 +99,37 @@ class BaseInterfaceTest(unittest.TestCase):
         self.assertTrue(actual.output_good['actual_check'])
     # End of classes with fake self pylint: enable=E0213
 
+    def test_output_good(self):
+        cmdresult = FakeCmdResult('docker', 0, "STDOUT", "STDERR", 123)
+
+        cmdresult.stderr = "panic: runtime error: slice bounds out of range"
+        str(self.output.OutputGood(cmdresult, False,
+                                   ['crash_check', 'error_check']))
+        self.assertRaises(self.output.xceptions.DockerOutputError,
+                          self.output.OutputGood, cmdresult)
+
+        cmdresult.stderr = ""
+        cmdresult.stdout = "Usage: docker [OPTIONS] COMMAND [arg...]"
+        self.assertRaises(self.output.xceptions.DockerOutputError,
+                          self.output.OutputGood, cmdresult)
+
+
+class DockerVersionTest(unittest.TestCase):
+    def setUp(self):
+        import output
+        self.output = output
+
+    def test_client(self):
+        version_string = ("Client version: 0.9.0\n"
+                          "Go version (client): go1.2"
+                          "Git commit (client): 2b3fdf2/0.9.0"
+                          "Server version: 0.8.0"
+                          "Git commit (server): 2b3fdf2/0.9.0"
+                          "Go version (server): go1.2"
+                          "Last stable version: 0.9.0")
+        docker_version = self.output.DockerVersion(version_string)
+        self.assertEqual(docker_version.client, '0.9.0')
+        self.assertEqual(docker_version.server, '0.8.0')
+
 if __name__ == '__main__':
     unittest.main()
