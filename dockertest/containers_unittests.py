@@ -23,7 +23,7 @@ class ContainersTestBase(unittest.TestCase):
         del self.containers
 
 
-class DockerContainersTest(ContainersTestBase):
+class DockerContainerTest(ContainersTestBase):
 
     def test_init_defaults(self):
         foo = object()
@@ -52,7 +52,7 @@ class DockerContainersTest(ContainersTestBase):
     def test_eq_ne(self):
         foo = {'one': 1, 'two': 2, 'three': 3}
         bar = {'three': 3, 'two': 2, 'one': 1}
-        baz = foo.copy()
+        baz = {'completely': 'different'}
         baz.update(bar)
         dc1 = self.DC(foo, r"/bin/echo -ne 'hello world\n'", "foobar")
         dc2 = self.DC(bar, r"/bin/echo -ne 'hello world\n'", "foobar")
@@ -61,8 +61,14 @@ class DockerContainersTest(ContainersTestBase):
         self.assertEqual(dc2, dc2)
         self.assertEqual(dc1, dc2)
         self.assertEqual(dc3, dc3)
-        self.assertNotEqual(dc3, dc1)
-        self.assertNotEqual(dc3, dc2)
+        self.assertFalse(dc3 == dc1)
+        self.assertFalse(dc3 == dc2)
+
+    def test_output(self):
+        foo = object()
+        dc = self.DC(foo, r"/bin/echo -ne 'hello world\n'", "foobar")
+        self.assertNotEqual(len(str(dc)), 0)
+        self.assertNotEqual(len(repr(dc)), 0)
 
 
 # DO NOT allow this function to get loose in the wild!
@@ -98,6 +104,21 @@ class FakeCmdResult(object):
 # Don't actually run anything!
 def run(command, *_args, **_dargs):
     command = str(command)
+    if 'inspect' in command:
+        return FakeCmdResult(command=command.strip(),
+                             stdout="""[{
+    "ID": "abf8c40b19e353ff1f67e3a26a967c14944b07b8f5aceb752f781ffca285a2a9",
+    "Created": "2014-03-26T13:42:42.676316455Z",
+    "Path": "/bin/bash",
+    "Args": [],
+    "Config": {
+        "Hostname": "28a7fbe6d375",
+        "Domainname": ""
+    }
+}]""",
+    stderr='',
+    exit_status=0,
+    duration=1.21)
     return FakeCmdResult(command=command.strip(),
                          stdout=r"""
 CONTAINER ID                                                       IMAGE                             COMMAND                                            CREATED             STATUS              PORTS                                            NAMES               SIZE
@@ -212,8 +233,14 @@ class DockerContainersTest(DockerContainersTestBase):
         cl = dcc.list_containers()
         self.assertEqual(len(cl), 7)
 
+        metadata = dcc.json_by_long_id("ac8c9fa367f96e10cbfc7927dd4048d7db3"
+                                       "e6d240d201019c5d4359795e3bcbe")
+        self.assertEqual(metadata[0]['Config']['Hostname'], "28a7fbe6d375")
+
+        self.assertNotEqual(len(dcc.json_by_name("suspicious_pare")), 0)
+
     def test_noports(self):
-        dcc = self.containers.DockerContainersCLI(self.fake_subtest)
+        dcc = self.containers.DockerContainersCLICheck(self.fake_subtest)
         short_id = "ac8c9fa367f9"
         cl = [c for c in dcc.list_containers() if c.cmp_id(short_id)]
         self.assertEqual(len(cl), 1)
