@@ -23,15 +23,17 @@ Where/when ***possible***, both parameters and return values follow this order:
 # Pylint runs from another directory, ignore relative import warnings
 # pylint: disable=W0403
 
-import re
 import json
-from autotest.client.shared import error
+import re
+
 from autotest.client import utils
-from output import OutputGood
+from autotest.client.shared import error
 from images import DockerImages
+from output import OutputGood
+
 
 # Many attributes simply required here
-class DockerContainer(object): # pylint: disable=R0902
+class DockerContainer(object):  # pylint: disable=R0902
     """
     Represent a container, image, and command as a set of instance attributes.
     """
@@ -106,6 +108,7 @@ class DockerContainer(object): # pylint: disable=R0902
         :return: True/False equality
         """
         return self.container_name == str(container_name)
+
 
 class DockerContainersBase(object):
     """
@@ -190,10 +193,10 @@ class DockerContainersBase(object):
         :return: None if long_id invalid/not found or
                  implementation-specific value
         """
-        del long_id  #  Keep pylint quiet
+        del long_id  # Keep pylint quiet
         return None
 
-    # Disbled by default extension point, can't be static.
+    # Disabled by default extension point, can't be static.
     def json_by_long_id(self, long_id):  # pylint: disable=R0201
         """
         Return json-object for container with long_id if supported by
@@ -204,7 +207,7 @@ class DockerContainersBase(object):
         :raise ValueError: on invalid/not found long_id
         :raise RuntimeError: on not supported by implementation
         """
-        del long_id  #  Keep pylint quiet
+        del long_id     # Keep pylint quiet
         raise RuntimeError()
 
     def json_by_name(self, container_name):
@@ -241,6 +244,7 @@ class DockerContainersBase(object):
 
     # TODO: Add 'rm' abstract methods
 
+
 class DockerContainersCLI(DockerContainersBase):
     """
     Docker command supported DockerContainer-like instance collection and
@@ -262,7 +266,7 @@ class DockerContainersCLI(DockerContainersBase):
     def _parse_lines(d_psa_stdout):  # pylint: disable=C0111
         clist = []
         lines = d_psa_stdout.strip().splitlines()
-        for stdout_line in lines[1:]: # Skip header
+        for stdout_line in lines[1:]:   # Skip header
             clist.append(DockerContainersCLI._parse_columns(stdout_line))
         return clist
 
@@ -420,4 +424,4 @@ class DockerContainers(DockerImages):
     """
 
     #: Mapping of interface short-name string to DockerContainersBase subclass.
-    interfaces = {'cli':DockerContainersCLI, 'clic':DockerContainersCLICheck}
+    interfaces = {'cli': DockerContainersCLI, 'clic': DockerContainersCLICheck}

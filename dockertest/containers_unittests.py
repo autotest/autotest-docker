@@ -3,7 +3,13 @@
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
-import unittest, sys, types, tempfile, os, shutil
+import os
+import shutil
+import sys
+import tempfile
+import types
+import unittest
+
 
 class ContainersTestBase(unittest.TestCase):
 
@@ -15,6 +21,7 @@ class ContainersTestBase(unittest.TestCase):
 
     def tearDown(self):
         del self.containers
+
 
 class DockerContainersTest(ContainersTestBase):
 
@@ -43,8 +50,8 @@ class DockerContainersTest(ContainersTestBase):
         self.assertEqual(dc.size, "1 Petabyte")
 
     def test_eq_ne(self):
-        foo = {'one':1, 'two':2, 'three':3}
-        bar = {'three':3, 'two':2, 'one':1}
+        foo = {'one': 1, 'two': 2, 'three': 3}
+        bar = {'three': 3, 'two': 2, 'one': 1}
         baz = foo.copy()
         baz.update(bar)
         dc1 = self.DC(foo, r"/bin/echo -ne 'hello world\n'", "foobar")
@@ -57,6 +64,7 @@ class DockerContainersTest(ContainersTestBase):
         self.assertNotEqual(dc3, dc1)
         self.assertNotEqual(dc3, dc2)
 
+
 # DO NOT allow this function to get loose in the wild!
 def mock(mod_path):
     """
@@ -66,7 +74,7 @@ def mock(mod_path):
     child_name = name_list.pop()
     child_mod = sys.modules.get(mod_path, types.ModuleType(child_name))
     if len(name_list) == 0:  # child_name is left-most basic module
-        if not sys.modules.has_key(child_name):
+        if child_name not in sys.modules:
             sys.modules[child_name] = child_mod
         return sys.modules[child_name]
     else:
@@ -79,14 +87,16 @@ def mock(mod_path):
             sys.modules[mod_path] = child_mod
         return sys.modules[mod_path]
 
+
 # Just pack whatever args received into attributes
 class FakeCmdResult(object):
     def __init__(self, **dargs):
         for key, val in dargs.items():
             setattr(self, key, val)
 
+
 # Don't actually run anything!
-def run(command, *args, **dargs):
+def run(command, *_args, **_dargs):
     command = str(command)
     return FakeCmdResult(command=command.strip(),
                          stdout=r"""
@@ -116,6 +126,7 @@ setattr(mock('autotest.client.shared.error'), 'TestFail', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
 setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
+
 
 class DockerContainersTestBase(ContainersTestBase):
 
@@ -151,7 +162,7 @@ class DockerContainersTestBase(ContainersTestBase):
     def _make_fake_subtest(self):
         class FakeSubtestException(Exception):
 
-            def __init__(fake_self, *args, **dargs):
+            def __init__(fake_self, *_args, **_dargs):
                 super(FakeSubtestException, self).__init__()
 
         class FakeSubtest(self.subtest.Subtest):
@@ -160,15 +171,16 @@ class DockerContainersTestBase(ContainersTestBase):
             iteration = 1
             iterations = 1
 
-            def __init__(fake_self, *args, **dargs):
+            def __init__(fake_self, *_args, **_dargs):
                 config_parser = self.config.Config()
                 fake_self.config = config_parser.get(self.config_section)
                 for symbol in ('execute', 'setup', 'initialize', 'run_once',
                                'postprocess_iteration', 'postprocess',
                                'cleanup', 'failif',):
                     setattr(fake_self, symbol, FakeSubtestException)
-                for symbol in ('logdebug', 'loginfo', 'logwarning', 'logerror'):
-                    setattr(fake_self, symbol, lambda *a, **d: None)
+                for symbol in ('logdebug', 'loginfo', 'logwarning',
+                               'logerror'):
+                    setattr(fake_self, symbol, lambda *_a, **_d: None)
         return FakeSubtest()
 
     def setUp(self):
@@ -191,6 +203,7 @@ class DockerContainersTestBase(ContainersTestBase):
         self.assertFalse(os.path.isdir(self.config.CONFIGCUSTOMS))
         del self.config
         del self.subtest
+
 
 class DockerContainersTest(DockerContainersTestBase):
 
