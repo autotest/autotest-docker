@@ -223,9 +223,12 @@ class DockerContainersBase(object):
         cnts = self.list_containers_with_name(str(container_name))
         if len(cnts) == 1:
             return self.json_by_long_id(cnts[0].long_id)
-        else:
+        elif len(cnts) == 0:
             raise ValueError("Container not found with name %s"
                              % container_name)
+        else:
+            raise ValueError("Multiple containers with name %s found: (%s)"
+                             % (container_name, cnts))
 
     def get_unique_name(self, prefix="", suffix="", length=4):
         """
