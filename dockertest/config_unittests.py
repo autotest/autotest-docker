@@ -33,12 +33,20 @@ def mock(mod_path):
             sys.modules[mod_path] = child_mod
         return sys.modules[mod_path]
 
+
+class DockerKeyError(Exception):
+    """ Fake class for errors """
+    pass
+
+
 # Mock module and exception class in one stroke
 setattr(mock('autotest.client.shared.error'), 'CmdError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestFail', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
 setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
+setattr(mock('dockertest.xceptions'), 'DockerKeyError', DockerKeyError)
+setattr(mock('xceptions'), 'DockerKeyError', DockerKeyError)
 
 
 class ConfigTestBase(unittest.TestCase):
@@ -76,6 +84,13 @@ class TestConfigSection(ConfigTestBase):
         # Note the case-conversion
         self.assertEqual(bar.get('testoption'), 'TestValue')
 
+        self.assertEqual(len(foo.sections()), 1)
+        self.assertTrue(foo.has_section("TestSection"))
+        self.assertTrue(foo.has_option("testoption"))
+
+        foo.remove_option("testoption")
+        self.assertFalse(foo.has_option("testoption"))
+
 
 class TestConfigDict(ConfigTestBase):
 
@@ -111,6 +126,13 @@ class TestConfigDict(ConfigTestBase):
         self.assertAlmostEqual(foobar['testoptionf'], 3.14)
         self.assertEqual(foobar['testoptioni'], 2)
         self.assertEqual(foobar['testoptionb'], True)
+
+    def test_basic_functionality(self):
+        foobar = self.config.ConfigDict('TestSection')
+        self.assertRaises(DockerKeyError, foobar.__getitem__, 'aaa')
+        foobar['aaa'] = 'AAA'
+        self.assertEqual(foobar['aaa'], "AAA")
+        del(foobar['aaa'])
 
 
 class TestConfig(ConfigTestBase):
