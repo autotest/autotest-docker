@@ -560,6 +560,24 @@ Several variations of running the commit command
    i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
    and modify the values.
 
+``docker_cli/stop`` Sub-test
+=======================================
+
+Several variations of running the stop command
+
+``docker_cli/stop`` Prerequisites
+---------------------------------------------
+
+*  A remote registry server
+
+``docker_cli/stop`` Configuration
+--------------------------------------
+
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
+
 ----------------------------------
 Dockertest API Reference
 ----------------------------------
