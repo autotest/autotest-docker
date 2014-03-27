@@ -5,10 +5,14 @@ Extension of standard ConfigParser.SafeConfigParser abstracting section names
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
-import sys, os, os.path, logging
-from collections import MutableMapping
-import xceptions
 from ConfigParser import SafeConfigParser, NoSectionError
+from collections import MutableMapping
+import logging
+import os.path
+import sys
+
+import xceptions
+
 
 #: Absolute path to directory containing this module
 MYDIR = os.path.dirname(sys.modules[__name__].__file__)
@@ -22,6 +26,7 @@ CONFIGCUSTOMS = os.path.join(PARENTDIR, 'config_custom')
 DEFAULTSUBDIR = 'defaults'
 #: Name of file holding special DEFAULTS section and options
 DEFAULTSFILE = 'defaults.ini'
+
 
 class ConfigSection(object):
     """
@@ -190,9 +195,11 @@ class ConfigDict(MutableMapping):
 
     def __init__(self, section, defaults=None, *args, **dargs):
         """
-        Initialize a new dict-like for section using optional defaults dict-like
+        Initialize a new dict-like object for section using optional defaults
+        dict-like object.
         """
-        self._config_section = ConfigSection(defaults=defaults, section=section)
+        self._config_section = ConfigSection(defaults=defaults,
+                                             section=section)
         super(ConfigDict, self).__init__(*args, **dargs)
 
     # Private method doesn't need docstring
@@ -277,7 +284,7 @@ class Config(dict):
         if self.__class__.defaults_ is None:
             defaults_ = SafeConfigParser()
             default_defaults = os.path.join(CONFIGDEFAULT, DEFAULTSFILE)
-            custom_defaults =  os.path.join(CONFIGCUSTOMS, DEFAULTSFILE)
+            custom_defaults = os.path.join(CONFIGCUSTOMS, DEFAULTSFILE)
             try:
                 defaults_.read(custom_defaults)
                 # Dump out all DEFAULTS section options into a dict. & cache it
@@ -343,6 +350,7 @@ class Config(dict):
                 sec_copy[cfg_key] = cfg_value
             the_copy[sec_key] = sec_copy
         return the_copy
+
 
 def none_if_empty(dict_like, key_name=None):
     """
