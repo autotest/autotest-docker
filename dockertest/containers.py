@@ -224,6 +224,19 @@ class DockerContainersBase(object):
             raise ValueError("Container not found with name %s"
                              % container_name)
 
+    def get_unique_name(self, prefix="", suffix="", length=4):
+        """
+        Get unique name for a new container
+        :param prefix: Name prefix
+        :param suffix: Name suffix
+        :param length: Length of random string.
+        :return: Unique name according to check function
+        """
+        assert length > 1
+        all_containers = [_.container_name for _ in self.get_container_list()]
+        check = lambda name: name not in all_containers
+        return utils.get_unique_name(check, prefix, suffix, length)
+
     # TODO: Add more filter methods
 
     # TODO: Add 'rm' abstract methods

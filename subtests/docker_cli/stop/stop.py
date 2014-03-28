@@ -8,7 +8,6 @@ run_once:
 postprocess:
 3) analyze results
 """
-import os
 import time
 
 from autotest.client import utils
@@ -29,28 +28,12 @@ class stop(subtest.SubSubtestCaller):
 
 class stop_base(SubSubtest):
     """ Base class """
-    def _get_unique_name(self, prefix):
-        """
-        :return: Nonexisting container name
-        TODO: Put this into framework
-        """
-        docker_containers = DockerContainers(self.parent_subtest)
-        docker_containers = docker_containers.get_container_list()
-        docker_containers = [_.container_name for _ in docker_containers]
-        name = "%s_%s" % (prefix, utils.generate_random_string(8))
-        for _ in xrange(1000):
-            if name not in docker_containers:
-                break
-            name = "%s_%s" % (prefix, utils.generate_random_string(8))
-        else:
-            raise xceptions.DockerTestNAError("Fail to create unique name"
-                                              "in 1000 iterations.")
-        return name
-
     def initialize(self):
         super(stop_base, self).initialize()
         # Prepare a container
-        name = self._get_unique_name(self.config["stop_name_prefix"])
+        docker_containers = DockerContainers(self.parent_subtest)
+        prefix = self.config["stop_name_prefix"]
+        name = docker_containers.get_unique_name(prefix, length=4)
         self.sub_stuff['container_name'] = name
         config.none_if_empty(self.config)
         subargs = [arg for arg in self.config['run_options_csv'].split(',')]
