@@ -9,6 +9,7 @@ from autotest.client.shared import error
 from autotest.client import utils
 from subtest import Subtest
 from xceptions import DockerCommandError
+from xceptions import DockerValueError
 from xceptions import  DockerNotImplementedError
 from xceptions import DockerExecError
 
@@ -26,11 +27,12 @@ class DockerCmdBase(object):
         :param subargs: (optional) Iterable of additional args to subcommand
         :param timeout: Seconds to wait before terminating docker command
                         None to use 'docker_timeout' config. option.
-        :raise: DockerCommandError on incorrect usage
+        :raise: DockerValueError on incorrect usage
         """
         # Prevent accidental test.test instance passing
         if not isinstance(subtest, Subtest):
-            raise DockerCommandError("Subtest is not a Subtest instance or "
+            raise DockerCommandError(self.command, None,
+                                     "Subtest is not a Subtest instance or "
                                      "subclass.")
         else:
             self.subtest = subtest
@@ -119,7 +121,7 @@ class DockerCmd(DockerCmdBase):
         # ignore_status=True : should not see CmdError
         except error.CmdError, detail:
             # Something internal must have gone wrong
-            raise DockerCommandError(str(detail.result_obj))
+            raise DockerCommandError(self.command, detail.result_obj)
 
 class NoFailDockerCmd(DockerCmd):
     """
@@ -189,16 +191,21 @@ class AsyncDockerCmd(DockerCmdBase):
                                          stdin=stdin)
         return self._async_job.result
 
-    def wait(self):
+    def wait(self, timeout=None):
         """
         Return CmdResult after waiting for process to end or timeout
 
+        :param timeout: Max time to wait, self.timeout if None
+        :return: Complete CmdResult instance
         :raise: DockerCommandError on incorrect usage
         """
+        if timeout is None:
+            timeout = self.timeout
         if self._async_job is not None:
-            return self._async_job.wait_for(self.timeout)
+            return self._async_job.wait_for(timeout)
         else:
-            raise DockerCommandError("Attempted to wait before "
+            raise DockerCommandError(self.command, self._async_job.result,
+                                     "Attempted to wait before "
                                      "execute() called")
 
     @property
@@ -207,7 +214,8 @@ class AsyncDockerCmd(DockerCmdBase):
         Return True if processes has ended
         """
         if self._async_job is None:
-            raise DockerCommandError("Cannot finsh before starting")
+            raise DockerCommandError(self.command, self._async_job.result,
+                                     "Cannot finsh before starting")
         return self._async_job.sp.poll() is not None
 
     @property
@@ -218,9 +226,10 @@ class AsyncDockerCmd(DockerCmdBase):
         :raise: DockerCommandError on incorrect usage
         """
         if self._async_job is not None:
-            return self._async_job.get_stdout
+            return self._async_job.get_stdout()
         else:
-            raise DockerCommandError("Attempted to access stdout before "
+            raise DockerCommandError(self.command, self._async_job.result,
+                                     "Attempted to access stdout before "
                                      "execute() called")
 
     @property
@@ -231,9 +240,10 @@ class AsyncDockerCmd(DockerCmdBase):
         :raise: DockerCommandError on incorrect usage
         """
         if self._async_job is not None:
-            return self._async_job.get_stderr
+            return self._async_job.get_stderr()
         else:
-            raise DockerCommandError("Attempted to access stderr before "
+            raise DockerCommandError(self.command, self._async_job.result,
+                                     "Attempted to access stderr before "
                                      "execute() called")
 
     @property
@@ -244,5 +254,16 @@ class AsyncDockerCmd(DockerCmdBase):
         if self._async_job is not None:
             return self._async_job.sp.pid
         else:
-            raise DockerCommandError("Attempted to access pid before "
+            raise DockerCommandError(self.command, self._async_job.result,
+                                     "Attempted to access pid before "
                                      "execute() called")
+
+    @property
+    def exit_status(self):
+        """
+        Return exit status integer or None if process has not ended
+        """
+        if self._async_job is None:
+            raise DockerCommandError(self.command, self._async_job.result,
+                                     "Cannot check exit before starting")
+        return self._async_job.sp.returncode

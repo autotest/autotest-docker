@@ -58,6 +58,12 @@ class DockerOutputError(DockerValueError):
     def __str__(self):
         return str(self.reason)
 
+# Pass-throughs, to help hide autotest.client.shared.error import
+
+class AutotestError(error.AutotestError):
+    """Root of most test errors coming from autotest"""
+    pass
+
 class DockerCommandError(error.CmdError):
     """Errors coming from within dockercmd module classes"""
     pass

@@ -4,7 +4,7 @@ Adapt/extend autotest.client.test.test for Docker test sub-framework
 This module provides two helper classes intended to make writing
 subtests easier.  They hide some of the autotest ``test.test``
 complexity, while providing some helper methods for logging
-output to the controling terminal (only) and automatically
+output to the controlling terminal (only) and automatically
 loading the specified configuration section (see `configuration module`_)
 """
 
@@ -15,10 +15,15 @@ import logging
 import tempfile
 import os.path
 import imp
-from autotest.client.shared import error, base_job
+import sys
+import traceback
+from autotest.client.shared import base_job
+from autotest.client.shared.error import AutotestError
 from autotest.client import job, test
-import version, config
-
+import version
+import config
+from xceptions import DockerTestFail
+from xceptions import DockerTestError
 
 class Subtest(test.test):
     """
@@ -77,20 +82,20 @@ class Subtest(test.test):
         self.stuff = {}
 
     # Private workaround due to job/test instance private attributes/methods :(
-    def _log(self, level, message, *args):
+    def _log(self, level, message, *args):  # pylint: disable=C0111
         method = getattr(logging, level)
         message = '%s: %s' % (level.upper(), message)
         sle = base_job.status_log_entry("RUNNING", None, None, message, {})
         rendered = self._re(sle)
         return method(rendered, *args)
 
-    # These methods can optionally be overridden by subclasses
-
     def execute(self, *args, **dargs):
         """**Do not override**, needed to pull data from super class"""
         #self.job.add_sysinfo_command("", logfile="lspci.txt")
         super(Subtest, self).execute(iterations=self.iterations,
                                      *args, **dargs)
+
+    # These methods can optionally be overridden by subclasses
 
     def setup(self):
         """
@@ -116,7 +121,7 @@ class Subtest(test.test):
         Called for each iteration, used to process results
         """
         self.loginfo("postprocess_iteration(), iteration #%d",
-                      self.iteration)
+                     self.iteration)
 
     def postprocess(self):
         """
@@ -141,12 +146,11 @@ class Subtest(test.test):
         :param reason: Helpful text describing why the test failed
         """
         if bool(condition):
-            raise error.TestFail(reason)
+            raise DockerTestFail(reason)
 
     def logdebug(self, message, *args):
         r"""
         Log a DEBUG level message to the controlling terminal **only**
-
         :param message: Same as logging.debug()
         :\*args: Same as logging.debug()
         """
@@ -179,6 +183,21 @@ class Subtest(test.test):
         """
         return self._log('error', message, *args)
 
+    def logtraceback(self, name, exc_info, error_source, detail):
+        r"""
+        Log error to error, traceback to debug, of controlling terminal **only**
+        """
+        error_head = ("%s failed to %s: %s: %s" % (name,
+                      error_source, detail.__class__.__name__,
+                      detail))
+        error_tb = traceback.format_exception(exc_info[0],
+                                              exc_info[1],
+                                              exc_info[2])
+
+        error_tb = "".join(error_tb).strip()
+        self.logerror(error_head)
+        self.logdebug(error_tb)
+
 
 class SubSubtest(object):
     """
@@ -189,12 +208,15 @@ class SubSubtest(object):
     """
     #: Reference to outer, parent test.  Read-only / set in __init__
     parent_subtest = None
+
     #: subsubsub test config instance, read-write, setup in __init__ but
     #: persists across iterations.  Handy for storing temporary results.
     config = None
+
     #: Path to a temporary directory which will automatically be
     #: removed during cleanup()
     tmpdir = None  # automatically determined in initialize()
+
     #: Private namespace for use by subclasses **ONLY**.  This attribute
     #: is completely ignored everywhere inside the dockertest API.  Subtests
     #: are encouraged to use it for temporarily storing results/info.  It
@@ -215,21 +237,49 @@ class SubSubtest(object):
         # e.g. [parent_config_section/child_class_name]
         config_section = (os.path.join(self.parent_subtest.config_section,
                                        self.__class__.__name__))
-        # Allow child to inherit but also override parent config
-        self.config = self.parent_subtest.config.copy()
-        all_config = config.Config()
-        # Any config namespace mangling lost on destruction
-        if all_config.has_key(config_section):
-            # Sub-subtest configuration is optional
-            self.config.update(all_config[config_section])
-        self.config['subsubtest_config_section'] = config_section
+        # Allow child to inherit and override parent config
+        all_configs = config.Config()
+        # make_subsubtest_config will modify this
+        parent_config = self.parent_subtest.config.copy()
+        # subsubtest config is optional, overrides parent.
+        if config_section not in all_configs:
+            self.config = parent_config
+        else:
+            self.make_subsubtest_config(all_configs,
+                                        parent_config,
+                                        all_configs[config_section])
         # Not automatically logged along with parent subtest
         # for records/archival/logging purposes
-        note = {'Configuration_for_Subsubtest':config_section}
+        note = {'Configuration_for_Subsubtest': config_section}
         self.parent_subtest.write_test_keyval(note)
         self.parent_subtest.write_test_keyval(self.config)
         # subclasses can do whatever they like with this
         self.sub_stuff = {}
+
+    def make_subsubtest_config(self, all_configs, parent_config,
+                               subsubtest_config):
+        """
+        Form subsubtest configuration by inheriting parent subtest config
+        """
+        self.config = parent_config  # a copy
+        # global defaults mixed in, even if overriden in parent :(
+        for key, val in subsubtest_config.items():
+            if key in all_configs['DEFAULTS']:
+                def_val = all_configs['DEFAULTS'][key]
+                par_val = parent_config[key]
+                if val == def_val:
+                    if par_val != def_val:
+                        # Parent overrides default, subsubtest inherited default
+                        self.config[key] = par_val
+                    else:
+                        # Parent uses default, subsubtest did not override
+                        self.config[key] = def_val
+                else:
+                    self.config[key] = val
+            else:
+                self.config[key] = val
+            self.logdebug("Config.: %s = %s", key, self.config[key])
+        return self.config
 
     def initialize(self):
         """
@@ -259,6 +309,7 @@ class SubSubtest(object):
         self.loginfo("%s cleanup()", self.__class__.__name__)
         # tmpdir is cleaned up automatically by harness
 
+    # FIXME: This method should be @staticmethod on on images.DockerImage
     def make_repo_name(self):
         """
         Convenience function to generate a unique test-repo name
@@ -270,6 +321,7 @@ class SubSubtest(object):
 
     # Handy to have here also
     failif = staticmethod(Subtest.failif)
+
     def logdebug(self, message, *args):
         """
         Same as Subtest.logdebug
@@ -303,18 +355,32 @@ class SubSubtestCaller(Subtest):
     """
     Extends Subtest by automatically discovering and calling child subsubtests.
 
-    Child subsubtests are execute in the order specified by the
-    ``subsubtests`` (CSV) configuration option.  Child subsubtest
-    configuration section is formed by appending the child's subclass name
-    onto the parent's ``config_section`` value.
+    Child subsubtest methods ``initialize``, ``run_once``, and ``postprocess``,
+    are executed together, for each subsubtest.  Whether or not any exception
+    is raised, the ``cleanup`` method will always be called last.  The
+    subsubtest the order is specified by the  ``subsubtests`` (CSV) config.
+    option.  Child subsubtest configuration section is formed by appending the
+    child's subclass name onto the parent's ``config_section`` value.  Parent
+    configuration is passed to subsubtest, with the subsubtest's section
+    overriding values with the same option name.
     """
 
-    #: In case subclasses want to hard-code a list of subtest names
-    #: instead of getting them from config.
-    subsubtests = None
+    #: A list holding the ordered names of each subsubtest to load and run.
+    #: (read-only).
+    subsubtest_names = None
 
-    #: Private, internal-use, don't touch.  Sub-Subtest Caller Data
-    _sscd = None
+    #: A dictionary of subsubtest names to instances loaded (read-only), used
+    #: for comparison during ``postprocess()`` against final_subtests to
+    #: determine overall subtest success or failure.
+    start_subsubtests = None
+
+    #: The set of subsubtests which successfully completed all stages w/o
+    #: exceptions.  Compared against ``start_subsubtests``. (read-only)
+    final_subsubtests = None
+
+    #: Dictionary containing exc_info, error_source data for a subsubtest
+    #: for logging/debugging purposes while calling methods.  (read-only)
+    exception_info = None
 
     def __init__(self, *args, **dargs):
         r"""
@@ -325,91 +391,133 @@ class SubSubtestCaller(Subtest):
         """
         super(SubSubtestCaller, self).__init__(*args, **dargs)
         #: Need separate private dict similar to `sub_stuff` but different name
-        self._sscd = {}
+
+        self.subsubtest_names = []
+        self.start_subsubtests = {}
+        self.final_subsubtests = set()
+        self.exception_info = {}
 
     def initialize(self):
         """
-        Import and call initialize() on every subsubtest in 'subsubtests' option
+        Perform initialization steps needed before loading subsubtests.  Split
+        up the ``subsubtests`` config. option by commas, into instance attribute
+        ``subsubtest_names`` (list).
         """
         super(SubSubtestCaller, self).initialize()
         # Private to this instance, outside of __init__
-        start_subsubtests = self._sscd['start_subsubtests'] = {}
-        run_subsubtests = self._sscd['run_subsubtests'] = {}
-        subsubtest_names = None
-        if self.subsubtests is None:
-            subsubtest_names = self.config['subsubtests'].strip().split(",")
-        else:
-            subsubtest_names = [self.subsubtests]
+        self.subsubtest_names = self.config['subsubtests'].strip().split(",")
 
-        for name in subsubtest_names:
-            subsubtest = self.new_subsubtest(name)
-            if subsubtest is not None:
-                # Guarantee it's cleanup() runs
-                start_subsubtests[name] = subsubtest
+    def try_all_stages(self, name, subsubtest):
+        """
+        Attempt to execute each subsubtest stage (initialize, run_once,
+        and postprocess).  For those that don't raise any exceptions,
+        record subsubtest name in ``final_subsubtests`` set instance
+        attribute. Hides _all_ AutotestError subclasses but logs traceback.
+
+        :param name:  String, name of subsubtest class (and possibly module)
+        :param subsubtest:  Instance of subsubtest or subclass
+        :raise: Any non-AutotestError exception thrown during any stage.
+        """
+        try:
+            self.call_subsubtest_method(subsubtest.initialize)
+            self.call_subsubtest_method(subsubtest.run_once)
+            self.call_subsubtest_method(subsubtest.postprocess)
+            # No exceptions, contribute to subtest success
+            self.final_subsubtests.add(name)
+        except AutotestError, detail:
+            self.logtraceback(name,
+                              self.exception_info["exc_info"],
+                              self.exception_info["error_source"],
+                              detail)
+        except Exception, detail:
+            self.logtraceback(name,
+                              self.exception_info["exc_info"],
+                              self.exception_info["error_source"],
+                              detail)
+            exc_info = self.exception_info["exc_info"]
+            # cleanup() will still be called before this propigates
+            raise exc_info[0], exc_info[1], exc_info[2]
+
+    def run_all_stages(self, name, subsubtest):
+        """
+        Catch any exceptions coming from any subsubtest's stage to ensure
+        it's ``cleanup()`` always runs.  Updates ``start_subsubtests``
+        attribute with subsubtest names and instance to successfully
+        loaded/imported.
+
+        :param name:  String, name of subsubtest class (and possibly module)
+        :param subsubtest:  Instance of subsubtest or subclass
+        :raise: DockerTestError on subsubtest ``cleanup()`` failures **only**
+        :raise: Any non-DockerTestError exception coming from ``try_all_stages``
+        """
+        if subsubtest is not None:
+            # Guarantee cleanup() runs even if autotest exception
+            self.start_subsubtests[name] = subsubtest
+            try:
+                self.try_all_stages(name, subsubtest)
+            finally:
                 try:
-                    subsubtest.initialize()
-                    # Allow run_once()
-                    run_subsubtests[name] = subsubtest
-                except error.AutotestError, detail:
-                    # Log problem, don't add to run_subsubtests
-                    self.logerror("%s failed to initialize: %s: %s", name,
-                                  detail.__class__.__name__, detail)
+                    subsubtest.cleanup()
+                except Exception, detail:
+                    raise DockerTestError("Sub-subtest cleanup"
+                                          " failures: %s: %s", name, detail)
+
+        else:
+            logging.warning("Failed importing sub-subtest %s", name)
+
 
     def run_once(self):
         """
-        Call successfully imported subsubtest's run_once() method
+        Find, instantiate, and call all testing methods on each subsubtest, in
+        order, subsubtest by subsubtest.  Autotest-specific exceptions are
+        logged but non-fatal.  All other exceptions raised after calling
+        subsubtest's ``cleanup()`` method.  Subsubtests which successfully
+        execute all stages are appended to the ``final_subsubtests`` set
+        (instance attribute) to determine overall subtest success/failure.
         """
         super(SubSubtestCaller, self).run_once()
-        post_subsubtests = self._sscd['post_subsubtests'] = {}
-        for name, subsubtest in self._sscd['run_subsubtests'].items():
-            try:
-                subsubtest.run_once()
-                # Allow postprocess()
-                post_subsubtests[name] = subsubtest
-            except error.AutotestError, detail:
-                # Log problem, don't add to post_subsubtests
-                self.loginfo("%s failed in run_once: %s: %s", name,
-                             detail.__class__.__name__, detail)
+        for name in self.subsubtest_names:
+            self.run_all_stages(name, self.new_subsubtest(name))
 
     def postprocess(self):
         """
-        Call all subsubtest's postprocess() method that completed run_once()
+        Compare set of subsubtest name (keys) from ``start_subsubtests``
+        to ``final_subsubtests`` set.
+
+        :raise: DockerTestFail if start_subsubtests != final_subsubtests
         """
         super(SubSubtestCaller, self).postprocess()
         # Dictionary is overkill for pass/fail determination
-        start_subsubtests = set(self._sscd['start_subsubtests'].keys())
-        final_subsubtests = set()
-        for name, subsubtest in self._sscd['post_subsubtests'].items():
-            try:
-                subsubtest.postprocess()
-                # Will form "passed" set
-                final_subsubtests.add(name)
-            # Fixme: How can this be avoided, yet guarantee cleanup() and
-            #        postprocess for other subtests?
-            except error.AutotestError, detail:
-                # Forms "failed" set by exclusion, but log problem
-                self.loginfo("%s failed in postprocess: %s: %s", name,
-                             detail.__class__.__name__, detail)
-        if not final_subsubtests == start_subsubtests:
-            raise error.TestFail('Sub-subtest failures: %s'
-                                 % str(start_subsubtests - final_subsubtests))
+        start_subsubtests = set(self.start_subsubtests.keys())
+        failed_tests = start_subsubtests - self.final_subsubtests
 
-    def cleanup(self):
+        if failed_tests:
+            raise DockerTestFail('Sub-subtest failures: %s' %
+                                 str(failed_tests))
+
+    def call_subsubtest_method(self, method):
         """
-        Call successfully imported subsubtest's cleanup() method
+        Call ``method``, recording execution info. on exception.
         """
-        super(SubSubtestCaller, self).cleanup()
-        cleanup_failures = set()
-        for name, subsubtest in self._sscd['start_subsubtests'].items():
-            try:
-                subsubtest.cleanup()
-            except error.AutotestError, detail:
-                cleanup_failures.add(name)
-                self.logerror("%s failed to cleanup: %s: %s", name,
-                              detail.__class__.__name__, detail)
-        if len(cleanup_failures) > 0:
-            raise error.TestError("Sub-subtest cleanup failures: %s"
-                                   % cleanup_failures)
+        try:
+            method()
+        except Exception:
+            # Log problem, don't add to run_subsubtests
+            self.exception_info["error_source"] = method.func_name
+            self.exception_info["exc_info"] = sys.exc_info()
+            raise
+
+    def import_if_not_loaded(self, name, pkg_path):
+        """
+        Import module only if module is not loaded.
+        """
+        # Safe because test is running in a separate process from main test
+        if not name in sys.modules:
+            mod = imp.load_module(name, *imp.find_module(name, pkg_path))
+            sys.modules[name] = mod
+            return mod
+        else:
+            return sys.modules[name]
 
     def new_subsubtest(self, name):
         """
@@ -417,21 +525,116 @@ class SubSubtestCaller(Subtest):
         module name.
 
         :param name: Class name, optionally external module-file name.
+        :return: None if failed to load or no SubSubtest class named ``name``
         """
         # Try in external module-file named 'name' also
         mydir = self.bindir
-        # This module's name is the same as it's subclass name
+        # Look in module holding this subclass for subsubtest class first.
         myname = self.__class__.__name__
-        mod = imp.load_module(name, *imp.find_module(myname, [mydir]))
+        mod = self.import_if_not_loaded(myname, [mydir])
         cls = getattr(mod, name, None)
-        # Try look in external module file with same name
+        # Not found in this module, look in external module file with same name
         if cls is None:
+            # FIXME: subsubtest modules should be able to import and
+            #        reference eachother within the context of their
+            #        parent subtest.  Currently this doesn't work.
+            #   -->  Maybe inject bindir into sys.path, then remove in
+            #        cleanup()?
             # Only look in "this" directory
-            mod = imp.load_module(name, *imp.find_module(name, [mydir]))
+            mod = self.import_if_not_loaded(name, [mydir])
             cls = getattr(mod, name, None)
         if issubclass(cls, SubSubtest):
             # Create instance, pass this subtest subclass as only parameter
             return cls(self)
-        # Non-fatal error
-        self.logerror("Failed importing sub-subtest %s", name)
+        # Load failure will be caught and loged later
         return None
+
+    def cleanup(self):
+        super(SubSubtestCaller, self).cleanup()
+
+class SubSubtestCallerSimultaneous(SubSubtestCaller):
+    """
+    Variation on SubSubtestCaller that calls test methods in subsubtest order.
+
+    Child subsubtest methods ``initialize``, ``run_once``, and ``postprocess``,
+    are executed separately, for each subsubtest.  Whether or not any exception
+    is raised, the ``cleanup`` method will always be called last.  The
+    subsubtest the order is specified by the  ``subsubtests`` (CSV) config.
+    option.  Child subsubtest configuration section is formed by appending the
+    child's subclass name onto the parent's ``config_section`` value.  Parent
+    configuration is passed to subsubtest, with the subsubtest's section
+    overriding values with the same option name.
+    """
+
+    #: Dictionary of subsubtests names to instances which successfully
+    #: executed ``initialize()`` w/o raising exception
+    run_subsubtests = None
+
+    #: Dictionary of subsubtests names to instances which successfully
+    #: executed ``run_once()`` w/o raising exception
+    post_subsubtests = None
+
+    def __init__(self, *args, **dargs):
+        super(SubSubtestCallerSimultaneous, self).__init__(*args, **dargs)
+        self.run_subsubtests = {}
+        self.post_subsubtests = {}
+
+    def initialize(self):
+        super(SubSubtestCallerSimultaneous, self).initialize()
+        for name in self.subsubtest_names:
+            subsubtest = self.new_subsubtest(name)
+            if subsubtest is not None:
+                # Guarantee it's cleanup() runs
+                self.start_subsubtests[name] = subsubtest
+                try:
+                    subsubtest.initialize()
+                    # Allow run_once() on this subsubtest
+                    self.run_subsubtests[name] = subsubtest
+                except AutotestError, detail:
+                    # Log problem, don't add to run_subsubtests
+                    self.logtraceback(name, sys.exc_info(), "initialize",
+                                      detail)
+
+    def run_once(self):
+        # DO NOT CALL superclass run_once() this variation works
+        # completely differently!
+        for name, subsubtest in self.run_subsubtests.items():
+            try:
+                subsubtest.run_once()
+                # Allow postprocess()
+                self.post_subsubtests[name] = subsubtest
+            except AutotestError, detail:
+                # Log problem, don't add to post_subsubtests
+                self.logtraceback(name, sys.exc_info(), "run_once", detail)
+
+    def postprocess(self):
+        # DO NOT CALL superclass run_once() this variation works
+        # completely differently!
+        start_subsubtests = set(self.start_subsubtests.keys())
+        final_subsubtests = set()
+        for name, subsubtest in self.post_subsubtests.items():
+            try:
+                subsubtest.postprocess()
+                # Will form "passed" set
+                final_subsubtests.add(name)
+            except AutotestError, detail:
+                # Forms "failed" set by exclusion from final_subsubtests
+                self.logtraceback(name, sys.exc_info(), "postprocess",
+                                  detail)
+        if not final_subsubtests == start_subsubtests:
+            raise DockerTestFail('Sub-subtest failures: %s'
+                                 % str(start_subsubtests - final_subsubtests))
+
+    def cleanup(self):
+        super(SubSubtestCallerSimultaneous, self).cleanup()
+        cleanup_failures = set()  # just for logging purposes
+        for name, subsubtest in self.start_subsubtests.items():
+            try:
+                subsubtest.cleanup()
+            except AutotestError, detail:
+                cleanup_failures.add(name)
+                self.logtraceback(name, sys.exc_info(), "cleanup",
+                                  detail)
+        if len(cleanup_failures) > 0:
+            raise DockerTestError("Sub-subtest cleanup failures: %s"
+                                  % cleanup_failures)

@@ -50,6 +50,7 @@ setattr(mock('autotest.client.shared.error'), 'CmdError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestFail', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
+setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
 # Need all three for Subtest class
 mock('autotest.client.shared.base_job')
 mock('autotest.client.shared.job')

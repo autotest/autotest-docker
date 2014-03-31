@@ -32,6 +32,7 @@ setattr(mock('autotest.client.shared.error'), 'CmdError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestFail', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
+setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
 
 class VersionTestBase(unittest.TestCase):
 

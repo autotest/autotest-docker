@@ -28,10 +28,12 @@ def mock(mod_path):
         return sys.modules[mod_path]
 
 # Mock module and exception class in one stroke
+mock('autotest.client.utils')
 setattr(mock('autotest.client.shared.error'), 'CmdError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestFail', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
+setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
 
 class FakeCmdResult(object):
     def __init__(self, command, exit_status=0,

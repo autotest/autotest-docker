@@ -356,6 +356,7 @@ def none_if_empty(dict_like, key_name=None):
     else:
         keys = [key_name]
     for key_name in keys:
-        if(isinstance(dict_like[key_name], (str, unicode)) and
-           len(dict_like[key_name].strip()) < 1):
+        value = dict_like.get(key_name, "")
+        if(isinstance(value, (str, unicode)) and
+           len(value.strip()) < 1):
             dict_like[key_name] = None

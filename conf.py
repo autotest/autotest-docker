@@ -20,7 +20,7 @@ import sys, os, types
 #: are also reflected in documentation.
 #:
 #: The short X.Y version. This MUST be inside single ("'") quotes for parsing!!
-version = '0.4.1'
+version = '0.5.1'
 
 #: If extensions (or modules to document with autodoc) are in another directory,
 #: add these directories to sys.path here. If the directory is relative to the
@@ -287,6 +287,7 @@ setattr(mock('autotest.client.shared.error'), 'CmdError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestFail', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
+setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
 mock('autotest.client.shared.base_job')
 mock('autotest.client.shared.job')
 mock('autotest.client.job')

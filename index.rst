@@ -79,17 +79,6 @@ Prerequisites
        or the equivilent for your platform (supplying the ``sphinx-build``
        executable)
 
-*  Autotest & Autotest Client (0.15 or later)
-
-    *  Git clone of https://github.com/autotest/autotest.git
-
-                        *or*
-
-    *  Platform-specific binary package (e.g. ``autotest-framework``)
-
-    *  Environment variable ``AUTOTEST_PATH`` set to absolute path where
-       autotest installed (if *not* in ``/usr/local/autotest``)
-
 *  *Any specific requirements for particular* `subtest modules`_
 
 .. _Supported Docker OS platform: https://www.docker.io/gettingstarted/#h_installation
@@ -99,12 +88,17 @@ Quickstart
 ----------------
 
 1)  Double-check you meet all the requirements in `prerequisites`_.
-2)  Within your ``$AUTOTEST_PATH``, change to the ``client`` subdirectory.
+2)  Clone autotest into ``/usr/local/autotest``
+
+::
+
+    [root@docker ~]# ``git clone https://github.com/autotest/autotest.git /usr/local/autotest``
+
+2)  Change to the ``client`` subdirectory.
 3)  Create and change into the ``tests`` subdirectory (if it doesn't already exist)
 
 ::
 
-    [root@docker ~]# cd $AUTOTEST_PATH
     [root@docker autotest]# cd client
     [root@docker client]# mkdir tests
     [root@docker client]# cd tests
@@ -138,13 +132,17 @@ Quickstart
     [root@docker docker]# vi config_custom/defaults.ini
 
 7)  Change back into the autotest client directory.
+
+::
+
+    [root@docker docker]# cd /usr/local/autotest/client
+
 8)  Run the autotest standalone client (``autotest-local run docker``).  The
     default behavior is to run all subtests.  However, the example below
     demonstrates using the ``--args`` parameter to select *only two* sub-tests:
 
 ::
 
-    [root@docker docker]# cd ../../
     [root@docker client]# ./autotest-local run docker --args=example,docker_cli/version
     Writing results to /usr/local/autotest/client/results/default
     START   ----    ----
@@ -459,6 +457,23 @@ Ultra-simple test to confirm output table-format of docker CLI
 --------------------------------------
 *  None
 
+``docker_cli/rm`` Sub-test
+=======================================
+
+Start up a container, run the rm subcommand on it in various ways
+
+``docker_cli/rm`` Prerequisites
+---------------------------------------------
+
+*  None
+
+``docker_cli/rm`` Configuration
+--------------------------------------
+
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
 
 ``docker_cli/run_simple`` Sub-test
 =====================================
@@ -482,6 +497,30 @@ Three simple subsubtests that verify exit status and singnal pass-through capabi
    i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
    and modify the values.
 
+
+``docker_cli/rmi`` Sub-test
+=======================================
+
+Several variations of running the rmi command.
+
+``docker_cli/rmi`` Prerequisites
+---------------------------------------------
+
+*  Same as `docker_cli/run_simple Prerequisites`_
+*  An existing, standard test image to work with.
+*  Image on remote registry with 'latest' and some other tag
+
+``docker_cli/rmi`` Configuration
+--------------------------------------
+
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
+*  The ``remove_after_test`` option controls cleanup after all sub-subtests.
+*  The ``docker_rmi_force`` option causes sub-subtests to force remove images
+*  ``docker_expected_result`` should be "PASS" or "FAIL" to indicate result
+   handling behavior of sub-subtests.
 
 ``docker_cli/pull`` Sub-test
 =======================================
@@ -514,6 +553,24 @@ Several variations of running the commit command
 *  Image on remote registry with 'latest' and some other tag
 
 ``docker_cli/commit`` Configuration
+--------------------------------------
+
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
+
+``docker_cli/stop`` Sub-test
+=======================================
+
+Several variations of running the stop command
+
+``docker_cli/stop`` Prerequisites
+---------------------------------------------
+
+*  A remote registry server
+
+``docker_cli/stop`` Configuration
 --------------------------------------
 
 *  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,

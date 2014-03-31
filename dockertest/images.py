@@ -290,6 +290,7 @@ class DockerImagesBase(object):
         Standard name for behavior specific to subclass implementation details
 
         :raise: RuntimeError if not defined by subclass
+        :return: implementation-specific value
         """
         raise RuntimeError()
 
@@ -306,7 +307,7 @@ class DockerImagesBase(object):
         :param image_list: Opaque, iterable, container-like, specific
                            to subclass implementation.
         :param full_name: FQIN string, Fully Qualified Image Name
-        :return: Iterable container-like of implementation-specific items
+        :return: Iterable container-like of DockerImage-like instances
         """
         return [di for di in image_list if di.cmp_greedy_full_name(full_name)]
 
@@ -427,18 +428,18 @@ class DockerImagesBase(object):
         """
         del full_name  # keep pylint happy
         raise RuntimeError()
-        # Return value is defined as undefined
+        # Return value is defined as implementation specific
         return None  # pylint: disable=W0101
 
     def remove_image_by_image_obj(self, image_obj):
         """
-        Alias for remove_image_by_full_name(image_obj.full_name)
+        Alias for remove_image_by_full_name(image_obj.long_id)
 
         :raise: Same as remove_image_by_full_name()
         :raise: Implementation-specific exception
         :return: Same as remove_image_by_full_name()
         """
-        return self.remove_image_by_full_name(image_obj.full_name)
+        return self.remove_image_by_id(image_obj.long_id)
 
 
 class DockerImagesCLI(DockerImagesBase):
@@ -502,14 +503,6 @@ class DockerImagesCLI(DockerImagesBase):
         """
         return self.docker_cmd("rmi %s" % full_name, self.timeout)
 
-    def remove_image_by_image_obj(self, image_obj):
-        """
-        Use docker CLI to remove an image by DockerImage
-
-        :returns: autotest.client.utils.CmdResult instance
-        """
-        return self.remove_image_by_full_name(image_obj.full_name)
-
 
 class DockerImagesCLICheck(DockerImagesCLI):
     """
@@ -549,8 +542,8 @@ class DockerImages(object):
         """
         # Prevent accidental test.test instance passing
         if not isinstance(subtest, Subtest):
-            raise TypeError("Subtest is not a Subtest instance or "
-                            "subclass.")
+            raise TypeError("Instance %s is not a Subtest instance or "
+                            "subclass." % str(subtest))
         else:
             self.subtest = subtest
 

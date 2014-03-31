@@ -9,7 +9,9 @@ import logging
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
 
+
 class subexample(SubSubtestCaller):
+
     """
     Executor of each stage of each module/class defined in 'sunsubtests'
     configuration option.
@@ -26,7 +28,9 @@ class subexample(SubSubtestCaller):
         """
         self.loginfo(self.stuff + extra_msg)
 
+
 class one(SubSubtest):
+
     """
     Minimal Subtest-like class, doesn't define all test.test methods
     """
@@ -35,7 +39,7 @@ class one(SubSubtest):
         """
         Called every time the test is run.
         """
-        super(one, self).initialize() # Prints out basic info
+        super(one, self).initialize()  # Prints out basic info
         self.logdebug("debug console logging works in sub-subtests")
         # Keep track of whatever you like here
         self.sub_stuff = ", and sub-subtest private stuff here"
@@ -45,7 +49,7 @@ class one(SubSubtest):
         """
         Called to run test
         """
-        super(one, self).run_once() # Prints out basic info
+        super(one, self).run_once()  # Prints out basic info
         # Use parent subtest instance as needed
         self.parent_subtest.special_function(self.sub_stuff)
         # Do Something useful here, store results in 'stuff'
@@ -62,7 +66,7 @@ class one(SubSubtest):
         """
         Always Called, after all other methods
         """
-        super(one, self).cleanup() # Prints out basic info
+        super(one, self).cleanup()  # Prints out basic info
         self.loginfo("This message appears on console only")
         logging.info("Official test log update, this sub-subtest is done!")
         # Do Something useful here, leave environment as we received it

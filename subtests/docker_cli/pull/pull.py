@@ -21,10 +21,13 @@ from dockertest import config
 # Okay to be less-strict for these cautions/warnings in subtests
 # pylint: disable=C0103,C0111,R0904,C0103
 
+
 class pull(subtest.SubSubtestCaller):
     config_section = 'docker_cli/pull'
 
+
 class pull_base(SubSubtest):
+
     def initialize(self):
         super(pull_base, self).initialize()
         config.none_if_empty(self.config)
@@ -45,17 +48,8 @@ class pull_base(SubSubtest):
         self.sub_stuff["cmdresult"] = dkrcmd.wait()
 
     def complete_docker_command_line(self):
-        registry_addr = self.config["docker_registry_host"]
-        repository = self.config["docker_repo_name"]
-        tag = self.config["docker_repo_tag"]
-        user = self.config["docker_registry_user"]
-
-        full_name = DockerImage.full_name_from_component(repository,
-                                                         tag,
-                                                         registry_addr,
-                                                         user)
+        full_name = DockerImage.full_name_from_defaults(self.config)
         self.sub_stuff["img_fn"] = full_name
-
         return [full_name]
 
     def outputcheck(self):
@@ -85,7 +79,7 @@ class pull_base(SubSubtest):
         super(pull_base, self).cleanup()
         # Auto-converts "yes/no" to a boolean
         if (self.config['remove_after_test'] and
-            'image_list' in self.sub_stuff):
+                'image_list' in self.sub_stuff):
             for image in self.sub_stuff["image_list"]:
                 try:
                     di = DockerImages(self.parent_subtest)
