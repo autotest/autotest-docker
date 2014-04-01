@@ -186,7 +186,7 @@ class DockerCmdTestBasic(DockerCmdTestBase):
         self.assertRaises(NotImplementedError, docker_command.execute,
                            'not stdin')
 
-        self.assertRaises(self.dockercmd.DockerCommandError,
+        self.assertRaises(self.dockercmd.DockerTestError,
                           self.dockercmd.DockerCmdBase, "ThisIsNotSubtest",
                           "fake_subcmd")
 
@@ -245,7 +245,7 @@ class AsyncDockerCmd(DockerCmdTestBase):
     customs = {}
     config_section = "Foo/Bar/Baz"
 
-    def test_basi_workflow(self):
+    def test_basic_workflow(self):
         class DummyClass(object):   # pylint: disable=R0903
             """ Clean class used for mocking """
             pass
@@ -254,9 +254,9 @@ class AsyncDockerCmd(DockerCmdTestBase):
                                                    timeout=123)
 
         # Raise error when command not yet executed
-        self.assertRaises(self.dockercmd.DockerCommandError, docker_cmd.wait)
+        self.assertRaises(self.dockercmd.DockerTestError, docker_cmd.wait)
         for prop in ('done', 'stdout', 'stderr', 'process_id'):
-            self.assertRaises(self.dockercmd.DockerCommandError,
+            self.assertRaises(self.dockercmd.DockerTestError,
                               getattr, docker_cmd, prop)
 
         # Modified run returns the async_job instead of the real results...
@@ -269,10 +269,10 @@ class AsyncDockerCmd(DockerCmdTestBase):
         async_job.sp.poll = lambda: True
         self.assertTrue(docker_cmd.done)
 
-        async_job.get_stdout = "STDOUT"
+        async_job.get_stdout = lambda: "STDOUT"
         self.assertEqual(docker_cmd.stdout, "STDOUT")
 
-        async_job.get_stderr = "STDERR"
+        async_job.get_stderr = lambda: "STDERR"
         self.assertEqual(docker_cmd.stderr, "STDERR")
 
         async_job.sp.pid = -1

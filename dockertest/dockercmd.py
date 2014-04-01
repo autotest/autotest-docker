@@ -9,7 +9,7 @@ from autotest.client import utils
 from autotest.client.shared import error
 from subtest import Subtest
 from xceptions import (DockerNotImplementedError, DockerCommandError,
-                       DockerExecError, DockerValueError)
+                       DockerExecError, DockerValueError, DockerTestError)
 
 
 class DockerCmdBase(object):
@@ -30,9 +30,8 @@ class DockerCmdBase(object):
         """
         # Prevent accidental test.test instance passing
         if not isinstance(subtest, Subtest):
-            raise DockerCommandError(self.command, None,
-                                     "Subtest is not a Subtest instance or "
-                                     "subclass.")
+            raise DockerTestError("Subtest is not a Subtest instance or "
+                                  "subclass.")
         else:
             self.subtest = subtest
         self.subcmd = str(subcmd)
@@ -207,9 +206,7 @@ class AsyncDockerCmd(DockerCmdBase):
         if self._async_job is not None:
             return self._async_job.wait_for(timeout)
         else:
-            raise DockerCommandError(self.command, self._async_job.result,
-                                     "Attempted to wait before "
-                                     "execute() called")
+            raise DockerTestError("Attempted to wait before execute() called.")
 
     @property
     def done(self):
@@ -217,8 +214,8 @@ class AsyncDockerCmd(DockerCmdBase):
         Return True if processes has ended
         """
         if self._async_job is None:
-            raise DockerCommandError(self.command, self._async_job.result,
-                                     "Cannot finsh before starting")
+            raise DockerTestError("Attempted to wait for done before execute()"
+                                  " called.")
         return self._async_job.sp.poll() is not None
 
     @property
@@ -231,9 +228,8 @@ class AsyncDockerCmd(DockerCmdBase):
         if self._async_job is not None:
             return self._async_job.get_stdout()
         else:
-            raise DockerCommandError(self.command, self._async_job.result,
-                                     "Attempted to access stdout before "
-                                     "execute() called")
+            raise DockerTestError("Attempted to access stdout before execute()"
+                                  " called.")
 
     @property
     def stderr(self):
@@ -245,9 +241,8 @@ class AsyncDockerCmd(DockerCmdBase):
         if self._async_job is not None:
             return self._async_job.get_stderr()
         else:
-            raise DockerCommandError(self.command, self._async_job.result,
-                                     "Attempted to access stderr before "
-                                     "execute() called")
+            raise DockerTestError("Attempted to access stderr before execute()"
+                                  " called.")
 
     @property
     def process_id(self):
@@ -257,9 +252,8 @@ class AsyncDockerCmd(DockerCmdBase):
         if self._async_job is not None:
             return self._async_job.sp.pid
         else:
-            raise DockerCommandError(self.command, self._async_job.result,
-                                     "Attempted to access pid before "
-                                     "execute() called")
+            raise DockerTestError("Attempted to get pid before execute()"
+                                  " called.")
 
     @property
     def exit_status(self):
@@ -267,6 +261,6 @@ class AsyncDockerCmd(DockerCmdBase):
         Return exit status integer or None if process has not ended
         """
         if self._async_job is None:
-            raise DockerCommandError(self.command, self._async_job.result,
-                                     "Cannot check exit before starting")
+            raise DockerTestError("Attempted to get exit status before "
+                                  "execute() called.")
         return self._async_job.sp.returncode
