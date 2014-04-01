@@ -66,12 +66,7 @@ class ConfigSection(object):
         :raise: dockertest.xceptions.DockerValueError
                 If ``instance-section != section``
         """
-        if section != self._section:
-            raise xceptions.DockerValueError("Only section %s is supported "
-                                             "for this instance"
-                                             % self._section)
-        else:
-            return self._scp.add_section(self._section)
+        raise NotImplementedError()
 
     def has_section(self, section):
         """
@@ -181,7 +176,7 @@ class ConfigSection(object):
         """
         Remove all options and section
         """
-        return self._scp.remove_section(self._section)
+        raise NotImplementedError()
 
     def items(self):
         """
