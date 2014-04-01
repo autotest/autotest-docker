@@ -23,7 +23,6 @@ class DockerVersion(object):
     version_lines = None
     _client = None
     _server = None
-    # TODO: Add *_go & *_git versions?
 
     def __init__(self, version_string):
         """
@@ -135,7 +134,7 @@ class OutputGoodBase(object):
 
     def __str__(self):
         """
-        Make results of individual checkers accessible
+        Make results of individual checkers accessible in human-readable format.
         """
         passed = [chkr for (chkr, good) in self.output_good.items() if good]
         failed = [chkr for (chkr, good) in self.output_good.items()

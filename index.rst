@@ -17,9 +17,7 @@ Docker Autotest
 temporary. Interfaces/Usage could change, or the entire contents could disappear
 without warning.
 
-.. contents:: **Contents**
-   :depth: 2
-   :local:
+.. sectnum::
 
 ----------------
 Introduction
@@ -121,23 +119,26 @@ Quickstart
 .. _autotest-docker: https://github.com/autotest/autotest-docker.git
 
 5)  Change into newly checked out repository directory.
-6)  Make a copy of default configuration, edit as appropriate.  Particularly
+6)  Check out the most recent release by tag.
+7)  Make a copy of default configuration, edit as appropriate.  Particularly
     the options for ``docker_repo_name``, ``docker_repo_tag``,
-    ``docker_registry_host``, and ``docker_registry_user`` if required.
+    ``docker_registry_host``, and ``docker_registry_user`` (see
+    `default configuration options`_).
 
 ::
 
     [root@docker tests]# cd docker
+    [root@docker docker]# git checkout $(git tag --list | tail -1)
     [root@docker docker]# cp -abi config_defaults/defaults.ini config_custom/
     [root@docker docker]# vi config_custom/defaults.ini
 
-7)  Change back into the autotest client directory.
+8)  Change back into the autotest client directory.
 
 ::
 
     [root@docker docker]# cd /usr/local/autotest/client
 
-8)  Run the autotest standalone client (``autotest-local run docker``).  The
+9)  Run the autotest standalone client (``autotest-local run docker``).  The
     default behavior is to run all subtests.  However, the example below
     demonstrates using the ``--args`` parameter to select *only two* sub-tests:
 
@@ -267,17 +268,21 @@ Versioning Requirements
 In order to support external/private subtests and customized configurations,
 the Docker Autotest API version has been tightly coupled to test content,
 configuration, and documentation.  Version comparison is only significant
-for the first two numbers (the major and minor versions).  The third (last)
+for the first two numbers (major and minor).  The third (revision)
 number represents insignificant revisions which do not alter the core test
 or subtest API.
 
 This allows the API to be extended freely, but any changes
-which could affect external tests or custom configurations will be flagged
-when encountered.  The most likely cause for version problems is custom
+which could affect external tests or custom configurations will cause automatic
+test failures when encountered.  The most likely cause for version problems is custom
 and/or outdated configurations.  Double-check any customizations within
-``config_custom`` match the current API.  The same goes for any private
-or local tests, this is probably the only warning you will receive on
-API changes.
+``config_custom`` match any changes to the current API.  The same goes for any private
+or local tests.
+
+Documentation versioning is similarly tied to changes in the API version.  While
+non-fatal, it will introduce a delay in subtest execution.  This signal is intended
+to alert developers a documentation-update pass is required to reflect changes
+in the API.
 
 ------------------
 Subtest Modules
@@ -293,12 +298,17 @@ Global default options that apply to all other sections are set in
 the special ``DEFAULTS`` section of the ``defaults.ini`` file.  This
 file is loaded *either* from ``config_defaults`` *or* ``config_custom``.
 
+
+*  For subtests which use the global default test image/repository,
+   it's fully-qualified name is formed by the values to the
+   ``docker_repo_name``, ``docker_repo_tag``
+   ``docker_registry_host``, and ``docker_registry_user`` options.
 *  The ``config_version`` option is set to the API version
-   it was setup for.  Because overriding requires copying
-   this file, and ``config_version`` will be inherited by
-   all subtests, it will flag custom configurations and
-   custom subtests with an API version mismatch.  This
-   option must **not** be overriden in subtest configs.
+   this configuration is intended for.  Because a copy of the ``defaults.ini``
+   file will not inherit default version number changes, it **will** cause
+   most tests to fail after changing dockertest API versions. This is
+   intentional behavior and so this option must **not** be overriden
+   in any subtest configuration.
 *  The ``docker_path`` option specifies the absolute path to the
    docker executable under test.  This permits both the framework
    and/or individual sub-tests to utilize a separate compiled
@@ -310,13 +320,6 @@ file is loaded *either* from ``config_defaults`` *or* ``config_custom``.
    use the value in ``docker_timeout``.  This may be an
    integer or floating-point number specifying the number
    of seconds to allow any single command to complete.
-*  For subtests which benefit from a global default standard
-   test image/repository, it's name may be specified by
-   the ``docker_repo_name`` option.  Similar for, ``docker_repo_tag``
-   ``docker_registry_host``, and ``docker_registry_user``.
-   The `images module`_ ``DockerImage.full_name_from_defaults()``
-   method may be utilized along with these options to
-   produce a standard FQIN (Fully Qualified Image Name).
 
 ``example`` Sub-test
 =======================
@@ -643,6 +646,7 @@ Docker_Daemon Module
 .. automodule:: dockertest.docker_daemon
     :members:
     :no-undoc-members:
+    :no-inherited-members:
 
 Dockercmd Module
 =================

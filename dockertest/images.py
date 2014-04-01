@@ -86,6 +86,8 @@ class DockerImage(object):  # pylint: disable=R0902
     def __eq__(self, other):
         """
         Compare this instance to another
+
+        :param other: An instance of this class (or subclass) for comparison.
         """
         self_val = [getattr(self, name) for name in self.__slots__]
         other_val = [getattr(other, name) for name in self.__slots__]
@@ -114,8 +116,8 @@ class DockerImage(object):  # pylint: disable=R0902
         """
         Split full_name FQIN string into separate component strings
 
-        Be careful when mixing ``repo_addr`` and ``user`` name, as
-        there could be content-dependent side-effects.
+        :Note: Be careful when mixing ``repo_addr`` and ``user`` name, as
+               there could be content-dependent side-effects.
 
         :param full_name: FQIN, Fully Qualified Image Name
         :return: Iterable of repo, tag, repo_addr, user strings
@@ -296,7 +298,7 @@ class DockerImagesBase(object):
         """
         Standard name for behavior specific to subclass implementation details
 
-        :raise: RuntimeError if not defined by subclass
+        :raise RuntimeError: if not defined by subclass
         :return: implementation-specific value
         """
         raise RuntimeError()
@@ -306,10 +308,10 @@ class DockerImagesBase(object):
         """
         Return iterable of DockerImage-like instances greedy-matching full_name
 
-        **Warning**: Do not assume image_list is a python-list!  It can be
-                     any object providing the basic iterable and
-                     container interfaces.  Similarly, the type of
-                     items inside need only be DockerImage-like.
+        :**Warning**: Do not assume image_list is a python-list!  It can be
+                      any object providing the basic iterable and
+                      container interfaces.  Similarly, the type of
+                      items inside need only be DockerImage-like.
 
         :param image_list: Opaque, iterable, container-like, specific
                            to subclass implementation.
@@ -324,10 +326,10 @@ class DockerImagesBase(object):
         """
         Return iterable of DockerImage-like instances greedy-matching full_name
 
-        **Warning**: Do not assume image_list is a python-list!  It can be
-                     any object providing the basic iterable and
-                     container interfaces.  Similarly, the type of
-                     items inside need only be DockerImage-like.
+        :**Warning**: Do not assume image_list is a python-list!  It can be
+                      any object providing the basic iterable and
+                      container interfaces.  Similarly, the type of
+                      items inside need only be DockerImage-like.
 
         :param image_list: Opaque, iterable, container-like, specific
                            to subclass implementation.
@@ -372,7 +374,7 @@ class DockerImagesBase(object):
     def list_imgs_with_full_name(self, full_name):
         """
         Return python-list of **possibly overlapping** DockerImage-like
-        instances greedy-matching full_name
+        instances greedy-matching full_name.
 
         :return: **possibly overlapping**
                  [DockerImage-like, DockerImage-like, ...] greedy-matching
@@ -401,7 +403,7 @@ class DockerImagesBase(object):
     def list_imgs_with_image_id(self, image_id):
         """
         Return python-list of **possibly overlapping** 64-character (long)
-        image IDs
+        image IDs.
 
         :return: **possibly overlapping**
                  [DockerImage-like, DockerImage-like, ...] greedy-matching
@@ -415,8 +417,7 @@ class DockerImagesBase(object):
         """
         Remove image by 64-character (long) or 12-character (short) image ID.
 
-        :raise: RuntimeError when implementation does not permit image removal
-        :raise: Implementation-specific exception
+        :raise RuntimeError: when implementation does not permit image removal
         :return: Implementation specific value
         """
         del image_id  # keep pylint happy
@@ -429,8 +430,7 @@ class DockerImagesBase(object):
         """
         Remove an image by FQIN Fully Qualified Image Name.
 
-        :raise: RuntimeError when implementation does not permit image removal
-        :raise: Implementation-specific exception
+        :raise RuntimeError: when implementation does not permit image removal
         :return: Implementation specific value
         """
         del full_name  # keep pylint happy
@@ -442,8 +442,7 @@ class DockerImagesBase(object):
         """
         Alias for remove_image_by_full_name(image_obj.long_id)
 
-        :raise: Same as remove_image_by_full_name()
-        :raise: Implementation-specific exception
+        :raise RuntimeError: when implementation does not permit image removal
         :return: Same as remove_image_by_full_name()
         """
         return self.remove_image_by_id(image_obj.long_id)
@@ -451,7 +450,7 @@ class DockerImagesBase(object):
 
 class DockerImagesCLI(DockerImagesBase):
     """
-    Docker command supported DockerImage-like instance collection and helpers
+    Docker command supported DockerImage-like instance collection and helpers.
     """
 
     def __init__(self, subtest, timeout=None, verbose=False):
@@ -476,11 +475,11 @@ class DockerImagesCLI(DockerImagesBase):
 
     def docker_cmd(self, cmd, timeout=None):
         """
-        Called on to execute the docker command cmd with timeout
+        Called on to execute the docker command cmd with timeout.
 
         :param cmd: Command which should be called using docker
         :param timeout: Override self.timeout if not None
-        :return: autotest.client.utils.CmdResult instance
+        :return: ``autotest.client.utils.CmdResult`` instance
         """
         docker_image_cmd = ("%s %s" % (self.subtest.config['docker_path'],
                                        cmd))
@@ -496,9 +495,9 @@ class DockerImagesCLI(DockerImagesBase):
 
     def remove_image_by_id(self, image_id):
         """
-        Use docker CLI to removes image matching long or short image_ID
+        Use docker CLI to removes image matching long or short image_ID.
 
-        :returns: autotest.client.utils.CmdResult instance
+        :returns: ``autotest.client.utils.CmdResult`` instance
         """
         return self.docker_cmd("rmi %s" % image_id, self.timeout)
 
@@ -506,14 +505,14 @@ class DockerImagesCLI(DockerImagesBase):
         """
         Remove an image by FQIN Fully Qualified Image Name.
 
-        :returns: autotest.client.utils.CmdResult instance
+        :returns: ``autotest.client.utils.CmdResult`` instance
         """
         return self.docker_cmd("rmi %s" % full_name, self.timeout)
 
 
 class DockerImagesCLICheck(DockerImagesCLI):
     """
-    Extended DockerContainersCLI for passing test options and checking output
+    Extended ``DockerContainersCLI`` for passing test options and checking output.
     """
 
     #: This is probably test-subject related, be a bit more noisy
@@ -529,7 +528,7 @@ class DockerImagesCLICheck(DockerImagesCLI):
 
 class DockerImages(object):
     """
-    Encapsulates DockerImage interfaces for manipulation with docker images.
+    Encapsulates ``DockerImage`` interfaces for manipulation with docker images.
     """
 
     #: Mapping of interface short-name string to DockerImagesBase subclass.
@@ -560,6 +559,8 @@ class DockerImages(object):
     def __getattr__(self, name):
         """
         Hide interface choice while allowing attribute/method access.
+
+        :return: attribute/method provided by interface implementation.
         """
         return getattr(self._interface, name)
 

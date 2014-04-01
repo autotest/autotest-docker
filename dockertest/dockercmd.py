@@ -26,7 +26,7 @@ class DockerCmdBase(object):
         :param subargs: (optional) Iterable of additional args to subcommand
         :param timeout: Seconds to wait before terminating docker command
                         None to use 'docker_timeout' config. option.
-        :raise: DockerValueError on incorrect usage
+        :raises DockerTestError: on incorrect usage
         """
         # Prevent accidental test.test instance passing
         if not isinstance(subtest, Subtest):
@@ -59,8 +59,8 @@ class DockerCmdBase(object):
         Execute docker subcommand
 
         :param stdin: String or file-like containing standard input contents
-        :raise: DockerCommandError on incorrect usage
-        :raise: DockerExecError on command failure
+        :raise DockerCommandError: on incorrect usage
+        :raise DockerExecError: on command failure
         :return: A CmdResult instance
         """
         # Keep pylint quiet
@@ -110,8 +110,8 @@ class DockerCmd(DockerCmdBase):
         Run docker command, ignore any non-zero exit code
 
         :param stdin: String or file-like containing standard input contents
-        :raise: DockerCommandError on incorrect usage
-        :raise: DockerExecError on command failure
+        :raise DockerCommandError: on incorrect usage
+        :raise DockerExecError: on command failure
         :return: A CmdResult instance
         """
         try:
@@ -133,8 +133,8 @@ class NoFailDockerCmd(DockerCmd):
         Execute docker command, raising DockerCommandError if non-zero exit
 
         :param stdin: String or file-like containing standard input contents
-        :raise: DockerCommandError on incorrect usage
-        :raise: DockerExecError on if command returns non-zero exit code
+        :raises DockerCommandError: on incorrect usage
+        :raises DockerExecError: on if command returns non-zero exit code
         :return: A CmdResult instance
         """
         try:
@@ -155,8 +155,8 @@ class MustFailDockerCmd(DockerCmd):
         Execute docker command, raise DockerExecError if **zero** exit code
 
         :param stdin: String or file-like containing standard input contents
-        :raise: DockerCommandError on incorrect usage
-        :raise: DockerExecError on if command returns zero exit code
+        :raises DockerCommandError: on incorrect usage
+        :raises DockerExecError: on if command returns zero exit code
         :return: A CmdResult instance
         """
         try:
@@ -175,7 +175,7 @@ class MustFailDockerCmd(DockerCmd):
 
 class AsyncDockerCmd(DockerCmdBase):
     """
-    Execute docker command, self.cmdresult.exit_status != None when done
+    Execute docker command as asynchronous background process on ``execute()``
     """
 
     #: Used internally by execute()
@@ -186,7 +186,6 @@ class AsyncDockerCmd(DockerCmdBase):
         Start execution of asynchronous docker command
 
         :param stdin: String or file-like containing standard input contents
-        :raise: DockerCommandError on incorrect usage
         :return: A partial CmdResult instance
         """
         self._async_job = utils.AsyncJob(self.command, verbose=False,
@@ -198,8 +197,8 @@ class AsyncDockerCmd(DockerCmdBase):
         Return CmdResult after waiting for process to end or timeout
 
         :param timeout: Max time to wait, self.timeout if None
+        :raises DockerTestError: on incorrect usage
         :return: Complete CmdResult instance
-        :raise: DockerCommandError on incorrect usage
         """
         if timeout is None:
             timeout = self.timeout
@@ -212,6 +211,8 @@ class AsyncDockerCmd(DockerCmdBase):
     def done(self):
         """
         Return True if processes has ended
+
+        :raises DockerTestError: on incorrect usage
         """
         if self._async_job is None:
             raise DockerTestError("Attempted to wait for done before execute()"
@@ -223,7 +224,7 @@ class AsyncDockerCmd(DockerCmdBase):
         """
         Represent string of stdout so far
 
-        :raise: DockerCommandError on incorrect usage
+        :raises DockerTestError: on incorrect usage
         """
         if self._async_job is not None:
             return self._async_job.get_stdout()
@@ -236,7 +237,7 @@ class AsyncDockerCmd(DockerCmdBase):
         """
         Represent string of stderr output so far
 
-        :raise: DockerCommandError on incorrect usage
+        :raises DockerTestError: on incorrect usage
         """
         if self._async_job is not None:
             return self._async_job.get_stderr()
@@ -248,6 +249,8 @@ class AsyncDockerCmd(DockerCmdBase):
     def process_id(self):
         """
         Return the process id of the backgtround job
+
+        :raises DockerTestError: on incorrect usage
         """
         if self._async_job is not None:
             return self._async_job.sp.pid
@@ -259,6 +262,8 @@ class AsyncDockerCmd(DockerCmdBase):
     def exit_status(self):
         """
         Return exit status integer or None if process has not ended
+
+        :raises DockerTestError: on incorrect usage
         """
         if self._async_job is None:
             raise DockerTestError("Attempted to get exit status before "

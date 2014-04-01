@@ -1,5 +1,9 @@
 """
-Extension of standard ConfigParser.SafeConfigParser abstracting section names
+Extension of standard ConfigParser.SafeConfigParser abstracting section names.
+
+The ``Config`` class is the main thing here intended for consumption. Possibly
+the ``none_if_empty`` function as well.  Everything else is available, and
+unit-tested but not intended for wide-spread general use.
 """
 
 # Pylint runs from a different directory, it's fine to import this way
@@ -16,14 +20,19 @@ import xceptions
 
 #: Absolute path to directory containing this module
 MYDIR = os.path.dirname(sys.modules[__name__].__file__)
+
 #: Parent directory of directory containing this module
 PARENTDIR = os.path.dirname(MYDIR)
+
 #: Directory path relative to PARENTDIR containing default config files
 CONFIGDEFAULT = os.path.join(PARENTDIR, 'config_defaults')
+
 #: Directory path relative to PARENTDIR containing customized config files.
 CONFIGCUSTOMS = os.path.join(PARENTDIR, 'config_custom')
+
 #: Durectiry path relative to CONFIGDIR containing default config files
 DEFAULTSUBDIR = 'defaults'
+
 #: Name of file holding special DEFAULTS section and options
 DEFAULTSFILE = 'defaults.ini'
 
@@ -31,6 +40,9 @@ DEFAULTSFILE = 'defaults.ini'
 class ConfigSection(object):
     """
     Wraps SafeConfigParser with static section handling
+
+    :note: Not an exact interface reproduction, some functionality
+           left out!
     """
 
     def __init__(self, defaults, section):
@@ -59,18 +71,15 @@ class ConfigSection(object):
 
     def add_section(self, section):
         """
-        Add this instances section to config if it doesn't exist
+        Not written, do not use!
 
-        :param section: Section name to add
-
-        :raise: dockertest.xceptions.DockerValueError
-                If ``instance-section != section``
+        :raises NotImplementedError: DO NOT USE!
         """
         raise NotImplementedError()
 
     def has_section(self, section):
         """
-        Returns True if instance-section == section
+        Returns True if instance-section == ``section``
         """
         if section == self._section:
             return True
@@ -85,7 +94,7 @@ class ConfigSection(object):
 
     def has_option(self, option):
         """
-        Returns True if key-named option exists and is set to something
+        Returns True if key-named ``option`` exists
         """
         return self._scp.has_option(self._section, option)
 
@@ -101,7 +110,7 @@ class ConfigSection(object):
 
         :param filenames: Same as for SafeConfigParser read method
         """
-        result = self._scp.read(filenames)
+        result = self._scp.read(filenames)  # Changes self._scp
         self._prune_sections()
         return result
 
@@ -113,7 +122,7 @@ class ConfigSection(object):
         :param fp: Same as for SafeConfigParser readfp method
         :param filename: Same as for SafeConfigParser readfp method
         """
-        result = self._scp.readfp(fp, filename)
+        result = self._scp.readfp(fp, filename)  # Changes self._scp
         self._prune_sections()
         return result
 
@@ -174,7 +183,9 @@ class ConfigSection(object):
 
     def remove_section(self):
         """
-        Remove all options and section
+        Not written, do not use!
+
+        :raises NotImplementedError: DO NOT USE!
         """
         raise NotImplementedError()
 
@@ -186,7 +197,9 @@ class ConfigSection(object):
 
 
 class ConfigDict(MutableMapping):
-    """Wraps ConfigSection instance in a dict-like"""
+    """
+    Wraps ConfigSection instance in a dict-like, hides SafeConfigParser details.
+    """
 
     def __init__(self, section, defaults=None, *args, **dargs):
         """
@@ -243,14 +256,14 @@ class ConfigDict(MutableMapping):
 
     @staticmethod
     def write(filelike):
-        """Raise an IOError exception"""
+        """Raise an IOError exception, instance is read-only"""
         raise xceptions.DockerIOError("Instance does not permit writing to %s"
                                        % filelike.name)
 
 
 class Config(dict):
     """
-    Dict-like of dict-like per section with default values replaced by custom
+    Global dict-like of dict-like(s) per section with defaulting values.
     """
     #: Public instance attribute cache of defaults parsing w/ non-clashing name
     defaults_ = None
@@ -260,8 +273,11 @@ class Config(dict):
     _singleton = None
 
     def __new__(cls, *args, **dargs):
-        """
+        r"""
         Return copy of dict holding parsed defaults + custom configs
+
+        :param \*args & \*\*dargs: Same as built-in python ``dict()`` params.
+        :return: Regular 'ole python dictionary of global config dicts.
         """
         if cls._singleton is None:
             # Apply *args, *dargs _after_ making deep-copy
@@ -349,10 +365,10 @@ class Config(dict):
 
 def none_if_empty(dict_like, key_name=None):
     """
-    Set (stripped) empty strings in dict_like to None, if not specific key_name
+    Set (stripped) empty strings in dict-like to None, if not specific key_name.
 
-    :param dict_like: Instance with dict-like interface
-    :param key_name: Optional single key to check
+    :param dict_like: Instance with dict-like interface to examine
+    :param key_name: Optional single key to check, doesn't need to exist.
     """
     if key_name is None:
         keys = dict_like.keys()
