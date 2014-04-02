@@ -2,8 +2,16 @@
 
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
+# There is magic requiring attributes defined outside the __init__
+# pylint: disable=W0201
 
-import unittest, tempfile, shutil, os, sys, types
+import os
+import shutil
+import sys
+import tempfile
+import types
+import unittest
+
 
 # DO NOT allow this function to get loose in the wild!
 def mock(mod_path):
@@ -14,7 +22,7 @@ def mock(mod_path):
     child_name = name_list.pop()
     child_mod = sys.modules.get(mod_path, types.ModuleType(child_name))
     if len(name_list) == 0:  # child_name is left-most basic module
-        if not sys.modules.has_key(child_name):
+        if child_name not in sys.modules:
             sys.modules[child_name] = child_mod
         return sys.modules[child_name]
     else:
@@ -27,17 +35,30 @@ def mock(mod_path):
             sys.modules[mod_path] = child_mod
         return sys.modules[mod_path]
 
-# Just pack whatever args received into attributes
-class FakeCmdResult(object):
+
+class FakeCmdResult(object):    # pylint: disable=R0903
+    """ Just pack whatever args received into attributes """
     def __init__(self, **dargs):
         for key, val in dargs.items():
             setattr(self, key, val)
 
-# Don't actually run anything!
+
 def run(command, *args, **dargs):
-    return FakeCmdResult(command=command,
-                         args=args,
-                         dargs=dargs)
+    """ Don't actually run anything! """
+    result = FakeCmdResult(command=command, args=args, dargs=dargs)
+    # store myself to allow special AsyncJob magic
+    result.result = result
+    if 'unittest_fail' in command:
+        result.exit_status = 1
+        if not dargs['ignore_status']:
+            exc = Exception()   # CmdError is mocked, create suitable Exc here
+            exc.command = command
+            exc.result_obj = result
+            raise exc
+    else:
+        result.exit_status = 0
+    return result
+
 
 # Mock module and mock function run in one command
 setattr(mock('autotest.client.utils'), 'run', run)
@@ -89,22 +110,25 @@ class DockerCmdTestBase(unittest.TestCase):
 
     def _make_fake_subtest(self):
         class FakeSubtestException(Exception):
-            def __init__(fake_self, *args, **dargs):
+            def __init__(fake_self, *_args, **_dargs):  # pylint: disable=E0213
                 super(FakeSubtestException, self).__init__()
+
         class FakeSubtest(self.subtest.Subtest):
             version = "1.2.3"
             config_section = self.config_section
             iteration = 1
             iterations = 1
-            def __init__(fake_self, *args, **dargs):
+
+            def __init__(fake_self, *_args, **_dargs):  # pylint: disable=E0213
                 config_parser = self.config.Config()
                 fake_self.config = config_parser.get(self.config_section)
                 for symbol in ('execute', 'setup', 'initialize', 'run_once',
                                'postprocess_iteration', 'postprocess',
                                'cleanup', 'failif',):
                     setattr(fake_self, symbol, FakeSubtestException)
-                for symbol in ('logdebug', 'loginfo', 'logwarning', 'logerror'):
-                    setattr(fake_self, symbol, lambda *a, **d:None)
+                for symbol in ('logdebug', 'loginfo', 'logwarning',
+                               'logerror'):
+                    setattr(fake_self, symbol, lambda *_a, **_d: None)
         return FakeSubtest()
 
     def setUp(self):
@@ -128,15 +152,20 @@ class DockerCmdTestBase(unittest.TestCase):
         del self.config
         del self.dockercmd
         del self.subtest
-        del sys.modules['config']
-        del sys.modules['dockercmd']
-        del sys.modules['subtest']
+        if 'dockertest.config' in sys.modules:  # Running from outer dir
+            del sys.modules['dockertest.config']
+            del sys.modules['dockertest.dockercmd']
+            del sys.modules['dockertest.subtest']
+        else:   # Running from this dir
+            del sys.modules['config']
+            del sys.modules['dockercmd']
+            del sys.modules['subtest']
 
 
 class DockerCmdTestBasic(DockerCmdTestBase):
 
-    defaults = {'docker_path':'/foo/bar', 'docker_options':'--not_exist',
-                'docker_timeout':"42.0"}
+    defaults = {'docker_path': '/foo/bar', 'docker_options': '--not_exist',
+                'docker_timeout': "42.0"}
     customs = {}
     config_section = "Foo/Bar/Baz"
 
@@ -157,6 +186,9 @@ class DockerCmdTestBasic(DockerCmdTestBase):
         self.assertRaises(NotImplementedError, docker_command.execute,
                            'not stdin')
 
+        self.assertRaises(self.dockercmd.DockerTestError,
+                          self.dockercmd.DockerCmdBase, "ThisIsNotSubtest",
+                          "fake_subcmd")
 
     def test_dockercmd(self):
         docker_command = self.dockercmd.DockerCmd(self.fake_subtest,
@@ -168,9 +200,12 @@ class DockerCmdTestBasic(DockerCmdTestBase):
                     % (self.defaults['docker_path'],
                        self.defaults['docker_options']))
         self.assertEqual(docker_command.command, expected)
+        self.assertEqual(str(docker_command), expected)
         cmdresult = docker_command.execute()
         self.assertEqual(cmdresult.command, expected)
+        # mocked cmdresult has '.dargs' pylint: disable=E1101
         self.assertAlmostEqual(cmdresult.dargs['timeout'], 1234567.0)
+        # pylint: enable=E1101
         # Verify can change some stuff
         docker_command.timeout = 0
         docker_command.subcmd = ''
@@ -179,7 +214,70 @@ class DockerCmdTestBasic(DockerCmdTestBase):
         expected = ("%s %s" % (self.defaults['docker_path'],
                                self.defaults['docker_options']))
         self.assertEqual(cmdresult.command, expected)
+        # mocked cmdresult has '.dargs' pylint: disable=E1101
         self.assertEqual(cmdresult.dargs['timeout'], 0)
+        # pylint: enable=E1101
+
+    def test_no_fail_docker_cmd(self):
+        docker_command = self.dockercmd.NoFailDockerCmd(self.fake_subtest,
+                                                        'fake_subcommand')
+        self.assertTrue(docker_command.execute())
+
+        docker_command = self.dockercmd.NoFailDockerCmd(self.fake_subtest,
+                                                        'unittest_fail')
+        self.assertRaises(self.dockercmd.DockerExecError,
+                          docker_command.execute)
+
+    def test_must_fail_docker_cmd(self):
+        docker_command = self.dockercmd.MustFailDockerCmd(self.fake_subtest,
+                                                          'fake_subcommand')
+        self.assertRaises(self.dockercmd.DockerExecError,
+                          docker_command.execute)
+
+        docker_command = self.dockercmd.MustFailDockerCmd(self.fake_subtest,
+                                                          'unittest_fail')
+        self.assertTrue(docker_command.execute())
+
+
+class AsyncDockerCmd(DockerCmdTestBase):
+    defaults = {'docker_path': '/foo/bar', 'docker_options': '--not_exist',
+                'docker_timeout': "42.0"}
+    customs = {}
+    config_section = "Foo/Bar/Baz"
+
+    def test_basic_workflow(self):
+        class DummyClass(object):   # pylint: disable=R0903
+            """ Clean class used for mocking """
+            pass
+        docker_cmd = self.dockercmd.AsyncDockerCmd(self.fake_subtest,
+                                                   'fake_subcommand',
+                                                   timeout=123)
+
+        # Raise error when command not yet executed
+        self.assertRaises(self.dockercmd.DockerTestError, docker_cmd.wait)
+        for prop in ('done', 'stdout', 'stderr', 'process_id'):
+            self.assertRaises(self.dockercmd.DockerTestError,
+                              getattr, docker_cmd, prop)
+
+        # Modified run returns the async_job instead of the real results...
+        async_job = docker_cmd.execute()
+        async_job.sp = DummyClass()
+
+        async_job.wait_for = lambda x: x    # instead waiting return timeout
+        self.assertEqual(docker_cmd.wait(), 123)
+
+        async_job.sp.poll = lambda: True
+        self.assertTrue(docker_cmd.done)
+
+        async_job.get_stdout = lambda: "STDOUT"
+        self.assertEqual(docker_cmd.stdout, "STDOUT")
+
+        async_job.get_stderr = lambda: "STDERR"
+        self.assertEqual(docker_cmd.stderr, "STDERR")
+
+        async_job.sp.pid = -1
+        self.assertEqual(docker_cmd.process_id, -1)
+
 
 if __name__ == '__main__':
     unittest.main()

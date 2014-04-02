@@ -3,7 +3,13 @@
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
-import unittest, tempfile, shutil, os, sys, types
+import os
+import shutil
+import sys
+import tempfile
+import types
+import unittest
+
 
 # DO NOT allow this function to get loose in the wild!
 def mock(mod_path):
@@ -14,7 +20,7 @@ def mock(mod_path):
     child_name = name_list.pop()
     child_mod = sys.modules.get(mod_path, types.ModuleType(child_name))
     if len(name_list) == 0:  # child_name is left-most basic module
-        if not sys.modules.has_key(child_name):
+        if child_name not in sys.modules:
             sys.modules[child_name] = child_mod
         return sys.modules[child_name]
     else:
@@ -27,12 +33,21 @@ def mock(mod_path):
             sys.modules[mod_path] = child_mod
         return sys.modules[mod_path]
 
+
+class DockerKeyError(Exception):
+    """ Fake class for errors """
+    pass
+
+
 # Mock module and exception class in one stroke
 setattr(mock('autotest.client.shared.error'), 'CmdError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestFail', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
 setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
+setattr(mock('dockertest.xceptions'), 'DockerKeyError', DockerKeyError)
+setattr(mock('xceptions'), 'DockerKeyError', DockerKeyError)
+
 
 class ConfigTestBase(unittest.TestCase):
 
@@ -47,7 +62,10 @@ class ConfigTestBase(unittest.TestCase):
         shutil.rmtree(self.config.CONFIGCUSTOMS, ignore_errors=True)
         self.assertFalse(os.path.isdir(self.config.CONFIGDEFAULT))
         self.assertFalse(os.path.isdir(self.config.CONFIGCUSTOMS))
-        del sys.modules['config']
+        if 'dockertest.config' in sys.modules:  # running from outer directory
+            del sys.modules['dockertest.config']
+        else:       # Running from this directory
+            del sys.modules['config']
 
 
 class TestConfigSection(ConfigTestBase):
@@ -65,6 +83,14 @@ class TestConfigSection(ConfigTestBase):
         self.assertEqual(bar.read(testfile.name), [testfile.name])
         # Note the case-conversion
         self.assertEqual(bar.get('testoption'), 'TestValue')
+
+        self.assertEqual(len(foo.sections()), 1)
+        self.assertTrue(foo.has_section("TestSection"))
+        self.assertTrue(foo.has_option("testoption"))
+
+        foo.remove_option("testoption")
+        self.assertFalse(foo.has_option("testoption"))
+
 
 class TestConfigDict(ConfigTestBase):
 
@@ -101,6 +127,14 @@ class TestConfigDict(ConfigTestBase):
         self.assertEqual(foobar['testoptioni'], 2)
         self.assertEqual(foobar['testoptionb'], True)
 
+    def test_basic_functionality(self):
+        foobar = self.config.ConfigDict('TestSection')
+        self.assertRaises(DockerKeyError, foobar.__getitem__, 'aaa')
+        foobar['aaa'] = 'AAA'
+        self.assertEqual(foobar['aaa'], "AAA")
+        del(foobar['aaa'])
+
+
 class TestConfig(ConfigTestBase):
 
     def setUp(self):
@@ -115,7 +149,7 @@ class TestConfig(ConfigTestBase):
         self.deffile.close()
         # ConfigDict forbids writing
         foo = self.config.ConfigSection(None, 'DEFAULTS')
-        # Verify these all are convereted to lower-case automatically
+        # Verify these all are converted to lower-case automatically
         foo.set('tEsTOPTioNi', 2)  # non-string values should also convert
         foo.set('TesToPTIONf', 3.14)
         foo.set('testoptionS', "foobarbaz")
@@ -132,7 +166,7 @@ class TestConfig(ConfigTestBase):
         bar = self.config.ConfigSection(None, 'TestSection')
         bar.set('TestOptionB', False)
         bar.set('TesTopTIONs', "baz!")
-        bar.set("testoptionx", "True") # should convert to boolean
+        bar.set("testoptionx", "True")  # should convert to boolean
         bar.write(self.cfgfile)
 
     def test_config_defaults(self):
@@ -187,22 +221,23 @@ class TestConfig(ConfigTestBase):
         self.assertEqual(atestsection['testoptions'], "foobarbaz")  # default
         self.assertEqual(yatestsection['testoptionx'], False)  # overridden
 
+
 class TestUtilities(ConfigTestBase):
 
     def test_nfe_all(self):
-        test_dict = {'foo':0, 'bar':None, 'baz':"      "}
+        test_dict = {'foo': 0, 'bar': None, 'baz': "      "}
         self.config.none_if_empty(test_dict)
-        self.assertEqual(test_dict, {'foo':0, 'bar':None, 'baz':None})
+        self.assertEqual(test_dict, {'foo': 0, 'bar': None, 'baz': None})
 
     def test_nfs_one(self):
-        test_dict = {'foo':0, 'bar':None, 'baz':"      "}
+        test_dict = {'foo': 0, 'bar': None, 'baz': "      "}
         self.config.none_if_empty(test_dict, 'bar')
-        self.assertEqual(test_dict, {'foo':0, 'bar':None, 'baz':"      "})
+        self.assertEqual(test_dict, {'foo': 0, 'bar': None, 'baz': "      "})
 
     def test_nfs_another(self):
-        test_dict = {'foo':0, 'bar':None, 'baz':"      "}
+        test_dict = {'foo': 0, 'bar': None, 'baz': "      "}
         self.config.none_if_empty(test_dict, 'baz')
-        self.assertEqual(test_dict, {'foo':0, 'bar':None, 'baz':None})
+        self.assertEqual(test_dict, {'foo': 0, 'bar': None, 'baz': None})
 
 if __name__ == '__main__':
     unittest.main()

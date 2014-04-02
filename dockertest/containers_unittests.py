@@ -3,7 +3,13 @@
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
-import unittest, sys, types, tempfile, os, shutil
+import os
+import shutil
+import sys
+import tempfile
+import types
+import unittest
+
 
 class ContainersTestBase(unittest.TestCase):
 
@@ -16,7 +22,8 @@ class ContainersTestBase(unittest.TestCase):
     def tearDown(self):
         del self.containers
 
-class DockerContainersTest(ContainersTestBase):
+
+class DockerContainerTest(ContainersTestBase):
 
     def test_init_defaults(self):
         foo = object()
@@ -43,9 +50,9 @@ class DockerContainersTest(ContainersTestBase):
         self.assertEqual(dc.size, "1 Petabyte")
 
     def test_eq_ne(self):
-        foo = {'one':1, 'two':2, 'three':3}
-        bar = {'three':3, 'two':2, 'one':1}
-        baz = foo.copy()
+        foo = {'one': 1, 'two': 2, 'three': 3}
+        bar = {'three': 3, 'two': 2, 'one': 1}
+        baz = {'completely': 'different'}
         baz.update(bar)
         dc1 = self.DC(foo, r"/bin/echo -ne 'hello world\n'", "foobar")
         dc2 = self.DC(bar, r"/bin/echo -ne 'hello world\n'", "foobar")
@@ -54,8 +61,15 @@ class DockerContainersTest(ContainersTestBase):
         self.assertEqual(dc2, dc2)
         self.assertEqual(dc1, dc2)
         self.assertEqual(dc3, dc3)
-        self.assertNotEqual(dc3, dc1)
-        self.assertNotEqual(dc3, dc2)
+        self.assertFalse(dc3 == dc1)
+        self.assertFalse(dc3 == dc2)
+
+    def test_output(self):
+        foo = object()
+        dc = self.DC(foo, r"/bin/echo -ne 'hello world\n'", "foobar")
+        self.assertNotEqual(len(str(dc)), 0)
+        self.assertNotEqual(len(repr(dc)), 0)
+
 
 # DO NOT allow this function to get loose in the wild!
 def mock(mod_path):
@@ -66,7 +80,7 @@ def mock(mod_path):
     child_name = name_list.pop()
     child_mod = sys.modules.get(mod_path, types.ModuleType(child_name))
     if len(name_list) == 0:  # child_name is left-most basic module
-        if not sys.modules.has_key(child_name):
+        if child_name not in sys.modules:
             sys.modules[child_name] = child_mod
         return sys.modules[child_name]
     else:
@@ -79,15 +93,32 @@ def mock(mod_path):
             sys.modules[mod_path] = child_mod
         return sys.modules[mod_path]
 
+
 # Just pack whatever args received into attributes
 class FakeCmdResult(object):
     def __init__(self, **dargs):
         for key, val in dargs.items():
             setattr(self, key, val)
 
+
 # Don't actually run anything!
-def run(command, *args, **dargs):
+def run(command, *_args, **_dargs):
     command = str(command)
+    if 'inspect' in command:
+        return FakeCmdResult(command=command.strip(),
+                             stdout="""[{
+    "ID": "abf8c40b19e353ff1f67e3a26a967c14944b07b8f5aceb752f781ffca285a2a9",
+    "Created": "2014-03-26T13:42:42.676316455Z",
+    "Path": "/bin/bash",
+    "Args": [],
+    "Config": {
+        "Hostname": "28a7fbe6d375",
+        "Domainname": ""
+    }
+}]""",
+    stderr='',
+    exit_status=0,
+    duration=1.21)
     return FakeCmdResult(command=command.strip(),
                          stdout=r"""
 CONTAINER ID                                                       IMAGE                             COMMAND                                            CREATED             STATUS              PORTS                                            NAMES               SIZE
@@ -116,6 +147,7 @@ setattr(mock('autotest.client.shared.error'), 'TestFail', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
 setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
+
 
 class DockerContainersTestBase(ContainersTestBase):
 
@@ -151,7 +183,7 @@ class DockerContainersTestBase(ContainersTestBase):
     def _make_fake_subtest(self):
         class FakeSubtestException(Exception):
 
-            def __init__(fake_self, *args, **dargs):
+            def __init__(fake_self, *_args, **_dargs):
                 super(FakeSubtestException, self).__init__()
 
         class FakeSubtest(self.subtest.Subtest):
@@ -160,15 +192,16 @@ class DockerContainersTestBase(ContainersTestBase):
             iteration = 1
             iterations = 1
 
-            def __init__(fake_self, *args, **dargs):
+            def __init__(fake_self, *_args, **_dargs):
                 config_parser = self.config.Config()
                 fake_self.config = config_parser.get(self.config_section)
                 for symbol in ('execute', 'setup', 'initialize', 'run_once',
                                'postprocess_iteration', 'postprocess',
                                'cleanup', 'failif',):
                     setattr(fake_self, symbol, FakeSubtestException)
-                for symbol in ('logdebug', 'loginfo', 'logwarning', 'logerror'):
-                    setattr(fake_self, symbol, lambda *a, **d: None)
+                for symbol in ('logdebug', 'loginfo', 'logwarning',
+                               'logerror'):
+                    setattr(fake_self, symbol, lambda *_a, **_d: None)
         return FakeSubtest()
 
     def setUp(self):
@@ -192,6 +225,7 @@ class DockerContainersTestBase(ContainersTestBase):
         del self.config
         del self.subtest
 
+
 class DockerContainersTest(DockerContainersTestBase):
 
     def test_defaults(self):
@@ -199,8 +233,14 @@ class DockerContainersTest(DockerContainersTestBase):
         cl = dcc.list_containers()
         self.assertEqual(len(cl), 7)
 
+        metadata = dcc.json_by_long_id("ac8c9fa367f96e10cbfc7927dd4048d7db3"
+                                       "e6d240d201019c5d4359795e3bcbe")
+        self.assertEqual(metadata[0]['Config']['Hostname'], "28a7fbe6d375")
+
+        self.assertNotEqual(len(dcc.json_by_name("suspicious_pare")), 0)
+
     def test_noports(self):
-        dcc = self.containers.DockerContainersCLI(self.fake_subtest)
+        dcc = self.containers.DockerContainersCLICheck(self.fake_subtest)
         short_id = "ac8c9fa367f9"
         cl = [c for c in dcc.list_containers() if c.cmp_id(short_id)]
         self.assertEqual(len(cl), 1)

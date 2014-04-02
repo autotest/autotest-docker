@@ -20,7 +20,7 @@ import sys, os, types
 #: are also reflected in documentation.
 #:
 #: The short X.Y version. This MUST be inside single ("'") quotes for parsing!!
-version = '0.5.1'
+version = '0.5.2'
 
 #: If extensions (or modules to document with autodoc) are in another directory,
 #: add these directories to sys.path here. If the directory is relative to the
@@ -107,7 +107,7 @@ html_theme = 'default'
 #: Theme options are theme-specific and customize the look and feel of a theme
 #: further.  For a list of options available for each theme, see the
 #: documentation.
-html_theme_options = {}
+html_theme_options = {'stickysidebar':True}
 
 #: Add any paths that contain custom themes here, relative to this directory.
 html_theme_path = []
@@ -142,7 +142,7 @@ html_last_updated_fmt = '%b %d, %Y'
 html_use_smartypants = True
 
 #: Custom sidebar templates, maps document names to template names.
-html_sidebars = {}
+html_sidebars = {'**': ['searchbox.html', 'localtoc.html']}
 
 #: Additional templates that should be rendered to pages, maps page names to
 #: template names.

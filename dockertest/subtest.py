@@ -11,6 +11,7 @@ loading the specified configuration section (see `configuration module`_)
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
+import warnings
 import logging
 import tempfile
 import os.path
@@ -35,24 +36,31 @@ class Subtest(test.test):
     #: to dockertest API, when specified in configuration.  Test will not
     #: execute if there is a MAJOR/MINOR mismatch (revision is okay).
     version = None
+
     #: The current iteration being run, read-only / set by the harness.
     iteration = None  # set from test.test
+
     #: The number of iterations to run in total, override this in subclass.
     iterations = 1
+
     #: Configuration section used for subclass, read-only / set by Subtest class
     config_section = 'DEFAULTS'
+
     #: Private namespace for use by subclasses **ONLY**.  This attribute
     #: is completely ignored everywhere inside the dockertest API.  Subtests
     #: are encouraged to use it for temporarily storing results/info. It is
     #: initialized to an empty dictionary, but subtests can reassign it to any
     #: type needed.
     stuff = None
+
     #: private method used by log*() methods internally, do not use.
     _re = None
 
     def __init__(self, *args, **dargs):
-        """
+        r"""
         Initialize new subtest, passes all arguments through to parent class
+
+        :param *args & **dargs:  Ignored, passed through to parent class.
         """
         super(Subtest, self).__init__(*args, **dargs)
         # log indentation level not easy to get at, so use opaque implementation
@@ -144,6 +152,7 @@ class Subtest(test.test):
 
         :param condition: Boolean condition, fail test if True.
         :param reason: Helpful text describing why the test failed
+        :raise DockerTestFail: If condition evaluates ``True``
         """
         if bool(condition):
             raise DockerTestFail(reason)
@@ -203,8 +212,8 @@ class SubSubtest(object):
     """
     Simplistic/minimal subtest interface matched with config section
 
-    *Note:* Contains, and is similar to, but DOES NOT represent
-            the same interface as the Subtest class (above).
+    :*Note*: Contains, and is similar to, but DOES NOT represent
+             the same interface as the Subtest class (above).
     """
     #: Reference to outer, parent test.  Read-only / set in __init__
     parent_subtest = None
@@ -310,10 +319,14 @@ class SubSubtest(object):
         # tmpdir is cleaned up automatically by harness
 
     # FIXME: This method should be @staticmethod on on images.DockerImage
+    #        duplicating containers.DockerContainersBase.get_unique_name()
     def make_repo_name(self):
         """
         Convenience function to generate a unique test-repo name
+
+        :**note**: This method will be going away sometime
         """
+        warnings.warn(PendingDeprecationWarning(), stacklevel=2)
         prefix = self.parent_subtest.config['repo_name_prefix']
         name = os.path.basename(self.tmpdir)
         postfix = self.parent_subtest.config['repo_name_postfix']
@@ -386,8 +399,7 @@ class SubSubtestCaller(Subtest):
         r"""
         Call subtest __init__ and setup local attributes
 
-        :param \*args: Opaque, passed through to super-class
-        :param \*\*dargs: Opaque, passed through to super-class
+        :param \*args & \*\*dargs: Opaque, passed through to super-class
         """
         super(SubSubtestCaller, self).__init__(*args, **dargs)
         #: Need separate private dict similar to `sub_stuff` but different name
@@ -416,7 +428,6 @@ class SubSubtestCaller(Subtest):
 
         :param name:  String, name of subsubtest class (and possibly module)
         :param subsubtest:  Instance of subsubtest or subclass
-        :raise: Any non-AutotestError exception thrown during any stage.
         """
         try:
             self.call_subsubtest_method(subsubtest.initialize)
@@ -447,8 +458,7 @@ class SubSubtestCaller(Subtest):
 
         :param name:  String, name of subsubtest class (and possibly module)
         :param subsubtest:  Instance of subsubtest or subclass
-        :raise: DockerTestError on subsubtest ``cleanup()`` failures **only**
-        :raise: Any non-DockerTestError exception coming from ``try_all_stages``
+        :raise DockerTestError: On subsubtest ``cleanup()`` failures **only**
         """
         if subsubtest is not None:
             # Guarantee cleanup() runs even if autotest exception
@@ -484,7 +494,7 @@ class SubSubtestCaller(Subtest):
         Compare set of subsubtest name (keys) from ``start_subsubtests``
         to ``final_subsubtests`` set.
 
-        :raise: DockerTestFail if start_subsubtests != final_subsubtests
+        :raise DockerTestFail: if start_subsubtests != final_subsubtests
         """
         super(SubSubtestCaller, self).postprocess()
         # Dictionary is overkill for pass/fail determination
@@ -525,7 +535,7 @@ class SubSubtestCaller(Subtest):
         module name.
 
         :param name: Class name, optionally external module-file name.
-        :return: None if failed to load or no SubSubtest class named ``name``
+        :return: SubSubtest subclass instance or None if failed to load
         """
         # Try in external module-file named 'name' also
         mydir = self.bindir

@@ -23,15 +23,17 @@ Where/when ***possible***, both parameters and return values follow this order:
 # Pylint runs from another directory, ignore relative import warnings
 # pylint: disable=W0403
 
-import re
 import json
-from autotest.client.shared import error
+import re
+
 from autotest.client import utils
-from output import OutputGood
+from autotest.client.shared import error
 from images import DockerImages
+from output import OutputGood
+
 
 # Many attributes simply required here
-class DockerContainer(object): # pylint: disable=R0902
+class DockerContainer(object):  # pylint: disable=R0902
     """
     Represent a container, image, and command as a set of instance attributes.
     """
@@ -62,6 +64,8 @@ class DockerContainer(object): # pylint: disable=R0902
     def __eq__(self, other):
         """
         Compare this instance to another
+
+        :param other: An instance of this class (or subclass) for comparison.
         """
         self_val = [getattr(self, name) for name in self.__slots__]
         other_val = [getattr(other, name) for name in self.__slots__]
@@ -107,6 +111,7 @@ class DockerContainer(object): # pylint: disable=R0902
         """
         return self.container_name == str(container_name)
 
+
 class DockerContainersBase(object):
     """
     Implementation defined collection of DockerContainer-like instances with
@@ -148,7 +153,7 @@ class DockerContainersBase(object):
         """
         Standard name for behavior specific to subclass implementation details
 
-        :raise: RuntimeError if not defined by subclass
+        :raises RuntimeError: if not defined by subclass
         """
         raise RuntimeError()
 
@@ -190,10 +195,10 @@ class DockerContainersBase(object):
         :return: None if long_id invalid/not found or
                  implementation-specific value
         """
-        del long_id  #  Keep pylint quiet
+        del long_id  # Keep pylint quiet
         return None
 
-    # Disbled by default extension point, can't be static.
+    # Disabled by default extension point, can't be static.
     def json_by_long_id(self, long_id):  # pylint: disable=R0201
         """
         Return json-object for container with long_id if supported by
@@ -201,10 +206,10 @@ class DockerContainersBase(object):
 
         :param long_id: String of long-id for container
         :return: JSON object
-        :raise ValueError: on invalid/not found long_id
-        :raise RuntimeError: on not supported by implementation
+        :raises ValueError: on invalid/not found long_id
+        :raises RuntimeError: on not supported by implementation
         """
-        del long_id  #  Keep pylint quiet
+        del long_id     # Keep pylint quiet
         raise RuntimeError()
 
     def json_by_name(self, container_name):
@@ -214,23 +219,26 @@ class DockerContainersBase(object):
 
         :param container_name: String name of container
         :return: JSON object
-        :raise ValueError: on invalid/not found long_id
-        :raise RuntimeError: on not supported by implementation
+        :raises ValueError: on invalid/not found long_id
+        :raises RuntimeError: on not supported by implementation
         """
         cnts = self.list_containers_with_name(str(container_name))
         if len(cnts) == 1:
             return self.json_by_long_id(cnts[0].long_id)
-        else:
+        elif len(cnts) == 0:
             raise ValueError("Container not found with name %s"
                              % container_name)
+        else:
+            raise ValueError("Multiple containers with name %s found: (%s)"
+                             % (container_name, cnts))
 
     def get_unique_name(self, prefix="", suffix="", length=4):
         """
         Get unique name for a new container
         :param prefix: Name prefix
         :param suffix: Name suffix
-        :param length: Length of random string.
-        :return: Unique name according to check function
+        :param length: Length of random string (greater than 1)
+        :return: Container name guaranteed to not be in-use.
         """
         assert length > 1
         all_containers = [_.container_name for _ in self.get_container_list()]
@@ -240,6 +248,7 @@ class DockerContainersBase(object):
     # TODO: Add more filter methods
 
     # TODO: Add 'rm' abstract methods
+
 
 class DockerContainersCLI(DockerContainersBase):
     """
@@ -262,7 +271,7 @@ class DockerContainersCLI(DockerContainersBase):
     def _parse_lines(d_psa_stdout):  # pylint: disable=C0111
         clist = []
         lines = d_psa_stdout.strip().splitlines()
-        for stdout_line in lines[1:]: # Skip header
+        for stdout_line in lines[1:]:   # Skip header
             clist.append(DockerContainersCLI._parse_columns(stdout_line))
         return clist
 
@@ -360,8 +369,8 @@ class DockerContainersCLI(DockerContainersBase):
         :param long_id: String of long-id for container
         :param signal:  String of signal name, None for default
         :return: pid of container's process
-        :raise: KeyError if container not found
-        :raise: ValueError if container not running, defunct, or zombie
+        :raises KeyError: if container not found
+        :raises ValueError: if container not running, defunct, or zombie
         """
         # Raise KeyError if not found
         try:
@@ -390,12 +399,16 @@ class DockerContainersCLI(DockerContainersBase):
         :param long_id: String of long-id for container
         :param signal:  String of signal name, None for default
         :return: pid of container's process
-        :raise: KeyError if container not found
-        :raise: ValueError if container not running, defunct, or zombie
+        :raises KeyError: if container not found
+        :raises IndexError: if NO containers found
+        :raises ValueError: if container not running, defunct, or zombie
         """
         cntrs = self.list_containers_with_name(str(container_name))
         # Raise KeyError if not found
-        return self.kill_container_by_long_id(cntrs[0].long_id, signal)
+        try:
+            return self.kill_container_by_long_id(cntrs[0].long_id, signal)
+        except IndexError:
+            raise KeyError("Container %s not found" % container_name)
 
 
 class DockerContainersCLICheck(DockerContainersCLI):
@@ -420,4 +433,4 @@ class DockerContainers(DockerImages):
     """
 
     #: Mapping of interface short-name string to DockerContainersBase subclass.
-    interfaces = {'cli':DockerContainersCLI, 'clic':DockerContainersCLICheck}
+    interfaces = {'cli': DockerContainersCLI, 'clic': DockerContainersCLICheck}

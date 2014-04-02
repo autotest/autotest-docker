@@ -37,8 +37,8 @@ class ClientBase(object):
         Process value returned by get() into a value_to_json object
 
         :param value: Opaque value returned by get().
-        :return: value_to_json object
-        :raise ValueError: When value is invalid/unsupported
+        :raises ValueError: When value is invalid/unsupported
+        :return: value_to_json opaque-object (impl. specific)
         """
         raise NotImplementedError
 
@@ -71,6 +71,9 @@ class SocketClient(ClientBase):
     interface = UHTTPConnection
 
     def __init__(self, uri="/var/run/docker.sock"):
+        """
+        Initialize new connection
+        """
         super(SocketClient, self).__init__(uri)
         self._connection = self.interface(uri)
 

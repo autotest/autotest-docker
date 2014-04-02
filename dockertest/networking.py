@@ -18,6 +18,7 @@ and defaults:
 
 import re
 
+
 class ContainerPort(object):
     """
     Represents a private container port mapping to public host ip, and port.
@@ -39,7 +40,7 @@ class ContainerPort(object):
         :param container_port: Port number visible inside the container
         :param host_port: Port number on host container_Port maps to
         :param host_ip: Host interface IP host_port maps to
-        :param protocol: Name of protocol for map
+        :param protocol: Name of protocol for map (i.e. ``tcp`` or ``udp``)
         """
         self.container_port = int(container_port)
         if host_port is None:
@@ -56,6 +57,8 @@ class ContainerPort(object):
     def __eq__(self, other):
         """
         Compare this instance to another
+
+        :param other: An instance of this class (or subclass) for comparison.
         """
         self_val = [getattr(self, name) for name in self.__slots__]
         other_val = [getattr(other, name) for name in self.__slots__]
@@ -78,7 +81,6 @@ class ContainerPort(object):
         Return python-standard representation of instance
         """
         return "ContainerPort(%s)" % str(self)
-
 
     @staticmethod
     def split_to_component(portstr):
@@ -106,7 +108,7 @@ class ContainerPort(object):
         :param container_port: Port number visible inside the container
         :param host_port: Port number on host container_Port maps to
         :param host_ip: Host interface IP host_port maps to
-        :param protocol: Name of protocol for map
+        :param protocol: Name of protocol (i.e. ``tcp`` or ``udp``)
         :return: port string
         """
         if host_port is None:
@@ -122,7 +124,7 @@ class ContainerPort(object):
         :param container_port: Port number visible inside the container
         :param host_port: Port number on host container_Port maps to
         :param host_ip: Host interface IP host_port maps to
-        :param protocol: Name of protocol for map
+        :param protocol: Name of protocol (i.e. ``tcp`` or ``udp``)
         :return: True/False on equality
         """
         return self.portstr == self.portstr_from_component(container_port,
