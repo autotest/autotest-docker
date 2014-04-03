@@ -580,6 +580,12 @@ Several variations of running the stop command
    and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
    i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
    and modify the values.
+* The ``top_name_prefix`` is prefix of the tested container followed by
+* The ``run_options_csv`` modifies the running container options.
+* The ``stop_options_csv`` specifies the stop command options
+  random characters to make it unique.
+* The ``exec_cmd`` modifies the container command
+* The ``stop_duration`` sets the acceptable stop command duration (+-2s)
 
 ----------------------------------
 Dockertest API Reference
