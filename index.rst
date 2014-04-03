@@ -587,6 +587,23 @@ Several variations of running the stop command
 * The ``exec_cmd`` modifies the container command
 * The ``stop_duration`` sets the acceptable stop command duration (+-2s)
 
+``docker_cli/info`` Sub-test
+=================================
+
+Simple test that checks the output of the ``docker info`` command.
+It verifies the output against values obtained from userspace tools.
+
+``docker_cli/info`` Prerequisites
+-------------------------------------
+
+*  Docker daemon is running and accessable by it's unix socket.
+*  ``dmsetup`` and ``du`` commands are available.
+
+``docker_cli/info`` Configuration
+--------------------------------------
+
+None
+
 ----------------------------------
 Dockertest API Reference
 ----------------------------------
