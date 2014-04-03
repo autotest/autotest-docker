@@ -581,6 +581,23 @@ Several variations of running the stop command
    i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
    and modify the values.
 
+``docker_cli/info`` Sub-test
+=================================
+
+Simple test that checks the output of the ``docker info`` command.
+It verifies the output against values obtained from userspace tools.
+
+``docker_cli/info`` Prerequisites
+-------------------------------------
+
+*  Docker daemon is running and accessable by it's unix socket.
+*  ``dmsetup`` and ``du`` commands are available.
+
+``docker_cli/info`` Configuration
+--------------------------------------
+
+None
+
 ----------------------------------
 Dockertest API Reference
 ----------------------------------
