@@ -5,11 +5,11 @@ Handlers for command-line output processing, crash/panic detection, etc.
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
-import logging
+import warnings
 import re
 
 import xceptions
-
+from environment import AllGoodBase
 
 class DockerVersion(object):
     """
@@ -71,13 +71,10 @@ class DockerVersion(object):
         return self._server
 
 
-class OutputGoodBase(object):
+class OutputGoodBase(AllGoodBase):
     """
     Compare True if all methods ending in '_check' return True on stdout/stderr
     """
-
-    #: Dict mapping of checker-name (method name) to pass/fail boolean result
-    output_good = None
 
     #: Reference to original CmdResult instance
     cmdresult = None
@@ -97,63 +94,58 @@ class OutputGoodBase(object):
         :param skip: Iterable of checks to bypass, None to run all
         """
         self.cmdresult = cmdresult
-        self.ignore_error = ignore_error
-        if skip is None:
-            skip = []
         self.stdout_strip = cmdresult.stdout.strip()
         self.stderr_strip = cmdresult.stderr.strip()
-        self.output_good = {}
+        # All methods called twice with mangled names, mangle skips also
+        if skip is not None:
+            newskip = []
+            for checker in skip:
+                newskip.append(checker + '_stdout')
+                newskip.append(checker + '_stderr')
+        else:
+            newskip = skip
+        self.__instattrs__(newskip)
         for checker in [name for name in dir(self) if name.endswith('_check')]:
             method = getattr(self, checker)
-            if callable(method) and checker not in skip:
-                self.output_good[checker] = self.check_outerr(method)
+            self.callables[checker + '_stdout'] = getattr(self, checker)
+            self.callables[checker + '_stderr'] = getattr(self, checker)
+        self.call_callables()
         # Not nonzero means One or more checkers returned False
         if not ignore_error and not self.__nonzero__():
             # Str representation will provide details
             raise xceptions.DockerOutputError(str(self))
 
-    def __nonzero__(self):
-        """
-        Implement truth value testing and for the built-in operation bool()
-
-        Represents "True" if all checker results are True
-        """
-        return False not in self.output_good.values()
-
-    def check_outerr(self, checker):
-        """
-        Call checker, return logical AND of results
-
-        :param checker: Function/Staticmethod to call
-        """
-        # Assume stderr more likely to represent "problem"
-        stderr_result = checker(self.stderr_strip)
-        stdout_result = checker(self.stdout_strip)
-        # Both must be True
-        return stdout_result and stderr_result
-
-    def __str__(self):
-        """
-        Make results of individual checkers accessible in human-readable format.
-        """
-        passed = [chkr for (chkr, good) in self.output_good.items() if good]
-        failed = [chkr for (chkr, good) in self.output_good.items()
-                  if not good]
-        command = self.cmdresult.command
-        exit_code = self.cmdresult.exit_status
-        if self:  # Boolean instance
-            return ("Output checkers %s all passed for command %s with exit "
-                    "code %d" % (passed, command, exit_code))
+    def callable_args(self, name):
+        if name.endswith('_stdout'):
+            return {'output':self.stdout_strip}
+        elif name.endswith('_stderr'):
+            return {'output':self.stderr_strip}
         else:
-            logging.debug(self.cmdresult)
-            return ("Output checkers %s passed, but %s failed for command %s "
-                    "with exit code %d (see debug log for details)"
-                    % (passed, failed, command, exit_code))
+            raise RuntimeError("Unexpected check method name %s" % name)
 
+    # FIXME: Deprecate self.output_good in Major/Minor release
+    @property
+    def output_good(self):
+        """
+        Deprecated, do not use!
+        """
+        warnings.warn(PendingDeprecationWarning())
+        # Make sure PrepareResults gets called
+        self.__nonzero__()
+        og = {}
+        for key, value in self.results.items():
+            basekey = key.replace('_stdout', '')
+            basekey = basekey.replace('_stderr', '')
+            # Represent result as logical and of both stdout/stderr values
+            if basekey in og:
+                og[basekey] = og[basekey] and value
+            else:
+                og[basekey] = value
+        return og
 
 class OutputGood(OutputGoodBase):
     """
-    Compare True if no 'Go Panic' or 'Docker Usage' matches **not** found
+    Container of standard checks
     """
 
     @staticmethod

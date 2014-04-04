@@ -1,0 +1,6 @@
+Any executable file found in this subdirectory tree will be run at the beginning
+and in-between every subtest.  The default configuration variables will be made
+available as environment variables for reference.  All executables should exit
+non-zero if they detect a problem, optionally printing helpful messages indicating
+why.  Checks may be bypassed by including their relative pathname in the CSV list
+of option 'envcheck_skip' in defaults.ini

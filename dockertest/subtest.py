@@ -326,7 +326,7 @@ class SubSubtest(object):
 
         :**note**: This method will be going away sometime
         """
-        warnings.warn(PendingDeprecationWarning(), stacklevel=2)
+        warnings.warn(PendingDeprecationWarning())
         prefix = self.parent_subtest.config['repo_name_prefix']
         name = os.path.basename(self.tmpdir)
         postfix = self.parent_subtest.config['repo_name_postfix']
