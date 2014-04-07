@@ -3,12 +3,12 @@
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
+import unittest
+import sys
+import types
+import tempfile
 import os
 import shutil
-import sys
-import tempfile
-import types
-import unittest
 
 
 class ContainersTestBase(unittest.TestCase):
