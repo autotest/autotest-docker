@@ -14,12 +14,7 @@ from autotest.client import utils
 from dockertest import output
 from dockertest.subtest import SubSubtest
 from dockertest.dockercmd import DockerCmd, NoFailDockerCmd
-
-try:
-    import docker
-    DOCKERAPI = True
-except ImportError:
-    DOCKERAPI = False
+from dockertest.images import DockerImages, DockerImage
 
 class empty(SubSubtest):
 
@@ -87,39 +82,15 @@ class empty(SubSubtest):
 
     def check_status(self):
         condition = self.sub_stuff['cmdresult'].exit_status == 0
-        self.failif(not condition, "Non-zero exit status")
+        self.failif(not condition, "Non-zero exit status: %s"
+                                   % self.sub_stuff['cmdresult'])
 
     def lookup_image_id(self, image_name, image_tag):
-        # FIXME: We need a standard way to do this
-        image_id = None
-        # Any API failures must not be fatal
-        if DOCKERAPI:
-            client = docker.Client()
-            results = client.images(name=image_name)
-            image = None
-            if len(results) == 1:
-                image = results[0]
-                # Could be unicode strings
-                if ((str(image['Repository']) == image_name) and
-                    (str(image['Tag']) == image_tag)):
-                    image_id = image.get('Id')
-            if ((image_id is None) or (len(image_id) < 12)):
-                logging.error("Could not lookup image %s:%s Id using "
-                              "docker python API Data: '%s'",
-                              image_name, image_tag, str(image))
-                image_id = None
-        # Don't have DOCKERAPI or API failed (still need image ID)
-        if image_id is None:
-            subargs = ['--quiet', image_name]
-            dkrcmd = NoFailDockerCmd(self.parent_subtest, 'images', subargs)
-            # fail -> raise exception
-            cmdresult = dkrcmd.execute()
-            stdout_strip = cmdresult.stdout.strip()
-            # TODO: Better image ID validity check?
-            if len(stdout_strip) == 12:
-                image_id = stdout_strip
-            else:
-                self.loginfo("Error retrieving image id, unexpected length")
-        if image_id is not None:
-            self.loginfo("Found image Id '%s'", image_id)
-        return image_id
+        di = DockerImages(self.parent_subtest)
+        fqin = DockerImage.full_name_from_component(image_name, image_tag)
+        imglst = di.list_imgs_with_full_name(fqin)
+        try:
+            # Don't care about duplicate ID's
+            return imglst[0].long_id
+        except IndexError:
+            return None  # expected by some sub-subtests
