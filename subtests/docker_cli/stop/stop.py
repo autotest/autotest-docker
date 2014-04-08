@@ -22,12 +22,15 @@ from dockertest.subtest import SubSubtest
 # Okay to be less-strict for these cautions/warnings in subtests
 # pylint: disable=C0103,C0111,R0904,C0103
 class stop(subtest.SubSubtestCaller):
+
     """ Subtest caller """
     config_section = 'docker_cli/stop'
 
 
 class stop_base(SubSubtest):
+
     """ Base class """
+
     def initialize(self):
         super(stop_base, self).initialize()
         # Prepare a container
@@ -106,11 +109,11 @@ class stop_base(SubSubtest):
             self.failif(stop_results.duration > (stop_duration + 2),
                         "'docker stop' cmd execution took longer, than "
                         "expected: %ss (%s+-2s)" % (stop_results.duration,
-                                               stop_duration))
+                                                    stop_duration))
             self.failif(stop_results.duration < (stop_duration - 2),
                         "'docker stop' cmd execution took shorter, than "
                         "expected: %ss (%s+-2s)" % (stop_results.duration,
-                                               stop_duration))
+                                                    stop_duration))
         # Look for docker failures
         OutputGood(stop_results)
         OutputGood(self.sub_stuff['container_results'])
@@ -136,6 +139,7 @@ class stop_base(SubSubtest):
 
 
 class nice(stop_base):
+
     """
     Test usage of docker 'stop' command in case container finishes on SIGTERM
 
@@ -152,6 +156,7 @@ class nice(stop_base):
 
 
 class force(stop_base):
+
     """
     Test usage of docker 'stop' command in case container ignores SIGTERM
 
@@ -167,6 +172,7 @@ class force(stop_base):
 
 
 class stopped(stop_base):
+
     """
     Test usage of docker 'stop' command in case container is already stopped
 
@@ -181,6 +187,7 @@ class stopped(stop_base):
 
 
 class zerotime(stop_base):
+
     """
     Test usage of docker 'stop' command with -t 0 (should send SIGKILL)
 
