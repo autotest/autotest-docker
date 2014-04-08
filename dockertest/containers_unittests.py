@@ -262,5 +262,32 @@ class DockerContainersTest(DockerContainersTestBase):
         self.assertEqual(p0.protocol, 'bar')
         self.assertEqual(p1.host_port, 1234)
 
+    def test_longids(self):
+        dcntr = self.containers.DockerContainers(self.fake_subtest)
+        expected = ("ac8c9fa367f96e10cbfc7927dd4048d7"
+                    "db3e6d240d201019c5d4359795e3bcbe",
+
+                    "ef0fe72271778aefcb5cf6015f30067f"
+                    "be01f05996a123037f65db0b82795915",
+
+                    "849915d551d80edce7698de91852c06b"
+                    "bbb7a67fe0968a3c0c246e6f25f81017",
+
+                    "c0c35064e4d2bdcf86e6fd83e0de2e59"
+                    "9473c12a6599415a9a021bdf382a3589",
+
+                    "3723b1b0abd7be84316ce7824e68cb7a"
+                    "f090416296c539a28d169495f44a6319",
+
+                    "abf8c40b19e353ff1f67e3a26a967c14"
+                    "944b07b8f5aceb752f781ffca285a2a9",
+
+                    "e1820ef428b51a95c963353cc4ce6b57"
+                    "ea0a20c44537a8336792510713dfe524")
+
+        self.assertEqual(len(dcntr.list_container_ids()), 7)
+        for exp in expected:
+            self.assertTrue(exp in dcntr.list_container_ids())
+
 if __name__ == '__main__':
     unittest.main()
