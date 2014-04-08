@@ -604,6 +604,24 @@ It verifies the output against values obtained from userspace tools.
 
 None
 
+``docker_cli/cp`` Sub-test
+=================================
+
+Simple test that checks the success of the ``docker cp`` command.
+It copies a file to a temporary directory and verifies that it was
+copied successfully.
+
+``docker_cli/cp`` Prerequisites
+-------------------------------------
+
+*  Docker daemon is running and accessable by it's unix socket.
+
+``docker_cli/cp`` Configuration
+--------------------------------------
+
+* The ``remove_after_test`` specifies wether to remove the
+  container created during the test.
+
 ----------------------------------
 Dockertest API Reference
 ----------------------------------
