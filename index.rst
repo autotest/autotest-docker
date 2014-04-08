@@ -587,6 +587,37 @@ Several variations of running the stop command
 * The ``exec_cmd`` modifies the container command
 * The ``stop_duration`` sets the acceptable stop command duration (+-2s)
 
+``docker_cli/kill`` Sub-test
+=======================================
+
+Several variations of running the kill command
+
+``docker_cli/kill`` Prerequisites
+---------------------------------------------
+
+*  A remote registry server
+
+``docker_cli/kill`` Configuration
+--------------------------------------
+
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
+*  The ``top_name_prefix`` is prefix of the tested container followed by
+   random characters to make it unique.
+*  The ``run_options_csv`` modifies the running container options.
+*  The ``exec_cmd`` modifies the container command
+*  The ``wait_start`` is duration of container init
+*  The ``no_iterations`` is number of signals (in some subsubtests)
+*  The ``kill_map_signals`` chooses between numerical and named signals (USR1)
+   *  ``true`` - all signals are mapped
+   *  ``false`` - all signals are numbers
+   *  ``none`` - randomize for each signal
+*  The ``signals_sequence`` allows you to force given sequence of signals.
+   it's generated in case it's missing and printed in log for later use.
+
+
 ``docker_cli/info`` Sub-test
 =================================
 
