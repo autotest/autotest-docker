@@ -24,6 +24,7 @@ from autotest.client import job, test
 import version
 import config
 from xceptions import DockerTestFail
+from xceptions import DockerTestNAError
 from xceptions import DockerTestError
 
 class Subtest(test.test):
@@ -62,28 +63,40 @@ class Subtest(test.test):
 
         :param *args & **dargs:  Ignored, passed through to parent class.
         """
+
+        def _init_config():  # private, no docstring pylint: disable=C0111
+            # So tests don't need to set this up every time
+            config_parser = config.Config()
+            self.config = config_parser.get(self.config_section)
+            if self.config is None:
+                logging.warning("No configuration section found '%s'",
+                                self.config_section)
+                self.config = config_parser['DEFAULTS']
+                # Mark this to not be checked, no config, no version info.
+                self.config['config_version'] = version.NOVERSIONCHECK
+                self.version = 0
+            else:
+                # Version number used by one-time setup() test.test method
+                self.version = version.str2int(self.config['config_version'])
+
+        def _init_logging():  # private, no docstring pylint: disable=C0111
+            # log indentation level not easy to get at, so use opaque impl.
+            _si = job.status_indenter(self.job)
+            _sl = base_job.status_logger(self.job, _si)
+            self._re = _sl.render_entry  # will return string w/ proper indent
+            # Log original key/values before subtest could modify them
+            self.write_test_keyval(self.config)
+
+        def _version_check():  # private, no docstring pylint: disable=C0111
+            # Fail test if configuration being used doesn't match dockertest API
+            version.check_version(self.config)
+
         super(Subtest, self).__init__(*args, **dargs)
-        # log indentation level not easy to get at, so use opaque implementation
-        _si = job.status_indenter(self.job)
-        _sl = base_job.status_logger(self.job, _si)
-        self._re = _sl.render_entry  # will return string w/ proper indentation
-        # So tests don't need to set this up every time
-        config_parser = config.Config()
-        self.config = config_parser.get(self.config_section)
-        if self.config is None:
-            logging.warning("No configuration section found '%s'",
-                            self.config_section)
-            self.config = config_parser['DEFAULTS']
-            # Mark this to not be checked, no config, no version info.
-            self.config['config_version'] = version.NOVERSIONCHECK
-            self.version = 0
-        else:
-            # Version number used by one-time setup() test.test method
-            self.version = version.str2int(self.config['config_version'])
-        # Fail test if configuration being used doesn't match dockertest API
-        version.check_version(self.config)
-        # Log original key/values before subtest could modify them
-        self.write_test_keyval(self.config)
+        _init_config()
+        if not self.config.get('enable', True):
+            raise DockerTestNAError("Subtest disabled in configuration.")
+        _version_check()
+        _init_logging()
         # Optionally setup different iterations if option exists
         self.iterations = self.config.get('iterations', self.iterations)
         # subclasses can do whatever they like with this
@@ -257,6 +270,7 @@ class SubSubtest(object):
             self.make_subsubtest_config(all_configs,
                                         parent_config,
                                         all_configs[config_section])
+        # FIXME: Honor SubSubtest ``enable`` conf. option
         # Not automatically logged along with parent subtest
         # for records/archival/logging purposes
         note = {'Configuration_for_Subsubtest': config_section}
