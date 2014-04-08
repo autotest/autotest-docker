@@ -320,6 +320,11 @@ file is loaded *either* from ``config_defaults`` *or* ``config_custom``.
    use the value in ``docker_timeout``.  This may be an
    integer or floating-point number specifying the number
    of seconds to allow any single command to complete.
+*  Since all tests run by default (when no ``--args`` CSV
+   list is used), it could be difficult to skip just a single
+   or several tests while running all others.  Adding a config
+   ``enable = false`` (or ``no``) option to any config file
+   will turn off just that test.
 
 ``example`` Sub-test
 =======================
