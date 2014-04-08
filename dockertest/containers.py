@@ -29,8 +29,6 @@ import re
 from autotest.client import utils
 from autotest.client.shared import error
 from images import DockerImages
-from output import OutputGood
-
 
 # Many attributes simply required here
 class DockerContainer(object):  # pylint: disable=R0902
@@ -117,6 +115,8 @@ class DockerContainersBase(object):
     Implementation defined collection of DockerContainer-like instances with
     helpers
     """
+
+    # TODO: Add boolean option to run cmdresult through output checkers
 
     #: Operational timeout, may be overridden by subclasses and/or parameters.
     #: May not be used/enforced equally by all implementations.
@@ -267,17 +267,19 @@ class DockerContainersCLI(DockerContainersBase):
                                self.timeout)
 
     # private methods don't need docstrings
-    @staticmethod
-    def _parse_lines(d_psa_stdout):  # pylint: disable=C0111
+    def _parse_lines(self, d_psa_stdout):  # pylint: disable=C0111
         clist = []
         lines = d_psa_stdout.strip().splitlines()
+        self.subtest.logdebug("PS columns: %s" % lines[0])
         for stdout_line in lines[1:]:   # Skip header
+            self.subtest.logdebug("Parse  col: %s" % stdout_line)
             clist.append(DockerContainersCLI._parse_columns(stdout_line))
         return clist
 
     # private methods don't need docstrings
     @staticmethod
     def _parse_columns(stdout_line):  # pylint: disable=C0111
+        # FIXME: This will break if any column's data contains '  ' anywhere :S
         column_data = re.split("  +", stdout_line)
         return DockerContainersCLI._make_docker_container(column_data)
 
@@ -313,10 +315,16 @@ class DockerContainersCLI(DockerContainersBase):
             (long_id, image_name, command, created,
              status, container_name, size) = column_data
             portstrs = ""
+        elif len(column_data) == 6:
+            (long_id, image_name, command, created,
+             container_name, size) = column_data
+            portstrs = ""
+            status = ""
         elif len(column_data) == 12:
             raise ValueError("Baaaawwwwk! What happened to my chickens!")
         else:
-            raise ValueError("Error parsing docker ps command output")
+            raise ValueError("Error parsing docker ps command output %s"
+                             % column_data)
         # Let caller decide which bits are important
         return (long_id, image_name, command, created, status,
                 portstrs, container_name, size)
@@ -411,26 +419,10 @@ class DockerContainersCLI(DockerContainersBase):
             raise KeyError("Container %s not found" % container_name)
 
 
-class DockerContainersCLICheck(DockerContainersCLI):
-    """
-    Extended DockerContainersCLI for passing test options and checking output
-    """
-
-    #: This is probably test-subject related, be a bit more noisy
-    verbose = True
-
-    def docker_cmd(self, cmd, timeout=None):
-        cmdresult = super(DockerContainersCLICheck,
-                          self).docker_cmd(cmd, timeout)
-        # Throws exception if checks fail
-        OutputGood(cmdresult)
-        return cmdresult
-
-
 class DockerContainers(DockerImages):
     """
     Exact same interface-encapsulator as images.DockerImages but for containers
     """
 
     #: Mapping of interface short-name string to DockerContainersBase subclass.
-    interfaces = {'cli': DockerContainersCLI, 'clic': DockerContainersCLICheck}
+    interfaces = {'cli': DockerContainersCLI}

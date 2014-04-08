@@ -240,7 +240,7 @@ class DockerContainersTest(DockerContainersTestBase):
         self.assertNotEqual(len(dcc.json_by_name("suspicious_pare")), 0)
 
     def test_noports(self):
-        dcc = self.containers.DockerContainersCLICheck(self.fake_subtest)
+        dcc = self.containers.DockerContainersCLI(self.fake_subtest)
         short_id = "ac8c9fa367f9"
         cl = [c for c in dcc.list_containers() if c.cmp_id(short_id)]
         self.assertEqual(len(cl), 1)

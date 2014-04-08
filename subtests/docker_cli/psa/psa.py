@@ -15,7 +15,18 @@ from dockertest import images
 from dockertest.output import OutputGood
 from dockertest.dockercmd import DockerCmd
 from dockertest.dockercmd import NoFailDockerCmd
-from dockertest.containers import DockerContainers
+from dockertest.containers import DockerContainersCLI
+
+class DockerContainersCLICheck(DockerContainersCLI):
+    #: This is probably test-subject related, be a bit more noisy
+    verbose = True
+
+    def docker_cmd(self, cmd, timeout=None):
+        cmdresult = super(DockerContainersCLICheck,
+                          self).docker_cmd(cmd, timeout)
+        # Throws exception if checks fail
+        OutputGood(cmdresult)
+        return cmdresult
 
 class psa(subtest.Subtest):
     config_section = 'docker_cli/psa'
@@ -35,7 +46,7 @@ class psa(subtest.Subtest):
         command = ("\"rm -f stop; trap '/usr/bin/date > stop' SIGURG; "
                    "while ! [ -f stop ]; do :; done\"")
         subargs.append(command)
-        self.stuff['cl0'] = DockerContainers(self, 'cli').get_container_list()
+        self.stuff['cl0'] = DockerContainersCLI(self).get_container_list()
         dkrcmd = DockerCmd(self, 'run', subargs)
         self.stuff['cmdresult'] = dkrcmd.execute()
         self.stuff['container_id'] = open(cidfile, 'rb').read().strip()
@@ -47,7 +58,7 @@ class psa(subtest.Subtest):
                      % self.config['wait_start'])
         time.sleep(self.config['wait_start'])
         # This is the test-subject, need to check output of docker command
-        clic = DockerContainers(self, 'clic')
+        clic = DockerContainersCLICheck(self)
         self.stuff['cl1'] = clic.get_container_list()
         sig = getattr(signal, 'SIGURG')  # odd-ball, infreq. used.
         self.loginfo("Signaling container with signal %s", sig)
@@ -72,11 +83,14 @@ class psa(subtest.Subtest):
         # TODO: Use 'inspect' command output to get actual PID
         #       and utils.pid_is_alive(PID) to verify it's stopped
         # Might as well do some more checking
-        dc = DockerContainers(self, 'cli')  # check output
+        dc = DockerContainersCLI(self)  # check output
         cnts = dc.list_containers_with_name(self.stuff['container_name'])
         self.failif(len(cnts) < 1, "Test container not found in list")
         cnt = cnts[0]
-        self.failif(str(cnt.status) != "Exit 0", "Exit status mismatch")
+        estat1 = str(cnt.status).startswith("Exit 0") # pre docker 0.9.1
+        estat2 = str(cnt.status).startswith("Exited (0)") # docker 0.9.1 & later
+        self.failif(not (estat1 or estat2), "Exit status mismatch: %s"
+                                            % str(cnt))
 
     def cleanup(self):
         super(psa, self).cleanup()

@@ -453,6 +453,8 @@ class DockerImagesCLI(DockerImagesBase):
     Docker command supported DockerImage-like instance collection and helpers.
     """
 
+    # TODO: Add boolean option to run cmdresult through output checkers
+
     def __init__(self, subtest, timeout=None, verbose=False):
         super(DockerImagesCLI, self).__init__(subtest,
                                               timeout,
@@ -510,22 +512,6 @@ class DockerImagesCLI(DockerImagesBase):
         return self.docker_cmd("rmi %s" % full_name, self.timeout)
 
 
-class DockerImagesCLICheck(DockerImagesCLI):
-    """
-    Extended ``DockerContainersCLI`` for passing test options and checking output.
-    """
-
-    #: This is probably test-subject related, be a bit more noisy
-    verbose = True
-
-    def docker_cmd(self, cmd, timeout=None):
-        cmdresult = super(DockerImagesCLICheck,
-                          self).docker_cmd(cmd, timeout)
-        # Throws exception if checks fail
-        OutputGood(cmdresult)
-        return cmdresult
-
-
 class DockerImages(object):
     """
     Encapsulates ``DockerImage`` interfaces for manipulation with docker images.
@@ -533,7 +519,7 @@ class DockerImages(object):
 
     #: Mapping of interface short-name string to DockerImagesBase subclass.
     #: (shortens line-length when instantiating)
-    interfaces = {"cli": DockerImagesCLI, 'clic': DockerImagesCLICheck}
+    interfaces = {"cli": DockerImagesCLI}
 
     def __init__(self, subtest, interface_name="cli",
                  timeout=None, verbose=False):
