@@ -12,6 +12,7 @@ import os.path
 import subprocess
 
 class AllGoodBase(object):
+
     """
     Abstract class representing aggregate True/False value from callables
     """
@@ -28,6 +29,9 @@ class AllGoodBase(object):
     #: Iterable of callable names to bypass
     skip = None
 
+
+    # __init__ left abstract on purpose
+
     def __instattrs__(self, skip=None):
         """
         Override class variables with empty instance values
@@ -43,15 +47,19 @@ class AllGoodBase(object):
             self.skip = skip
 
     def __nonzero__(self):
+
         """
         Implement truth value testing and for the built-in operation bool()
         """
+
         return False not in self.results.values()
 
     def __str__(self):
+
         """
         Make results of individual checkers accessible in human-readable format.
         """
+
         goods = [name for (name, result) in self.results.items() if result]
         bads = [name for (name, result) in self.results.items() if not result]
         if self:  # use self.__nonzero__()
@@ -65,27 +73,33 @@ class AllGoodBase(object):
         return msg
 
     def detail_str(self, name):
+
         """
         Convert details value for name into string
 
         :param name: Name possibly in details.keys()
         """
+
         return str(self.details.get(name, "No details"))
 
     def callable_args(self, name):
+
         """
         Return dictionary of arguments to pass through to each callable
 
         :param name: Name of callable to return args for
         :return: Dictionary of arguments
         """
+
         del name  # keep pylint happy
         return dict()
 
     def call_callables(self):
+
         """
         Call all instances in callables not in skip, storing results
         """
+
         _results = {}
         for name, call in self.callables.items():
             if callable(call) and name not in self.skip:
@@ -93,16 +107,19 @@ class AllGoodBase(object):
         self.results.update(self.prepare_results(_results))
 
     def prepare_results(self, results):
+
         """
         Called to process results into instance results attribute
 
         :param results: Dict-like of output from callables, keyed by name
         :returns: Dict-like for assignment to instance results attribute.
         """
+
         # In case call_callables() overridden but this method is not
         return dict(results)
 
 class EnvCheck(AllGoodBase):
+
     """
     Represent aggregate result of calling all executables in envcheckdir
     """
@@ -117,13 +134,14 @@ class EnvCheck(AllGoodBase):
     envcheckdir = None
 
     def __init__(self, config, envcheckdir):
+
         """
         Run checks, define result attrs or raise
 
         :param config: Dict-like containing configuration options
         :param envcheckdir: Absolute path to directory holding scripts
         """
-        #import pdb; pdb.set_trace()
+
         self.config = config
         self.envcheckdir = envcheckdir
         envcheck_skip = self.config.get(self.envcheck_skip_option)
@@ -145,9 +163,6 @@ class EnvCheck(AllGoodBase):
         self.call_callables()
 
     def prepare_results(self, results):
-        """
-        Filter subprocess.Popen objects into results dictionary
-        """
         dct = {}
         # Wait for all subprocesses to finish
         for relpath, popen in results.items():
