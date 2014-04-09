@@ -7,7 +7,7 @@ TEST_TYPE = "CLIENT"
 TIMEOUT = 600
 
 ##############################################################################
-import sys, imp, os, os.path, logging, time
+import sys, imp, os, os.path, logging, time, subprocess
 
 def find_subtests(control_path):
     """
@@ -49,12 +49,16 @@ def step_init():
         subtests = [os.path.join(subtest_basename, name) for name in names]
     else:  # no --args specified, run all subtests found
         subtests = find_subtests(control_path)
+    # Do one environment check before all testing
+    you = "BOFH"
+    job.next_step(run_envchecks, control_path, you)
     # no need to calculate this every loop
     total = len(subtests)
     # Every step must be pickleable: use wrapper function + arguments
     for index, url in enumerate(subtests):
         tag = "test_%s-of-%s" % (index + 1, total)
         job.next_step(run_test, control_path, url, tag, TIMEOUT)
+        job.next_step(run_envchecks, control_path, url)
 
 def get_doc_version(control_path):
     """
@@ -66,6 +70,21 @@ def get_doc_version(control_path):
         if line.startswith('version ='):
             version = line.split("'")[1]
     return version
+
+def run_envchecks(control_path, blame_url):
+    """
+    Execute run_envchecks.py with default configuration files
+    """
+    cmd = ('%s %s %s'
+           % (os.path.join(control_path, 'run_envchecks.py'),
+              os.path.join(control_path, 'config_defaults', 'defaults.ini'),
+              os.path.join(control_path, 'config_custom', 'defaults.ini')))
+    try:
+        subprocess.check_call(cmd, close_fds=True, shell=True)
+    except subprocess.CalledProcessError:
+        # CalledProcessError.__str__ doesn't include a message :(
+        print "Environment checks failed! Blame %s" % blame_url
+    # Keep these non-fatal for now
 
 def run_test(control_path, url, tag, timeout):
     """
