@@ -587,6 +587,32 @@ Several variations of running the stop command
 * The ``exec_cmd`` modifies the container command
 * The ``stop_duration`` sets the acceptable stop command duration (+-2s)
 
+``docker_cli/restart`` Sub-test
+=======================================
+
+Several variations of running the restart command
+
+``docker_cli/restart`` Prerequisites
+---------------------------------------------
+
+*  A remote registry server
+
+``docker_cli/restart`` Configuration
+--------------------------------------
+
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
+*  The ``run_options_csv`` modifies the running container options.
+*  The ``restart_options_csv`` modifies the restart command options.
+*  The ``stop_options_csv`` specifies the stop command options.
+*  The ``exec_cmd`` modifies the container command
+*  The ``start_check``, ``restart_check`` and ``stop_check`` are '\n' separated
+   lines which should be present in specific test stage.
+*  The ``restart_duration`` and ``stop_duration`` are expected command execution
+   durations (+-3s)
+
 ``docker_cli/info`` Sub-test
 =================================
 
