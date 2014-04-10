@@ -22,12 +22,15 @@ from dockertest.subtest import SubSubtest
 # Okay to be less-strict for these cautions/warnings in subtests
 # pylint: disable=C0103,C0111,R0904,C0103
 class stop(subtest.SubSubtestCaller):
+
     """ Subtest caller """
     config_section = 'docker_cli/stop'
 
 
 class stop_base(SubSubtest):
+
     """ Base class """
+
     def initialize(self):
         super(stop_base, self).initialize()
         # Prepare a container
@@ -36,7 +39,9 @@ class stop_base(SubSubtest):
         name = docker_containers.get_unique_name(prefix, length=4)
         self.sub_stuff['container_name'] = name
         config.none_if_empty(self.config)
-        subargs = [arg for arg in self.config['run_options_csv'].split(',')]
+        if self.config.get('run_options_csv'):
+            subargs = [arg for arg in
+                       self.config['run_options_csv'].split(',')]
         subargs.append("--name %s" % name)
         fin = DockerImage.full_name_from_defaults(self.config)
         subargs.append(fin)
@@ -48,7 +53,9 @@ class stop_base(SubSubtest):
         container.execute()
         time.sleep(self.config['wait_start'])
         # Prepare the "stop" command
-        subargs = [arg for arg in self.config['stop_options_csv'].split(',')]
+        if self.config.get('stop_options_csv'):
+            subargs = [arg for arg in
+                       self.config['stop_options_csv'].split(',')]
         subargs.append(name)
         self.sub_stuff['stop_cmd'] = DockerCmd(self.parent_subtest, 'stop',
                                                subargs)
@@ -79,28 +86,43 @@ class stop_base(SubSubtest):
                                            "container_results:\n%s"
                                            % (check_stdout, results))
 
+    def check_output_inverted(self):
+        """
+        Inverse version of check_output (fails in case of stdout str presence
+        """
+        check_stdout = self.config.get("check_stdout")
+        results = self.sub_stuff['container_results']
+        if check_stdout and check_stdout in results.stdout:
+            raise xceptions.DockerTestFail("Expected stdout '%s' not in "
+                                           "container_results:\n%s"
+                                           % (check_stdout, results))
+
     def postprocess(self):
         super(stop_base, self).postprocess()
-        self.check_output()
+        if self.config.get('check_output_inverted'):
+            self.check_output_inverted()
+        else:
+            self.check_output()
         stop_results = self.sub_stuff['stop_results']
         if self.config.get("stop_duration"):
             stop_duration = float(self.config.get("stop_duration"))
             self.failif(stop_results.duration > (stop_duration + 2),
                         "'docker stop' cmd execution took longer, than "
                         "expected: %ss (%s+-2s)" % (stop_results.duration,
-                                               stop_duration))
+                                                    stop_duration))
             self.failif(stop_results.duration < (stop_duration - 2),
                         "'docker stop' cmd execution took shorter, than "
                         "expected: %ss (%s+-2s)" % (stop_results.duration,
-                                               stop_duration))
+                                                    stop_duration))
         # Look for docker failures
         OutputGood(stop_results)
         OutputGood(self.sub_stuff['container_results'])
         self.failif(stop_results.exit_status != 0, "Exit status of the docker "
                     "stop command was not 0 (%s)" % stop_results.exit_status)
-        self.failif(stop_results.exit_status != 0, "Exit status of the docker "
-                    "run command was not 0 (%s)"
-                    % self.sub_stuff['container_results'].exit_status)
+        exp = self.config.get('docker_exit_code', 0)
+        self.failif(self.sub_stuff['container_results'].exit_status != exp,
+                    "Exit status of the docker run command was not %s (%s)"
+                    % (exp, self.sub_stuff['container_results'].exit_status))
 
     def cleanup(self):
         super(stop_base, self).cleanup()
@@ -117,6 +139,7 @@ class stop_base(SubSubtest):
 
 
 class nice(stop_base):
+
     """
     Test usage of docker 'stop' command in case container finishes on SIGTERM
 
@@ -133,6 +156,7 @@ class nice(stop_base):
 
 
 class force(stop_base):
+
     """
     Test usage of docker 'stop' command in case container ignores SIGTERM
 
@@ -148,6 +172,7 @@ class force(stop_base):
 
 
 class stopped(stop_base):
+
     """
     Test usage of docker 'stop' command in case container is already stopped
 
@@ -162,6 +187,7 @@ class stopped(stop_base):
 
 
 class zerotime(stop_base):
+
     """
     Test usage of docker 'stop' command with -t 0 (should send SIGKILL)
 
@@ -173,14 +199,4 @@ class zerotime(stop_base):
     3) Fail in case SIGTERM was raised in the container
     4) Fail in case stop command execution was too long
     """
-
-    def check_output(self):
-        """
-        Inverse version of check_output (fails in case of stdout str presence
-        """
-        check_stdout = self.config.get("check_stdout")
-        results = self.sub_stuff['container_results']
-        if check_stdout and check_stdout in results.stdout:
-            raise xceptions.DockerTestFail("Expected stdout '%s' not in "
-                                           "container_results:\n%s"
-                                           % (check_stdout, results))
+    pass
