@@ -653,6 +653,26 @@ copied successfully.
 * The ``remove_after_test`` specifies wether to remove the
   container created during the test.
 
+``docker_cli/insert`` Sub-test
+=================================
+
+Simple test that checks the success of the ``docker insert`` command.
+It will insert the file at the url into an image, and then verify that
+it was inserted successfully.
+
+``docker_cli/insert`` Prerequisites
+-------------------------------------
+
+*  Docker daemon is running and accessable by it's unix socket.
+
+``docker_cli/insert`` Configuration
+--------------------------------------
+
+* The ``remove_after_test`` specifies wether to remove the
+  container created during the test.
+* The ``file_url`` is the url to a file to be inserted during
+  the test.
+
 ----------------------------------
 Dockertest API Reference
 ----------------------------------
