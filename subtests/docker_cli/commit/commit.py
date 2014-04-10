@@ -15,6 +15,7 @@ clean
 
 import time
 from autotest.client import utils
+from autotest.client.shared import error
 from dockertest.subtest import SubSubtest
 from dockertest.images import DockerImages
 from dockertest.images import DockerImage
@@ -135,11 +136,16 @@ class commit_base(SubSubtest):
             else:
                 self.logwarning("Failed" + msg)
             for image in self.sub_stuff["image_list"]:
-                di = DockerImages(self.parent_subtest)
-                self.logdebug("Removing image %s", image.full_name)
-                di.remove_image_by_image_obj(image)
-                self.loginfo("Successfully removed test image: %s",
-                             image.full_name)
+                try:
+                    di = DockerImages(self.parent_subtest)
+                    self.logdebug("Removing image %s", image.full_name)
+                    di.remove_image_by_image_obj(image)
+                    self.loginfo("Successfully removed test image: %s",
+                                 image.full_name)
+                except error.CmdError, e:
+                    error_text = "tagged in multiple repositories"
+                    if not error_text in e.result_obj.stderr:
+                        raise
 
     def check_file_in_image(self):
         commit_changed_files = self.config["commit_changed_files"]
