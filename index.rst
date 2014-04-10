@@ -1,3 +1,5 @@
+:tocdepth: 2
+
 .. Docker Autotest documentation master file, created by
    sphinx-quickstart on Tue Feb 18 09:56:35 2014.
    You can adapt this file completely to your liking, but it should at least
@@ -8,6 +10,7 @@
 
 .. Reference for sphinx.ext.autodoc extenstion:
    http://sphinx-doc.org/ext/autodoc.html
+
 
 ================
 Docker Autotest
@@ -483,6 +486,26 @@ Start up a container, run the rm subcommand on it in various ways
    i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
    and modify the values.
 
+
+``docker_cli/dockerhelp`` Sub-test
+=======================================
+
+Several variations of running the dockerhelp command.
+
+``docker_cli/dockerhelp`` Prerequisites
+---------------------------------------------
+
+*  None
+
+``docker_cli/dockerhelp`` Configuration
+-------------------------------------------
+
+*  The ``success_option_list`` is a CSV list of docker options
+   where a zero-exit code is expected (though a usage message
+   may appear)
+*  The ``failure_option_list`` is the opposite.
+
+
 ``docker_cli/run_simple`` Sub-test
 =====================================
 
@@ -567,6 +590,87 @@ Several variations of running the commit command
    and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
    i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
    and modify the values.
+
+
+``docker_cli/events`` Sub-test
+=======================================
+
+Start up a simple ``/bin/true`` container while monitoring
+output from ``docker events`` command.  Verify expected events
+appear after container finishes and is removed.
+
+``docker_cli/events`` Prerequisites
+---------------------------------------------
+
+*  Historical events exist prior to running test (i.e.
+   docker daemon hasn't been restarted in a while)
+*  Host clock is accurate, local timezone setup properly.
+*  Host clock does not change drasticly during test
+
+``docker_cli/events`` Configuration
+--------------------------------------
+
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
+*  ``run_args`` is a CSV list of arguments to the run command
+*  ``rm_after_run`` specifies whether or not to use the ``docker rm``
+   command after the container finishes.
+*  The ``wait_stop`` option specifies time in seconds to wait
+   after removing the container, to check events.
+*  ``expect_events`` is a CSV of required events for test to pass
+*  ``name_prefix`` specifies the container name prefix to use.
+   before random characters are added.
+*  The ``unparseable_allowance`` setting specifies the number of
+   lines with parse errors to allow.
+*  The ``remove_after_test`` option controls cleanup after test
+
+``docker_cli/psa`` Sub-test
+=======================================
+
+Verify the table output and formatting of the ``docker ps -a``
+command.
+
+``docker_cli/psa`` Prerequisites
+---------------------------------------------
+
+*  None
+
+``docker_cli/psa`` Configuration
+--------------------------------------
+
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
+*  The ``wait_stop`` and ``wait_start`` options specify time in seconds to wait
+   before/after starting the test container.
+*  The ``remove_after_test`` option controls cleanup after test
+
+
+``docker_cli/tag`` Sub-test
+=======================================
+
+Several variations of running the docker tag command
+
+``docker_cli/tag`` Prerequisites
+---------------------------------------------
+
+*  None
+
+``docker_cli/tag`` Configuration
+--------------------------------------
+
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
+*  ``tag_force`` specifies use of ``--force`` option
+*  The ``tag_repo_name_prefix`` option has random characters appended
+   before it is used for tagging.
+*  ``docker_expected_result`` option allows changing between positive
+   and negative testing.
 
 ``docker_cli/stop`` Sub-test
 =======================================

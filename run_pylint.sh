@@ -1,8 +1,8 @@
 #!/bin/bash
 
 MSGFMT='{msg_id}:{line:3d},{column}: {obj}: {msg}'
-BLACKLIST='conf.py'
 DISABLEMSG="I0011,R0801,R0904"
+SUBTESTDISABLEMSG="I0011,R0801,R0904"
 INIT_HOOK="
 AP = os.environ.get('AUTOTEST_PATH', '/usr/local/autotest')
 sys.path.append(os.path.abspath(AP + '/..'))
@@ -21,10 +21,27 @@ then
     cd "$MYDIR"
 fi
 
-find -name '*.py' -a -not -name '*_unittest*.py' | xargs \
+echo "======================================= dockertest"
+find dockertest -name '*.py' -a -not -name '*_unittest*.py' | xargs \
     pylint -rn --init-hook="$INIT_HOOK" \
-           --ignore="$BLACKLIST" \
            --disable="$DISABLEMSG" \
+           --output-format="colorized" \
+           --rcfile=/dev/null \
+           --msg-template="$MSGFMT"
+echo "======================================= subtests"
+INIT_HOOK="
+AP = os.environ.get('AUTOTEST_PATH', '/usr/local/autotest')
+sys.path.append(os.path.abspath(AP + '/..'))
+print 'Injected into path %s' % sys.path[-1]
+sys.path.append(os.path.abspath('.'))
+print 'Injected into path %s' % sys.path[-1]
+import autotest
+import autotest.common
+import dockertest
+"
+find subtests -name '*.py' -a -not -name '*_unittest*.py' | xargs \
+    pylint -rn --init-hook="$INIT_HOOK" \
+           --disable="$SUBTESTDISABLEMSG" \
            --output-format="colorized" \
            --rcfile=/dev/null \
            --msg-template="$MSGFMT"
