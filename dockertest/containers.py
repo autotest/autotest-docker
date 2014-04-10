@@ -186,6 +186,16 @@ class DockerContainersBase(object):
         clist = self.list_containers()
         return [cnt for cnt in clist if cnt.cmp_id(cid)]
 
+    def list_container_ids(self):
+        """
+        Return python-list of all 64-character (long) container IDs
+
+        :return:  [Cntr ID, Cntr ID, ...]
+        """
+        dcl = self.get_container_list()
+        return [cntr.long_id for cntr in dcl]
+
+
     # Not defined static on purpose
     def get_container_metadata(self, long_id):  # pylint: disable=R0201
         """
