@@ -388,8 +388,8 @@ and pre-defined build-content.
 ``docker_cli/build`` Prerequisites
 ------------------------------------------
 
-* Tarballs bundled with the subtest
-* Statically linked 'busybox' executable available over HTTP
+*  Tarballs bundled with the subtest
+*  Statically linked 'busybox' executable available over HTTP
 
 ``docker_cli/build`` Configuration
 -------------------------------------------
@@ -424,9 +424,9 @@ exception or error occurs.
 ``docker_cli/dockerimport`` Prerequisites
 ---------------------------------------------
 
-* Enough disk space to construct and import several base images
-  at the same time.
-* The ``tar``, and ``cat`` commands.
+*  Enough disk space to construct and import several base images
+   at the same time.
+*  The ``tar``, and ``cat`` commands.
 
 ``docker_cli/dockerimport`` Configuration
 -------------------------------------------
@@ -435,20 +435,20 @@ Configuration for this subtest consists of a few options which
 control overall sub-sub-test execution.  Further, unique sections
 for each sub-sub-test are also used.
 
-* The ``image_name_prefix`` and ``image_name_postfix`` specify
-  values used to automatically generate a unique image name.
-  The unique part will be sandwiched in-between these options
-  values.
+*  The ``image_name_prefix`` and ``image_name_postfix`` specify
+   values used to automatically generate a unique image name.
+   The unique part will be sandwiched in-between these options
+   values.
 
-* ``try_remove_after_test`` is exactly like the same option in
-  the `docker_cli/build sub-test`_ subtest.
+*  ``try_remove_after_test`` is exactly like the same option in
+   the `docker_cli/build sub-test`_ subtest.
 
-* The ``test_subsubtest_postfixes`` contains a CSV listing of the
-  sub-sub-test modules (and class) names to run (in order).
+*  The ``test_subsubtest_postfixes`` contains a CSV listing of the
+   sub-sub-test modules (and class) names to run (in order).
 
-* The sub-sub-test section options are self-explanatory.  For this
-  class of sub-test they list the tar-command location and options
-  to use before sending the content into the docker import command.
+*  The sub-sub-test section options are self-explanatory.  For this
+   class of sub-test they list the tar-command location and options
+   to use before sending the content into the docker import command.
 
 
 ``docker_cli/images`` Sub-test
@@ -585,12 +585,38 @@ Several variations of running the stop command
    and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
    i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
    and modify the values.
-* The ``top_name_prefix`` is prefix of the tested container followed by
-* The ``run_options_csv`` modifies the running container options.
-* The ``stop_options_csv`` specifies the stop command options
-  random characters to make it unique.
-* The ``exec_cmd`` modifies the container command
-* The ``stop_duration`` sets the acceptable stop command duration (+-2s)
+*  The ``top_name_prefix`` is prefix of the tested container followed by
+   random characters to make it unique.
+*  The ``run_options_csv`` modifies the running container options.
+*  The ``stop_options_csv`` specifies the stop command options
+*  The ``exec_cmd`` modifies the container command
+*  The ``stop_duration`` sets the acceptable stop command duration (+-2s)
+
+``docker_cli/restart`` Sub-test
+=======================================
+
+Several variations of running the restart command
+
+``docker_cli/restart`` Prerequisites
+---------------------------------------------
+
+*  A remote registry server
+
+``docker_cli/restart`` Configuration
+--------------------------------------
+
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
+*  The ``run_options_csv`` modifies the running container options.
+*  The ``restart_options_csv`` modifies the restart command options.
+*  The ``stop_options_csv`` specifies the stop command options.
+*  The ``exec_cmd`` modifies the container command
+*  The ``start_check``, ``restart_check`` and ``stop_check`` are '\n' separated
+   lines which should be present in specific test stage.
+*  The ``restart_duration`` and ``stop_duration`` are expected command execution
+   durations (+-3s)
 
 ``docker_cli/info`` Sub-test
 =================================
@@ -768,6 +794,6 @@ Further Reading
 Indices and Tables
 -------------------
 
-* :ref:`genindex`
-* :ref:`modindex`
+*  :ref:`genindex`
+*  :ref:`modindex`
 
