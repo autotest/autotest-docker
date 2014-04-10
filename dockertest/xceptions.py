@@ -11,27 +11,53 @@ Exception subclasses specific to docker subtests
 from autotest.client.shared import error
 from ConfigParser import InterpolationError
 
+
+# Pass-throughs, to help hide autotest.client.shared.error import
+class AutotestError(error.AutotestError):
+    """Root of most test errors coming from autotest"""
+    pass
+
+class DockerCommandError(error.CmdError):
+    """Errors coming from within dockercmd module classes"""
+    pass
+
+class DockerExecError(error.TestFail):
+    """Errors occuring from execution of docker commands"""
+    pass
+
+class DockerTestNAError(error.TestNAError):
+    """Test skip from execution of docker autotest subtest/subsubtest"""
+    pass
+
+class DockerTestError(error.TestError):
+    """Code Error in execution of docker autotest subtest/subsubtest"""
+    pass
+
+class DockerTestFail(error.TestFail):
+    """Test failure in execution of docker autotest subtest/subsubtest"""
+    pass
+
 # Basic exception subclasses (help distinguish if internal raise or not)
 
-class DockerValueError(ValueError):
+class DockerValueError(ValueError, AutotestError):
     pass
 
-class DockerAttributeError(AttributeError):
+class DockerAttributeError(AttributeError, AutotestError):
     pass
 
-class DockerKeyError(KeyError):
+class DockerKeyError(KeyError, AutotestError):
     pass
 
-class DockerOSError(OSError):
+class DockerOSError(OSError, AutotestError):
     pass
 
-class DockerIOError(IOError):
+class DockerIOError(IOError, AutotestError):
     pass
 
-class DockerConfigError(InterpolationError):
+class DockerConfigError(InterpolationError, AutotestError):
     pass
 
-class DockerNotImplementedError(NotImplementedError):
+class DockerNotImplementedError(NotImplementedError, AutotestError):
     pass
 
 # Specific exception subclasses (defined behavior)
@@ -57,32 +83,6 @@ class DockerOutputError(DockerValueError):
 
     def __str__(self):
         return str(self.reason)
-
-# Pass-throughs, to help hide autotest.client.shared.error import
-
-class AutotestError(error.AutotestError):
-    """Root of most test errors coming from autotest"""
-    pass
-
-class DockerCommandError(error.CmdError):
-    """Errors coming from within dockercmd module classes"""
-    pass
-
-class DockerExecError(error.TestFail):
-    """Errors occuring from execution of docker commands"""
-    pass
-
-class DockerTestNAError(error.TestNAError):
-    """Test skip from execution of docker autotest subtest/subsubtest"""
-    pass
-
-class DockerTestError(error.TestError):
-    """Code Error in execution of docker autotest subtest/subsubtest"""
-    pass
-
-class DockerTestFail(error.TestFail):
-    """Test failure in execution of docker autotest subtest/subsubtest"""
-    pass
 
 class DockerFullNameFormatError(DockerValueError):
     def __init__(self, name):
