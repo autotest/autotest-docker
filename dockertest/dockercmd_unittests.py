@@ -135,6 +135,8 @@ class DockerCmdTestBase(unittest.TestCase):
         import config
         import dockercmd
         import subtest
+        import xceptions
+        self.xceptions = xceptions
         self.config = config
         self.dockercmd = dockercmd
         self.subtest = subtest
@@ -202,6 +204,7 @@ class DockerCmdTestBasic(DockerCmdTestBase):
         self.assertEqual(docker_command.command, expected)
         self.assertEqual(str(docker_command), expected)
         cmdresult = docker_command.execute()
+        self.assertTrue(docker_command.executed)
         self.assertEqual(cmdresult.command, expected)
         # mocked cmdresult has '.dargs' pylint: disable=E1101
         self.assertAlmostEqual(cmdresult.dargs['timeout'], 1234567.0)
@@ -210,10 +213,13 @@ class DockerCmdTestBasic(DockerCmdTestBase):
         docker_command.timeout = 0
         docker_command.subcmd = ''
         docker_command.subargs = []
+        self.assertTrue(docker_command.executed)
         cmdresult = docker_command.execute()
+        self.assertTrue(docker_command.executed)
         expected = ("%s %s" % (self.defaults['docker_path'],
                                self.defaults['docker_options']))
         self.assertEqual(cmdresult.command, expected)
+        self.assertEqual(docker_command.execute_calls(), 2)
         # mocked cmdresult has '.dargs' pylint: disable=E1101
         self.assertEqual(cmdresult.dargs['timeout'], 0)
         # pylint: enable=E1101
@@ -278,6 +284,12 @@ class AsyncDockerCmd(DockerCmdTestBase):
         async_job.sp.pid = -1
         self.assertEqual(docker_cmd.process_id, -1)
 
+    def test_no_execute_calls(self):
+        docker_cmd = self.dockercmd.AsyncDockerCmd(self.fake_subtest,
+                                                   'fake_subcommand',
+                                                   timeout=123)
+        self.assertRaises(self.xceptions.DockerRuntimeError,
+                          docker_cmd.execute_calls)
 
 if __name__ == '__main__':
     unittest.main()

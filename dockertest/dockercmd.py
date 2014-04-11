@@ -9,13 +9,16 @@ from autotest.client import utils
 from autotest.client.shared import error
 from subtest import Subtest
 from xceptions import (DockerNotImplementedError, DockerCommandError,
-                       DockerExecError, DockerValueError, DockerTestError)
+                       DockerExecError, DockerRuntimeError, DockerTestError)
 
 
 class DockerCmdBase(object):
     """
     Setup a call docker subcommand as if by CLI w/ subtest config integration
     """
+
+    #: Evaluates ``True`` after first time ``execute()`` method is called
+    executed = 0
 
     def __init__(self, subtest, subcmd, subargs=None, timeout=None):
         """
@@ -63,10 +66,19 @@ class DockerCmdBase(object):
         :raise DockerExecError: on command failure
         :return: A CmdResult instance
         """
+        self.executed += 1
         # Keep pylint quiet
         del stdin
         # This is an abstract method
         raise DockerNotImplementedError
+
+    def execute_calls(self):
+        """
+        Returns the number of times ``execute()`` has been called
+
+        :raise DockerRuntimeError: if unsupported by subclass
+        """
+        raise DockerRuntimeError
 
     @property
     def docker_options(self):
@@ -114,6 +126,7 @@ class DockerCmd(DockerCmdBase):
         :raise DockerExecError: on command failure
         :return: A CmdResult instance
         """
+        self.executed += 1
         try:
             return utils.run(self.command, timeout=self.timeout,
                              stdin=stdin, verbose=False, ignore_status=True)
@@ -122,6 +135,8 @@ class DockerCmd(DockerCmdBase):
             # Something internal must have gone wrong
             raise DockerCommandError(self.command, detail.result_obj)
 
+    def execute_calls(self):
+        return int(self.executed)
 
 class NoFailDockerCmd(DockerCmd):
     """
@@ -137,6 +152,7 @@ class NoFailDockerCmd(DockerCmd):
         :raises DockerExecError: on if command returns non-zero exit code
         :return: A CmdResult instance
         """
+        self.executed += 1
         try:
             return utils.run(self.command, timeout=self.timeout,
                              stdin=stdin, verbose=False, ignore_status=False)
@@ -159,6 +175,7 @@ class MustFailDockerCmd(DockerCmd):
         :raises DockerExecError: on if command returns zero exit code
         :return: A CmdResult instance
         """
+        self.executed += 1
         try:
             cmdresult = utils.run(self.command, timeout=self.timeout,
                                   stdin=stdin, verbose=False,

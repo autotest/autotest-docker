@@ -60,6 +60,9 @@ class DockerConfigError(InterpolationError, AutotestError):
 class DockerNotImplementedError(NotImplementedError, AutotestError):
     pass
 
+class DockerRuntimeError(RuntimeError, AutotestError):
+    pass
+
 # Specific exception subclasses (defined behavior)
 
 class DockerVersionError(DockerValueError):
