@@ -40,6 +40,7 @@ setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
 
 
 class FakeCmdResult(object):
+
     def __init__(self, command, exit_status=0,
                  stdout='', stderr='', duration=0):
         self.command = command
@@ -69,6 +70,7 @@ class BaseInterfaceTest(unittest.TestCase):
     # Following cases create classes with fake self pylint: disable=E0213
     def test_all_good(self):
         class all_good(self.output.OutputGoodBase):
+
             def good_check(fake_self, output):
                 return True
         for cmdresult in (self.good_cmdresult, self.bad_cmdresult):
@@ -77,8 +79,10 @@ class BaseInterfaceTest(unittest.TestCase):
 
     def test_multi_actual(self):
         class Actual(self.output.OutputGoodBase):
+
             def good_check(fake_self, output):
                 return True
+
             def actual_check(fake_self, output):
                 return fake_self.cmdresult.exit_status == 0
         self.assertTrue(Actual(self.good_cmdresult, ignore_error=True))
@@ -87,8 +91,10 @@ class BaseInterfaceTest(unittest.TestCase):
 
     def test_output_map(self):
         class Actual(self.output.OutputGoodBase):
+
             def good_check(fake_self, output):
                 return True
+
             def actual_check(fake_self, output):
                 return fake_self.cmdresult.exit_status == 0
         actual = Actual(self.bad_cmdresult, ignore_error=True)
@@ -115,6 +121,7 @@ class BaseInterfaceTest(unittest.TestCase):
 
 
 class DockerVersionTest(unittest.TestCase):
+
     def setUp(self):
         import output
         self.output = output
@@ -130,6 +137,100 @@ class DockerVersionTest(unittest.TestCase):
         docker_version = self.output.DockerVersion(version_string)
         self.assertEqual(docker_version.client, '0.9.0')
         self.assertEqual(docker_version.server, '0.8.0')
+
+
+class ColumnRangesTest(unittest.TestCase):
+
+    table = ('CONTAINER ID        IMAGE               COMMAND             '
+             'CREATED             STATUS              PORTS               '
+             'NAMES')
+
+    def setUp(self):
+        from output import ColumnRanges
+        self.ColumnRanges = ColumnRanges
+
+    def test_init(self):
+        self.assertRaises(ValueError, self.ColumnRanges, '')
+        self.assertRaises(ValueError, self.ColumnRanges, " ")
+        self.assertRaises(ValueError, self.ColumnRanges, "\0\0")
+        self.assertRaises(ValueError, self.ColumnRanges, """\n\n\n\n\n""")
+
+    def test_getitem(self):
+        tc = self.ColumnRanges(self.table)
+        self.assertEqual(len(tc), 7)
+        for c in ('CONTAINER ID', 'IMAGE', (0, 20), 'COMMAND', (20, 40),
+                  'CREATED', 'STATUS', (60, 80), 'PORTS', 'NAMES'):
+            self.assertTrue(c in tc)
+        for n in xrange(1, 120):
+            self.assertTrue(n not in tc)
+            self.assertFalse(n in tc)
+
+    def test_offset(self):
+        tc = self.ColumnRanges(self.table)
+        self.assertEqual(tc.offset(7), 'CONTAINER ID')
+        self.assertEqual(tc.offset(20), 'IMAGE')
+        self.assertEqual(tc.offset(len(self.table)), 'NAMES')
+        self.assertEqual(tc.offset(99999), 'NAMES')
+        self.assertEqual(tc.offset(-99999), 'NAMES')
+        self.assertEqual(tc.offset(None), 'NAMES')
+
+
+class TextTableTest(unittest.TestCase):
+
+    table = ('  one   two   three  \n'  # header
+             'foo   bar   \n'
+             '1     2     3   4  \n\n'
+             '     a     b     c\n\n')
+
+    expected = [
+        {'one': 'foo', 'two': 'bar', 'three': None},
+        {'one': '1', 'two': '2', 'three': '3   4'},
+        {'one': None, 'two': None, 'three': None},
+        {'one': 'a', 'two': 'b', 'three': 'c'},
+    ]
+
+    def setUp(self):
+        from output import TextTable
+        self.TT = TextTable
+
+    def test_single_init(self):
+        lines = self.table.splitlines()
+        tt = self.TT(lines[0])
+        self.assertEqual(len(tt), 0)
+
+    def test_multi_init(self):
+        tt = self.TT(self.table)
+        self.assertEqual(len(tt), len(self.expected))
+
+    def test_multi_init_dupe(self):
+        tt = self.TT(self.table)
+        tt.allow_duplicate = True
+        tt.append({'one': None, 'two': None, 'three': None})
+        self.assertEqual(len(tt), len(self.expected) + 1)
+
+    def test_compare(self):
+        tt = self.TT(self.table)
+        self.assertEqual(tt, self.expected)
+
+    def test_images(self):
+        tt = self.TT("""
+REPOSITORY                    TAG                 IMAGE ID                                                           CREATED             VIRTUAL SIZE
+192.168.122.245:5000/fedora   32                  0d20aec6529d5d396b195182c0eaa82bfe014c3e82ab390203ed56a774d2c404   5 weeks ago         387 MB
+fedora                        32                  0d20aec6529d5d396b195182c0eaa82bfe014c3e82ab390203ed56a774d2c404   5 weeks ago         387 MB
+fedora                        rawhide             0d20aec6529d5d396b195182c0eaa82bfe014c3e82ab390203ed56a774d2c404   5 weeks ago         387 MB
+192.168.122.245:5000/fedora   latest              58394af373423902a1b97f209a31e3777932d9321ef10e64feaaa7b4df609cf9   5 weeks ago         385.5 MB
+fedora                        20                  58394af373423902a1b97f209a31e3777932d9321ef10e64feaaa7b4df609cf9   5 weeks ago         385.5 MB
+fedora                        heisenbug           58394af373423902a1b97f209a31e3777932d9321ef10e64feaaa7b4df609cf9   5 weeks ago         385.5 MB
+fedora                        latest              58394af373423902a1b97f209a31e3777932d9321ef10e64feaaa7b4df609cf9   5 weeks ago         385.5 MB
+""")
+        self.assertEqual(tt.columnranges.values(),
+                         ['REPOSITORY', 'TAG', 'IMAGE ID', 'CREATED',
+                          'VIRTUAL SIZE'])
+        sr = tt.search('IMAGE ID', ('58394af373423902a1b97f209a31e3777932'
+                                    'd9321ef10e64feaaa7b4df609cf9'))
+        self.assertEqual(len(sr), 4)
+        sr = tt.find('TAG', 'rawhide')
+        self.assertEqual(sr['REPOSITORY'], 'fedora')
 
 if __name__ == '__main__':
     unittest.main()
