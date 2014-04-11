@@ -269,3 +269,10 @@ class AsyncDockerCmd(DockerCmdBase):
             raise DockerTestError("Attempted to get exit status before "
                                   "execute() called.")
         return self._async_job.sp.returncode
+
+    @property
+    def executed(self):
+        """
+        Returns True if process was executed.
+        """
+        return self._async_job is not None
