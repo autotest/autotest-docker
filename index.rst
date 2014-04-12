@@ -753,6 +753,35 @@ Several variations of running the kill command
    it's generated in case it's missing and printed in log for later use.
 
 
+``docker_cli/wait`` Sub-test
+=======================================
+
+Several variations of running the restart command
+
+``docker_cli/wait`` Prerequisites
+---------------------------------------------
+
+*  A remote registry server
+
+``docker_cli/wait`` Configuration
+--------------------------------------
+
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
+*  The ``run_options_csv`` modifies the running container options.
+*  The ``wait_options_csv`` modifies the wait command options.
+*  The ``exec_cmd`` modifies the container command. Note that in this tests
+   you can specify per-container-exec_cmd using exec_cmd_$container.
+   This command has to containe ``exit $NUM``, which is used as docker exit
+   status and could contain ``sleep $NUM`` which signals the duration after
+   which the container finishes.
+*  The ``wait_for`` specifies the containers the wait command should wait for.
+   you can use index of ``containers`` or ``_$your_string``. In the second
+   case the leading character ``_`` will be removed.
+
+
 ``docker_cli/info`` Sub-test
 =================================
 
