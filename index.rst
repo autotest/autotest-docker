@@ -468,6 +468,35 @@ Ultra-simple test to confirm output table-format of docker CLI
 --------------------------------------
 *  None
 
+``docker_cli/run_volumes`` Sub-test
+=======================================
+
+Attempt to read, then write a file from a host path volume inside
+a container.  Intended to test NFS, SMB, and other 'remote' filesystem
+mounts.
+
+``docker_cli/run_volumes`` Prerequisites
+---------------------------------------------
+
+*  Remove filesystems are mounted and accessable on host system.
+*  Containers have access to read & write files w/in mountpoints
+
+``docker_cli/run_volumes`` Configuration
+--------------------------------------
+*  The ``host_paths`` and cooresponding ``cntr_paths`` are most important.
+   They are the host paths and container paths comma-separated values to
+   test.  There must be 1:1 coorespondance between CSVs of both options
+*  ``run_template`` allows fine-tuning the options to the run command.
+*  The ``cmd_template`` allows fine-tuning the command to run inside
+   the container.  It makes use of shell-like value substitution from
+   the contents of ``host_paths`` and ``cntr_paths``.
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
+*  The ``wait_stop`` option specifies the time in seconds to wait after all
+   docker run processes exit.
+
 ``docker_cli/rm`` Sub-test
 =======================================
 
