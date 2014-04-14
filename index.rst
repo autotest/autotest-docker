@@ -468,6 +468,35 @@ Ultra-simple test to confirm output table-format of docker CLI
 --------------------------------------
 *  None
 
+``docker_cli/run_volumes`` Sub-test
+=======================================
+
+Attempt to read, then write a file from a host path volume inside
+a container.  Intended to test NFS, SMB, and other 'remote' filesystem
+mounts.
+
+``docker_cli/run_volumes`` Prerequisites
+---------------------------------------------
+
+*  Remove filesystems are mounted and accessable on host system.
+*  Containers have access to read & write files w/in mountpoints
+
+``docker_cli/run_volumes`` Configuration
+--------------------------------------
+*  The ``host_paths`` and cooresponding ``cntr_paths`` are most important.
+   They are the host paths and container paths comma-separated values to
+   test.  There must be 1:1 coorespondance between CSVs of both options
+*  ``run_template`` allows fine-tuning the options to the run command.
+*  The ``cmd_template`` allows fine-tuning the command to run inside
+   the container.  It makes use of shell-like value substitution from
+   the contents of ``host_paths`` and ``cntr_paths``.
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
+*  The ``wait_stop`` option specifies the time in seconds to wait after all
+   docker run processes exit.
+
 ``docker_cli/rm`` Sub-test
 =======================================
 
@@ -751,6 +780,35 @@ Several variations of running the kill command
    *  ``none`` - randomize for each signal
 *  The ``signals_sequence`` allows you to force given sequence of signals.
    it's generated in case it's missing and printed in log for later use.
+
+
+``docker_cli/wait`` Sub-test
+=======================================
+
+Several variations of running the restart command
+
+``docker_cli/wait`` Prerequisites
+---------------------------------------------
+
+*  A remote registry server
+
+``docker_cli/wait`` Configuration
+--------------------------------------
+
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
+*  The ``run_options_csv`` modifies the running container options.
+*  The ``wait_options_csv`` modifies the wait command options.
+*  The ``exec_cmd`` modifies the container command. Note that in this tests
+   you can specify per-container-exec_cmd using exec_cmd_$container.
+   This command has to containe ``exit $NUM``, which is used as docker exit
+   status and could contain ``sleep $NUM`` which signals the duration after
+   which the container finishes.
+*  The ``wait_for`` specifies the containers the wait command should wait for.
+   you can use index of ``containers`` or ``_$your_string``. In the second
+   case the leading character ``_`` will be removed.
 
 
 ``docker_cli/info`` Sub-test
