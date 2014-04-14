@@ -101,10 +101,6 @@ class Subtest(test.test):
                 self.version = version.str2int(self.config['config_version'])
 
         def _init_logging():  # private, no docstring pylint: disable=C0111
-            # log indentation level not easy to get at, so use opaque impl.
-            _si = job.status_indenter(self.job)
-            _sl = base_job.status_logger(self.job, _si)
-            self._re = _sl.render_entry  # will return string w/ proper indent
             # Log original key/values before subtest could modify them
             self.write_test_keyval(self.config)
 
@@ -118,14 +114,6 @@ class Subtest(test.test):
         # subclasses can do whatever they like with this
         self.stuff = {}
 
-    # Private workaround due to job/test instance private attributes/methods :(
-    def _log(self, level, message, *args):  # pylint: disable=C0111
-        method = getattr(logging, level)
-        message = '%s: %s' % (level.upper(), message)
-        sle = base_job.status_log_entry("RUNNING", None, None, message, {})
-        rendered = self._re(sle)
-        return method(rendered, *args)
-
     def execute(self, *args, **dargs):
         """**Do not override**, needed to pull data from super class"""
         super(Subtest, self).execute(iterations=self.iterations,
@@ -137,17 +125,17 @@ class Subtest(test.test):
         """
         Called once per version change
         """
-        self.loginfo("setup() for subtest version %s", self.version)
+        self.loginfo("RUNNING: setup() for subtest version %s", self.version)
 
     def initialize(self):
         """
         Called every time the test is run.
         """
+        self.loginfo("RUNNING: initialize()")
         # Fail test if autotest is too old
         version.check_autotest_version(self.config, get_version())
         # Fail test if configuration being used doesn't match dockertest API
         version.check_version(self.config)
-        self.loginfo("initialize()")
         # Don't bother logging subtest config if sub-subtests will
         # inherit & print anyway
         if 'subsubtests' not in self.config:
@@ -160,27 +148,27 @@ class Subtest(test.test):
         """
         Called to run test for each iteration
         """
-        self.loginfo("run_once() iteration %d of %d",
+        self.loginfo("RUNNING: run_once() iteration %d of %d",
                      self.iteration, self.iterations)
 
     def postprocess_iteration(self):
         """
         Called for each iteration, used to process results
         """
-        self.loginfo("postprocess_iteration(), iteration #%d",
+        self.loginfo("RUNNING: postprocess_iteration(), iteration #%d",
                      self.iteration)
 
     def postprocess(self):
         """
         Called after all postprocess_iteration()'s, processes all results
         """
-        self.loginfo("postprocess()")
+        self.loginfo("RUNNING: postprocess()")
 
     def cleanup(self):
         """
         Called after all other methods, even if exception is raised.
         """
-        self.loginfo("cleanup()")
+        self.loginfo("RUNNING: cleanup()")
 
     # Some convenience methods for tests to use
 
@@ -203,7 +191,7 @@ class Subtest(test.test):
         :param message: Same as logging.debug()
         :\*args: Same as logging.debug()
         """
-        return self._log('debug', message, *args)
+        logging.debug("\t\t" + message.replace("\n", "\n\t\t"), *args)
 
     def loginfo(self, message, *args):
         r"""
@@ -212,7 +200,7 @@ class Subtest(test.test):
         :param message: Same as logging.info()
         :\*args: Same as logging.info()
         """
-        return self._log('info', message, *args)
+        logging.info("\t\t" + message.replace("\n", "\n\t\t"), *args)
 
     def logwarning(self, message, *args):
         r"""
@@ -221,7 +209,7 @@ class Subtest(test.test):
         :param message: Same as logging.warning()
         :\*args: Same as logging.warning()
         """
-        return self._log('warning', message, *args)
+        logging.warn("\t\t" + message.replace("\n", "\n\t\t"), *args)
 
     def logerror(self, message, *args):
         r"""
@@ -230,7 +218,7 @@ class Subtest(test.test):
         :param message: Same as logging.error()
         :\*args: Same as logging.error()
         """
-        return self._log('error', message, *args)
+        logging.error("\t\t" + message, *args)
 
     def logtraceback(self, name, exc_info, error_source, detail):
         r"""
@@ -340,7 +328,8 @@ class SubSubtest(object):
         """
         Called every time the test is run.
         """
-        self.loginfo("%s initialize()", self.__class__.__name__)
+        self.parent_subtest.loginfo("RUNNING %s: initialize()",
+                                    self.__class__.__name__)
         self.tmpdir = tempfile.mkdtemp(prefix=self.__class__.__name__,
                                        suffix='tmp',
                                        dir=self.parent_subtest.tmpdir)
@@ -349,19 +338,22 @@ class SubSubtest(object):
         """
         Called once only to exercise subject of sub-subtest
         """
-        self.loginfo("%s run_once()", self.__class__.__name__)
+        self.parent_subtest.loginfo("RUNNING %s: run_once()",
+                                    self.__class__.__name__)
 
     def postprocess(self):
         """
         Called to process results of subject
         """
-        self.loginfo("%s postprocess()", self.__class__.__name__)
+        self.parent_subtest.loginfo("RUNNING %s: postprocess()",
+                                    self.__class__.__name__)
 
     def cleanup(self):
         """
         Always called, even despite any exceptions thrown.
         """
-        self.loginfo("%s cleanup()", self.__class__.__name__)
+        self.parent_subtest.loginfo("RUNNING %s: cleanup()",
+                                    self.__class__.__name__)
         # tmpdir is cleaned up automatically by harness
 
     # TODO: Remove this after 0.7.x
@@ -387,29 +379,29 @@ class SubSubtest(object):
         """
         Same as Subtest.logdebug
         """
-        newmsg = 'SubSubtest %s DEBUG: %s' % (self.__class__.__name__, message)
-        return self.parent_subtest.logdebug(newmsg, *args)
+        return self.parent_subtest.logdebug('  ' + self.__class__.__name__
+                                            + ': ' + message, *args)
 
     def loginfo(self, message, *args):
         """
         Same as Subtest.loginfo
         """
-        newmsg = 'SubSubtest %s INFO: %s' % (self.__class__.__name__, message)
-        return self.parent_subtest.loginfo(newmsg, *args)
+        return self.parent_subtest.loginfo('  ' + self.__class__.__name__
+                                           + ': ' + message, *args)
 
     def logwarning(self, message, *args):
         """
         Same as Subtest.logwarning
         """
-        newmsg = 'SubSubtest %s WARN: %s' % (self.__class__.__name__, message)
-        return self.parent_subtest.logwarning(newmsg, *args)
+        return self.parent_subtest.logwarning('  ' + self.__class__.__name__
+                                              + ': ' + message, *args)
 
     def logerror(self, message, *args):
         """
         Same as Subtest.logerror
         """
-        newmsg = 'SubSubtest %s ERROR: %s' % (self.__class__.__name__, message)
-        return self.parent_subtest.logerror(newmsg, *args)
+        return self.parent_subtest.logerror('  ' + self.__class__.__name__
+                                            + ': ' + message, *args)
 
 
 class SubSubtestCaller(Subtest):
