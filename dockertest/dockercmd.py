@@ -20,7 +20,8 @@ class DockerCmdBase(object):
     #: Evaluates ``True`` after first time ``execute()`` method is called
     executed = 0
 
-    def __init__(self, subtest, subcmd, subargs=None, timeout=None):
+    def __init__(self, subtest, subcmd, subargs=None, timeout=None,
+                 verbose=True):
         """
         Execute docker subcommand with arguments and a timeout.
 
@@ -29,6 +30,7 @@ class DockerCmdBase(object):
         :param subargs: (optional) Iterable of additional args to subcommand
         :param timeout: Seconds to wait before terminating docker command
                         None to use 'docker_timeout' config. option.
+        :param verbose: Should this command be logged?
         :raises DockerTestError: on incorrect usage
         """
         # Prevent accidental test.test instance passing
@@ -50,6 +52,7 @@ class DockerCmdBase(object):
         else:
             # config() autoconverts otherwise catch non-float convertable
             self.timeout = float(timeout)
+        self.verbose = verbose
 
     def __str__(self):
         """
@@ -130,7 +133,8 @@ class DockerCmd(DockerCmdBase):
         self.executed += 1
         try:
             return utils.run(self.command, timeout=self.timeout,
-                             stdin=stdin, verbose=False, ignore_status=True)
+                             stdin=stdin, verbose=self.verbose,
+                             ignore_status=True)
         # ignore_status=True : should not see CmdError
         except error.CmdError, detail:
             # Something internal must have gone wrong
@@ -156,7 +160,8 @@ class NoFailDockerCmd(DockerCmd):
         self.executed += 1
         try:
             return utils.run(self.command, timeout=self.timeout,
-                             stdin=stdin, verbose=False, ignore_status=False)
+                             stdin=stdin, verbose=self.verbose,
+                             ignore_status=False)
         # Prevent caller from needing to import this exception class
         except error.CmdError, detail:
             raise DockerExecError(str(detail.result_obj))
@@ -179,7 +184,7 @@ class MustFailDockerCmd(DockerCmd):
         self.executed += 1
         try:
             cmdresult = utils.run(self.command, timeout=self.timeout,
-                                  stdin=stdin, verbose=False,
+                                  stdin=stdin, verbose=self.verbose,
                                   ignore_status=True)
         # Prevent caller from needing to import this exception class
         except error.CmdError, detail:
@@ -206,8 +211,8 @@ class AsyncDockerCmd(DockerCmdBase):
         :param stdin: String or file-like containing standard input contents
         :return: A partial CmdResult instance
         """
-        self._async_job = utils.AsyncJob(self.command, verbose=False,
-                                         stdin=stdin, close_fds=True)
+        self._async_job = utils.AsyncJob(self.command, verbose=self.verbose,
+                                         stdin=stdin)
         return self._async_job.result
 
     def wait(self, timeout=None):
