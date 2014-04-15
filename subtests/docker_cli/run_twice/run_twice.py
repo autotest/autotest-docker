@@ -51,7 +51,9 @@ class run_twice(subtest.Subtest):
             self.loginfo("command: '%s'" % cmdresult.command)
             outputgood = OutputGood(cmdresult, ignore_error=True,
                                     skip=['error_check'])
-            self.failif(not outputgood, str(outputgood))
+            self.failif(cmdresult.exit_status == 0, str(outputgood))
+            if cmdresult.exit_status != 0:
+                self.logerror("Intend to fail:\n%s" % cmdresult.stderr.strip())
 
     def cleanup(self):
         super(run_twice, self).cleanup()
