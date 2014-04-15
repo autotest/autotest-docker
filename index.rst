@@ -778,6 +778,14 @@ Several variations of using ``docker start`` command
 =======================================
 
 Several variations of running the kill command
+*  random_* - series of random signals
+*  sigstop - worst case of stopped container scenario
+*  bad - bad input
+*  stress - lots of signals without waiting
+*  stress_parallel - all signals simultaneously
+*  run_sigproxy* - instead of ``docker kill`` uses ``kill`` on ``docker run``
+*  attach_sigproxy* - instead of ``dicker kill`` uses ``kill`` on
+   ``docker attach``
 
 ``docker_cli/kill`` Prerequisites
 ---------------------------------------------
@@ -803,6 +811,11 @@ Several variations of running the kill command
    *  ``none`` - randomize for each signal
 *  The ``signals_sequence`` allows you to force given sequence of signals.
    it's generated in case it's missing and printed in log for later use.
+*  The ``kill_signals`` specifies used signals ``[range(*args)]``
+*  The ``skip_signals`` specifies which signals should be omitted
+*  The ``kill_sigproxy`` changes the kill command (false - ``docker kill``,
+   true - ``os.kill $docker_cmd.pid``.
+
 
 ``docker_cli/top`` Sub-test
 =======================================
