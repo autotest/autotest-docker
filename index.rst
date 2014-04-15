@@ -888,8 +888,8 @@ copied successfully.
 ``docker_cli/cp`` Configuration
 --------------------------------------
 
-* The ``remove_after_test`` specifies wether to remove the
-  container created during the test.
+*  The ``remove_after_test`` specifies wether to remove the
+   container created during the test.
 
 ``docker_cli/insert`` Sub-test
 =================================
@@ -906,10 +906,26 @@ it was inserted successfully.
 ``docker_cli/insert`` Configuration
 --------------------------------------
 
-* The ``remove_after_test`` specifies wether to remove the
-  container created during the test.
-* The ``file_url`` is the url to a file to be inserted during
-  the test.
+*  The ``remove_after_test`` specifies wether to remove the
+   container created during the test.
+*  The ``file_url`` is the url to a file to be inserted during
+   the test.
+
+``docker_cli/run_twice`` Sub-test
+=================================
+
+Verify that could not run a container which is already running.
+
+``docker_cli/run_twice`` Prerequisites
+--------------------------------------
+
+*  Docker daemon is running and accessable by it's unix socket.
+
+``docker_cli/run_twice`` Configuration
+--------------------------------------
+
+*  The ``remove_after_test`` specifies wether to remove the
+   container created during the test.
 
 ----------------------------------
 Dockertest API Reference
