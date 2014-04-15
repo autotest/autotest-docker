@@ -946,6 +946,36 @@ Verify that could not run a container which is already running.
 *  The ``remove_after_test`` specifies wether to remove the
    container created during the test.
 
+
+``docker_cli/dockerinspect`` Sub-test
+=================================
+
+This is a set of subsubtests that test the inspect command.
+
+``docker_cli/dockerinspect`` Prerequisites
+--------------------------------------
+
+*  Docker daemon is running and accessable by it's unix socket.
+
+``docker_cli/dockerinspect`` Configuration
+--------------------------------------
+
+*  The ``remove_after_test`` specifies wether to remove the
+   containers created during the test.
+*  The ``subsubtests`` tells which subtests to run in this test group.
+
+``docker_cli/dockerinspect/inspect_container_simple `` Configuration
+--------------------------------------
+
+*  ``check_fields`` specifies which fields to check the existance of when
+   running "docker inspect" on a container.
+
+``docker_cli/dockerinspect/inspect_all`` Configuration
+--------------------------------------
+
+* ``ignore_fields`` specifies which fields to ignore when checking all fields
+  when running "docker inspect" on a container.
+
 ----------------------------------
 Dockertest API Reference
 ----------------------------------
