@@ -76,7 +76,12 @@ class psa(subtest.Subtest):
         cnts = dc.list_containers_with_name(self.stuff['container_name'])
         self.failif(len(cnts) < 1, "Test container not found in list")
         cnt = cnts[0]
-        self.failif(str(cnt.status) != "Exit 0", "Exit status mismatch")
+        status = str(cnt.status)
+        expected1 = 'Exit 0'
+        expected2 = 'Exited (0)'
+        status_good = (bool(status.count(expected1)) or
+                       bool(status.count(expected2)))
+        self.failif(not status_good, "Exit status mismatch: %s" % status)
 
     def cleanup(self):
         super(psa, self).cleanup()
