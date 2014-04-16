@@ -22,8 +22,7 @@ class run_base(SubSubtest):
         self.sub_stuff['subargs'] = self.config['run_options_csv'].split(',')
         fin = DockerImage.full_name_from_defaults(self.config)
         self.sub_stuff['subargs'].append(fin)
-        self.sub_stuff['subargs'].append('/bin/bash')
-        self.sub_stuff['subargs'].append('-c')
+        self.sub_stuff['subargs'] += self.config['bash_cmd'].split(',')
         self.sub_stuff['subargs'].append(self.config['cmd'])
 
     def run_once(self):
