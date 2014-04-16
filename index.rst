@@ -751,6 +751,29 @@ Several variations of running the restart command
 *  The ``restart_duration`` and ``stop_duration`` are expected command execution
    durations (+-3s)
 
+``docker_cli/start`` Sub-test
+=======================================
+
+Several variations of using ``docker start`` command
+
+``docker_cli/start`` Prerequisites
+---------------------------------------------
+
+*  A remote registry server
+
+``docker_cli/start`` Configuration
+--------------------------------------
+
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
+*  The ``run_options_csv`` modifies the running container options.
+*  The ``container_name_prefix`` is prefix of the tested container followed by
+   random characters to make it unique.
+*  The ``remove_after_test`` specifies wether to remove the container after
+   the test
+
 ``docker_cli/kill`` Sub-test
 =======================================
 
