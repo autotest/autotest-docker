@@ -25,7 +25,7 @@ from dockertest.dockercmd import (AsyncDockerCmd, NoFailDockerCmd,
                                   MustFailDockerCmd)
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
-
+from dockertest.xceptions import (DockerCommandError, DockerExecError)
 
 class top(subtest.Subtest):
 
@@ -45,6 +45,8 @@ class top(subtest.Subtest):
         self.stuff['docker_top'] = []              # os outputs from host
         self.stuff['container_ps'] = []         # ps output from containers
         self.stuff['stop_cmd'] = None           # cmd to stop test cmds
+        # Permissable exceptions to ignore for stop_cmd
+        self.stuff['stop_xcpt'] = (OSError, IOError, ValueError)
 
     def _init_container(self):
         """ Create, store in self.stuff and execute container """
@@ -132,6 +134,7 @@ class top(subtest.Subtest):
 
         self.stuff['stop_cmd'] = lambda: os.write(cont_stdin, "rm -f "
                                                   "/test_cmd_lock ; exit 0\n")
+        self.stuff
         os.write(cont_stdin, "touch /test_cmd_lock\n")
         # Execute 10 idle processes
         for _ in xrange(10):
@@ -195,14 +198,14 @@ class top(subtest.Subtest):
         if self.stuff.get('stop_cmd'):
             try:
                 self.stuff['stop_cmd']()    # stop stressers
-            except Exception, details:
+            except self.stuff['stop_xcpt'], details:
                 cleanup_log.append("Stop_cmd execution failed: %s" % details)
         name = self.stuff.get('container_name')
         if name and self.config.get('remove_after_test'):
             try:
                 NoFailDockerCmd(self, 'rm', ['--force', '--volumes',
                                              name]).execute()
-            except Exception, details:
+            except (DockerCommandError, DockerExecError), details:
                 cleanup_log.append("docker rm failed: %s" % details)
         if cleanup_log:
             msg = "Cleanup failed:\n%s" % "\n".join(cleanup_log)

@@ -24,6 +24,7 @@ from dockertest.dockercmd import (AsyncDockerCmd, NoFailDockerCmd,
                                   MustFailDockerCmd)
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
+from dockertest.xceptions import (DockerCommandError, DockerExecError)
 from autotest.client.shared import utils
 
 
@@ -106,7 +107,7 @@ class start(subtest.Subtest):
             try:
                 NoFailDockerCmd(self, 'rm', ['--force', '--volumes',
                                              name]).execute()
-            except Exception, details:
+            except (DockerCommandError, DockerExecError), details:
                 cleanup_log.append("docker rm failed: %s" % details)
         if cleanup_log:
             msg = "Cleanup failed:\n%s" % "\n".join(cleanup_log)
