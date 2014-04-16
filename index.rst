@@ -781,6 +781,28 @@ Several variations of running the kill command
 *  The ``signals_sequence`` allows you to force given sequence of signals.
    it's generated in case it's missing and printed in log for later use.
 
+``docker_cli/top`` Sub-test
+=======================================
+
+Several variations of running the restart command
+
+``docker_cli/top`` Prerequisites
+---------------------------------------------
+
+*  A remote registry server
+
+``docker_cli/top`` Configuration
+--------------------------------------
+
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
+*  The ``container_name_prefix`` is prefix of the tested container followed by
+   random characters to make it unique.
+*  The ``run_options_csv`` modifies the running container options.
+*  The ``remove_after_test`` removes the container during the cleanup
+
 
 ``docker_cli/wait`` Sub-test
 =======================================
