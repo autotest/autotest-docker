@@ -21,6 +21,7 @@ import traceback
 from autotest.client.shared import error
 from autotest.client.shared import base_job
 from autotest.client.shared.error import AutotestError
+from autotest.client.shared.version import get_version
 from autotest.client import job, test
 import version
 import config
@@ -90,15 +91,10 @@ class Subtest(test.test):
             # Log original key/values before subtest could modify them
             self.write_test_keyval(self.config)
 
-        def _version_check():  # private, no docstring pylint: disable=C0111
-            # Fail test if configuration being used doesn't match dockertest API
-            version.check_version(self.config)
-
         super(Subtest, self).__init__(*args, **dargs)
         _init_config()
         if not self.config.get('enable', True):
             raise DockerTestNAError("Subtest disabled in configuration.")
-        _version_check()
         _init_logging()
         # Optionally setup different iterations if option exists
         self.iterations = self.config.get('iterations', self.iterations)
@@ -115,7 +111,6 @@ class Subtest(test.test):
 
     def execute(self, *args, **dargs):
         """**Do not override**, needed to pull data from super class"""
-        #self.job.add_sysinfo_command("", logfile="lspci.txt")
         super(Subtest, self).execute(iterations=self.iterations,
                                      *args, **dargs)
 
@@ -131,6 +126,10 @@ class Subtest(test.test):
         """
         Called every time the test is run.
         """
+        # Fail test if autotest is too old
+        version.check_autotest_version(self.config, get_version())
+        # Fail test if configuration being used doesn't match dockertest API
+        version.check_version(self.config)
         self.loginfo("initialize()")
 
     def run_once(self):

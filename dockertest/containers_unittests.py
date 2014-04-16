@@ -10,7 +10,6 @@ import tempfile
 import os
 import shutil
 
-
 class ContainersTestBase(unittest.TestCase):
 
     def setUp(self):
@@ -147,7 +146,10 @@ setattr(mock('autotest.client.shared.error'), 'TestFail', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
 setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
+setattr(mock('autotest.client.shared.version'), 'get_version',
+                                               lambda :version.AUTOTESTVERSION)
 
+import version
 
 class DockerContainersTestBase(ContainersTestBase):
 

@@ -75,10 +75,11 @@ Prerequisites
     *  Core-utils or equivalent (i.e. ``cat``, ``mkdir``, ``tee``, etc.)
     *  Tar and supported compression programs
     *  Git (and basic familiarity with it's operation)
-    *  Python 2.4 or greater (but not 3.0)
+    *  Python 2.6 or greater (but not 3.0)
     *  Optional (for building documentation), ``make`` and ``python-sphinx``
        or the equivilent for your platform (supplying the ``sphinx-build``
        executable)
+    *  Autotest 0.15.0 or later, specific version is configured.
 
 *  *Any specific requirements for particular* `subtest modules`_
 
@@ -311,7 +312,13 @@ file is loaded *either* from ``config_defaults`` *or* ``config_custom``.
    file will not inherit default version number changes, it **will** cause
    most tests to fail after changing dockertest API versions. This is
    intentional behavior and so this option must **not** be overriden
-   in any subtest configuration.
+   in any default/bundled subtest configuration.  It **should** be
+   overriden in custom/private test configuration.
+*  The ``autotest_version`` option specifies the minimum version
+   of the autotest framework that is required.  It may be overridden
+   by subtests to indicate they require a specific **later** version
+   than the default.  The autotest version is checked before the
+   dockertest version.
 *  The ``docker_path`` option specifies the absolute path to the
    docker executable under test.  This permits both the framework
    and/or individual sub-tests to utilize a separate compiled
