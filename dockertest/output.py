@@ -380,6 +380,25 @@ class OutputGoodBase(AllGoodBase):
         else:
             raise RuntimeError("Unexpected check method name %s" % name)
 
+    def prepare_results(self, results):
+        duplicate = False
+        for checker, passed in results.items():
+            if not passed and not duplicate:
+                exit_status = self.cmdresult.exit_status
+                stdout = self.cmdresult.stdout.strip()
+                stderr = self.cmdresult.stderr.strip()
+                detail = 'Command '
+                if exit_status != 0:
+                    detail += 'exit %d ' % exit_status
+                if len(stdout) > 0:
+                    detail += 'stdout "%s" ' % stdout
+                if len(stderr) > 0:
+                    detail += 'stderr "%s".' % stderr
+                see_previous = True
+                self.details[checker] = detail
+                duplicate = True  # all other failures will be same
+        return super(OutputGoodBase, self).prepare_results(results)
+
     # FIXME: Deprecate self.output_good in Major/Minor release
     @property
     def output_good(self):
