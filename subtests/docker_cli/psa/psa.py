@@ -43,7 +43,7 @@ class psa(subtest.Subtest):
         subargs.append('-c')
         # Write to a file when signal received
         # Loop forever until marker-file exists
-        command = ("\"rm -f stop; trap '/usr/bin/date > stop' SIGURG; "
+        command = ("\"rm -f stop; trap '/usr/bin/date > stop' SIGUSR1; "
                    "while ! [ -f stop ]; do :; done\"")
         subargs.append(command)
         self.stuff['cl0'] = DockerContainersCLI(self).get_container_list()
@@ -60,9 +60,9 @@ class psa(subtest.Subtest):
         # This is the test-subject, need to check output of docker command
         clic = DockerContainersCLICheck(self)
         self.stuff['cl1'] = clic.get_container_list()
-        sig = getattr(signal, 'SIGURG')  # odd-ball, infreq. used.
+        sig = getattr(signal, 'SIGUSR1')  # odd-ball, infreq. used.
         self.loginfo("Signaling container with signal %s", sig)
-        nfdc = NoFailDockerCmd(self, 'kill', ['--signal', "URG",
+        nfdc = NoFailDockerCmd(self, 'kill', ['--signal', "USR1",
                                               self.stuff['container_id']])
         nfdc.execute()
         self.loginfo("Waiting up to %d seconds for exit",
