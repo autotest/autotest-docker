@@ -463,12 +463,12 @@ class DockerContainersCLI(DockerContainersBase):
         if not _json[0]["State"]["Running"] or not utils.pid_is_alive(pid):
             raise ValueError("Cannot kill container %s, it is not running,"
                              " or is a defunct or zombie process" % long_id)
-        cmd = 'kill'
-        if self.kill_signal is not None:
-            signal = self.kill_signal
+        signal = self.kill_signal
+        cmd = 'kill '
+        if signal is not None:
             if signal.upper().startswith('SIG'):
                 signal = signal[3:]
-            cmd += " --signal=%s " % str(signal)
+            cmd += "--signal=%s " % str(signal)
         cmd += str(long_id)
         # Raise exception if not exit zero
         self.docker_cmd(cmd)
