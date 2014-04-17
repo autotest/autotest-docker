@@ -51,11 +51,9 @@ class build(subtest.Subtest):
         condition = self.config['build_timeout_seconds'] >= 10
         self.failif(not condition, "Config option build_timeout_seconds "
                                    "is probably too short")
-        # FIXME: Need a standard way to do this
-        image_name_tag = ("%s%s%s"
-                          % (self.config['image_name_prefix'],
-                             utils.generate_random_string(4),
-                             self.config['image_name_postfix']))
+        di = DockerImages(self)
+        image_name_tag = di.get_unique_name(self.config['image_name_prefix'],
+                                            self.config['image_name_postfix'])
         image_name, image_tag = image_name_tag.split(':', 1)
         self.stuff['image_name_tag'] = image_name_tag
         self.stuff['image_name'] = image_name

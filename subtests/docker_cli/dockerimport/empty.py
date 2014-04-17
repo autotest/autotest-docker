@@ -20,11 +20,9 @@ class empty(SubSubtest):
 
     def initialize(self):
         super(empty, self).initialize()
-        # FIXME: Need a standard way to do this
-        image_name_tag = ("%s%s%s"
-                          % (self.parent_subtest.config['image_name_prefix'],
-                             utils.generate_random_string(4),
-                             self.parent_subtest.config['image_name_postfix']))
+        di = DockerImages(self.parent_subtest)
+        image_name_tag = di.get_unique_name(self.config['image_name_prefix'],
+                                            self.config['image_name_postfix'])
         image_name, image_tag = image_name_tag.split(':', 1)
         self.sub_stuff['image_name_tag'] = image_name_tag
         self.sub_stuff['image_name'] = image_name
@@ -63,9 +61,11 @@ class empty(SubSubtest):
     def cleanup(self):
         super(empty, self).cleanup()
         if self.parent_subtest.config['try_remove_after_test']:
-            dkrcmd = NoFailDockerCmd(self.parent_subtest, 'rmi',
-                                     [self.sub_stuff['result_id']])
-            dkrcmd.execute()
+            dkrcmd = DockerCmd(self.parent_subtest, 'rmi',
+                               [self.sub_stuff['image_name_tag']])
+            cmdresult = dkrcmd.execute()
+            if cmdresult.exit_status != 0:
+                self.logwarning("Cleanup command failed: %s" % cmdresult)
 
     def run_tar(self, tar_command, dkr_command):
         command = "%s | %s" % (tar_command, dkr_command)

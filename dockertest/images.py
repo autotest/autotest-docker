@@ -272,6 +272,9 @@ class DockerImagesBase(object):
     #: implementations.
     verbose = False
 
+    #: Workaround docker problem of only accepting lower-case image names
+    gen_lower_only = True
+
     def __init__(self, subtest, timeout, verbose):
         """
         Initialize subclass operational instance.
@@ -292,6 +295,24 @@ class DockerImagesBase(object):
             self.verbose = verbose
 
         self.subtest = subtest
+
+    def get_unique_name(self, prefix="", suffix="", length=4):
+        """
+        Get unique name for a new image
+        :param prefix: Name prefix
+        :param suffix: Name suffix
+        :param length: Length of random string (greater than 1)
+        :return: Image name guaranteed to not be in-use.
+        """
+        assert length > 1
+        all_images = self.list_imgs_full_name()
+        _name = "_".join([_ for _ in (prefix, '%s', suffix) if _])
+        for _ in xrange(1000):
+            name = _name % utils.generate_random_string(length)
+            if self.gen_lower_only:
+                name = name.lower()
+            if name not in all_images:
+                return name
 
     # Not defined static on purpose
     def get_dockerimages_list(self):    # pylint: disable=R0201

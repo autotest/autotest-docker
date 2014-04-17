@@ -23,7 +23,7 @@ class delete_wrong_name(rmi_base):
 
         name_prefix = self.config["rmi_repo_tag_name_prefix"]
 
-        rand_data = utils.generate_random_string(5)
+        rand_data = utils.generate_random_string(5).lower()
         self.sub_stuff["rand_data"] = rand_data
         im_name = "%s_%s" % (name_prefix, rand_data)
         im = self.check_image_exists(im_name)

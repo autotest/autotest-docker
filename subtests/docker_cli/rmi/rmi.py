@@ -32,6 +32,7 @@ class rmi(subtest.SubSubtestCaller):
         self.stuff['base_image'] = base_image
 
 class rmi_base(SubSubtest):
+
     def initialize(self):
         super(rmi_base, self).initialize()
         config.none_if_empty(self.config)
@@ -139,19 +140,13 @@ class with_blocking_container_by_tag(rmi_base):
     def initialize(self):
         super(with_blocking_container_by_tag, self).initialize()
 
-        name_prefix = self.config["rmi_repo_tag_name_prefix"]
-
         rand_data = utils.generate_random_string(5)
         self.sub_stuff["rand_data"] = rand_data
-        im_name = "%s_%s" % (name_prefix, rand_data)
-        im = self.check_image_exists(im_name)
-        while im != []:
-            rand_data = utils.generate_random_string(5)
-            rand_data = self.sub_stuff["rand_data"] = rand_data
-            im_name = "%s_%s" % (name_prefix, rand_data)
-            im = self.check_image_exists(im_name)
 
-        self.sub_stuff["image_name"] = im_name
+        di = DockerImages(self.parent_subtest)
+        name_prefix = self.config["rmi_repo_tag_name_prefix"]
+        self.sub_stuff["image_name"] = di.get_unique_name(name_prefix)
+
         cmd_with_rand = self.config['docker_data_prepare_cmd'] % (rand_data)
 
         prep_changes = DockerCmd(self.parent_subtest, "run",
