@@ -78,6 +78,14 @@ class DockerVersionError(DockerValueError):
                 "needs to be updated, to use (possibly) changed "
                 "API." % (self.lib_version, self.config_version))
 
+class DockerAutotestVersionError(DockerVersionError):
+
+    def __str__(self):
+        return ("Installed autotest version %s less "
+                "than minimum required version %s, "
+                "please update autotest"
+                "API." % (self.lib_version, self.config_version))
+
 class DockerOutputError(DockerValueError):
 
     def __init__(self, reason):

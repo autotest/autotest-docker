@@ -75,10 +75,11 @@ Prerequisites
     *  Core-utils or equivalent (i.e. ``cat``, ``mkdir``, ``tee``, etc.)
     *  Tar and supported compression programs
     *  Git (and basic familiarity with it's operation)
-    *  Python 2.4 or greater (but not 3.0)
+    *  Python 2.6 or greater (but not 3.0)
     *  Optional (for building documentation), ``make`` and ``python-sphinx``
        or the equivilent for your platform (supplying the ``sphinx-build``
        executable)
+    *  Autotest 0.15.0 or later, specific version is configured.
 
 *  *Any specific requirements for particular* `subtest modules`_
 
@@ -311,7 +312,13 @@ file is loaded *either* from ``config_defaults`` *or* ``config_custom``.
    file will not inherit default version number changes, it **will** cause
    most tests to fail after changing dockertest API versions. This is
    intentional behavior and so this option must **not** be overriden
-   in any subtest configuration.
+   in any default/bundled subtest configuration.  It **should** be
+   overriden in custom/private test configuration.
+*  The ``autotest_version`` option specifies the minimum version
+   of the autotest framework that is required.  It may be overridden
+   by subtests to indicate they require a specific **later** version
+   than the default.  The autotest version is checked before the
+   dockertest version.
 *  The ``docker_path`` option specifies the absolute path to the
    docker executable under test.  This permits both the framework
    and/or individual sub-tests to utilize a separate compiled
@@ -482,7 +489,7 @@ mounts.
 *  Containers have access to read & write files w/in mountpoints
 
 ``docker_cli/run_volumes`` Configuration
---------------------------------------
+-------------------------------------------
 *  The ``host_paths`` and cooresponding ``cntr_paths`` are most important.
    They are the host paths and container paths comma-separated values to
    test.  There must be 1:1 coorespondance between CSVs of both options
@@ -778,6 +785,13 @@ Several variations of using ``docker start`` command
 =======================================
 
 Several variations of running the kill command
+*  random_* - series of random signals
+*  sigstop - worst case of stopped container scenario
+*  bad - bad input
+*  stress - lots of signals without waiting
+*  stress_parallel - all signals simultaneously
+*  run_sigproxy* - instead of ``docker kill`` uses ``kill`` on ``docker run``
+*  attach_sigproxy* - instead of ``dicker kill`` uses ``kill`` on ``docker attach``
 
 ``docker_cli/kill`` Prerequisites
 ---------------------------------------------
@@ -803,6 +817,11 @@ Several variations of running the kill command
    *  ``none`` - randomize for each signal
 *  The ``signals_sequence`` allows you to force given sequence of signals.
    it's generated in case it's missing and printed in log for later use.
+*  The ``kill_signals`` specifies used signals ``[range(*args)]``
+*  The ``skip_signals`` specifies which signals should be omitted
+*  The ``kill_sigproxy`` changes the kill command (false - ``docker kill``,
+   true - ``os.kill $docker_cmd.pid``.
+
 
 ``docker_cli/top`` Sub-test
 =======================================
@@ -888,8 +907,8 @@ copied successfully.
 ``docker_cli/cp`` Configuration
 --------------------------------------
 
-* The ``remove_after_test`` specifies wether to remove the
-  container created during the test.
+*  The ``remove_after_test`` specifies wether to remove the
+   container created during the test.
 
 ``docker_cli/insert`` Sub-test
 =================================
@@ -906,10 +925,26 @@ it was inserted successfully.
 ``docker_cli/insert`` Configuration
 --------------------------------------
 
-* The ``remove_after_test`` specifies wether to remove the
-  container created during the test.
-* The ``file_url`` is the url to a file to be inserted during
-  the test.
+*  The ``remove_after_test`` specifies wether to remove the
+   container created during the test.
+*  The ``file_url`` is the url to a file to be inserted during
+   the test.
+
+``docker_cli/run_twice`` Sub-test
+=================================
+
+Verify that could not run a container which is already running.
+
+``docker_cli/run_twice`` Prerequisites
+--------------------------------------
+
+*  Docker daemon is running and accessable by it's unix socket.
+
+``docker_cli/run_twice`` Configuration
+--------------------------------------
+
+*  The ``remove_after_test`` specifies wether to remove the
+   container created during the test.
 
 ----------------------------------
 Dockertest API Reference

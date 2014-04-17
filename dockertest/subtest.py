@@ -18,8 +18,10 @@ import os.path
 import imp
 import sys
 import traceback
+from autotest.client.shared import error
 from autotest.client.shared import base_job
 from autotest.client.shared.error import AutotestError
+from autotest.client.shared.version import get_version
 from autotest.client import job, test
 import version
 import config
@@ -27,7 +29,9 @@ from xceptions import DockerTestFail
 from xceptions import DockerTestNAError
 from xceptions import DockerTestError
 
+
 class Subtest(test.test):
+
     """
     Extends autotest test.test with dockertest-specific items
     """
@@ -87,15 +91,10 @@ class Subtest(test.test):
             # Log original key/values before subtest could modify them
             self.write_test_keyval(self.config)
 
-        def _version_check():  # private, no docstring pylint: disable=C0111
-            # Fail test if configuration being used doesn't match dockertest API
-            version.check_version(self.config)
-
         super(Subtest, self).__init__(*args, **dargs)
         _init_config()
         if not self.config.get('enable', True):
             raise DockerTestNAError("Subtest disabled in configuration.")
-        _version_check()
         _init_logging()
         # Optionally setup different iterations if option exists
         self.iterations = self.config.get('iterations', self.iterations)
@@ -112,7 +111,6 @@ class Subtest(test.test):
 
     def execute(self, *args, **dargs):
         """**Do not override**, needed to pull data from super class"""
-        #self.job.add_sysinfo_command("", logfile="lspci.txt")
         super(Subtest, self).execute(iterations=self.iterations,
                                      *args, **dargs)
 
@@ -128,6 +126,10 @@ class Subtest(test.test):
         """
         Called every time the test is run.
         """
+        # Fail test if autotest is too old
+        version.check_autotest_version(self.config, get_version())
+        # Fail test if configuration being used doesn't match dockertest API
+        version.check_version(self.config)
         self.loginfo("initialize()")
 
     def run_once(self):
@@ -173,6 +175,7 @@ class Subtest(test.test):
     def logdebug(self, message, *args):
         r"""
         Log a DEBUG level message to the controlling terminal **only**
+
         :param message: Same as logging.debug()
         :\*args: Same as logging.debug()
         """
@@ -222,6 +225,7 @@ class Subtest(test.test):
 
 
 class SubSubtest(object):
+
     """
     Simplistic/minimal subtest interface matched with config section
 
@@ -379,6 +383,7 @@ class SubSubtest(object):
 
 
 class SubSubtestCaller(Subtest):
+
     """
     Extends Subtest by automatically discovering and calling child subsubtests.
 
@@ -483,8 +488,12 @@ class SubSubtestCaller(Subtest):
                 try:
                     subsubtest.cleanup()
                 except Exception, detail:
-                    raise DockerTestError("Sub-subtest cleanup"
-                                          " failures: %s: %s", name, detail)
+                    self.logtraceback(name,
+                                      sys.exc_info(),
+                                      "Cleanup",
+                                      detail)
+                    raise error.TestError("Sub-subtest %s cleanup"
+                                          " failures: %s" % (name, detail))
 
         else:
             logging.warning("Failed importing sub-subtest %s", name)
@@ -576,7 +585,9 @@ class SubSubtestCaller(Subtest):
     def cleanup(self):
         super(SubSubtestCaller, self).cleanup()
 
+
 class SubSubtestCallerSimultaneous(SubSubtestCaller):
+
     """
     Variation on SubSubtestCaller that calls test methods in subsubtest order.
 

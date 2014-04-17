@@ -483,13 +483,13 @@ class stress(kill_base):
                 break
             except ValueError:
                 pass
-            else:
-                msg = ("Check line not in docker output, signal "
-                       "was probably not passed/handled properly."
-                       "\nmissing: %s\nstopped_log: %s\n"
-                       "docker_output: %s"
-                       % (line, signals_set, container_cmd.stdout))
-                raise xceptions.DockerTestFail(msg)
+        else:
+            msg = ("Check line not in docker output, signal "
+                   "was probably not passed/handled properly."
+                   "\nmissing: %s\nexpected_signals: %s\n"
+                   "docker_output: %s"
+                   % (line, signals_set, container_cmd.stdout))
+            raise xceptions.DockerTestFail(msg)
         # Kill -9
         self.sub_stuff['kill_results'].append(kill_cmds[1].execute())
         for _ in xrange(50):
@@ -601,13 +601,13 @@ class parallel_stress(kill_base):
                 break
             except ValueError:
                 pass
-            else:
-                msg = ("Check line not in docker output, signal "
-                       "was probably not passed/handled properly."
-                       "\nmissing: %s\nstopped_log: %s\n"
-                       "docker_output: %s"
-                       % (line, signals_set, container_cmd.stdout))
-                raise xceptions.DockerTestFail(msg)
+        else:
+            msg = ("Check line not in docker output, signal "
+                   "was probably not passed/handled properly."
+                   "\nmissing: %s\nexpected_signals: %s\n"
+                   "docker_output: %s"
+                   % (line, signals_set, container_cmd.stdout))
+            raise xceptions.DockerTestFail(msg)
 
         # Kill -9
         cmd = self.sub_stuff['kill_docker']

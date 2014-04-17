@@ -48,7 +48,8 @@ class rm_sub_base(SubSubtest):
     def signal_container(self, sig, name):
         self.logdebug("Sending signal %s to %s", sig, name)
         dc = DockerContainers(self.parent_subtest, 'cli')
-        return dc.kill_container_by_name(name, sig)
+        dc.kill_signal = sig
+        return dc.kill_container_by_name(name)
 
     def finish_container_nicely(self, name):
         sig = self.config['listen_signal']

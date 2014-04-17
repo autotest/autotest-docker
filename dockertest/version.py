@@ -16,6 +16,7 @@ also match (less the REVIS number).
 # pylint: disable=W0403
 
 import logging
+from distutils.version import LooseVersion
 
 import xceptions
 
@@ -24,11 +25,11 @@ import xceptions
 MAJOR = 0
 
 #: Minor API version number, as an integer (range 0-255).
-MINOR = 5
+MINOR = 6
 
 #: API Revision number, as an integer (range 0-255).  Not significant!
 #: for version comparisons. e.g. ``0.0.1 == 0.0.2 != 0.2.2``
-REVIS = 5
+REVIS = 1
 
 #: String format representation for MAJOR, MINOR, and REVIS
 FMTSTRING = "%d.%d.%d"
@@ -40,6 +41,8 @@ STRING = (FMTSTRING % (MAJOR, MINOR, REVIS))
 #: to signal version checking is impossible
 NOVERSIONCHECK = '@!NOVERSIONCHECK!@'
 
+#: If by change no autotest_version is set, use this value
+AUTOTESTVERSION = '0.15.0'
 
 def str2int(version_string):
     """
@@ -135,3 +138,15 @@ def check_version(config_section):
                                              "problem comparing '%s' to '%s'."
                                              % (str(config_version),
                                                 str(STRING)))
+
+def check_autotest_version(config_section, installed_version):
+    """
+    Raise exception if configured ``autotest_version`` < installed_version
+    """
+    cfg_version_string = config_section.get('autotest_version', '0.15.0')
+    if cfg_version_string == NOVERSIONCHECK:
+        return
+    cfg_version = LooseVersion(cfg_version_string)
+    inst_version = LooseVersion(installed_version)
+    if inst_version < cfg_version:
+        raise xceptions.DockerVersionError(str(inst_version), str(cfg_version))
