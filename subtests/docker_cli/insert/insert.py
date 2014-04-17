@@ -70,15 +70,15 @@ class insert(subtest.Subtest):
     def cleanup(self):
         super(insert, self).cleanup()
         if self.config['remove_after_test']:
+            dc = DockerContainers(self)
             try:
-                containers = DockerContainers(self, 'cli').get_container_list()
+                cl = dc.list_container_ids()
             except ValueError:
                 pass
             else:
-                ids = [x.long_id for x in containers]
-                dkrcmd = DockerCmd(self, 'kill', " ".join(ids))
+                dkrcmd = DockerCmd(self, 'kill', " ".join(cl))
                 dkrcmd.execute()
-                dkrcmd = DockerCmd(self, 'rm', " ".join(ids))
+                dkrcmd = DockerCmd(self, 'rm', " ".join(cl))
                 dkrcmd.execute()
             dkrcmd = DockerCmd(self, 'rmi', ['--force',
                                              self.stuff['inserted_image']])

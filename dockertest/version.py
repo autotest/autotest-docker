@@ -16,6 +16,7 @@ also match (less the REVIS number).
 # pylint: disable=W0403
 
 import logging
+from distutils.version import LooseVersion
 
 import xceptions
 
@@ -40,6 +41,8 @@ STRING = (FMTSTRING % (MAJOR, MINOR, REVIS))
 #: to signal version checking is impossible
 NOVERSIONCHECK = '@!NOVERSIONCHECK!@'
 
+#: If by change no autotest_version is set, use this value
+AUTOTESTVERSION = '0.15.0'
 
 def str2int(version_string):
     """
@@ -135,3 +138,15 @@ def check_version(config_section):
                                              "problem comparing '%s' to '%s'."
                                              % (str(config_version),
                                                 str(STRING)))
+
+def check_autotest_version(config_section, installed_version):
+    """
+    Raise exception if configured ``autotest_version`` < installed_version
+    """
+    cfg_version_string = config_section.get('autotest_version', '0.15.0')
+    if cfg_version_string == NOVERSIONCHECK:
+        return
+    cfg_version = LooseVersion(cfg_version_string)
+    inst_version = LooseVersion(installed_version)
+    if inst_version < cfg_version:
+        raise xceptions.DockerVersionError(str(inst_version), str(cfg_version))

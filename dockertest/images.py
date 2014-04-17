@@ -272,6 +272,9 @@ class DockerImagesBase(object):
     #: implementations.
     verbose = False
 
+    #: Workaround docker problem of only accepting lower-case image names
+    gen_lower_only = True
+
     def __init__(self, subtest, timeout, verbose):
         """
         Initialize subclass operational instance.
@@ -292,6 +295,24 @@ class DockerImagesBase(object):
             self.verbose = verbose
 
         self.subtest = subtest
+
+    def get_unique_name(self, prefix="", suffix="", length=4):
+        """
+        Get unique name for a new image
+        :param prefix: Name prefix
+        :param suffix: Name suffix
+        :param length: Length of random string (greater than 1)
+        :return: Image name guaranteed to not be in-use.
+        """
+        assert length > 1
+        all_images = self.list_imgs_full_name()
+        _name = "_".join([_ for _ in (prefix, '%s', suffix) if _])
+        for _ in xrange(1000):
+            name = _name % utils.generate_random_string(length)
+            if self.gen_lower_only:
+                name = name.lower()
+            if name not in all_images:
+                return name
 
     # Not defined static on purpose
     def get_dockerimages_list(self):    # pylint: disable=R0201
@@ -453,6 +474,8 @@ class DockerImagesCLI(DockerImagesBase):
     Docker command supported DockerImage-like instance collection and helpers.
     """
 
+    # TODO: Add boolean option to run cmdresult through output checkers
+
     def __init__(self, subtest, timeout=None, verbose=False):
         super(DockerImagesCLI, self).__init__(subtest,
                                               timeout,
@@ -510,22 +533,6 @@ class DockerImagesCLI(DockerImagesBase):
         return self.docker_cmd("rmi %s" % full_name, self.timeout)
 
 
-class DockerImagesCLICheck(DockerImagesCLI):
-    """
-    Extended ``DockerContainersCLI`` for passing test options and checking output.
-    """
-
-    #: This is probably test-subject related, be a bit more noisy
-    verbose = True
-
-    def docker_cmd(self, cmd, timeout=None):
-        cmdresult = super(DockerImagesCLICheck,
-                          self).docker_cmd(cmd, timeout)
-        # Throws exception if checks fail
-        OutputGood(cmdresult)
-        return cmdresult
-
-
 class DockerImages(object):
     """
     Encapsulates ``DockerImage`` interfaces for manipulation with docker images.
@@ -533,7 +540,7 @@ class DockerImages(object):
 
     #: Mapping of interface short-name string to DockerImagesBase subclass.
     #: (shortens line-length when instantiating)
-    interfaces = {"cli": DockerImagesCLI, 'clic': DockerImagesCLICheck}
+    interfaces = {"cli": DockerImagesCLI}
 
     def __init__(self, subtest, interface_name="cli",
                  timeout=None, verbose=False):

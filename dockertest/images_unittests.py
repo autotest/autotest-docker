@@ -10,7 +10,6 @@ import tempfile
 import types
 import unittest
 
-
 def mock(mod_path):
     name_list = mod_path.split('.')
     child_name = name_list.pop()
@@ -62,10 +61,13 @@ setattr(mock('autotest.client.shared.error'), 'CmdError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
 setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
+setattr(mock('autotest.client.shared.version'), 'get_version',
+                                               lambda :version.AUTOTESTVERSION)
 mock('autotest.client.shared.base_job')
 mock('autotest.client.shared.job')
 mock('autotest.client.job')
 
+import version
 
 class ImageTestBase(unittest.TestCase):
 
@@ -314,9 +316,9 @@ class DockerImageTestBasic(ImageTestBase):
     def test_docker_images_lowlevel(self):
         self.assertRaises(KeyError, self.images.DockerImages,
                           self.fake_subtest, 'missing')
-        images = self.images.DockerImages(self.fake_subtest, "clic")
-        self.assertEqual(images.interface_name, "DockerImagesCLICheck")
-        self.assertEqual(images.interface_shortname, "clic")
+        images = self.images.DockerImages(self.fake_subtest, "cli")
+        self.assertEqual(images.interface_name, "DockerImagesCLI")
+        self.assertEqual(images.interface_shortname, "cli")
 
         self.assertEqual(images.docker_cmd("command_pass").command,
                          '/foo/bar command_pass')

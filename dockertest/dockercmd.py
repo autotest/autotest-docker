@@ -206,7 +206,7 @@ class AsyncDockerCmd(DockerCmdBase):
         :return: A partial CmdResult instance
         """
         self._async_job = utils.AsyncJob(self.command, verbose=False,
-                                         stdin=stdin)
+                                         stdin=stdin, close_fds=True)
         return self._async_job.result
 
     def wait(self, timeout=None):

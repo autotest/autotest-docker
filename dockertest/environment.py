@@ -59,7 +59,6 @@ class AllGoodBase(object):
         """
         Make results of individual checkers accessible in human-readable format.
         """
-
         goods = [name for (name, result) in self.results.items() if result]
         bads = [name for (name, result) in self.results.items() if not result]
         if self:  # use self.__nonzero__()
@@ -109,7 +108,7 @@ class AllGoodBase(object):
     def prepare_results(self, results):
 
         """
-        Called to process results into instance results attribute
+        Called to process results into instance results and details attributes
 
         :param results: Dict-like of output from callables, keyed by name
         :returns: Dict-like for assignment to instance results attribute.

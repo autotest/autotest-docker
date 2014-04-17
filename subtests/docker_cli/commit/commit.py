@@ -42,10 +42,9 @@ class commit_base(SubSubtest):
     def initialize(self):
         super(commit_base, self).initialize()
         config.none_if_empty(self.config)
-
+        di = DockerImages(self.parent_subtest)
         name_prefix = self.config["commit_repo_name_prefix"]
-        new_img_name = "%s_%s" % (name_prefix,
-                                  utils.generate_random_string(8))
+        new_img_name = di.get_unique_name(name_prefix)
         self.sub_stuff["new_image_name"] = new_img_name
 
         self.sub_stuff['rand_data'] = utils.generate_random_string(8)

@@ -3,13 +3,12 @@
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
+import unittest
+import sys
+import types
+import tempfile
 import os
 import shutil
-import sys
-import tempfile
-import types
-import unittest
-
 
 class ContainersTestBase(unittest.TestCase):
 
@@ -147,7 +146,10 @@ setattr(mock('autotest.client.shared.error'), 'TestFail', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
 setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
+setattr(mock('autotest.client.shared.version'), 'get_version',
+                                               lambda :version.AUTOTESTVERSION)
 
+import version
 
 class DockerContainersTestBase(ContainersTestBase):
 
@@ -240,7 +242,7 @@ class DockerContainersTest(DockerContainersTestBase):
         self.assertNotEqual(len(dcc.json_by_name("suspicious_pare")), 0)
 
     def test_noports(self):
-        dcc = self.containers.DockerContainersCLICheck(self.fake_subtest)
+        dcc = self.containers.DockerContainersCLI(self.fake_subtest)
         short_id = "ac8c9fa367f9"
         cl = [c for c in dcc.list_containers() if c.cmp_id(short_id)]
         self.assertEqual(len(cl), 1)

@@ -41,10 +41,10 @@ class tag_base(SubSubtest):
         super(tag_base, self).initialize()
         config.none_if_empty(self.config)
 
+        di = DockerImages(self.parent_subtest)
+        di.gen_lower_only = self.config['gen_lower_only']
         name_prefix = self.config["tag_repo_name_prefix"]
-
-        new_img_name = "%s_%s" % (name_prefix,
-                                  utils.generate_random_string(8))
+        new_img_name = di.get_unique_name(name_prefix)
         while self.check_image_exists(new_img_name):
             new_img_name = "%s_%s" % (name_prefix,
                                   utils.generate_random_string(8))
