@@ -314,9 +314,9 @@ class DockerImageTestBasic(ImageTestBase):
     def test_docker_images_lowlevel(self):
         self.assertRaises(KeyError, self.images.DockerImages,
                           self.fake_subtest, 'missing')
-        images = self.images.DockerImages(self.fake_subtest, "clic")
-        self.assertEqual(images.interface_name, "DockerImagesCLICheck")
-        self.assertEqual(images.interface_shortname, "clic")
+        images = self.images.DockerImages(self.fake_subtest, "cli")
+        self.assertEqual(images.interface_name, "DockerImagesCLI")
+        self.assertEqual(images.interface_shortname, "cli")
 
         self.assertEqual(images.docker_cmd("command_pass").command,
                          '/foo/bar command_pass')
