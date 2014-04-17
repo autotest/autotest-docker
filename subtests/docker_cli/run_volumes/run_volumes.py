@@ -127,7 +127,7 @@ class volumes_rw(volumes_base):
         self.init_dkrcmds(self, path_info, dockercmds)
         self.sub_stuff['cmdresults'] = []
         for dcmd in dockercmds:
-           self.logdebug("Initialized Docker command: %s", dcmd.command)
+            self.logdebug("Initialized Docker command: %s", dcmd.command)
 
     def run_once(self):
         super(volumes_rw, self).run_once()
@@ -151,7 +151,8 @@ class volumes_rw(volumes_base):
 
     def postprocess(self):
         super(volumes_rw, self).postprocess()
-        results_data = zip(self.sub_stuff['cmdresults'], self.sub_stuff['path_info'])
+        results_data = zip(self.sub_stuff['cmdresults'],
+                           self.sub_stuff['path_info'])
         for cmdresult, test_dict in results_data:
             self.failif(cmdresult.exit_status != 0,
                         "Non-zero exit status: %s" % cmdresult)
