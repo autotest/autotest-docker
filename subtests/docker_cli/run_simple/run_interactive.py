@@ -39,12 +39,11 @@ class run_interactive(run_base):
 
         self.loginfo("Container running, waiting %d seconds to finish"
                      "interactive cmds %s" %
-                                     (self.config['wait_interactive_cmd'],
-                                      self.config['interactive_cmd']))
+                    (self.config['wait_interactive_cmd'],
+                     self.config['interactive_cmd']))
         time.sleep(self.config['wait_interactive_cmd'])
         os.close(in_pipe_w)
         dkrcmd.wait()
-
 
     def postprocess(self):
         super(run_base, self).postprocess()  # Prints out basic info
@@ -62,6 +61,6 @@ class run_interactive(run_base):
         self.failif(not str_in_output in cmd_stdout,
                     "Command %s output must contain %s but doesn't."
                     " Detail:%s" %
-                        (self.config["interactive_cmd"],
-                         str_in_output,
-                         self.sub_stuff['cmdresult']))
+                   (self.config["interactive_cmd"],
+                    str_in_output,
+                    self.sub_stuff['cmdresult']))
