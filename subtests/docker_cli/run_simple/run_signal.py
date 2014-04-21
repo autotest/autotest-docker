@@ -23,14 +23,16 @@ class run_signal(run_base):
                                 timeout=self.config['docker_timeout'])
         dkrcmd.verbose = True
         # Runs in background
-        self.sub_stuff['cmdresult'] = dkrcmd.execute()
+        cmdresult = self.sub_stuff['cmdresult'] = dkrcmd.execute()
         pid = dkrcmd.process_id
         self.loginfo("Container running, waiting %d seconds to send signal"
                      % self.config['wait_start'])
         # Allow noticable time difference for date command,
         # and eat into dkrcmd timeout after receiving signal.
         time.sleep(self.config['wait_start'])
-
+        self.failif(not utils.pid_is_alive(pid),
+                    "Pid %s not running after wait: %s"
+                    % (pid, cmdresult))
         self.loginfo("Signaling pid %d with signal %s",
                      pid, self.config['listen_signal'])
         utils.signal_pid(pid, sig)
