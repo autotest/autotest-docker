@@ -12,12 +12,86 @@ Test run of docker build command
 # pylint: disable=C0103,C0111,R0904,C0103
 
 import os, os.path, shutil, time
-from autotest.client import utils
+from urllib2 import urlopen
 from dockertest import subtest
 from dockertest.images import DockerImages
+from dockertest.containers import DockerContainers
 from dockertest.output import OutputGood
 from dockertest.dockercmd import AsyncDockerCmd
+from dockertest.dockercmd import DockerCmd
 from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.xceptions import DockerTestNAError
+
+class NotSeenString(object):
+    """
+    Represent the next line of a string not already returned previously
+    """
+
+    #: Callable returning string
+    source = None
+
+    #: Passed through to source if callable
+    args = None
+
+    #: Passed through to source if callable
+    dargs = None
+
+    #: Current End line & Start line next time
+    end = 0
+
+    #: Private cache of next available string
+    _cache = None
+
+    def __init__(self, source, *args, **dargs):
+        r"""
+        Initialize new instance checking on source property or callable
+
+        :param source: Callable returning a string
+        :param \*args: Passed through to source if callable
+        :param \*\*dargs: Passed through to source if callable
+        """
+        self.source = source
+        self.args = args
+        self.dargs = dargs
+        self._cache = None
+
+    def __str__(self):
+        """
+        Return next unseen line or empty-string
+        """
+        if self._cache is None:
+            self.has_new_line()
+        # Above could update _cache
+        if self._cache is not None:
+            result = self._cache
+            self._cache = None
+            return result
+        else:
+            return ''
+
+    def has_new_line(self):
+        """
+        Return True if an unseen line is available
+        """
+        if self._cache is not None:
+            return True
+        if callable(self.source):
+            newvalue = self.source(*self.args, **self.dargs)
+        else:
+            newvalue = self.source
+        lines = newvalue.splitlines()
+        if len(lines) > self.end:
+            del lines[0:self.end]
+            self.end += 1
+        else:
+            return None # no new lines
+        result = lines[0]
+        stripped = result.strip()
+        if len(stripped) > 0:
+            self._cache = result.rstrip()  # only remove trailing whitespace
+            return True
+        else:
+            return False  # skip blank line
 
 class build(subtest.Subtest):
     config_section = 'docker_cli/build'
@@ -31,15 +105,9 @@ class build(subtest.Subtest):
             dst = os.path.join(self.srcdir, filename)
             shutil.copy(src, dst)
         # Must exist w/in directory holding Dockerfile
-        from httplib import HTTPConnection
-        import logging
-        url = self.config['busybox_url'].split("/", 1)
-        logging.debug("Downloading busybox from http://%s%s location",
-                      url[0], url[1])
-        url[1] = "/" + url[1]     # Add the removed '/'
-        conn = HTTPConnection(url[0])
-        conn.request("GET", url[1])
-        resp = conn.getresponse()
+        urlstr = self.config['busybox_url'].strip()
+        self.logdebug("Downloading busybox from %s", urlstr)
+        resp = urlopen(urlstr, timeout=30)
         data = resp.read()
         busybox = os.open(os.path.join(self.srcdir, 'busybox'),
                           os.O_WRONLY | os.O_CREAT, 0755)
@@ -73,9 +141,12 @@ class build(subtest.Subtest):
                                 self.config['build_timeout_seconds'])
         self.loginfo("Executing background command: %s" % dkrcmd)
         dkrcmd.execute()
+        nss = NotSeenString(getattr, dkrcmd, 'stdout')
         while not dkrcmd.done:
-            self.loginfo("Building...")
-            time.sleep(3)
+            if nss.has_new_line():
+                self.loginfo("Building: %s" % nss)
+            else:
+                time.sleep(3)
         self.stuff["cmdresult"] = dkrcmd.wait()
 
     def postprocess(self):
@@ -99,10 +170,14 @@ class build(subtest.Subtest):
     def cleanup(self):
         super(build, self).cleanup()
         # Auto-converts "yes/no" to a boolean
-        if (self.config['try_remove_after_test'] and
-                                             self.stuff.has_key('image_id')):
+        if self.config['try_remove_after_test']:
+            dc = DockerContainers(self)
+            for cid in dc.list_container_ids():
+                dcmd = DockerCmd(self, 'rm', ['--force', '--volumes', cid])
+                dcmd.execute()
             di = DockerImages(self)
-            di.remove_image_by_id(self.stuff['image_id'])
+            if self.stuff.get('image_id') is not None:
+                di.remove_image_by_id(self.stuff['image_id'])
             di.remove_image_by_full_name("empty_base_image")
             self.loginfo("Successfully removed test images")
         else:
