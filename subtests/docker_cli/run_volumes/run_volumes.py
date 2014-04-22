@@ -25,15 +25,18 @@ from dockertest.xceptions import DockerCommandError
 from dockertest.xceptions import DockerExecError
 from dockertest.xceptions import DockerTestNAError
 
+
 class run_volumes(SubSubtestCaller):
     config_section = 'docker_cli/run_volumes'
 
+
 class volumes_base(SubSubtest):
+
     @staticmethod
     def make_test_files(host_path):
         # Symlink can't be mountpoint (e.g. for NFS, SMB, etc.)
         if (not os.path.isdir(host_path) or
-            os.path.islink(host_path)):
+                os.path.islink(host_path)):
             raise DockerTestNAError('Configured path "%s" is a symlink '
                                     'or not a directory' % host_path)
         read_fn = utils.generate_random_string(24)
@@ -48,15 +51,15 @@ class volumes_base(SubSubtest):
     @staticmethod
     def make_test_dict(read_fn, write_fn, read_data, read_hash,
                        host_path, cntr_path):
-        return {'read_fn':read_fn, 'write_fn':write_fn,
-                'read_data':read_data, 'read_hash':read_hash,
-                'write_hash':None,  # Filled in after execute()
-                'host_path':host_path, 'cntr_path':cntr_path}
+        return {'read_fn': read_fn, 'write_fn': write_fn,
+                'read_data': read_data, 'read_hash': read_hash,
+                'write_hash': None,  # Filled in after execute()
+                'host_path': host_path, 'cntr_path': cntr_path}
 
     @staticmethod
     def init_path_info(path_info, host_paths, cntr_paths):
         for host_path, cntr_path in zip(host_paths, cntr_paths):
-            #check for a valid host path for the test
+            # check for a valid host path for the test
             if not host_path or len(host_path) < 4:
                 raise DockerTestNAError("host_path '%s' invalid." % host_path)
             if not cntr_path or len(cntr_path) < 4:
@@ -100,7 +103,7 @@ class volumes_base(SubSubtest):
             pass  # not running is the goal
         except KeyError:
             subtest.logwarning("Container %s not found for for command %s",
-                            cid, cmdresult.command)
+                               cid, cmdresult.command)
 
     @staticmethod
     def try_rm(subtest, cmdresult):
@@ -114,7 +117,9 @@ class volumes_base(SubSubtest):
         except DockerCommandError, xcept:
             subtest.logwarning("Container remove failed: %s", xcept)
 
+
 class volumes_rw(volumes_base):
+
     def initialize(self):
         super(volumes_rw, self).initialize()
         host_paths = self.config['host_paths'].strip().split(',')
@@ -147,7 +152,7 @@ class volumes_rw(volumes_base):
                 test_dict['write_hash'] = data.strip().split(None, 1)[0]
             except (IOError, OSError, IndexError, AttributeError), xcept:
                 self.logerror("Problem reading hash from output file: %s: %s",
-                               write_path, xcept.__class__.__name__, xcept)
+                              write_path, xcept.__class__.__name__, xcept)
 
     def postprocess(self):
         super(volumes_rw, self).postprocess()
@@ -160,8 +165,8 @@ class volumes_rw(volumes_base):
             rh = test_dict['read_hash']
             self.failif(wh != rh, "Test hash mismatch for %s; "
                                   "%s (test wrote) != %s (test read)"
-                                   # order is backwards for output readability
-                                   % (cmdresult.command, rh, wh))
+                        # order is backwards for output readability
+                        % (cmdresult.command, rh, wh))
 
     def cleanup(self):
         super(volumes_rw, self).cleanup()
