@@ -147,6 +147,10 @@ class Subtest(test.test):
         # Fail test if configuration being used doesn't match dockertest API
         version.check_version(self.config)
         self.loginfo("initialize()")
+        msg = "Subtest %s configuration:\n" % self.__class__.__name__
+        for key, value in self.config.items():
+            msg += '\t\t%s = "%s"\n' % (key, value)
+        self.logdebug(msg)
 
     def run_once(self):
         """
@@ -321,7 +325,10 @@ class SubSubtest(object):
                     self.config[key] = val
             else:
                 self.config[key] = val
-            self.logdebug("Config.: %s = %s", key, self.config[key])
+        msg = "Sub-subtest %s configuration:\n" % self.__class__.__name__
+        for key, value in self.config.items():
+            msg += '\t\t%s = "%s"\n' % (key, value)
+        self.logdebug(msg)
         return self.config
 
     def initialize(self):
