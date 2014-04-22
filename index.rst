@@ -947,18 +947,18 @@ Verify that could not run a container which is already running.
    container created during the test.
 
 ``docker_cli/diff`` Sub-test
-=================================
+============================
 
 This set of tests modifies files within an image and then
 asserts that the changes are picked up correctly by ``docker diff``
 
 ``docker_cli/diff`` Prerequisites
---------------------------------------
+---------------------------------
 
 *  Docker daemon is running and accessable by it's unix socket.
 
 ``docker_cli/diff`` Configuration
---------------------------------------
+---------------------------------
 
 *  The ``remove_after_test`` specifies wether to remove the
    container created during the test.
