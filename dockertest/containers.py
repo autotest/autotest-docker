@@ -130,6 +130,9 @@ class DockerContainersBase(object):
     #: implementations.
     verbose = False
 
+    #: Gathering layer-size data is potentially very slow, skip by default
+    get_size = True
+
     def __init__(self, subtest, timeout, verbose):
         """
         Initialize subclass operational instance.
@@ -346,8 +349,12 @@ class DockerContainersCLI(DockerContainersBase):
 
     # private methods don't need docstrings
     def _get_container_list(self):  # pylint: disable=C0111
-        return self.docker_cmd("ps -a --no-trunc --size",
-                               self.timeout)
+        if not self.get_size:
+            return self.docker_cmd("ps -a --no-trunc",
+                                   self.timeout)
+        else:
+            return self.docker_cmd("ps -a --no-trunc --size",
+                                   self.timeout)
 
     # private methods don't need docstrings
     def _parse_lines(self, d_psa_stdout):  # pylint: disable=C0111
