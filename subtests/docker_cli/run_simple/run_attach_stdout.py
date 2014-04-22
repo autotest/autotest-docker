@@ -38,8 +38,8 @@ class run_attach_stdout(run_base):
         run_in_pipe_r, run_in_pipe_w = os.pipe()
         attach_in_pipe_r, attach_in_pipe_w = os.pipe()
         dkrcmd = AsyncDockerCmd(self.parent_subtest, 'run',
-                           self.sub_stuff['subargs'],
-                           timeout=self.config['docker_timeout'])
+                                self.sub_stuff['subargs'],
+                                timeout=self.config['docker_timeout'])
         dkrcmd.verbose = True
         # Runs in background
         self.sub_stuff['cmdresult'] = dkrcmd.execute(run_in_pipe_r)
@@ -68,7 +68,6 @@ class run_attach_stdout(run_base):
         self.sub_stuff['cmd_attach'] = dkrcmd
         self.sub_stuff['cmdresult_attach'] = dkrcmd.execute(attach_in_pipe_r)
 
-
         # This input should be ignored.
         os.write(run_in_pipe_w,
                  self.config['interactive_cmd_run'] + "\n")
@@ -93,23 +92,23 @@ class run_attach_stdout(run_base):
         self.failif(str_not_in_output in cmd_stdout,
                     "Command %s output must not contain %s."
                     " Detail:%s" %
-                        (self.config["bash_cmd"],
-                         str_not_in_output,
-                         self.sub_stuff['cmdresult']))
+                   (self.config["bash_cmd"],
+                    str_not_in_output,
+                    self.sub_stuff['cmdresult']))
 
         self.failif(str_not_in_output in cmd_stdout_attach,
                     "Command %s output must not contain %s."
                     " Detail:%s" %
-                        (self.config["bash_cmd"],
-                         str_not_in_output,
-                         self.sub_stuff['cmdresult_attach']))
+                   (self.config["bash_cmd"],
+                    str_not_in_output,
+                    self.sub_stuff['cmdresult_attach']))
 
         self.failif(not str_in_output in cmd_stdout_attach,
                     "Command %s output must contain %s but doesn't."
                     " Detail:%s" %
-                        (self.config["bash_cmd"],
-                         str_in_output,
-                         self.sub_stuff['cmdresult_attach']))
+                   (self.config["bash_cmd"],
+                    str_in_output,
+                    self.sub_stuff['cmdresult_attach']))
 
     def cleanup(self):
         super(run_attach_stdout, self).cleanup()

@@ -67,7 +67,11 @@ class DockerRuntimeError(RuntimeError, AutotestError):
 
 class DockerVersionError(DockerValueError):
 
-    def __init__(self, lib_version, config_version):
+    def __init__(self, lib_version=None, config_version=None):
+        if lib_version is None:
+            lib_version = "Unknown"
+        if config_version is None:
+            config_version = "Unknown"
         self.lib_version = lib_version
         self.config_version = config_version
         super(DockerVersionError, self).__init__()

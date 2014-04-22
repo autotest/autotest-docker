@@ -7,8 +7,11 @@ results.
 
 from dockertest.subtest import SubSubtest, SubSubtestCallerSimultaneous
 from dockertest.dockercmd import DockerCmd
+from dockertest.containers import DockerContainers
+from dockertest.images import DockerImages
 from dockertest.output import OutputGood
 from dockertest.images import DockerImage
+from autotest.client.shared import error
 
 
 class run_simple(SubSubtestCallerSimultaneous):
@@ -24,6 +27,10 @@ class run_base(SubSubtest):
         self.sub_stuff['subargs'].append(fin)
         self.sub_stuff['subargs'] += self.config['bash_cmd'].split(',')
         self.sub_stuff['subargs'].append(self.config['cmd'])
+        self.sub_stuff["containers"] = []
+        self.sub_stuff["images"] = []
+        self.sub_stuff["cont"] = DockerContainers(self.parent_subtest)
+        self.sub_stuff["img"] = DockerImages(self.parent_subtest)
 
     def run_once(self):
         super(run_base, self).run_once()    # Prints out basic info
@@ -42,8 +49,35 @@ class run_base(SubSubtest):
                     % self.sub_stuff['cmdresult'])
         self.logdebug(self.sub_stuff['cmdresult'])
 
+    def cleanup(self):
+        super(run_base, self).cleanup()
+        # Auto-converts "yes/no" to a boolean
+        if self.config['remove_after_test']:
+            for cont in self.sub_stuff["containers"]:
+                dkrcmd = DockerCmd(self.parent_subtest, "rm",
+                                   ['--volumes', '--force', cont])
+                cmdresult = dkrcmd.execute()
+                msg = (" removed test container: %s" % cont)
+                if cmdresult.exit_status == 0:
+                    self.logdebug("Successfully" + msg)
+                else:
+                    self.logwarning("Failed" + msg)
+            for image in self.sub_stuff["images"]:
+                try:
+                    di = DockerImages(self.parent_subtest)
+                    self.logdebug("Removing image %s", image)
+                    di.remove_image_by_full_name(image)
+                    self.logdebug("Successfully removed test image: %s",
+                                  image)
+                except error.CmdError, e:
+                    error_text = "tagged in multiple repositories"
+                    if not error_text in e.result_obj.stderr:
+                        raise
+
+
 class run_true(run_base):
     pass  # Only change is in configuration
+
 
 class run_false(run_base):
     pass  # Only change is in configuration
