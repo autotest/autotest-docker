@@ -459,6 +459,8 @@ class SubSubtestCaller(Subtest):
         """
         super(SubSubtestCaller, self).initialize()
         # Private to this instance, outside of __init__
+        if not self.config['subsubtests']:
+            raise DockerTestNAError("No subsubtests enabled in configuration.")
         self.subsubtest_names = self.config['subsubtests'].strip().split(",")
 
     def try_all_stages(self, name, subsubtest):
