@@ -12,23 +12,27 @@ Test output of docker diff command
 from autotest.client import utils
 from dockertest.dockercmd import DockerCmd
 from dockertest.dockercmd import NoFailDockerCmd
-from dockertest.images import DocdokerImage
+from dockertest.images import DockerImage
+from dockertest.containers import DockerContainers
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
 import os
 
 class diff(SubSubtestCaller):
-    config_section = 'docker_cli/diff'
+    pass
 
 class diff_base(SubSubtest):
     @staticmethod
     def parse_diff_output(output):
-        return dict([(y[1], y[0]) for y in
-                    [x.split() for x in output.split('\n') if x]])
+        xsplit = [x.split() for x in output.split('\n') if x]
+        ysplit = [(y[1], y[0]) for y in xsplit]
+        return dict(ysplit)
 
     def initialize(self):
         super(diff_base, self).initialize()
-        name = self.sub_stuff['name'] = utils.generate_random_string(12)
+        dc = DockerContainers(self.parent_subtest)
+        scn = self.__class__.__name__
+        name = self.sub_stuff['name'] = dc.get_unique_name(prefix=scn)
         fin = DockerImage.full_name_from_defaults(self.config)
         subargs = ['--name=%s' % (name), fin]
         subargs = subargs + self.config['command'].split(',')
@@ -47,14 +51,16 @@ class diff_base(SubSubtest):
     def postprocess(self):
         super(diff_base, self).postprocess()
         diffmap = self.parse_diff_output(self.sub_stuff['cmdresult'].stdout)
-        expected = self.config['files_changed'].split(',')
-        expected = dict(zip(expected[1::2], expected[::2]))
-        for i in expected.keys():
-            self.failif(not diffmap.has_key(i),
-                        "Change to file: %s not detected." % (i))
-            self.failif(expected[i] != diffmap[i],
+        files_changed = self.config['files_changed'].split(',')
+        odds = files_changed[1::2]
+        even = files_changed[::2]
+        expected = zip(odds, even)
+        for key, value in expected:
+            self.failif(not diffmap.has_key(key),
+                        "Change to file: %s not detected." % (key))
+            self.failif(value != diffmap[key],
                         "Change type detection error for "
-                        "change: %s %s" % (expected[i], i))
+                        "change: %s %s" % (value, key))
 
     def cleanup(self):
         super(diff_base, self).cleanup()
