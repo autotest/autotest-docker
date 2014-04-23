@@ -1170,6 +1170,26 @@ via bind-mount /dev/log to containers.
 --------------------------------------
 
 
+``docker_cli/flag`` Sub-test
+=================================
+
+Simple test that checks the flag of the ``docker`` command.
+It will run container using the flag character, and then verify that
+it was not allowed.
+
+``docker_cli/flag`` Prerequisites
+-------------------------------------
+
+*  Docker daemon is running and accessible by it's unix socket.
+
+``docker_cli/flag`` Configuration
+--------------------------------------
+*  The option ``remove_after_test`` specifies whether to remove the
+   container created during the test.
+*  Customized configuration for ``flag_args`` and ``searched_info``
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
+
 ----------------------------------
 Dockertest API Reference
 ----------------------------------
