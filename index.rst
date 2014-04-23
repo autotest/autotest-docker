@@ -946,6 +946,28 @@ Verify that could not run a container which is already running.
 *  The ``remove_after_test`` specifies wether to remove the
    container created during the test.
 
+``docker_cli/diff`` Sub-test
+============================
+
+This set of tests modifies files within an image and then
+asserts that the changes are picked up correctly by ``docker diff``
+
+``docker_cli/diff`` Prerequisites
+---------------------------------
+
+*  Docker daemon is running and accessable by it's unix socket.
+
+``docker_cli/diff`` Configuration
+---------------------------------
+
+*  The ``remove_after_test`` specifies wether to remove the
+   container created during the test.
+*  ``command`` is a csv arg list to ``docker run`` that specifies
+   how a test will modify a file for the test
+*  ``files_changed`` is a csv list of expected change types and the
+   files/direcotires that are changed.  It is in the form of:
+   <change type 1>,<path 1>,<change type 2>,<path 2> and so on.
+
 ----------------------------------
 Dockertest API Reference
 ----------------------------------

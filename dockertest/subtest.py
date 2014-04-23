@@ -48,8 +48,8 @@ class Subtest(test.test):
     #: The number of iterations to run in total, override this in subclass.
     iterations = 1
 
-    #: Configuration section used for subclass, read-only / set by Subtest class
-    config_section = 'DEFAULTS'
+    #: Configuration section used for subclass, set by Subtest or auto-generated
+    config_section = None
 
     #: Private namespace for use by subclasses **ONLY**.  This attribute
     #: is completely ignored everywhere inside the dockertest API.  Subtests
@@ -68,17 +68,33 @@ class Subtest(test.test):
         :param *args & **dargs:  Ignored, passed through to parent class.
         """
 
+        def _make_cfgsect():
+            testpath = os.path.abspath(self.bindir)
+            testpath = os.path.normpath(testpath)
+            dirlist = testpath.split('/')  # is there better way?
+            dirlist.reverse()  # pop from the root-down
+            # Throws an IndexError if list becomes empty
+            while dirlist.pop() != 'subtests':
+                pass  # work already done :)
+            dirlist.reverse()  # correct order
+            return os.path.join(*dirlist)  # i.e. docker_cli/run_tiwce
+
         def _init_config():  # private, no docstring pylint: disable=C0111
             # So tests don't need to set this up every time
             config_parser = config.Config()
             self.config = config_parser.get(self.config_section)
             if self.config is None:
-                logging.warning("No configuration section found '%s'",
-                                self.config_section)
-                self.config = config_parser['DEFAULTS']
-                # Mark this to not be checked, no config, no version info.
-                self.config['config_version'] = version.NOVERSIONCHECK
-                self.version = 0
+                # Try generating config_section name
+                config_section = _make_cfgsect()  # not exist: need class-attr
+                # instance isn't setup yet, logging doesn't work :(
+                if config_section in config_parser:
+                    self.config_section = config_section
+                    self.config = config_parser.get(self.config_section)
+                else:  # auto-generate failed
+                    self.config = config_parser['DEFAULTS']
+                    # Mark this to not be checked, no config, no version info.
+                    self.config['config_version'] = version.NOVERSIONCHECK
+                    self.version = 0
             else:
                 # Version number used by one-time setup() test.test method
                 self.version = version.str2int(self.config['config_version'])

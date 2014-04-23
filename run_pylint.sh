@@ -1,8 +1,8 @@
 #!/bin/bash
 
 MSGFMT='{msg_id}:{line:3d},{column}: {obj}: {msg}'
-DISABLEMSG="I0011,R0801,R0904"
-SUBTESTDISABLEMSG="I0011,R0801,R0904"
+DISABLEMSG="I0011,R0801,R0904,R0921,R0922"
+SUBTESTDISABLEMSG="I0011,R0801,R0904,E1101,E1002,R0903,F0401,C0103,C0111"
 INIT_HOOK="
 AP = os.environ.get('AUTOTEST_PATH', '/usr/local/autotest')
 sys.path.append(os.path.abspath(AP + '/..'))
@@ -21,14 +21,16 @@ then
     cd "$MYDIR"
 fi
 
-echo "======================================= dockertest"
+echo -e "\n\n======================================= dockertest"
 find dockertest -name '*.py' -a -not -name '*_unittest*.py' | xargs \
     pylint -rn --init-hook="$INIT_HOOK" \
            --disable="$DISABLEMSG" \
            --output-format="colorized" \
            --rcfile=/dev/null \
            --msg-template="$MSGFMT"
-echo "======================================= subtests"
+
+
+echo -e "\n\n======================================= subtests"
 INIT_HOOK="
 AP = os.environ.get('AUTOTEST_PATH', '/usr/local/autotest')
 sys.path.append(os.path.abspath(AP + '/..'))
