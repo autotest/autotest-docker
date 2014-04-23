@@ -25,11 +25,12 @@ class run_signal(run_base):
         # Runs in background
         cmdresult = self.sub_stuff['cmdresult'] = dkrcmd.execute()
         pid = dkrcmd.process_id
+        wait_start = self.config['wait_start']
         self.loginfo("Container running, waiting %d seconds to send signal"
-                     % self.config['wait_start'])
+                     % wait_start)
         # Allow noticable time difference for date command,
         # and eat into dkrcmd timeout after receiving signal.
-        time.sleep(self.config['wait_start'])
+        time.sleep(wait_start)
         self.failif(not utils.pid_is_alive(pid),
                     "Pid %s not running after wait: %s"
                     % (pid, cmdresult))
