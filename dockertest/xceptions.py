@@ -8,6 +8,9 @@ Exception subclasses specific to docker subtests
 # The exception names don't need docstrings
 # pylint: disable=C0111
 
+# Some code runs deep, many ancestors actually needed
+# pylint: disable=R0901
+
 from autotest.client.shared import error
 from ConfigParser import InterpolationError
 

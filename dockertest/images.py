@@ -474,7 +474,8 @@ class DockerImagesCLI(DockerImagesBase):
     Docker command supported DockerImage-like instance collection and helpers.
     """
 
-    # TODO: Add boolean option to run cmdresult through output checkers
+    #: Run important docker commands output through OutputGood when True
+    verify_output = False
 
     def __init__(self, subtest, timeout=None, verbose=False):
         super(DockerImagesCLI, self).__init__(subtest,
@@ -512,6 +513,14 @@ class DockerImagesCLI(DockerImagesBase):
                          verbose=self.verbose,
                          timeout=timeout)
 
+    def docker_cmd_check(self, cmd, timeout=None):
+        """
+        Wrap docker_cmd, running result through OutputGood before returning
+        """
+        result = self.docker_cmd(cmd, timeout=None)
+        OutputGood(result)
+        return result
+
     def get_dockerimages_list(self):
         stdout = self._get_images_list().stdout
         return self._parse_colums(stdout)
@@ -522,7 +531,11 @@ class DockerImagesCLI(DockerImagesBase):
 
         :returns: ``autotest.client.utils.CmdResult`` instance
         """
-        return self.docker_cmd("rmi %s" % image_id, self.timeout)
+        if self.verify_output:
+            dkrcmd = self.docker_cmd_check
+        else:
+            dkrcmd = self.docker_cmd
+        return dkrcmd("rmi %s" % image_id, self.timeout)
 
     def remove_image_by_full_name(self, full_name):
         """
@@ -530,7 +543,11 @@ class DockerImagesCLI(DockerImagesBase):
 
         :returns: ``autotest.client.utils.CmdResult`` instance
         """
-        return self.docker_cmd("rmi %s" % full_name, self.timeout)
+        if self.verify_output:
+            dkrcmd = self.docker_cmd_check
+        else:
+            dkrcmd = self.docker_cmd
+        return dkrcmd("rmi %s" % full_name, self.timeout)
 
 
 class DockerImages(object):

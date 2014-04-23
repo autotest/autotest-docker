@@ -30,6 +30,8 @@ import signal
 from autotest.client import utils
 from autotest.client.shared import error
 from images import DockerImages
+from output import OutputGood
+
 
 # Many attributes simply required here
 class DockerContainer(object):  # pylint: disable=R0902
@@ -118,8 +120,6 @@ class DockerContainersBase(object):
     Implementation defined collection of DockerContainer-like instances with
     helpers
     """
-
-    # TODO: Add boolean option to run cmdresult through output checkers
 
     #: Operational timeout, may be overridden by subclasses and/or parameters.
     #: May not be used/enforced equally by all implementations.
@@ -274,7 +274,6 @@ class DockerContainersBase(object):
         """
         raise RuntimeError()
 
-    # TODO: Decide if this should be abstract similar to json_by_long_id
     def kill_container_by_name(self, container_name):
         """
         Use docker CLI 'kill' command on container's long_id, by name lookup.
@@ -287,8 +286,6 @@ class DockerContainersBase(object):
         :raises ValueError: if container not running, defunct, or zombie
         """
         raise RuntimeError()
-
-    # TODO: Add more filter methods
 
     # Disbled by default extension point, can't be static.
     def remove_by_id(self, container_id):  # pylint: disable=R0201
@@ -341,6 +338,9 @@ class DockerContainersCLI(DockerContainersBase):
 
     #: Name of signal to send when killing container, None for default
     kill_signal = None
+
+    #: #: Run important docker commands output through OutputGood when True
+    verify_output = False
 
     def __init__(self, subtest, timeout=120, verbose=False):
         super(DockerContainersCLI, self).__init__(subtest,
@@ -433,6 +433,14 @@ class DockerContainersCLI(DockerContainersBase):
                          verbose=self.verbose,
                          timeout=timeout)
 
+    def docker_cmd_check(self, cmd, timeout=None):
+        """
+        Wrap docker_cmd, running result through OutputGood before returning
+        """
+        result = self.docker_cmd(cmd, timeout=None)
+        OutputGood(result)
+        return result
+
     def get_container_list(self):
         stdout = self._get_container_list().stdout
         return self._parse_lines(stdout)
@@ -479,8 +487,12 @@ class DockerContainersCLI(DockerContainersBase):
                 _signal = _signal[3:]
             cmd += "--signal=%s " % str(_signal)
         cmd += str(long_id)
+        if self.verify_output:
+            dkrcmd = self.docker_cmd_check
+        else:
+            dkrcmd = self.docker_cmd
         # Raise exception if not exit zero
-        self.docker_cmd(cmd)
+        dkrcmd(cmd)
         return pid
 
     def kill_container_by_name(self, container_name):
@@ -502,7 +514,11 @@ class DockerContainersCLI(DockerContainersBase):
         :type args: list of arguments
         :returns: autotest.client.utils.CmdResult instance
         """
-        return self.docker_cmd("rm %s" % (image_id), self.timeout)
+        if self.verify_output:
+            dkrcmd = self.docker_cmd_check
+        else:
+            dkrcmd = self.docker_cmd
+        return dkrcmd("rm %s" % (image_id), self.timeout)
 
     def remove_by_name(self, name):
         """
