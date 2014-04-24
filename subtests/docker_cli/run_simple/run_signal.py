@@ -9,6 +9,7 @@ import time
 
 from autotest.client import utils
 from dockertest.dockercmd import AsyncDockerCmd
+from dockertest.images import DockerImage
 from run_simple import run_base
 
 
@@ -16,15 +17,21 @@ class run_signal(run_base):
 
     def run_once(self):
         sig = getattr(signal, self.config['listen_signal'])
-        self.loginfo("Starting background docker command, timeout %s seconds",
-                     self.config['docker_timeout'])
         dkrcmd = AsyncDockerCmd(self.parent_subtest, 'run',
                                 self.sub_stuff['subargs'],
                                 timeout=self.config['docker_timeout'])
+        self.loginfo("Starting background docker command, timeout %s seconds: "
+                     "%s", self.config['docker_timeout'], dkrcmd.command)
         dkrcmd.verbose = True
         # Runs in background
         self.sub_stuff['cmdresult'] = dkrcmd.execute()
         pid = dkrcmd.process_id
+        ss = self.config['secret_sauce']
+        while True:
+            stdout = dkrcmd.stdout
+            if stdout.count(ss) >= 1:
+                break
+            time.sleep(0.1)
         self.loginfo("Container running, waiting %d seconds to send signal"
                      % self.config['wait_start'])
         # Allow noticable time difference for date command,
