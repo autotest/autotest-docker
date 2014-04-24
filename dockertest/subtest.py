@@ -364,14 +364,16 @@ class SubSubtest(object):
         self.loginfo("%s cleanup()", self.__class__.__name__)
         # tmpdir is cleaned up automatically by harness
 
-    # FIXME: This method should be @staticmethod on on images.DockerImage
-    #        duplicating containers.DockerContainersBase.get_unique_name()
+    # TODO: Remove this after 0.7.x
     def make_repo_name(self):
         """
         Convenience function to generate a unique test-repo name
 
-        :**note**: This method will be going away sometime
+        :**note**: This method will be going away SOON!
         """
+        self.logwarning("make_repo_name() is deprecated, use "
+                        "images.DockerImages.get_unique_name() "
+                        " instead.")
         warnings.warn(PendingDeprecationWarning())
         prefix = self.parent_subtest.config['repo_name_prefix']
         name = os.path.basename(self.tmpdir)
