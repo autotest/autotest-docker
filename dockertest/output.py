@@ -394,7 +394,6 @@ class OutputGoodBase(AllGoodBase):
                     detail += 'stdout "%s" ' % stdout
                 if len(stderr) > 0:
                     detail += 'stderr "%s".' % stderr
-                see_previous = True
                 self.details[checker] = detail
                 duplicate = True  # all other failures will be same
         return super(OutputGoodBase, self).prepare_results(results)
