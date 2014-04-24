@@ -9,14 +9,12 @@ Test output of docker diff command
 # Okay to be less-strict for these cautions/warnings in subtests
 # pylint: disable=C0103,C0111,R0904,C0103
 
-from autotest.client import utils
 from dockertest.dockercmd import DockerCmd
 from dockertest.dockercmd import NoFailDockerCmd
 from dockertest.images import DockerImage
 from dockertest.containers import DockerContainers
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
-import os
 
 class diff(SubSubtestCaller):
     pass

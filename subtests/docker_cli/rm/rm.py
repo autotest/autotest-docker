@@ -14,14 +14,13 @@ Test for docker rm subcommand
 import os.path
 import time
 from autotest.client import utils
-from dockertest.images import DockerImage
-from dockertest.images import DockerImages
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.dockercmd import NoFailDockerCmd
 from dockertest.dockercmd import MustFailDockerCmd
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
 from dockertest.containers import DockerContainers
+from dockertest.images import DockerImage
 
 class rm(SubSubtestCaller):
     config_section = 'docker_cli/rm'

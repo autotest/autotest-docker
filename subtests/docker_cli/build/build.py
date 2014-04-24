@@ -20,7 +20,6 @@ from dockertest.output import OutputGood
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.dockercmd import DockerCmd
 from dockertest.dockercmd import NoFailDockerCmd
-from dockertest.xceptions import DockerTestNAError
 
 class NotSeenString(object):
     """

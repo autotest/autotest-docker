@@ -9,11 +9,11 @@ Sub-subtest module used by dockerimport test
 # Okay to be less-strict for these cautions/warnings in subtests
 # pylint: disable=C0103,C0111,R0904,C0103
 
-import os, logging
+import os
 from autotest.client import utils
 from dockertest import output
 from dockertest.subtest import SubSubtest
-from dockertest.dockercmd import DockerCmd, NoFailDockerCmd
+from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImages, DockerImage
 
 class empty(SubSubtest):

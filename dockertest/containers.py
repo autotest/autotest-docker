@@ -25,7 +25,6 @@ Where/when ***possible***, both parameters and return values follow this order:
 
 import json
 import re
-import signal
 
 from autotest.client import utils
 from autotest.client.shared import error
@@ -132,6 +131,12 @@ class DockerContainersBase(object):
 
     #: Gathering layer-size data is potentially very slow, skip by default
     get_size = True
+
+    # abstract methods need not worry about disused parameters
+    # pylint: disable=W0613
+
+    # abstract methods need not worry about methods that could be functions
+    # pylint: disable=R0201
 
     def __init__(self, subtest, timeout, verbose):
         """

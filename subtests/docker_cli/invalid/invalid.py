@@ -10,11 +10,9 @@ C. Check test result: What we expected is the all of the test results are
 D. Clean the test environment and remove the container generated in testing.
 """
 
-from dockertest.containers import DockerContainers
 from dockertest import subtest
 from dockertest import config
 from dockertest.dockercmd import DockerCmd
-from dockertest.dockercmd import NoFailDockerCmd
 from dockertest.images import DockerImage
 from autotest.client import utils
 
