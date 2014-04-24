@@ -86,6 +86,33 @@ def run_envchecks(control_path, blame_url):
         print "Environment checks failed! Blame %s" % blame_url
     # Keep these non-fatal for now
 
+def subtest_abspath(control_path, url):
+    control_parent = os.path.dirname(control_path)
+    subtest_path = os.path.join(control_parent, url)
+    return os.path.abspath(subtest_path)
+
+def mangle_syspath(control_path, url):
+    """
+    Allow test url to find modules in it's path first
+    """
+    subtest_path = subtest_abspath(control_path, url)
+    logging.debug("Injecting %s at beginning of module search path",
+                  subtest_path)
+    sys.path.insert(0, subtest_path)
+
+def unmangle_syspath(control_path, url):
+    """
+    Remove test url from module search path if it's at the beginning
+    """
+    subtest_path = subtest_abspath(control_path, url)
+    if sys.path[0] == subtest_path:
+        del sys.path[0]
+        logging.debug("Removing %s from module search path",
+                      subtest_path)
+    else:
+        logging.error("Subtest changed module search path: %s",
+                      str(sys.path))
+
 def run_test(control_path, url, tag, timeout):
     """
     Wrapper function around job.run_test() and setup for subtest namespace.
@@ -131,7 +158,9 @@ def run_test(control_path, url, tag, timeout):
 
     # Run the subtest module through autotest job interface
     try:
+        mangle_syspath(control_path, url)
         job.run_test(url=url, tag=tag, timeout=timeout)
+        unmangle_syspath(control_path, url)
     # Guarantee cleanup of any docker related modules
     finally:
         imp.acquire_lock()

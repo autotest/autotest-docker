@@ -20,7 +20,7 @@ import sys, os, types
 #: are also reflected in documentation.
 #:
 #: The short X.Y version. This MUST be inside single ("'") quotes for parsing!!
-version = '0.6.3'
+version = '0.6.4'
 
 #: If extensions (or modules to document with autodoc) are in another directory,
 #: add these directories to sys.path here. If the directory is relative to the

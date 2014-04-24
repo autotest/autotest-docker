@@ -33,8 +33,8 @@ class DockerCmdBase(object):
         """
         # Prevent accidental test.test instance passing
         if not isinstance(subtest, Subtest):
-            raise DockerTestError("Subtest is not a Subtest instance or "
-                                  "subclass.")
+            raise DockerTestError("%s is not a Subtest instance or "
+                                  "subclass.", subtest.__class__.__name__)
         else:
             self.subtest = subtest
         self.subcmd = str(subcmd)
@@ -72,7 +72,8 @@ class DockerCmdBase(object):
         # This is an abstract method
         raise DockerNotImplementedError
 
-    def execute_calls(self):
+    # Impl. specific stubb, can't be a function
+    def execute_calls(self):  # pylint: disable=R0201
         """
         Returns the number of times ``execute()`` has been called
 

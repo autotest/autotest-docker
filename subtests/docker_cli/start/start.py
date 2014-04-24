@@ -8,7 +8,6 @@ Test output of docker start command
 """
 
 import time
-import random
 from autotest.client.shared import error
 from dockertest.subtest import SubSubtest
 from dockertest.output import OutputGood

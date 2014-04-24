@@ -28,6 +28,7 @@ import config
 from xceptions import DockerTestFail
 from xceptions import DockerTestNAError
 from xceptions import DockerTestError
+from xceptions import DockerSubSubtestNAError
 
 
 class Subtest(test.test):
@@ -147,6 +148,13 @@ class Subtest(test.test):
         # Fail test if configuration being used doesn't match dockertest API
         version.check_version(self.config)
         self.loginfo("initialize()")
+        # Don't bother logging subtest config if sub-subtests will
+        # inherit & print anyway
+        if 'subsubtests' not in self.config:
+            msg = "Subtest %s configuration:\n" % self.__class__.__name__
+            for key, value in self.config.items():
+                msg += '\t\t%s = "%s"\n' % (key, value)
+            self.logdebug(msg)
 
     def run_once(self):
         """
@@ -290,7 +298,8 @@ class SubSubtest(object):
             self.make_subsubtest_config(all_configs,
                                         parent_config,
                                         all_configs[config_section])
-        # FIXME: Honor SubSubtest ``enable`` conf. option
+        if not self.config.get('enable', True):
+            raise DockerSubSubtestNAError(self.__class__.__name__)
         # Not automatically logged along with parent subtest
         # for records/archival/logging purposes
         note = {'Configuration_for_Subsubtest': config_section}
@@ -321,7 +330,10 @@ class SubSubtest(object):
                     self.config[key] = val
             else:
                 self.config[key] = val
-            self.logdebug("Config.: %s = %s", key, self.config[key])
+        msg = "Sub-subtest %s configuration:\n" % self.__class__.__name__
+        for key, value in self.config.items():
+            msg += '\t\t%s = "%s"\n' % (key, value)
+        self.logdebug(msg)
         return self.config
 
     def initialize(self):
@@ -352,14 +364,16 @@ class SubSubtest(object):
         self.loginfo("%s cleanup()", self.__class__.__name__)
         # tmpdir is cleaned up automatically by harness
 
-    # FIXME: This method should be @staticmethod on on images.DockerImage
-    #        duplicating containers.DockerContainersBase.get_unique_name()
+    # TODO: Remove this after 0.7.x
     def make_repo_name(self):
         """
         Convenience function to generate a unique test-repo name
 
-        :**note**: This method will be going away sometime
+        :**note**: This method will be going away SOON!
         """
+        self.logwarning("make_repo_name() is deprecated, use "
+                        "images.DockerImages.get_unique_name() "
+                        " instead.")
         warnings.warn(PendingDeprecationWarning())
         prefix = self.parent_subtest.config['repo_name_prefix']
         name = os.path.basename(self.tmpdir)
@@ -452,6 +466,8 @@ class SubSubtestCaller(Subtest):
         """
         super(SubSubtestCaller, self).initialize()
         # Private to this instance, outside of __init__
+        if not self.config['subsubtests']:
+            raise DockerTestNAError("No subsubtests enabled in configuration.")
         self.subsubtest_names = self.config['subsubtests'].strip().split(",")
 
     def try_all_stages(self, name, subsubtest):
@@ -584,17 +600,15 @@ class SubSubtestCaller(Subtest):
         cls = getattr(mod, name, None)
         # Not found in this module, look in external module file with same name
         if cls is None:
-            # FIXME: subsubtest modules should be able to import and
-            #        reference eachother within the context of their
-            #        parent subtest.  Currently this doesn't work.
-            #   -->  Maybe inject bindir into sys.path, then remove in
-            #        cleanup()?
-            # Only look in "this" directory
             mod = self.import_if_not_loaded(name, [mydir])
             cls = getattr(mod, name, None)
         if issubclass(cls, SubSubtest):
             # Create instance, pass this subtest subclass as only parameter
-            return cls(self)
+            try:
+                return cls(self)
+            except DockerSubSubtestNAError, xcpt:
+                self.logwarning(str(xcpt))
+                return None  # skip this one
         # Load failure will be caught and loged later
         return None
 

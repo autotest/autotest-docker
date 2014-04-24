@@ -148,6 +148,17 @@ class ConfigSection(object):
         """
         Convert/Return value assigned to key named option
         """
+        try:
+            value = self._scp.get(self._section, option).lower().strip()
+            positives = ("yes", "true")
+            negatives = ("no", "false")
+            if value in positives:
+                return True
+            if value in negatives:
+                return False
+            # try regular way
+        except AttributeError:
+            pass  # try regular way
         return self._scp.getboolean(self._section, option)
 
     def set(self, option, value):

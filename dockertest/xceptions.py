@@ -111,3 +111,13 @@ class DockerFullNameFormatError(DockerValueError):
         return ("Image name %s do not match docker Fully Qualified Image Name"
                 " format [registry_hostname[:port]/][user_name/]"
                 "(repository_name[:version_tag])" % self.name)
+
+class DockerSubSubtestNAError(DockerTestNAError):
+
+    def __init__(self, child_name):
+        super(DockerSubSubtestNAError, self).__init__()
+        self.child_name = child_name
+
+    def __str__(self):
+        return ("Sub-subtest %s is not applicable or was disabled"
+                % self.child_name)

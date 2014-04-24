@@ -8,6 +8,7 @@ results.
 from dockertest.subtest import SubSubtest, SubSubtestCallerSimultaneous
 from dockertest.dockercmd import DockerCmd
 from dockertest.containers import DockerContainers
+from dockertest.images import DockerImage
 from dockertest.images import DockerImages
 from dockertest.output import OutputGood
 from dockertest.images import DockerImage
@@ -20,13 +21,16 @@ class run_simple(SubSubtestCallerSimultaneous):
 
 class run_base(SubSubtest):
 
-    def initialize(self):
-        super(run_base, self).initialize()
+    def init_subargs(self):
         self.sub_stuff['subargs'] = self.config['run_options_csv'].split(',')
         fin = DockerImage.full_name_from_defaults(self.config)
         self.sub_stuff['subargs'].append(fin)
         self.sub_stuff['subargs'] += self.config['bash_cmd'].split(',')
         self.sub_stuff['subargs'].append(self.config['cmd'])
+
+    def initialize(self):
+        super(run_base, self).initialize()
+        self.init_subargs()
         self.sub_stuff["containers"] = []
         self.sub_stuff["images"] = []
         self.sub_stuff["cont"] = DockerContainers(self.parent_subtest)

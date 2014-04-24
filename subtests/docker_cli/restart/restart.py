@@ -14,12 +14,9 @@ postprocess:
 """
 import time
 
-from autotest.client import utils
 from dockertest import config, subtest, xceptions
 from dockertest.containers import DockerContainers
-from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
 from dockertest.images import DockerImage
-from dockertest.output import OutputGood
 from dockertest.subtest import SubSubtest
 from dockertest.dockercmd import NoFailDockerCmd
 

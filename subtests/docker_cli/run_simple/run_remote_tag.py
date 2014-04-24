@@ -11,15 +11,9 @@ Test run
 # Okay to be less-strict for these cautions/warnings in subtests
 # pylint: disable=C0103,C0111,R0904,C0103
 
-import signal
-import time
-import os
-
 from autotest.client.shared import error
 from autotest.client import utils
 from dockertest.dockercmd import DockerCmd
-from dockertest.containers import DockerContainers
-from dockertest.images import DockerImage
 from dockertest.output import OutputGood
 from run_simple import run_base
 
