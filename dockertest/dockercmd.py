@@ -72,7 +72,8 @@ class DockerCmdBase(object):
         # This is an abstract method
         raise DockerNotImplementedError
 
-    def execute_calls(self):
+    # Impl. specific stubb, can't be a function
+    def execute_calls(self):  # pylint: disable=R0201
         """
         Returns the number of times ``execute()`` has been called
 
