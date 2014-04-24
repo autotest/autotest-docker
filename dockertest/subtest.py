@@ -600,12 +600,6 @@ class SubSubtestCaller(Subtest):
         cls = getattr(mod, name, None)
         # Not found in this module, look in external module file with same name
         if cls is None:
-            # FIXME: subsubtest modules should be able to import and
-            #        reference eachother within the context of their
-            #        parent subtest.  Currently this doesn't work.
-            #   -->  Maybe inject bindir into sys.path, then remove in
-            #        cleanup()?
-            # Only look in "this" directory
             mod = self.import_if_not_loaded(name, [mydir])
             cls = getattr(mod, name, None)
         if issubclass(cls, SubSubtest):
