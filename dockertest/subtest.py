@@ -28,6 +28,7 @@ import config
 from xceptions import DockerTestFail
 from xceptions import DockerTestNAError
 from xceptions import DockerTestError
+from xceptions import DockerSubSubtestNAError
 
 
 class Subtest(test.test):
@@ -147,10 +148,13 @@ class Subtest(test.test):
         # Fail test if configuration being used doesn't match dockertest API
         version.check_version(self.config)
         self.loginfo("initialize()")
-        msg = "Subtest %s configuration:\n" % self.__class__.__name__
-        for key, value in self.config.items():
-            msg += '\t\t%s = "%s"\n' % (key, value)
-        self.logdebug(msg)
+        # Don't bother logging subtest config if sub-subtests will
+        # inherit & print anyway
+        if 'subsubtests' not in self.config:
+            msg = "Subtest %s configuration:\n" % self.__class__.__name__
+            for key, value in self.config.items():
+                msg += '\t\t%s = "%s"\n' % (key, value)
+            self.logdebug(msg)
 
     def run_once(self):
         """
@@ -294,7 +298,8 @@ class SubSubtest(object):
             self.make_subsubtest_config(all_configs,
                                         parent_config,
                                         all_configs[config_section])
-        # FIXME: Honor SubSubtest ``enable`` conf. option
+        if not self.config.get('enable', True):
+            raise DockerSubSubtestNAError(self.__class__.__name__)
         # Not automatically logged along with parent subtest
         # for records/archival/logging purposes
         note = {'Configuration_for_Subsubtest': config_section}
@@ -603,7 +608,11 @@ class SubSubtestCaller(Subtest):
             cls = getattr(mod, name, None)
         if issubclass(cls, SubSubtest):
             # Create instance, pass this subtest subclass as only parameter
-            return cls(self)
+            try:
+                return cls(self)
+            except DockerSubSubtestNAError, xcpt:
+                self.logwarning(str(xcpt))
+                return None  # skip this one
         # Load failure will be caught and loged later
         return None
 
