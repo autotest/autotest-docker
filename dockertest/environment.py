@@ -121,6 +121,9 @@ class EnvCheck(AllGoodBase):
 
     """
     Represent aggregate result of calling all executables in envcheckdir
+
+    :param config: Dict-like containing configuration options
+    :param envcheckdir: Absolute path to directory holding scripts
     """
 
     #: Dict-like containing configuration options
@@ -133,14 +136,6 @@ class EnvCheck(AllGoodBase):
     envcheckdir = None
 
     def __init__(self, config, envcheckdir):
-
-        """
-        Run checks, define result attrs or raise
-
-        :param config: Dict-like containing configuration options
-        :param envcheckdir: Absolute path to directory holding scripts
-        """
-
         self.config = config
         self.envcheckdir = envcheckdir
         envcheck_skip = self.config.get(self.envcheck_skip_option)

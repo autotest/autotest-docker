@@ -15,6 +15,15 @@ from xceptions import (DockerNotImplementedError, DockerCommandError,
 class DockerCmdBase(object):
     """
     Setup a call docker subcommand as if by CLI w/ subtest config integration
+    Execute docker subcommand with arguments and a timeout.
+
+    :param subtest: A subtest.Subtest subclass instance
+    :param subcomd: A Subcommand or single option string
+    :param subargs: (optional) A list of strings containing additional
+                    args to subcommand
+    :param timeout: Seconds to wait before terminating docker command
+                    None to use 'docker_timeout' config. option.
+    :raises DockerTestError: on incorrect usage
     """
 
     #: Evaluates ``True`` after first time ``execute()`` method is called
@@ -22,17 +31,6 @@ class DockerCmdBase(object):
 
     def __init__(self, subtest, subcmd, subargs=None, timeout=None,
                  verbose=True):
-        """
-        Execute docker subcommand with arguments and a timeout.
-
-        :param subtest: A subtest.Subtest subclass instance
-        :param subcomd: A Subcommand or single option string
-        :param subargs: (optional) Iterable of additional args to subcommand
-        :param timeout: Seconds to wait before terminating docker command
-                        None to use 'docker_timeout' config. option.
-        :param verbose: Should this command be logged?
-        :raises DockerTestError: on incorrect usage
-        """
         # Prevent accidental test.test instance passing
         if not isinstance(subtest, Subtest):
             raise DockerTestError("%s is not a Subtest instance or "
@@ -119,6 +117,15 @@ class DockerCmdBase(object):
 class DockerCmd(DockerCmdBase):
     """
     Setup a call docker subcommand as if by CLI w/ subtest config integration
+    Execute docker subcommand with arguments and a timeout.
+
+    :param subtest: A subtest.Subtest subclass instance
+    :param subcomd: A Subcommand or single option string
+    :param subargs: (optional) A list of strings containing additional
+                    args to subcommand
+    :param timeout: Seconds to wait before terminating docker command
+                    None to use 'docker_timeout' config. option.
+    :raises DockerTestError: on incorrect usage
     """
 
     def execute(self, stdin=None):
@@ -146,6 +153,15 @@ class DockerCmd(DockerCmdBase):
 class NoFailDockerCmd(DockerCmd):
     """
     Setup a call docker subcommand as if by CLI w/ subtest config integration
+    Execute docker subcommand with arguments and a timeout.
+
+    :param subtest: A subtest.Subtest subclass instance
+    :param subcomd: A Subcommand or single option string
+    :param subargs: (optional) A list of strings containing additional
+                    args to subcommand
+    :param timeout: Seconds to wait before terminating docker command
+                    None to use 'docker_timeout' config. option.
+    :raises DockerTestError: on incorrect usage
     """
 
     def execute(self, stdin=None):
@@ -170,6 +186,15 @@ class NoFailDockerCmd(DockerCmd):
 class MustFailDockerCmd(DockerCmd):
     """
     Setup a call docker subcommand as if by CLI w/ subtest config integration
+    Execute docker subcommand with arguments and a timeout.
+
+    :param subtest: A subtest.Subtest subclass instance
+    :param subcomd: A Subcommand or single option string
+    :param subargs: (optional) A list of strings containing additional
+                    args to subcommand
+    :param timeout: Seconds to wait before terminating docker command
+                    None to use 'docker_timeout' config. option.
+    :raises DockerTestError: on incorrect usage
     """
 
     def execute(self, stdin=None):
@@ -199,6 +224,15 @@ class MustFailDockerCmd(DockerCmd):
 class AsyncDockerCmd(DockerCmdBase):
     """
     Execute docker command as asynchronous background process on ``execute()``
+    Execute docker subcommand with arguments and a timeout.
+
+    :param subtest: A subtest.Subtest subclass instance
+    :param subcomd: A Subcommand or single option string
+    :param subargs: (optional) A list of strings containing additional
+                    args to subcommand
+    :param timeout: Seconds to wait before terminating docker command
+                    None to use 'docker_timeout' config. option.
+    :raises DockerTestError: on incorrect usage
     """
 
     #: Used internally by execute()

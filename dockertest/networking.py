@@ -22,6 +22,11 @@ import re
 class ContainerPort(object):
     """
     Represents a private container port mapping to public host ip, and port.
+
+    :param container_port: Port number visible inside the container
+    :param host_port: Port number on host container_Port maps to
+    :param host_ip: Host interface IP host_port maps to
+    :param protocol: Name of protocol for map (i.e. ``tcp`` or ``udp``)
     """
 
     #: There will likely be several instances per container
@@ -34,14 +39,6 @@ class ContainerPort(object):
 
     def __init__(self, container_port, host_port=None,
                  host_ip="0.0.0.0", protocol="tcp"):
-        """
-        Initialize a new port instance from parameters
-
-        :param container_port: Port number visible inside the container
-        :param host_port: Port number on host container_Port maps to
-        :param host_ip: Host interface IP host_port maps to
-        :param protocol: Name of protocol for map (i.e. ``tcp`` or ``udp``)
-        """
         self.container_port = int(container_port)
         if host_port is None:
             self.host_port = int(container_port)

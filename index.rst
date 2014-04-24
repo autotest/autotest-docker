@@ -16,10 +16,6 @@
 Docker Autotest
 ================
 
-**Warning:** The client-test code here is highly experimental and possibly
-temporary. Interfaces/Usage could change, or the entire contents could disappear
-without warning.
-
 .. sectnum::
 
 ----------------
@@ -294,6 +290,10 @@ Subtest Modules
 
 The following sections detail specific sub-tests, their configuration
 and any prerequisites or setup requirements.
+
+.. contents::
+   :depth: 1
+   :local:
 
 Default configuration options
 ================================
@@ -1043,6 +1043,10 @@ This is a set of subsubtests that test the inspect command.
 ----------------------------------
 Dockertest API Reference
 ----------------------------------
+
+.. contents::
+   :depth: 4
+   :local:
 
 Dockertest Package
 ========================

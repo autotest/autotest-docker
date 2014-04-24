@@ -6,20 +6,19 @@ import httplib
 import socket
 import json
 
+
 class ClientBase(object):
     """
     Represents a connection with a single interface to Docker Daemon
-    """
 
+    Setup a new connection using interface with uri
+
+    :param uri:  URI understood handled by interface
+    """
     #: Interface class/instance to use
     interface = None
 
     def __init__(self, uri):
-        """
-        Setup a new connection using interface with uri
-
-        :param uri:  URI understood handled by interface
-        """
         self.uri = uri
 
     def get(self, resource):
@@ -57,7 +56,10 @@ class SocketClient(ClientBase):
 
     class UHTTPConnection(httplib.HTTPConnection):
         """
-        Subclass of Python library HTTPConnection that uses a unix-domain socket
+        Subclass of Python library HTTPConnection that uses a unix-domain
+        socket
+
+        :param path: Path to the existing unix socket
         """
         def __init__(self, path="/var/run/docker.sock"):
             httplib.HTTPConnection.__init__(self, 'localhost')

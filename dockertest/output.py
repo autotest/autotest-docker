@@ -17,6 +17,9 @@ class DockerVersion(object):
 
     """
     Parser of docker-cli version command output as client/server properties
+
+    :param version_string: Raw, possibly empty or multi-line output
+                           from docker version command.
     """
     #: Raw, possibly empty or multi-line output from docker version command.
     #: Read-only, set in __init__
@@ -28,12 +31,6 @@ class DockerVersion(object):
     _server = None
 
     def __init__(self, version_string):
-        """
-        Initialize version command output parser instance
-
-        :param version_string: Raw, possibly empty or multi-line output
-                               from docker version command.
-        """
         self.version_string = version_string
         self.version_lines = self.version_string.splitlines()
 
@@ -78,6 +75,11 @@ class ColumnRanges(Mapping):
 
     """
     Immutable map of start/end offsets to/from column names.
+
+    :param header: Table header string of multi-space separated column names
+    :param expected: Precise number of columns expected, or raise ValueError
+    :param min_col_len: Minimum number of characters for a column header
+    :raises ValueError: Column < than min_col_len or # columns != expected
     """
 
     __slots__ = ('ranges', 'columns', 'count')
@@ -95,14 +97,6 @@ class ColumnRanges(Mapping):
     _re = re.compile(r"\s\s+")
 
     def __init__(self, header, min_col_len=3, expected=None):
-        """
-        Initialize immutable mapping from header string.
-
-        :param header: Table header string of multi-space separated column names
-        :param expected: Precise number of columns expected, or raise ValueError
-        :param min_col_len: Minimum number of characters for a column header
-        :raises ValueError: Column < than min_col_len or # columns != expected
-        """
         header_strip = header.strip()  # just in case
         cols = [col for col in self._re.split(header_strip)]
         if expected is not None and len(cols) != expected:
@@ -179,6 +173,10 @@ class TextTable(MutableSet, Sequence):
 
     """
     Parser for tabular data with values separated by character offsets
+
+    :param table: String of table header, optionally followed by data rows
+    :raises TypeError: if table contains less than one line
+    :raises ValueError: if key_column is not in table_columns
     """
 
     #: Permit duplicate rows to be added
@@ -194,13 +192,11 @@ class TextTable(MutableSet, Sequence):
     _rows = None
 
     def __init__(self, table):
-        """
-        Initialize to hold data mapped from table header, & optionally data
-
-        :param table: String of table header, optionally followed by data rows
-        :raises TypeError: if table contains less than one line
-        :raises ValueError: if key_column is not in table_columns
-        """
+        table_lines = table.strip().splitlines()
+        if len(table_lines) < 1:
+            raise TypeError("Table shorter than one line: %s" % table)
+        # First line is header
+        self.columnranges = ColumnRanges(table_lines[0])
         self._rows = []
         header, tabledata = self.parseheader(table)
         self.columnranges = ColumnRanges(header)
@@ -348,6 +344,10 @@ class OutputGoodBase(AllGoodBase):
 
     """
     Compare True if all methods ending in '_check' return True on stdout/stderr
+
+    :param cmdresult: autotest.client.utils.CmdResult instance
+    :param ignore_error: Raise exceptions.DockerOutputError if False
+    :param skip: Iterable of checks to bypass, None to run all
     """
 
     #: Reference to original CmdResult instance
@@ -360,13 +360,6 @@ class OutputGoodBase(AllGoodBase):
     stderr_strip = None
 
     def __init__(self, cmdresult, ignore_error=False, skip=None):
-        """
-        Run checks, define result attrs or raise xceptions.DockerOutputError
-
-        :param cmdresult: autotest.client.utils.CmdResult instance
-        :param ignore_error: Raise exceptions.DockerOutputError if False
-        :param skip: Iterable of checks to bypass, None to run all
-        """
         self.cmdresult = cmdresult
         self.stdout_strip = cmdresult.stdout.strip()
         self.stderr_strip = cmdresult.stderr.strip()
