@@ -33,8 +33,8 @@ class DockerCmdBase(object):
         """
         # Prevent accidental test.test instance passing
         if not isinstance(subtest, Subtest):
-            raise DockerTestError("Subtest is not a Subtest instance or "
-                                  "subclass.")
+            raise DockerTestError("%s is not a Subtest instance or "
+                                  "subclass.", subtest.__class__.__name__)
         else:
             self.subtest = subtest
         self.subcmd = str(subcmd)
