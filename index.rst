@@ -983,14 +983,32 @@ it was not allowed.
 ``docker_cli/invalid`` Configuration
 --------------------------------------
 
-* The ``section`` specifies which section to test.
-* The ``subsubtests`` specifies which subtests to run.
+*  The ``section`` specifies which section to test.
+*  The ``subsubtests`` specifies which subtests to run.
 *  Customized configuration for ``invalid_run_params``,
    ``expected_result`` and ``invalid_pars_expected_output``,
    ``invalid_vals_expected_output`` and ``input_docker_tag``,
    and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
    i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
    and modify the values.
+
+``docker_cli/workdir`` Sub-test
+=================================
+
+Simple test that checks the ``docker run --workdir`` command could set workdir
+successfully if the dir is a valid path, and fails if it's not absolute path or
+not a path, like a file.
+
+``docker_cli/workdir`` Prerequisites
+-------------------------------------
+
+*  Docker daemon is running and accessable by it's unix socket.
+
+``docker_cli/workdir`` Configuration
+--------------------------------------
+
+*  The ``remove_after_test`` specifies wether to remove the
+   container created during the test.
 
 ----------------------------------
 Dockertest API Reference
