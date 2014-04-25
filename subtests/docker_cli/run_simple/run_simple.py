@@ -5,17 +5,16 @@ results.
 # Okay to be less-strict for these cautions/warnings in subtests
 # pylint: disable=C0103,C0111,R0904,C0103
 
-from dockertest.subtest import SubSubtest, SubSubtestCallerSimultaneous
+from dockertest.subtest import SubSubtest, SubSubtestCaller
 from dockertest.dockercmd import DockerCmd
 from dockertest.containers import DockerContainers
 from dockertest.images import DockerImage
 from dockertest.images import DockerImages
 from dockertest.output import OutputGood
-from dockertest.images import DockerImage
 from autotest.client.shared import error
 
 
-class run_simple(SubSubtestCallerSimultaneous):
+class run_simple(SubSubtestCaller):
     config_section = 'docker_cli/run_simple'
 
 
