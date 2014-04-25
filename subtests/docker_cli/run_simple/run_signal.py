@@ -20,7 +20,7 @@ class run_signal(run_base):
         dkrcmd = AsyncDockerCmd(self.parent_subtest, 'run',
                                 self.sub_stuff['subargs'],
                                 timeout=self.config['docker_timeout'])
-        self.loginfo("Starting background docker command, timeout %s seconds: "
+        self.logdebug("Starting background docker command, timeout %s seconds: "
                      "%s", self.config['docker_timeout'], dkrcmd.command)
         dkrcmd.verbose = True
         # Runs in background
@@ -32,6 +32,7 @@ class run_signal(run_base):
             if stdout.count(ss) >= 1:
                 break
             time.sleep(0.1)
+        wait_start = self.config['wait_start']
         self.loginfo("Container running, waiting %d seconds to send signal"
                      % wait_start)
         # Allow noticable time difference for date command,

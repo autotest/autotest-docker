@@ -37,14 +37,14 @@ class run_interactive(run_base):
                      dkrcmd.timeout)
         # Throw exception if takes > docker_timeout to exit
 
-        self.loginfo("Container running, waiting %d seconds to finish "
-                     "interactive cmds %s" % (wait, icmd))
+        self.loginfo("Container running, waiting %d seconds to finish.", wait)
+        self.logdebug("interactive cmds %s", icmd)
         time.sleep(wait)
         os.close(in_pipe_w)
         dkrcmd.wait()
 
     def postprocess(self):
-        super(run_base, self).postprocess()  # Prints out basic info
+        super(run_interactive, self).postprocess()  # Prints out basic info
         # Fail test if bad command or other stdout/stderr problems detected
         OutputGood(self.sub_stuff['cmdresult'])
         expected = self.config['exit_status']

@@ -70,7 +70,7 @@ class run_interactive_disconnect(run_base):
             pass
 
     def postprocess(self):
-        super(run_base, self).postprocess()  # Prints out basic info
+        super(run_interactive_disconnect, self).postprocess()
         # Fail test if bad command or other stdout/stderr problems detected
 
         OutputGood(self.sub_stuff['cmdresult'])
@@ -94,4 +94,7 @@ class run_interactive_disconnect(run_base):
     def cleanup(self):
         super(run_interactive_disconnect, self).cleanup()
         c_name = self.sub_stuff["rand_name"]
-        self.sub_stuff["cont"].kill_container_by_name(c_name)
+        try:
+            self.sub_stuff["cont"].kill_container_by_name(c_name)
+        except KeyError:
+            pass  # removal was the goal
