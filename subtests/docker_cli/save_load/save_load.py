@@ -112,6 +112,7 @@ class simple(save_load_base):
                               (cmdresult))
 
     def run_once(self):
+        super(simple, self).run_once()  # Prints out basic info
         self.loginfo("Starting background docker command, timeout %s seconds",
                      self.config['docker_timeout'])
 
@@ -152,7 +153,7 @@ class simple(save_load_base):
         self.sub_stuff['cmdresult_load'] = dkrcmd.execute()
 
     def postprocess(self):
-        super(save_load_base, self).postprocess()  # Prints out basic info
+        super(simple, self).postprocess()  # Prints out basic info
         # Fail test if bad command or other stdout/stderr problems detected
 
         OutputGood(self.sub_stuff['cmdresult_save'])

@@ -66,7 +66,7 @@ class diff_base(SubSubtest):
             dkrcmd = DockerCmd(self.parent_subtest,
                                'rm',
                                [self.sub_stuff['name']])
-            cmd = dkrcmd.execute()
+            dkrcmd.execute()
 
 class diff_add(diff_base):
     pass #only change in configuration

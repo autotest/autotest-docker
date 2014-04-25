@@ -85,7 +85,7 @@ class run_remote_tag(run_base):
                      'cmdresult_rmi2', 'cmdresult_run2',
                      'cmdresult_rm2']:
             try:
-                    cmdresults[name] = self.sub_stuff[name]
+                cmdresults[name] = self.sub_stuff[name]
             except KeyError:
                 self.logerror("A command %s did not run, prior cmdresults: %s"
                               % (name, cmdresults))

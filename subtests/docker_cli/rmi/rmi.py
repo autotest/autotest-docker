@@ -66,7 +66,7 @@ class rmi_base(SubSubtest):
     def complete_docker_command_line(self):
         cmds = []
 
-        if (self.config["docker_rmi_force"]):
+        if self.config["docker_rmi_force"]:
             cmds.append("-f")
 
         cmds.append(self.sub_stuff["image_name"])

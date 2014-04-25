@@ -9,7 +9,6 @@ import time
 
 from autotest.client import utils
 from dockertest.dockercmd import AsyncDockerCmd
-from dockertest.images import DockerImage
 from run_simple import run_base
 
 

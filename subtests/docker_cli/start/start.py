@@ -86,9 +86,9 @@ class start_base(SubSubtest):
     def complete_docker_command_line(self):
         cmds = []
 
-        if (self.config["docker_attach"]):
+        if self.config["docker_attach"]:
             cmds.append("-a")
-        if (self.config["docker_interactive"]):
+        if self.config["docker_interactive"]:
             cmds.append("-i")
 
         cmds.append(self.sub_stuff["container"].long_id)
