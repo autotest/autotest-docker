@@ -134,7 +134,6 @@ class top(subtest.Subtest):
 
         self.stuff['stop_cmd'] = lambda: os.write(cont_stdin, "rm -f "
                                                   "/test_cmd_lock ; exit 0\n")
-        self.stuff
         os.write(cont_stdin, "touch /test_cmd_lock\n")
         # Execute 10 idle processes
         for _ in xrange(10):

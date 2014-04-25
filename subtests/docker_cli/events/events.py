@@ -156,7 +156,7 @@ def events_by_cid(events_list, previous=None):
             # don't assume it belongs at end
             previous_events.append(details)
             # using key is faster then custom compare function
-            previous_events.sort(key=lambda details:details['datetime'])
+            previous_events.sort(key=lambda details: details['datetime'])
     return dct  # possibly same as previous
 
 

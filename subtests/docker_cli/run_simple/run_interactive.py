@@ -26,25 +26,25 @@ class run_interactive(run_base):
         dkrcmd.timeout = 10
         # Runs in background
         self.sub_stuff['cmdresult'] = dkrcmd.execute(in_pipe_r)
+        wait = self.config['wait_interactive_cmd']
+        icmd = self.config['interactive_cmd'] + "\n"
         # Allow noticable time difference for date command,
         # and eat into dkrcmd timeout after receiving signal.
-        time.sleep(self.config['wait_interactive_cmd'])
-        os.write(in_pipe_w, self.config['interactive_cmd'] + "\n")
+        time.sleep(wait)
+        os.write(in_pipe_w, icmd)
 
         self.loginfo("Waiting up to %d seconds for exit",
                      dkrcmd.timeout)
         # Throw exception if takes > docker_timeout to exit
 
-        self.loginfo("Container running, waiting %d seconds to finish"
-                     "interactive cmds %s" %
-                    (self.config['wait_interactive_cmd'],
-                     self.config['interactive_cmd']))
-        time.sleep(self.config['wait_interactive_cmd'])
+        self.loginfo("Container running, waiting %d seconds to finish.", wait)
+        self.logdebug("interactive cmds %s", icmd)
+        time.sleep(wait)
         os.close(in_pipe_w)
         dkrcmd.wait()
 
     def postprocess(self):
-        super(run_base, self).postprocess()  # Prints out basic info
+        super(run_interactive, self).postprocess()  # Prints out basic info
         # Fail test if bad command or other stdout/stderr problems detected
         OutputGood(self.sub_stuff['cmdresult'])
         expected = self.config['exit_status']

@@ -983,14 +983,61 @@ it was not allowed.
 ``docker_cli/invalid`` Configuration
 --------------------------------------
 
-* The ``section`` specifies which section to test.
-* The ``subsubtests`` specifies which subtests to run.
+*  The ``section`` specifies which section to test.
+*  The ``subsubtests`` specifies which subtests to run.
 *  Customized configuration for ``invalid_run_params``,
    ``expected_result`` and ``invalid_pars_expected_output``,
    ``invalid_vals_expected_output`` and ``input_docker_tag``,
    and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
    i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
    and modify the values.
+
+``docker_cli/workdir`` Sub-test
+=================================
+
+Simple test that checks the ``docker run --workdir`` command could set workdir
+successfully if the dir is a valid path, and fails if it's not absolute path or
+not a path, like a file.
+
+``docker_cli/workdir`` Prerequisites
+-------------------------------------
+
+*  Docker daemon is running and accessable by it's unix socket.
+
+``docker_cli/workdir`` Configuration
+--------------------------------------
+
+*  The ``remove_after_test`` specifies wether to remove the
+   container created during the test.
+
+``docker_cli/dockerinspect`` Sub-test
+=====================================
+
+This is a set of subsubtests that test the inspect command.
+
+``docker_cli/dockerinspect`` Prerequisites
+------------------------------------------
+
+*  Docker daemon is running and accessable by it's unix socket.
+
+``docker_cli/dockerinspect`` Configuration
+------------------------------------------
+
+*  The ``remove_after_test`` specifies wether to remove the
+   containers created during the test.
+*  The ``subsubtests`` tells which subtests to run in this test group.
+
+``docker_cli/dockerinspect/inspect_container_simple `` Configuration
+--------------------------------------------------------------------
+
+*  ``check_fields`` specifies which fields to check the existance of when
+   running "docker inspect" on a container.
+
+``docker_cli/dockerinspect/inspect_all`` Configuration
+------------------------------------------------------
+
+* ``ignore_fields`` specifies which fields to ignore when checking all fields
+  when running "docker inspect" on a container.
 
 ----------------------------------
 Dockertest API Reference

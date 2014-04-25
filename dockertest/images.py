@@ -443,8 +443,6 @@ class DockerImagesBase(object):
         """
         del image_id  # keep pylint happy
         raise RuntimeError()
-        # Return value is defined as undefined
-        return None  # pylint: disable=W0101
 
     # Disabled by default extension point, can't be static.
     def remove_image_by_full_name(self, full_name):  # pylint: disable=R0201
@@ -456,17 +454,15 @@ class DockerImagesBase(object):
         """
         del full_name  # keep pylint happy
         raise RuntimeError()
-        # Return value is defined as implementation specific
-        return None  # pylint: disable=W0101
 
     def remove_image_by_image_obj(self, image_obj):
         """
-        Alias for remove_image_by_full_name(image_obj.long_id)
+        Alias for remove_image_by_full_name(image_obj.full_name)
 
         :raise RuntimeError: when implementation does not permit image removal
         :return: Same as remove_image_by_full_name()
         """
-        return self.remove_image_by_id(image_obj.long_id)
+        return self.remove_image_by_full_name(image_obj.full_name)
 
 
 class DockerImagesCLI(DockerImagesBase):
@@ -517,7 +513,7 @@ class DockerImagesCLI(DockerImagesBase):
         """
         Wrap docker_cmd, running result through OutputGood before returning
         """
-        result = self.docker_cmd(cmd, timeout=None)
+        result = self.docker_cmd(cmd, timeout)
         OutputGood(result)
         return result
 

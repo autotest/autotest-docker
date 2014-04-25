@@ -25,91 +25,71 @@ class run_attach_stdout(run_base):
 
     def initialize(self):
         super(run_attach_stdout, self).initialize()
-        rand_name = utils.generate_random_string(8)
-        self.sub_stuff["rand_name"] = rand_name
+        dc = DockerContainers(self.parent_subtest)
+        self.sub_stuff["rand_name"] = rand_name = dc.get_unique_name()
+        self.sub_stuff["rand_data"] = utils.generate_random_string(8)
         self.sub_stuff["subargs"].insert(0, "--name=\"%s\"" % rand_name)
-        self.sub_stuff["cont"] = DockerContainers(self.parent_subtest)
+        attach_options = self.config['attach_options_csv'].split(',')
+        attach_options.append(rand_name)
+        self.sub_stuff['attach_options'] = attach_options
+        self.sub_stuff["rpipe"], self.sub_stuff["wpipe"] = os.pipe()
 
     def run_once(self):
-        self.loginfo("Starting background docker command, timeout %s seconds",
-                     self.config['docker_timeout'])
+        self.logdebug("Starting background docker commands")
 
-        run_in_pipe_r, run_in_pipe_w = os.pipe()
-        attach_in_pipe_r, attach_in_pipe_w = os.pipe()
-        dkrcmd = AsyncDockerCmd(self.parent_subtest, 'run',
+        runcmd = AsyncDockerCmd(self.parent_subtest, 'run',
                                 self.sub_stuff['subargs'],
                                 timeout=self.config['docker_timeout'])
-        dkrcmd.verbose = True
-        # Runs in background
-        self.sub_stuff['cmdresult'] = dkrcmd.execute(run_in_pipe_r)
-        self.sub_stuff['cmd_run'] = dkrcmd
-        # Allow noticable time difference for date command,
-        # and eat into dkrcmd timeout after receiving signal.
-        # Throw exception if takes > docker_timeout to exit
+        self.logdebug("Run Command: %s", runcmd.command)
 
-        attach_options = self.config['attach_options_csv'].split(',')
-        self.sub_stuff['subargs_a'] = attach_options
-
+        runcmd.execute(self.sub_stuff["rpipe"])
+        ss = self.config['secret_sauce']
+        while True:
+            stdout = runcmd.stdout
+            if stdout.count(ss) >= 1:
+                break
+            time.sleep(0.1)
+        self.loginfo("Container running, waiting for %s seconds.",
+                     self.config['wait_interactive_cmd'])
         time.sleep(self.config['wait_interactive_cmd'])
-        c_name = self.sub_stuff["rand_name"]
-        cid = self.sub_stuff["cont"].list_containers_with_name(c_name)
+        # Not needed by this process anymore
+        os.close(self.sub_stuff["rpipe"])
 
-        self.failif(cid == [],
-                    "Unable to search container with name %s" % (c_name))
-
-        self.sub_stuff['subargs_a'].append(c_name)
-
-        dkrcmd = AsyncDockerCmd(self.parent_subtest, 'attach',
-                                self.sub_stuff['subargs_a'],
-                                timeout=self.config['docker_timeout'])
-        dkrcmd.verbose = True
-        # Runs in background
-        self.sub_stuff['cmd_attach'] = dkrcmd
-        self.sub_stuff['cmdresult_attach'] = dkrcmd.execute(attach_in_pipe_r)
-
-        # This input should be ignored.
-        os.write(run_in_pipe_w,
-                 self.config['interactive_cmd_run'] + "\n")
-
-        # This input should be passed to container.
-        os.write(attach_in_pipe_w,
-                 self.config['interactive_cmd_attach'] + "\n")
-
+        self.logdebug("Starting attach command")
+        attachcmd = AsyncDockerCmd(self.parent_subtest, 'attach',
+                                  self.sub_stuff['attach_options'],
+                                  timeout=self.config['docker_timeout'])
+        self.logdebug("Attach Command: %s", runcmd.command)
+        attachcmd.execute()
+        self.loginfo("Waiting for %s seconds for attach",
+                     self.config['wait_interactive_cmd'])
         time.sleep(self.config['wait_interactive_cmd'])
+
+        rand_data = self.sub_stuff["rand_data"]
+        self.logdebug("Sending test data: %s", rand_data)
+        os.write(self.sub_stuff["wpipe"], rand_data)  # line buffered
+        #  send EOF to container
+        os.close(self.sub_stuff["wpipe"])
+        self.logdebug("Waiting for processes to exit")
+        self.sub_stuff['run_cmdresult'] = runcmd.wait()
+        self.sub_stuff['cmdresult'] = attachcmd.wait()
 
     def postprocess(self):
-        super(run_base, self).postprocess()  # Prints out basic info
-        # Fail test if bad command or other stdout/stderr problems detected
-
-        OutputGood(self.sub_stuff['cmdresult'])
-
-        str_in_output = self.config["check_i_cmd_out"]
-        str_not_in_output = self.config["check_not_i_cmd_out"]
-        cmd_stdout = self.sub_stuff['cmd_run'].stdout
-        cmd_stdout_attach = self.sub_stuff['cmd_attach'].stdout
-
-        self.failif(str_not_in_output in cmd_stdout,
-                    "Command %s output must not contain %s."
-                    " Detail:%s" %
-                   (self.config["bash_cmd"],
-                    str_not_in_output,
-                    self.sub_stuff['cmdresult']))
-
-        self.failif(str_not_in_output in cmd_stdout_attach,
-                    "Command %s output must not contain %s."
-                    " Detail:%s" %
-                   (self.config["bash_cmd"],
-                    str_not_in_output,
-                    self.sub_stuff['cmdresult_attach']))
-
-        self.failif(not str_in_output in cmd_stdout_attach,
-                    "Command %s output must contain %s but doesn't."
-                    " Detail:%s" %
-                   (self.config["bash_cmd"],
-                    str_in_output,
-                    self.sub_stuff['cmdresult_attach']))
+        super(run_attach_stdout, self).postprocess()  # checks cmdresult
+        cmdresult = self.sub_stuff['cmdresult']
+        run_cmdresult = self.sub_stuff['run_cmdresult']
+        OutputGood(run_cmdresult)
+        rand_data = self.sub_stuff["rand_data"]
+        self.failif(cmdresult.stdout.strip().count(rand_data) < 1,
+                    "Test data not found on attach command stdout: %s"
+                    % cmdresult)
 
     def cleanup(self):
         super(run_attach_stdout, self).cleanup()
-        c_name = self.sub_stuff["rand_name"]
-        self.sub_stuff["cont"].kill_container_by_name(c_name)
+        dc = DockerContainers(self.parent_subtest)
+        name = self.sub_stuff["rand_name"]
+        try:
+            dc.kill_container_by_name(name)
+        except ValueError:
+            pass  #  death was the goal
+        dc.remove_by_name(self.sub_stuff["rand_name"])

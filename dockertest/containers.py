@@ -279,6 +279,18 @@ class DockerContainersBase(object):
         """
         raise RuntimeError()
 
+    def kill_container_by_obj(self, container_obj):
+        """
+        Use docker CLI 'kill' command on DockerContainer-like instance
+
+        :param container_obj: DockerContainer-like instance
+        :return: implementation specific value
+        :raises RuntimeError: if not supported by implementation
+        :raises KeyError: if container not found
+        :raises ValueError: if container not running, defunct, or zombie
+        """
+        return self.kill_container_by_long_id(container_obj.long_id)
+
     def kill_container_by_name(self, container_name):
         """
         Use docker CLI 'kill' command on container's long_id, by name lookup.
@@ -308,21 +320,6 @@ class DockerContainersBase(object):
         # Return value is defined as undefined
         return None  # pylint: disable=W0101
 
-    # Disbled by default extension point, can't be static.
-    def remove_by_name(self, name):  # pylint: disable=R0201
-        """
-        Remove an container by container Name.
-
-        :raise: RuntimeError when implementation does not permit container
-                removal
-        :raise: Implementation-specific exception
-        :return: Implementation specific value
-        """
-        del name  # keep pylint happy
-        raise RuntimeError()
-        # Return value is defined as undefined
-        return None  # pylint: disable=W0101
-
     def remove_by_obj(self, container_obj):
         """
         Alias for remove_by_id(image_obj.long_id)
@@ -333,6 +330,66 @@ class DockerContainersBase(object):
         """
         return self.remove_by_id(container_obj.long_id)
 
+    # Extension point, can't be static.
+    def remove_by_name(self, name):  # pylint: disable=R0201
+        """
+        Remove an container by container Name.
+
+        :raise: RuntimeError when implementation does not permit container
+                removal
+        :raise: Implementation-specific exception
+        :return: Implementation specific value
+        """
+        cnts = self.list_containers_with_name(str(name))
+        if len(cnts) == 1:
+            return self.remove_by_obj(cnts[0])
+        elif len(cnts) == 0:
+            raise ValueError("Container not found with name %s"
+                             % name)
+        else:
+            raise ValueError("Multiple containers with name found: %s" % cnts)
+
+    def wait_by_long_id(self, long_id):
+        """
+        Block for container to exit, if not already.
+
+        :raises RuntimeError: if not supported by implementation
+        :raises ValueError: on invalid/not found long_id
+        :param long_id: String of long-id for container
+        """
+        cnts = self.list_containers_with_cid(long_id)
+        if len(cnts) == 1:
+            raise RuntimeError()
+        else:
+            raise ValueError("Error retrieving container with id %s"
+                             % long_id)
+
+    def wait_by_obj(self, container_obj):
+        """
+        Block for container to exit, if not already.
+
+        :raises RuntimeError: if not supported by implementation
+        :raises ValueError: on invalid/not found container
+        :param container_obj: DockerContainer-like instance
+        """
+        return self.wait_by_long_id(container_obj.long_id)
+
+    def wait_by_name(self, name):
+        """
+        Block for container to exit, if not already.
+
+        :raises RuntimeError: if not supported by implementation
+        :raises ValueError: on invalid/not found container
+        :param name: String name of container
+        """
+        cnts = self.list_containers_with_name(str(name))
+        if len(cnts) == 1:
+            return self.wait_by_obj(cnts[0])
+        elif len(cnts) == 0:
+            raise ValueError("Container not found with name %s"
+                             % name)
+        else:
+            raise ValueError("Multiple containers found with name: %s" % cnts)
 
 class DockerContainersCLI(DockerContainersBase):
 
@@ -442,7 +499,7 @@ class DockerContainersCLI(DockerContainersBase):
         """
         Wrap docker_cmd, running result through OutputGood before returning
         """
-        result = self.docker_cmd(cmd, timeout=None)
+        result = self.docker_cmd(cmd, timeout)
         OutputGood(result)
         return result
 
@@ -525,15 +582,20 @@ class DockerContainersCLI(DockerContainersBase):
             dkrcmd = self.docker_cmd
         return dkrcmd("rm %s" % (image_id), self.timeout)
 
-    def remove_by_name(self, name):
-        """
-        Remove an containers by Name.
-
-        :type args: list of arguments
-        :returns: autotest.client.utils.CmdResult instance
-        """
-        self.remove_by_id(name, self.timeout)
-
+    def wait_by_long_id(self, long_id):
+        # Validate parameters
+        try:
+            super(DockerContainersCLI, self).wait_by_long_id(long_id)
+        except RuntimeError:
+            pass  # expected
+        _json = self.json_by_long_id(long_id)[0]
+        if not _json["State"]["Running"]:
+            return  # already exited
+        if self.verify_output:
+            dkrcmd = self.docker_cmd_check
+        else:
+            dkrcmd = self.docker_cmd
+        return dkrcmd("wait %s" % (long_id), self.timeout)
 
 class DockerContainers(DockerImages):
 

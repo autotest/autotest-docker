@@ -95,8 +95,8 @@ class psa(subtest.Subtest):
     def cleanup(self):
         super(psa, self).cleanup()
         # Auto-converts "yes/no" to a boolean
-        if ( (self.config['remove_after_test']) and
-             (self.stuff.get('container_id') is not None) ):
+        if ((self.config['remove_after_test']) and
+            (self.stuff.get('container_id') is not None)):
             long_id = self.stuff['container_id']
             # We need to know about this breaking anyway, let it raise!
             nfdc = NoFailDockerCmd(self, "rm", ['--force',

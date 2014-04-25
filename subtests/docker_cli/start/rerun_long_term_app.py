@@ -18,7 +18,7 @@ class rerun_long_term_app(short_term_app):
     config_section = 'docker_cli/start/rerun_long_term_app'
 
     def postprocess(self):
-        super(start_base, self).postprocess()
+        super(rerun_long_term_app, self).postprocess()
         # Raise exception if problems found
         OutputGood(self.sub_stuff['cmdresult'], ignore_error=True)
 
