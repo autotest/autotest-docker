@@ -1100,6 +1100,29 @@ This is a set of subsubtests that test the inspect command.
 * ``container_keys`` specifies which fields to check for in a container inspect
 * ``key_regex`` asserts that each key matches this regex
 
+``docker_cli/run_memory`` Sub-test
+==================================
+
+Simple test that checks the output of the ``docker run -m`` command.
+It verifies that if the container's cgroup resrouce memory.limit_in_bytes
+equals the value passed or if the container can handle invalid value
+parameters
+
+``docker_cli/run_memory`` Prerequisites
+---------------------------------------
+
+*  Docker daemon is running and accessable by it's unix socket.
+
+``docker_cli/run_memory`` Configuration
+---------------------------------------
+*  The ``remove_after_test`` specifies weather to remove the
+   container created during the test.
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
+*  The ``positive`` modifies weather positive test execute.
+
 ----------------------------------
 Dockertest API Reference
 ----------------------------------
