@@ -165,8 +165,9 @@ def run_test(control_path, url, tag, timeout):
     finally:
         imp.acquire_lock()
         # Filter by internal module name, not sys.modules key.
-        modnames = [modname for (modname, module) in sys.modules.items()
-                    if module is not None and module.__name__.count('docker')]
+        modnames = [modname for (modname, module) in sys.modules.iteritems()
+                    if (hasattr(module, '__name__') and
+                        module.__name__.count('docker'))]
         for modname in modnames:
             del sys.modules[modname]
         imp.release_lock()
