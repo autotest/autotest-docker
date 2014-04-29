@@ -519,9 +519,11 @@ Ultra-simple test to confirm output table-format of docker CLI
 ``docker_cli/run_volumes`` Sub-test
 =======================================
 
-Attempt to read, then write a file from a host path volume inside
-a container.  Intended to test NFS, SMB, and other 'remote' filesystem
-mounts.
+*  volumes_rw: Attempt to read, then write a file from a host path volume inside
+   a container.  Intended to test NFS, SMB, and other 'remote' filesystem
+   mounts.
+*  volumes_one_source: Have multiple containers mount a directory and then write
+   to files in that directory simultaneously.
 
 ``docker_cli/run_volumes`` Prerequisites
 ---------------------------------------------
@@ -529,8 +531,8 @@ mounts.
 *  Remove filesystems are mounted and accessable on host system.
 *  Containers have access to read & write files w/in mountpoints
 
-``docker_cli/run_volumes`` Configuration
--------------------------------------------
+``docker_cli/run_volumes/volumes_rw`` Configuration
+----------------------------------------------------
 *  The ``host_paths`` and cooresponding ``cntr_paths`` are most important.
    They are the host paths and container paths comma-separated values to
    test.  There must be 1:1 coorespondance between CSVs of both options
@@ -544,6 +546,16 @@ mounts.
    and modify the values.
 *  The ``wait_stop`` option specifies the time in seconds to wait after all
    docker run processes exit.
+
+``docker_cli/run_volumes/volumes_one_source`` Configuration
+------------------------------------------------------------
+*  The ``num_containers`` is the number of containers to run concurrently.
+*  The ``cmd_timeout`` is the timeout for each container's IO command.
+*  The ``cntr_path`` is where to mount the volume inside the container.
+*  The ``exec_command`` is the command each container should run.  This
+   should be an IO command that writes to a file at ${write_path} which will be
+   inside the mounted volume.  This command should also take time to allow for
+   taking place while the other containers are also writing IO.
 
 ``docker_cli/rm`` Sub-test
 =======================================
