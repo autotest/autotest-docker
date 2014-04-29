@@ -213,8 +213,7 @@ class TextTableTest(unittest.TestCase):
         self.assertEqual(tt, self.expected)
 
     def test_images(self):
-        tt = self.TT("""
-REPOSITORY                    TAG                 IMAGE ID                                                           CREATED             VIRTUAL SIZE
+        tt = self.TT("""REPOSITORY                    TAG                 IMAGE ID                                                           CREATED             VIRTUAL SIZE
 192.168.122.245:5000/fedora   32                  0d20aec6529d5d396b195182c0eaa82bfe014c3e82ab390203ed56a774d2c404   5 weeks ago         387 MB
 fedora                        32                  0d20aec6529d5d396b195182c0eaa82bfe014c3e82ab390203ed56a774d2c404   5 weeks ago         387 MB
 fedora                        rawhide             0d20aec6529d5d396b195182c0eaa82bfe014c3e82ab390203ed56a774d2c404   5 weeks ago         387 MB
@@ -231,6 +230,32 @@ fedora                        latest              58394af373423902a1b97f209a31e3
         self.assertEqual(len(sr), 4)
         sr = tt.find('TAG', 'rawhide')
         self.assertEqual(sr['REPOSITORY'], 'fedora')
+
+    def test_containers(self):
+        tt = self.TT("""CONTAINER ID                                                       IMAGE               COMMAND                                                                                                                   CREATED              STATUS                          PORTS               NAMES               SIZE
+96e1db5c0fd559d7ad4c472425c8b5f1f5b8c3b5952cc1fdc3eee846f6b33fea   fedora:20           bash -c 'echo 'this is a really really really really super big really really really really long command' > /tmp/foobar'   About a minute ago   Exited (0) About a minute ago                       dreamy_brattain     166 B
+05a75d9d2d6908c414a479c100fe19ba63b582131b0a276f4df37ead82effcb1   fedora:20           "bash -c 'echo 'line one
+line two
+line three
+' > /tmp/foobar'"   9 minutes ago       Exited (0) 9 minutes ago                       agitated_galileo    107 B""")
+
+        sr = tt.search('IMAGE', 'fedora:20')
+        self.assertEqual(len(sr), 2)
+        x = sr[0]
+        self.assertEqual(x['CONTAINER ID'],
+                         ('96e1db5c0fd559d7ad4c472425c8b5f'
+                          '1f5b8c3b5952cc1fdc3eee846f6b33f'
+                          'ea'))
+        self.assertEqual(x['COMMAND'], ("bash -c 'echo 'this is a "
+                                        "really really really really "
+                                        "super big really really really "
+                                        "really long command' > /tmp/foobar'"))
+        self.assertEqual(x['CREATED'], 'About a minute ago')
+        self.assertEqual(x['STATUS'], 'Exited (0) About a minute ago')
+        self.assertEqual(x['PORTS'], None)
+        self.assertEqual(x['NAMES'], 'dreamy_brattain')
+        self.assertEqual(x['SIZE'], '166 B')
+        # The last item with newlines isn't parsed properly, hence no unittest
 
 if __name__ == '__main__':
     unittest.main()
