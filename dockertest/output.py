@@ -201,14 +201,11 @@ class TextTable(MutableSet, Sequence):
         :raises TypeError: if table contains less than one line
         :raises ValueError: if key_column is not in table_columns
         """
-        table_lines = table.strip().splitlines()
-        if len(table_lines) < 1:
-            raise TypeError("Table shorter than one line: %s" % table)
-        # First line is header
-        self.columnranges = ColumnRanges(table_lines[0])
         self._rows = []
-        if len(table_lines) > 1:
-            for line in table_lines[1:]:
+        header, tabledata = self.parseheader(table)
+        self.columnranges = ColumnRanges(header)
+        if tabledata is not None:
+            for line in self.parserows(tabledata):
                 line_strip = line.strip()
                 self.append(self.parse_line(line_strip))
 
@@ -297,6 +294,25 @@ class TextTable(MutableSet, Sequence):
         if value == '<none>':
             return None
         return value
+
+    def parseheader(self, table):
+        """
+        Parse string into tuple(header, data)
+        """
+        lines = table.strip().splitlines()
+        if len(lines) < 1:
+            raise TypeError("Table shorter than one line: %s" % table)
+        if len(lines) == 1:
+            tabledata = None
+        else:
+            tabledata = "\n".join(lines[1:])  # put back together
+        return (lines[0], tabledata)  # both regular strings
+
+    def parserows(self, tabledata):
+        """
+        Parse table data string (minus header line) into a list of rows
+        """
+        return tabledata.strip().splitlines()
 
     def parse_line(self, line):
         """
