@@ -130,7 +130,7 @@ class DockerContainersBase(object):
     verbose = False
 
     #: Gathering layer-size data is potentially very slow, skip by default
-    get_size = True
+    get_size = False
 
     # abstract methods need not worry about disused parameters
     # pylint: disable=W0613
