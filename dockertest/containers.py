@@ -30,6 +30,7 @@ from autotest.client import utils
 from autotest.client.shared import error
 from images import DockerImages
 from output import OutputGood
+from output import TextTable
 
 
 # Many attributes simply required here
@@ -54,7 +55,10 @@ class DockerContainer(object):  # pylint: disable=R0902
         """
         self.image_name = image_name
         self.command = command
-        self.ports = ports
+        if ports is None:
+            self.ports = ''
+        else:
+            self.ports = ports
         self.container_name = str(container_name)
         #: These are typically all generated at runtime
         self.long_id = None
@@ -203,7 +207,7 @@ class DockerContainersBase(object):
 
         :return:  [Cntr ID, Cntr ID, ...]
         """
-        dcl = self.get_container_list()
+        dcl = self.list_containers()
         return [cntr.long_id for cntr in dcl]
 
 
@@ -262,7 +266,7 @@ class DockerContainersBase(object):
         :return: Container name guaranteed to not be in-use.
         """
         assert length > 1
-        all_containers = [_.container_name for _ in self.get_container_list()]
+        all_containers = [_.container_name for _ in self.list_containers()]
         check = lambda name: name not in all_containers
         return utils.get_unique_name(check, prefix, suffix, length)
 
@@ -409,75 +413,40 @@ class DockerContainersCLI(DockerContainersBase):
                                                   timeout,
                                                   verbose)
 
-    # private methods don't need docstrings
-    def _get_container_list(self):  # pylint: disable=C0111
+    def get_container_list(self):
+        """
+        Run docker ps (w/ or w/o --size), return stdout
+        """
         if not self.get_size:
-            return self.docker_cmd("ps -a --no-trunc",
-                                   self.timeout)
+            cmdresult = self.docker_cmd("ps -a --no-trunc",
+                                        self.timeout)
         else:
-            return self.docker_cmd("ps -a --no-trunc --size",
-                                   self.timeout)
+            cmdresult = self.docker_cmd("ps -a --no-trunc --size",
+                                        self.timeout)
+        return cmdresult.stdout.strip()
 
     # private methods don't need docstrings
-    def _parse_lines(self, d_psa_stdout):  # pylint: disable=C0111
-        clist = []
-        lines = d_psa_stdout.strip().splitlines()
-        for stdout_line in lines[1:]:  # Skip header
-            clist.append(DockerContainersCLI._parse_columns(stdout_line))
-        return clist
+    def _dc_from_row(self, row):  # pylint: disable=C0111
+        image_name = row['IMAGE']
+        command = row['COMMAND']
+        ports = row['PORTS']
+        container_name = row['NAMES']
+        dcntr = DockerContainer(image_name, command, ports, container_name)
+        dcntr.long_id = row['CONTAINER ID']
+        dcntr.created = row['CREATED']
+        dcntr.status = row['STATUS']
+        if self.get_size:
+            # Raise documented get_container_list() exception
+            try:
+                dcntr.size = row['SIZE']  # throw
+            except KeyError:
+                raise ValueError("No size data present in table!")
+        return dcntr
 
     # private methods don't need docstrings
-    @staticmethod
-    def _parse_columns(stdout_line):  # pylint: disable=C0111
-        # FIXME: This will break if any column's data contains '  ' anywhere :S
-        column_data = re.split("  +", stdout_line)
-        return DockerContainersCLI._make_docker_container(column_data)
-
-    # private methods don't need docstrings
-    @staticmethod
-    def _make_docker_container(column_data):  # pylint: disable=C0111
-        jibblets = DockerContainersCLI._parse_jiblets(column_data)
-        (long_id, image_name,
-         command, created,
-         status, portstrs,
-         container_name, size) = jibblets
-        container = DockerContainer(image_name.strip(),
-                                    command.strip(),
-                                    portstrs.strip(),
-                                    container_name.strip())
-        # These are all runtime defined parameters
-        container.long_id = long_id.strip()
-        container.created = created.strip()
-        container.status = status.strip()
-        container.size = size.strip()
-        return container
-
-    # private methods don't need docstrings
-    @staticmethod
-    def _parse_jiblets(column_data):  # pylint: disable=C0111
-        """
-        Content doesn't always fill out all columns, present in standard way.
-        """
-        if len(column_data) == 8:
-            (long_id, image_name, command, created,
-             status, portstrs, container_name, size) = column_data
-        elif len(column_data) == 7:
-            (long_id, image_name, command, created,
-             status, container_name, size) = column_data
-            portstrs = ""
-        elif len(column_data) == 6:
-            (long_id, image_name, command, created,
-             status, container_name) = column_data
-            size = ""
-            portstrs = ""
-        elif len(column_data) == 12:
-            raise ValueError("Baaaawwwwk! What happened to my chickens!")
-        else:
-            raise ValueError("Error parsing docker ps command output %s"
-                             % column_data)
-        # Let caller decide which bits are important
-        return (long_id, image_name, command, created, status,
-                portstrs, container_name, size)
+    def _parse_lines(self, stdout_strip):  # pylint: disable=C0111
+        texttable = TextTable(stdout_strip)
+        return [self._dc_from_row(row) for row in texttable]
 
     def docker_cmd(self, cmd, timeout=None):
         """
@@ -503,9 +472,8 @@ class DockerContainersCLI(DockerContainersBase):
         OutputGood(result)
         return result
 
-    def get_container_list(self):
-        stdout = self._get_container_list().stdout
-        return self._parse_lines(stdout)
+    def list_containers(self):
+        return self._parse_lines(self.get_container_list())
 
     def get_container_metadata(self, long_id):
         try:

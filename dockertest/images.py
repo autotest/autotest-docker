@@ -29,6 +29,7 @@ import re
 from config import none_if_empty
 from autotest.client import utils
 from output import OutputGood
+from output import TextTable
 from subtest import Subtest
 from xceptions import DockerFullNameFormatError
 
