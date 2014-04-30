@@ -31,6 +31,13 @@ class DockerCmdBase(object):
 
     def __init__(self, subtest, subcmd, subargs=None, timeout=None,
                  verbose=True):
+        # Check for proper type of subargs
+        if subargs is not None:
+            if (not isinstance(subargs, list) or
+                    isinstance(subargs, (str, unicode))):
+               raise DockerTestError("Invalid argument type: %s,"
+                                      " subargs must be a list of"
+                                      " strings." % (subargs))
         # Prevent accidental test.test instance passing
         if not isinstance(subtest, Subtest):
             raise DockerTestError("%s is not a Subtest instance or "
