@@ -1028,7 +1028,7 @@ This is a set of subsubtests that test the inspect command.
    containers created during the test.
 *  The ``subsubtests`` tells which subtests to run in this test group.
 
-``docker_cli/dockerinspect/inspect_container_simple `` Configuration
+``docker_cli/dockerinspect/inspect_container_simple`` Configuration
 --------------------------------------------------------------------
 
 *  ``check_fields`` specifies which fields to check the existance of when

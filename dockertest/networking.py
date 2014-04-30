@@ -20,6 +20,7 @@ import re
 
 
 class ContainerPort(object):
+
     """
     Represents a private container port mapping to public host ip, and port.
 
@@ -57,6 +58,7 @@ class ContainerPort(object):
 
         :param other: An instance of this class (or subclass) for comparison.
         """
+
         self_val = [getattr(self, name) for name in self.__slots__]
         other_val = [getattr(other, name) for name in self.__slots__]
         for _self, _other in zip(self_val, other_val):
@@ -66,11 +68,11 @@ class ContainerPort(object):
 
     def __str__(self):
         """
-        Break down port string components into a human-readable format
+        Present port information in a human-readable format
         """
         return ("Container (private) port: %d, Host (public) port: %d, "
                 "Host (interface) IP: %s, Protocol: %s"
-                 % (self.container_port, self.host_port, self.host_ip,
+                % (self.container_port, self.host_port, self.host_ip,
                     self.protocol))
 
     def __repr__(self):

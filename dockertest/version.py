@@ -3,7 +3,7 @@ Module for standardized API version number processing/checking
 
 `Subtest modules`_ code, configuration, and documentation are critical
 to remain in agreement in order to support use of external/private or
-customized configutations and tests.  Therefor  version checking is
+customized configurations and tests.  Therefor  version checking is
 very important. Each subtest must inherit the default 'config_version'
 option with the version string of the dockertest API it was written
 against.  This may come from ``config_defaults/defaults.ini`` or
@@ -19,7 +19,6 @@ import logging
 from distutils.version import LooseVersion
 
 import xceptions
-
 
 #: Major API version number, as an integer (range 0-255).
 MAJOR = 0
@@ -43,6 +42,7 @@ NOVERSIONCHECK = '@!NOVERSIONCHECK!@'
 
 #: If by change no autotest_version is set, use this value
 AUTOTESTVERSION = '0.15.0'
+
 
 def str2int(version_string):
     """
@@ -118,7 +118,7 @@ def check_version(config_section):
 
     *Note:* Ignores REVIS, only MAJOR/MINOR compared.
 
-    :raise DockerVersionError: if Major/Monor don't match
+    :raise DockerVersionError: if Major/Minor don't match
     """
     config_version = config_section.get('config_version', NOVERSIONCHECK)
     if config_version == NOVERSIONCHECK:
@@ -138,6 +138,7 @@ def check_version(config_section):
                                              "problem comparing '%s' to '%s'."
                                              % (str(config_version),
                                                 str(STRING)))
+
 
 def check_autotest_version(config_section, installed_version):
     """

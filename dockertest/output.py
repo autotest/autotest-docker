@@ -245,7 +245,7 @@ class TextTable(MutableSet, Sequence):
 
     def discard(self, index):
         """
-        Wrapps del texttable[index[
+        Wraps del texttable[index[
         """
         return self.__delitem__(index)
 
@@ -339,6 +339,7 @@ class TextTable(MutableSet, Sequence):
             raise IndexError("Found %d rows with %s == %s"
                              % (len(found), col_name, value))
         return found[0]
+
 
 class OutputGoodBase(AllGoodBase):
 

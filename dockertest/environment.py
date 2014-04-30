@@ -11,6 +11,7 @@ import os
 import os.path
 import subprocess
 
+
 class AllGoodBase(object):
 
     """
@@ -38,6 +39,7 @@ class AllGoodBase(object):
 
         :param skip: Iterable of callable names to not run
         """
+
         self.callables = {}
         self.results = {}
         self.details = {}
@@ -47,7 +49,6 @@ class AllGoodBase(object):
             self.skip = skip
 
     def __nonzero__(self):
-
         """
         Implement truth value testing and for the built-in operation bool()
         """
@@ -55,10 +56,10 @@ class AllGoodBase(object):
         return False not in self.results.values()
 
     def __str__(self):
-
         """
         Make results of individual checkers accessible in human-readable format.
         """
+
         goods = [name for (name, result) in self.results.items() if result]
         bads = [name for (name, result) in self.results.items() if not result]
         if self:  # use self.__nonzero__()
@@ -72,17 +73,16 @@ class AllGoodBase(object):
         return msg
 
     def detail_str(self, name):
-
         """
         Convert details value for name into string
 
         :param name: Name possibly in details.keys()
+        :return: String
         """
 
         return str(self.details.get(name, "No details"))
 
     def callable_args(self, name):
-
         """
         Return dictionary of arguments to pass through to each callable
 
@@ -94,7 +94,6 @@ class AllGoodBase(object):
         return dict()
 
     def call_callables(self):
-
         """
         Call all instances in callables not in skip, storing results
         """
@@ -106,7 +105,6 @@ class AllGoodBase(object):
         self.results.update(self.prepare_results(_results))
 
     def prepare_results(self, results):
-
         """
         Called to process results into instance results and details attributes
 
@@ -116,6 +114,7 @@ class AllGoodBase(object):
 
         # In case call_callables() overridden but this method is not
         return dict(results)
+
 
 class EnvCheck(AllGoodBase):
 
@@ -162,14 +161,14 @@ class EnvCheck(AllGoodBase):
         for relpath, popen in results.items():
             (stdoutdata, stderrdata) = popen.communicate()
             dct[relpath] = popen.returncode == 0
-            self.details[relpath] = {'exit':popen.returncode,
-                                     'stdout':stdoutdata,
-                                     'stderr':stderrdata}
+            self.details[relpath] = {'exit': popen.returncode,
+                                     'stdout': stdoutdata,
+                                     'stderr': stderrdata}
         return dct
 
     def callable_args(self, name):
         fullpath = os.path.join(self.envcheckdir, name)
         # Arguments to subprocess.Popen for script "name"
-        return {'args':fullpath, 'bufsize':1, 'stdout':subprocess.PIPE,
-                'stderr':subprocess.PIPE, 'close_fds':True, 'shell':True,
-                'env':self.config}
+        return {'args': fullpath, 'bufsize': 1, 'stdout': subprocess.PIPE,
+                'stderr': subprocess.PIPE, 'close_fds': True, 'shell': True,
+                'env': self.config}
