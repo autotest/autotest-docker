@@ -30,8 +30,8 @@ class AllGoodBase(object):
     #: Iterable of callable names to bypass
     skip = None
 
-
-    # __init__ left abstract on purpose
+    def __init__(self, *args, **dargs):
+        raise NotImplementedError()
 
     def __instattrs__(self, skip=None):
         """

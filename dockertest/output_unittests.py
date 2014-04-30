@@ -89,22 +89,6 @@ class BaseInterfaceTest(unittest.TestCase):
         self.assertFalse(Actual(self.bad_cmdresult, ignore_error=True))
         self.assertRaises(self.DockerOutputError, Actual, self.bad_cmdresult)
 
-    def test_output_map(self):
-        class Actual(self.output.OutputGoodBase):
-
-            def good_check(fake_self, output):
-                return True
-
-            def actual_check(fake_self, output):
-                return fake_self.cmdresult.exit_status == 0
-        actual = Actual(self.bad_cmdresult, ignore_error=True)
-        self.assertTrue(actual.output_good['good_check'])
-        self.assertFalse(actual.output_good['actual_check'])
-        actual = Actual(self.good_cmdresult, ignore_error=True)
-        self.assertTrue(actual.output_good['good_check'])
-        self.assertTrue(actual.output_good['actual_check'])
-    # End of classes with fake self pylint: enable=E0213
-
     def test_output_good(self):
         cmdresult = FakeCmdResult('docker', 0, "STDOUT", "STDERR", 123)
 

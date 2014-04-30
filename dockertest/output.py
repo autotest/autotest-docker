@@ -410,26 +410,6 @@ class OutputGoodBase(AllGoodBase):
                 duplicate = True  # all other failures will be same
         return super(OutputGoodBase, self).prepare_results(results)
 
-    # FIXME: Deprecate self.output_good in Major/Minor release
-    @property
-    def output_good(self):
-        """
-        Deprecated, do not use!
-        """
-        warnings.warn(PendingDeprecationWarning())
-        # Make sure PrepareResults gets called
-        self.__nonzero__()
-        og = {}
-        for key, value in self.results.items():
-            basekey = key.replace('_stdout', '')
-            basekey = basekey.replace('_stderr', '')
-            # Represent result as logical and of both stdout/stderr values
-            if basekey in og:
-                og[basekey] = og[basekey] and value
-            else:
-                og[basekey] = value
-        return og
-
 
 class OutputGood(OutputGoodBase):
 
@@ -477,5 +457,3 @@ class OutputGood(OutputGoodBase):
             if line.lower().strip().count('error: '):
                 return False
         return True
-
-    # TODO: Other checks?
