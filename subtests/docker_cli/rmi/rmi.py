@@ -212,7 +212,7 @@ class with_blocking_container_by_tag(rmi_base):
     def _common_post(self):
         # Raise exception if problems found
         OutputGood(self.sub_stuff['cmdresult'],
-                   skip='error_check')  # error is expected
+                   skip=['error_check'])  # error is expected
         self.failif(self.sub_stuff['cmdresult'].exit_status == 0,
                     "Zero rmi exit status: Command should fail due to"
                     " wrong image name.")

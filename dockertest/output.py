@@ -372,6 +372,8 @@ class OutputGoodBase(AllGoodBase):
         self.stderr_strip = cmdresult.stderr.strip()
         # All methods called twice with mangled names, mangle skips also
         if skip is not None:
+            if isinstance(skip, (str, unicode)):
+                skip = [skip]
             newskip = []
             for checker in skip:
                 newskip.append(checker + '_stdout')
