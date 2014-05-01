@@ -521,6 +521,7 @@ class DockerContainersCLI(DockerContainersBase):
             dkrcmd = self.docker_cmd_check
         else:
             dkrcmd = self.docker_cmd
+        self.subtest.logdebug("Killing %s with command: %s", long_id[:12], cmd)
         # Raise exception if not exit zero
         dkrcmd(cmd)
         return pid
