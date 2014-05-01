@@ -96,6 +96,9 @@ class Subtest(test.test):
                     # Mark this to not be checked, no config, no version info.
                     self.config['config_version'] = version.NOVERSIONCHECK
                     self.version = 0
+                    self.config_section = config_section
+                    # just in case anything looks
+                    self.config['config_section'] = config_section
             else:
                 # Version number used by one-time setup() test.test method
                 self.version = version.str2int(self.config['config_version'])
