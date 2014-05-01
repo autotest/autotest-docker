@@ -32,7 +32,7 @@ from output import OutputGood
 from output import TextTable
 from subtest import Subtest
 from xceptions import DockerFullNameFormatError
-
+from xceptions import DockerCommandError
 
 # Many attributes simply required here
 class DockerImage(object):  # pylint: disable=R0902
@@ -442,6 +442,9 @@ class DockerImagesBase(object):
         :raise RuntimeError: when implementation does not permit image removal
         :return: Implementation specific value
         """
+        # FIXME: This should raise Implementation-independant exceptions
+        #        for common conditions, otherwise caller is locked to
+        #        implementation-specific exceptions :(
         del image_id  # keep pylint happy
         raise RuntimeError()
 
@@ -453,6 +456,9 @@ class DockerImagesBase(object):
         :raise RuntimeError: when implementation does not permit image removal
         :return: Implementation specific value
         """
+        # FIXME: This should raise Implementation-independant exceptions
+        #        for common conditions, otherwise caller is locked to
+        #        implementation-specific exceptions :(
         del full_name  # keep pylint happy
         raise RuntimeError()
 
@@ -463,6 +469,9 @@ class DockerImagesBase(object):
         :raise RuntimeError: when implementation does not permit image removal
         :return: Same as remove_image_by_full_name()
         """
+        # FIXME: This should raise Implementation-independant exceptions
+        #        for common conditions, otherwise caller is locked to
+        #        implementation-specific exceptions :(
         return self.remove_image_by_full_name(image_obj.full_name)
 
 
@@ -506,9 +515,15 @@ class DockerImagesCLI(DockerImagesBase):
                                        cmd))
         if timeout is None:
             timeout = self.timeout
-        return utils.run(docker_image_cmd,
-                         verbose=self.verbose,
-                         timeout=timeout)
+        # FIXME: catching DockerCommandError should work on this but it doesn't
+        from autotest.client.shared.error import CmdError
+        try:
+            return utils.run(docker_image_cmd,
+                             verbose=self.verbose,
+                             timeout=timeout)
+        except CmdError, detail:
+            raise DockerCommandError(detail.command, detail.result_obj,
+                                     additional_text=detail.additional_text)
 
     def docker_cmd_check(self, cmd, timeout=None):
         """
