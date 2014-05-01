@@ -571,11 +571,9 @@ class DockerImages(object):
         if not isinstance(subtest, Subtest):
             raise TypeError("Instance %s is not a Subtest instance or "
                             "subclass." % str(subtest))
-        else:
-            self.subtest = subtest
-
         _dic = self.interfaces[interface_name]
-        self._interface = _dic(self.subtest, timeout, verbose)
+        super(DockerImages, self).__setattr__('_interface',
+                                              _dic(subtest, timeout, verbose))
 
     def __getattr__(self, name):
         """
@@ -584,6 +582,17 @@ class DockerImages(object):
         :return: attribute/method provided by interface implementation.
         """
         return getattr(self._interface, name)
+
+    def __setattr__(self, name, value):
+        """
+        Hide interface choice while allowing attribute/method access.
+
+        :return: attribute/method provided by interface implementation.
+        """
+        if hasattr(self._interface, name):
+            return setattr(self._interface, name, value)
+        else:
+            super(DockerImages, self).__setattr__(name, value)
 
     @property
     def interface(self):
