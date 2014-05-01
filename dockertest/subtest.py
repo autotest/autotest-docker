@@ -131,13 +131,13 @@ class Subtest(test.test):
         """
         Called once per version change
         """
-        self.loginfo("RUNNING: setup() for subtest version %s", self.version)
+        self.loginfo("setup() for subtest version %s", self.version)
 
     def initialize(self):
         """
         Called every time the test is run.
         """
-        self.loginfo("RUNNING: initialize()")
+        self.loginfo("initialize()")
         # Fail test if autotest is too old
         version.check_autotest_version(self.config, get_version())
         # Fail test if configuration being used doesn't match dockertest API
@@ -154,32 +154,32 @@ class Subtest(test.test):
         """
         Called to run test for each iteration
         """
-        self.loginfo("RUNNING: run_once() iteration %d of %d",
+        self.loginfo("run_once() iteration %d of %d",
                      self.iteration, self.iterations)
 
     def postprocess_iteration(self):
         """
         Called for each iteration, used to process results
         """
-        self.loginfo("RUNNING: postprocess_iteration(), iteration #%d",
+        self.loginfo("postprocess_iteration(), iteration #%d",
                      self.iteration)
 
     def postprocess(self):
         """
         Called after all postprocess_iteration()'s, processes all results
         """
-        self.loginfo("RUNNING: postprocess()")
+        self.loginfo("postprocess()")
 
     def cleanup(self):
         """
         Called after all other methods, even if exception is raised.
         """
-        self.loginfo("RUNNING: cleanup()")
+        self.loginfo("cleanup()")
 
     # Some convenience methods for tests to use
 
     @staticmethod
-    def failif(condition, reason):
+    def failif(condition, reason=None):
         """
         Convenience method for subtests to avoid importing TestFail exception
 
@@ -187,8 +187,24 @@ class Subtest(test.test):
         :param reason: Helpful text describing why the test failed
         :raise DockerTestFail: If condition evaluates ``True``
         """
+        if reason is None:
+            reason = "Failed test condition"
         if bool(condition):
             raise DockerTestFail(reason)
+
+    @staticmethod
+    def logindent(n_spaces, n_tabs, testname, msg):
+        tabs = str("\t" * n_tabs)
+        spaces = str(" " * n_spaces)
+        space_tabs = spaces + tabs
+        newline_indent = "\n" + space_tabs
+        msg = str(msg).replace("\n", newline_indent)
+        return str(tabs + "%s: %s") % (testname, msg)
+
+    def logX(self, lvl, msg, *args):
+        meth = getattr(logging, lvl)
+        testname = self.__class__.__name__
+        return meth(self.logindent(16, 1, testname, msg), *args)
 
     def logdebug(self, message, *args):
         r"""
@@ -197,7 +213,7 @@ class Subtest(test.test):
         :param message: Same as logging.debug()
         :\*args: Same as logging.debug()
         """
-        logging.debug("\t\t" + message.replace("\n", "\n\t\t"), *args)
+        self.logX('debug', message, *args)
 
     def loginfo(self, message, *args):
         r"""
@@ -206,7 +222,7 @@ class Subtest(test.test):
         :param message: Same as logging.info()
         :\*args: Same as logging.info()
         """
-        logging.info("\t\t" + message.replace("\n", "\n\t\t"), *args)
+        self.logX('info', message, *args)
 
     def logwarning(self, message, *args):
         r"""
@@ -215,7 +231,7 @@ class Subtest(test.test):
         :param message: Same as logging.warning()
         :\*args: Same as logging.warning()
         """
-        logging.warn("\t\t" + message.replace("\n", "\n\t\t"), *args)
+        self.logX('warn', message, *args)
 
     def logerror(self, message, *args):
         r"""
@@ -224,13 +240,13 @@ class Subtest(test.test):
         :param message: Same as logging.error()
         :\*args: Same as logging.error()
         """
-        logging.error("\t\t" + message, *args)
+        self.logX('error', message, *args)
 
     def logtraceback(self, name, exc_info, error_source, detail):
         r"""
         Log error to error, traceback to debug, of controlling terminal **only**
         """
-        error_head = ("%s failed to %s: %s: %s" % (name,
+        error_head = ("%s failed to %s\n%s\n%s" % (name,
                       error_source, detail.__class__.__name__,
                       detail))
         error_tb = traceback.format_exception(exc_info[0],
@@ -346,8 +362,7 @@ class SubSubtest(object):
         """
         Called every time the test is run.
         """
-        self.parent_subtest.loginfo("RUNNING %s: initialize()",
-                                    self.__class__.__name__)
+        self.loginfo("initialize()")
         self.tmpdir = tempfile.mkdtemp(prefix=self.__class__.__name__,
                                        suffix='tmp',
                                        dir=self.parent_subtest.tmpdir)
@@ -356,22 +371,19 @@ class SubSubtest(object):
         """
         Called once only to exercise subject of sub-subtest
         """
-        self.parent_subtest.loginfo("RUNNING %s: run_once()",
-                                    self.__class__.__name__)
+        self.loginfo("run_once()")
 
     def postprocess(self):
         """
         Called to process results of subject
         """
-        self.parent_subtest.loginfo("RUNNING %s: postprocess()",
-                                    self.__class__.__name__)
+        self.loginfo("postprocess()")
 
     def cleanup(self):
         """
         Always called, even despite any exceptions thrown.
         """
-        self.parent_subtest.loginfo("RUNNING %s: cleanup()",
-                                    self.__class__.__name__)
+        self.loginfo("cleanup()")
         # tmpdir is cleaned up automatically by harness
 
     # TODO: Remove this after 0.7.x
@@ -393,33 +405,34 @@ class SubSubtest(object):
     # Handy to have here also
     failif = staticmethod(Subtest.failif)
 
+    def logX(self, lvl, msg, *args):
+        meth = getattr(logging, lvl)
+        testname = self.__class__.__name__
+        return meth(self.parent_subtest.logindent(16, 2, testname, msg), *args)
+
     def logdebug(self, message, *args):
         """
         Same as Subtest.logdebug
         """
-        return self.parent_subtest.logdebug('  ' + self.__class__.__name__
-                                            + ': ' + message, *args)
+        return self.logX('debug', message, *args)
 
     def loginfo(self, message, *args):
         """
         Same as Subtest.loginfo
         """
-        return self.parent_subtest.loginfo('  ' + self.__class__.__name__
-                                           + ': ' + message, *args)
+        return self.logX('info', message, *args)
 
     def logwarning(self, message, *args):
         """
         Same as Subtest.logwarning
         """
-        return self.parent_subtest.logwarning('  ' + self.__class__.__name__
-                                              + ': ' + message, *args)
+        return self.logX('warn', message, *args)
 
     def logerror(self, message, *args):
         """
         Same as Subtest.logerror
         """
-        return self.parent_subtest.logerror('  ' + self.__class__.__name__
-                                            + ': ' + message, *args)
+        return self.logX('error', message, *args)
 
 
 class SubSubtestCaller(Subtest):
