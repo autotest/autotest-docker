@@ -172,8 +172,8 @@ class simple(save_load_base):
                     str_load)
 
         self.failif(str_del.exit_status != 0,
-                    "Problem with load cmd detail :%s" %
-                    str_load)
+                    "Problem with del cmd detail :%s" %
+                    str_del)
 
         img_name = self.sub_stuff["rand_name"]
         images = self.sub_stuff["img"].list_imgs_with_full_name(img_name)
