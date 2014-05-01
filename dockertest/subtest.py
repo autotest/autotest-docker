@@ -104,11 +104,17 @@ class Subtest(test.test):
             # Log original key/values before subtest could modify them
             self.write_test_keyval(self.config)
 
+        def _check_disable():  # private, no docstring pylint: disable=C0111
+            disable = self.config.get('disable', '')
+            if self.config_section in disable.split(','):
+                msg = "Subtest disabled in configuration."
+                self.loginfo(msg)
+                raise DockerTestNAError(msg)
+
         super(Subtest, self).__init__(*args, **dargs)
         _init_config()
-        if not self.config.get('enable', True):
-            raise DockerTestNAError("Subtest disabled in configuration.")
         _init_logging()
+        _check_disable()
         # Optionally setup different iterations if option exists
         self.iterations = self.config.get('iterations', self.iterations)
         # subclasses can do whatever they like with this
@@ -268,31 +274,43 @@ class SubSubtest(object):
 
         :param parent_subtest: The Subtest instance calling this instance
         """
+
+        def _check_disable():  # private, no docstring pylint: disable=C0111
+            disable = self.config.get('disable', '')
+            if self.config_section in disable.split(','):
+                msg = "Subsubtest disabled in configuration."
+                # FIXME: Better way?
+                self.initialize = lambda : self.loginfo(msg)
+                self.run_once = lambda : None
+                self.postprocess = lambda : None
+                self.cleanup = lambda : None
+
         # Allow parent_subtest to use any interface this
         # class is setup to support. Don't check type.
         self.parent_subtest = parent_subtest
         # Append this subclass's name onto parent's section name
         # e.g. [parent_config_section/child_class_name]
-        config_section = (os.path.join(self.parent_subtest.config_section,
-                                       self.__class__.__name__))
+        self.config_section = (os.path.join(self.parent_subtest.config_section,
+                                            self.__class__.__name__))
         # Allow child to inherit and override parent config
         all_configs = config.Config()
         # make_subsubtest_config will modify this
         parent_config = self.parent_subtest.config.copy()
         # subsubtest config is optional, overrides parent.
-        if config_section not in all_configs:
+        if self.config_section not in all_configs:
             self.config = parent_config
         else:
             self.make_subsubtest_config(all_configs,
                                         parent_config,
-                                        all_configs[config_section])
+                                        all_configs[self.config_section])
         if not self.config.get('enable', True):
             raise DockerSubSubtestNAError(self.__class__.__name__)
         # Not automatically logged along with parent subtest
         # for records/archival/logging purposes
-        note = {'Configuration_for_Subsubtest': config_section}
+        note = {'Configuration_for_Subsubtest': self.config_section}
         self.parent_subtest.write_test_keyval(note)
         self.parent_subtest.write_test_keyval(self.config)
+        _check_disable()
         # subclasses can do whatever they like with this
         self.sub_stuff = {}
 

@@ -332,9 +332,10 @@ file is loaded *either* from ``config_defaults`` *or* ``config_custom``.
    of seconds to allow any single command to complete.
 *  Since all tests run by default (when no ``--args`` CSV
    list is used), it could be difficult to skip just a single
-   or several tests while running all others.  Adding a config
-   ``enable = false`` (or ``no``) option to any config file
-   will turn off just that test.
+   or several tests while running all others.  The ``disable``
+   option may be specified in ``DEFAULTS`` or any subtest
+   and contains a comma-separated-list of subtest or sub-subtest
+   names to skip.
 
 ``example`` Sub-test
 =======================
