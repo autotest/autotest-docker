@@ -112,7 +112,7 @@ class inspect_base(SubSubtest):
                    "'/bin/true'"]
         nfdc = NoFailDockerCmd(subtest.parent_subtest, 'run', subargs)
         nfdc.execute()
-        if not 'containers' in subtest.sub_stuff:
+        if not subtest.sub_stuff or not subtest.sub_stuff['containers']:
             subtest.sub_stuff['containers'] = [name]
         else:
             subtest.sub_stuff['containers'] += [name]

@@ -18,7 +18,6 @@ class inspect_all(inspect_base):
     def initialize(self):
         super(inspect_all, self).initialize()
         self.sub_stuff['name'] = self.create_simple_container(self)
-        self.sub_stuff['containers'] = [self.sub_stuff['name']]
 
     def run_once(self):
         super(inspect_all, self).run_once()

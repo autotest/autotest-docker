@@ -1050,6 +1050,14 @@ This is a set of subsubtests that test the inspect command.
 * ``ignore_fields`` specifies which fields to ignore when checking all fields
   when running "docker inspect" on a container.
 
+``docker_cli/dockerinspect/inspect_keys`` Configuration
+-------------------------------------------------------
+* note all of these fields are optional.  Leave them blank to skip
+  checking for them.
+* ``image_keys`` specifies which fields to check for in an image inspect
+* ``container_keys`` specifies which fields to check for in a container inspect
+* ``key_regex`` asserts that each key matches this regex
+
 ----------------------------------
 Dockertest API Reference
 ----------------------------------
