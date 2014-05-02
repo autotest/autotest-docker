@@ -37,7 +37,6 @@ class long_term_app(short_term_app):
     def postprocess(self):
         super(long_term_app, self).postprocess()
         # Raise exception if problems found
-        OutputGood(self.sub_stuff['cmdresult'])
         if self.config["docker_expected_result"] == "PASS":
             self.failif(self.sub_stuff['cmdresult'].exit_status != 0,
                         "Non-zero start exit status: %s"

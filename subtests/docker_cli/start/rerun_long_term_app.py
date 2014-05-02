@@ -17,10 +17,18 @@ from dockertest.output import OutputGood
 class rerun_long_term_app(short_term_app):
     config_section = 'docker_cli/start/rerun_long_term_app'
 
+    def outputgood(self):
+        # Raise exception if problems found
+        # but ignore expected error message
+        OutputGood(self.sub_stuff['cmdresult'], ignore_error=True,
+                   skip=['error_check'])
+
     def postprocess(self):
         super(rerun_long_term_app, self).postprocess()
         # Raise exception if problems found
-        OutputGood(self.sub_stuff['cmdresult'], ignore_error=True)
+        # but ignore expected error message
+        OutputGood(self.sub_stuff['cmdresult'], ignore_error=True,
+                   skip=['error_check'])
 
         if self.config["docker_expected_result"] == "FAIL":
             self.failif(self.sub_stuff['cmdresult'].exit_status == 0,
