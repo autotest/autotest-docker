@@ -10,8 +10,6 @@ Test output of docker Images command
 
 from dockertest import subtest
 from dockertest.images import DockerImages
-import logging
-
 
 class images(subtest.Subtest):
     config_section = 'docker_cli/images'
@@ -23,4 +21,4 @@ class images(subtest.Subtest):
         super(images, self).run_once()
         # 1. Run with no options
         d = DockerImages(self)
-        logging.info(d.list_imgs_full_name())
+        self.loginfo("Images names: %s", d.list_imgs_full_name())
