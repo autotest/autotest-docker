@@ -25,6 +25,8 @@ echo -e "\n\n======================================= dockertest"
 find dockertest -name '*.py' -a -not -name '*_unittest*.py' | xargs \
     pylint -rn --init-hook="$INIT_HOOK" \
            --disable="$DISABLEMSG" \
+           --max-args=6 \
+           --no-docstring-rgx='(__.*__)|(_.*)|(__init__)' \
            --output-format="colorized" \
            --rcfile=/dev/null \
            --msg-template="$MSGFMT"
@@ -44,6 +46,8 @@ import dockertest
 find subtests -name '*.py' -a -not -name '*_unittest*.py' | xargs \
     pylint -rn --init-hook="$INIT_HOOK" \
            --disable="$SUBTESTDISABLEMSG" \
+           --max-args=8 \
+           --max-locals=20 \
            --output-format="colorized" \
            --rcfile=/dev/null \
            --msg-template="$MSGFMT"
