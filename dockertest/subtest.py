@@ -77,7 +77,8 @@ class Subtest(test.test):
             while dirlist.pop() != 'subtests':
                 pass  # work already done :)
             dirlist.reverse()  # correct order
-            return os.path.join(*dirlist)  # i.e. docker_cli/run_tiwce
+            # i.e. docker_cli/run_twice
+            return os.path.join(*dirlist)  # pylint: disable=W0142
 
         def _init_config():  # private, no docstring pylint: disable=C0111
             # So tests don't need to set this up every time
@@ -106,21 +107,24 @@ class Subtest(test.test):
             # Log original key/values before subtest could modify them
             self.write_test_keyval(self.config)
 
-        def _check_disable():  # private, no docstring pylint: disable=C0111
-            disable = self.config.get('disable', '')
-            if self.config_section in disable.split(','):
-                msg = "Subtest disabled in configuration."
-                self.loginfo(msg)
-                raise DockerTestNAError(msg)
-
         super(Subtest, self).__init__(*args, **dargs)
         _init_config()
         _init_logging()
-        _check_disable()
+        self.check_disable(self.config_section)
         # Optionally setup different iterations if option exists
         self.iterations = self.config.get('iterations', self.iterations)
         # subclasses can do whatever they like with this
         self.stuff = {}
+
+    def check_disable(self, config_section):
+        """
+        Raise DockerTestNAError if test disabled on this host/environment
+        """
+        disable = self.config.get('disable', '')
+        if config_section in disable.split(','):
+            msg = "Subtest disabled in configuration."
+            self.loginfo(msg)
+            raise DockerTestNAError(msg)
 
     def execute(self, *args, **dargs):
         """**Do not override**, needed to pull data from super class"""
@@ -196,6 +200,9 @@ class Subtest(test.test):
 
     @staticmethod
     def logindent(n_spaces, n_tabs, testname, msg):
+        """
+        Indent msg with extra spaces/tabs, prefix with a test name
+        """
         tabs = str("\t" * n_tabs)
         spaces = str(" " * n_spaces)
         space_tabs = spaces + tabs
@@ -203,7 +210,10 @@ class Subtest(test.test):
         msg = str(msg).replace("\n", newline_indent)
         return str(tabs + "%s: %s") % (testname, msg)
 
-    def logX(self, lvl, msg, *args):
+    def log_x(self, lvl, msg, *args):
+        """
+        Send msg & args through to logging module function with name lvl
+        """
         meth = getattr(logging, lvl)
         testname = self.__class__.__name__
         return meth(self.logindent(16, 1, testname, msg), *args)
@@ -215,7 +225,7 @@ class Subtest(test.test):
         :param message: Same as logging.debug()
         :\*args: Same as logging.debug()
         """
-        self.logX('debug', message, *args)
+        self.log_x('debug', message, *args)
 
     def loginfo(self, message, *args):
         r"""
@@ -224,7 +234,7 @@ class Subtest(test.test):
         :param message: Same as logging.info()
         :\*args: Same as logging.info()
         """
-        self.logX('info', message, *args)
+        self.log_x('info', message, *args)
 
     def logwarning(self, message, *args):
         r"""
@@ -233,7 +243,7 @@ class Subtest(test.test):
         :param message: Same as logging.warning()
         :\*args: Same as logging.warning()
         """
-        self.logX('warn', message, *args)
+        self.log_x('warn', message, *args)
 
     def logerror(self, message, *args):
         r"""
@@ -242,7 +252,7 @@ class Subtest(test.test):
         :param message: Same as logging.error()
         :\*args: Same as logging.error()
         """
-        self.logX('error', message, *args)
+        self.log_x('error', message, *args)
 
     def logtraceback(self, name, exc_info, error_source, detail):
         r"""
@@ -315,7 +325,7 @@ class SubSubtest(object):
         note = {'Configuration_for_Subsubtest': self.config_section}
         self.parent_subtest.write_test_keyval(note)
         self.parent_subtest.write_test_keyval(self.config)
-        _check_disable()
+        self.parent_subtest.check_disable(self.config_section)
         # subclasses can do whatever they like with this
         self.sub_stuff = {}
 
@@ -379,7 +389,10 @@ class SubSubtest(object):
     # Handy to have here also
     failif = staticmethod(Subtest.failif)
 
-    def logX(self, lvl, msg, *args):
+    def log_x(self, lvl, msg, *args):
+        """
+        Send msg & args through to logging module function with name lvl
+        """
         meth = getattr(logging, lvl)
         testname = self.__class__.__name__
         return meth(self.parent_subtest.logindent(16, 2, testname, msg), *args)
@@ -388,25 +401,25 @@ class SubSubtest(object):
         """
         Same as Subtest.logdebug
         """
-        return self.logX('debug', message, *args)
+        return self.log_x('debug', message, *args)
 
     def loginfo(self, message, *args):
         """
         Same as Subtest.loginfo
         """
-        return self.logX('info', message, *args)
+        return self.log_x('info', message, *args)
 
     def logwarning(self, message, *args):
         """
         Same as Subtest.logwarning
         """
-        return self.logX('warn', message, *args)
+        return self.log_x('warn', message, *args)
 
     def logerror(self, message, *args):
         """
         Same as Subtest.logerror
         """
-        return self.logX('error', message, *args)
+        return self.log_x('error', message, *args)
 
 
 class SubSubtestCaller(Subtest):
