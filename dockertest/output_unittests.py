@@ -128,12 +128,12 @@ class DockerVersionTest(unittest.TestCase):
 
     def test_client(self):
         version_string = ("Client version: 0.9.0\n"
-                          "Go version (client): go1.2"
-                          "Git commit (client): 2b3fdf2/0.9.0"
-                          "Server version: 0.8.0"
-                          "Git commit (server): 2b3fdf2/0.9.0"
-                          "Go version (server): go1.2"
-                          "Last stable version: 0.9.0")
+                          "Go version (client): go1.2\n"
+                          "Git commit (client): 2b3fdf2/0.9.0\n"
+                          "Server version: 0.8.0\n"
+                          "Git commit (server): 2b3fdf2/0.9.0\n"
+                          "Go version (server): go1.2\n"
+                          "Last stable version: 0.9.0\n")
         docker_version = self.output.DockerVersion(version_string)
         self.assertEqual(docker_version.client, '0.9.0')
         self.assertEqual(docker_version.server, '0.8.0')

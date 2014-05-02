@@ -43,7 +43,7 @@ class DockerVersion(object):
         Read-only property representing version-number string of docker client
         """
         if self._client is None:
-            regex = re.compile(r'Client\s+version:\s+(\d+\.\d+\.\d+)',
+            regex = re.compile(r'Client\s+version:\s+(\d+\.\d+\.\d+\S*)',
                                re.IGNORECASE)
             mobj = None
             for line in self.version_lines:
@@ -61,7 +61,7 @@ class DockerVersion(object):
         Read-only property representing version-number string of docker server
         """
         if self._server is None:
-            regex = re.compile(r'Server\s*version:\s*(\d+\.\d+\.\d+)',
+            regex = re.compile(r'Server\s*version:\s*(\d+\.\d+\.\d+\S*)',
                                re.IGNORECASE)
             mobj = None
             for line in self.version_lines:
