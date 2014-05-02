@@ -29,7 +29,8 @@ import re
 from config import none_if_empty
 from autotest.client import utils
 from output import OutputGood
-from output import TextTable
+# FIXME: from output import TextTable
+# FIXME: parse output table with TextTable
 from subtest import Subtest
 from xceptions import DockerFullNameFormatError
 from xceptions import DockerCommandError
