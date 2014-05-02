@@ -124,7 +124,6 @@ class start_base(SubSubtest):
                     self.wait_for_container_death(cont)
                 except Exception, e:
                     print e
-                    pass
                 self.sub_stuff["conts_obj"].remove_by_obj(cont)
 
     def wait_for_container_death(self, container_obj):
