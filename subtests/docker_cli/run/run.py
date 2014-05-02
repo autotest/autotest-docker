@@ -14,11 +14,11 @@ from dockertest.output import OutputGood
 from autotest.client.shared import error
 
 
-class run_simple(SubSubtestCaller):
-    config_section = 'docker_cli/run_simple'
+class run(SubSubtestCaller):
+    config_section = 'docker_cli/run'
 
     def cleanup(self):
-        super(run_simple, self).cleanup()
+        super(run, self).cleanup()
         # Clean up all containers
         dc = DockerContainers(self)
         for cobj in dc.list_containers():
