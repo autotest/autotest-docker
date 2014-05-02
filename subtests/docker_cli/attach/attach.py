@@ -130,7 +130,7 @@ class simple_base(attach_base):
         time.sleep(self.config['wait_interactive_cmd'])
 
     def postprocess(self):
-        super(attach_base, self).postprocess()  # Prints out basic info
+        super(simple_base, self).postprocess()  # Prints out basic info
         # Fail test if bad command or other stdout/stderr problems detected
 
         OutputGood(self.sub_stuff['cmdresult'])
@@ -177,7 +177,7 @@ class simple_base(attach_base):
 class sig_proxy_off_base(simple_base):
 
     def run_once(self):
-        super(simple_base, self).run_once()
+        super(sig_proxy_off_base, self).run_once()
         self.loginfo("Starting background docker command, timeout %s seconds",
                      self.config['docker_timeout'])
 
@@ -201,7 +201,7 @@ class sig_proxy_off_base(simple_base):
         time.sleep(self.config['wait_interactive_cmd'])
 
     def postprocess(self):
-        super(attach_base, self).postprocess()  # Prints out basic info
+        super(sig_proxy_off_base, self).postprocess()  # Prints out basic info
         # Fail test if bad command or other stdout/stderr problems detected
 
         OutputGood(self.sub_stuff['cmdresult'])
