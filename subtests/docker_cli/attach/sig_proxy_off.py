@@ -11,7 +11,7 @@ Test attach
 # pylint: disable=C0103,C0111,R0904,C0103
 
 
-from attach import sig_proxy_off_base, attach_base
+from attach import sig_proxy_off_base
 
 class sig_proxy_off(sig_proxy_off_base):
     pass

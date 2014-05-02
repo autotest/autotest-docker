@@ -24,8 +24,6 @@ Where/when ***possible***, both parameters and return values follow this order:
 # pylint: disable=W0403
 
 import json
-import re
-
 from autotest.client import utils
 from autotest.client.shared import error
 from images import DockerImages

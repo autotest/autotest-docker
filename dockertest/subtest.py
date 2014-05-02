@@ -11,7 +11,6 @@ loading the specified configuration section (see `configuration module`_)
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
-import warnings
 import logging
 import tempfile
 import os.path
@@ -19,10 +18,9 @@ import imp
 import sys
 import traceback
 from autotest.client.shared import error
-from autotest.client.shared import base_job
 from autotest.client.shared.error import AutotestError
 from autotest.client.shared.version import get_version
-from autotest.client import job, test
+from autotest.client import test
 import version
 import config
 from xceptions import DockerTestFail

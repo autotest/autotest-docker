@@ -8,7 +8,7 @@ docker start full_name
 3. Check if start of running container failed.
 """
 
-from start import start_base, short_term_app
+from start import short_term_app
 from dockertest.output import OutputGood
 
 # Okay to be less-strict for these cautions/warnings in subtests

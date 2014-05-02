@@ -5,7 +5,6 @@ Handlers for command-line output processing, crash/panic detection, etc.
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
-import warnings
 import re
 from collections import Mapping, MutableSet, Sequence
 
