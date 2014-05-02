@@ -24,6 +24,7 @@ class insert(subtest.Subtest):
 
     def initialize(self):
         super(insert, self).initialize()
+        self.stuff['cntr_objs'] = []
         #check for a valid url for the test
         file_url = self.config['file_url']
         if not file_url or len(file_url) < 4:
@@ -76,9 +77,9 @@ class insert(subtest.Subtest):
             except ValueError:
                 pass
             else:
-                dkrcmd = DockerCmd(self, 'kill', " ".join(cl))
+                dkrcmd = DockerCmd(self, 'kill', cl)
                 dkrcmd.execute()
-                dkrcmd = DockerCmd(self, 'rm', " ".join(cl))
+                dkrcmd = DockerCmd(self, 'rm', cl)
                 dkrcmd.execute()
             dkrcmd = DockerCmd(self, 'rmi', ['--force',
                                              self.stuff['inserted_image']])
