@@ -15,18 +15,7 @@ from dockertest import images
 from dockertest.output import OutputGood
 from dockertest.dockercmd import DockerCmd
 from dockertest.dockercmd import NoFailDockerCmd
-from dockertest.containers import DockerContainersCLI
-
-class DockerContainersCLICheck(DockerContainersCLI):
-    #: This is probably test-subject related, be a bit more noisy
-    verbose = True
-
-    def docker_cmd(self, cmd, timeout=None):
-        cmdresult = super(DockerContainersCLICheck,
-                          self).docker_cmd(cmd, timeout)
-        # Throws exception if checks fail
-        OutputGood(cmdresult)
-        return cmdresult
+from dockertest.containers import DockerContainers
 
 class psa(subtest.Subtest):
     config_section = 'docker_cli/psa'
@@ -46,7 +35,9 @@ class psa(subtest.Subtest):
         command = ("\"rm -f stop; trap '/usr/bin/date > stop' SIGUSR1; "
                    "while ! [ -f stop ]; do :; done\"")
         subargs.append(command)
-        self.stuff['cl0'] = DockerContainersCLI(self).get_container_list()
+        dc = DockerContainers(self)
+        self.stuff['cl0'] = dc.list_containers()
+        self.logdebug("Container list before execute: %s", self.stuff['cl0'])
         dkrcmd = DockerCmd(self, 'run', subargs)
         self.stuff['cmdresult'] = dkrcmd.execute()
         self.stuff['container_id'] = open(cidfile, 'rb').read().strip()
@@ -58,8 +49,10 @@ class psa(subtest.Subtest):
                      % self.config['wait_start'])
         time.sleep(self.config['wait_start'])
         # This is the test-subject, need to check output of docker command
-        clic = DockerContainersCLICheck(self)
-        self.stuff['cl1'] = clic.get_container_list()
+        clic = DockerContainers(self)
+        clic.verify_output = True
+        self.stuff['cl1'] = clic.list_containers()
+        self.logdebug("Container list before kill: %s", self.stuff['cl1'])
         sig = getattr(signal, 'SIGUSR1')  # odd-ball, infreq. used.
         self.loginfo("Signaling container with signal %s", sig)
         nfdc = NoFailDockerCmd(self, 'kill', ['--signal', "USR1",
@@ -68,7 +61,7 @@ class psa(subtest.Subtest):
         self.loginfo("Waiting up to %d seconds for exit",
                      self.config['wait_stop'])
         time.sleep(self.config['wait_stop'])
-        # Final listing, expect container to have exited
+        self.logdebug("Container list after kill: %s", self.stuff['cl1'])
         self.stuff['cl2'] = clic.get_container_list()
 
     def postprocess(self):
@@ -83,7 +76,7 @@ class psa(subtest.Subtest):
         # TODO: Use 'inspect' command output to get actual PID
         #       and utils.pid_is_alive(PID) to verify it's stopped
         # Might as well do some more checking
-        dc = DockerContainersCLI(self)  # check output
+        dc = DockerContainers(self)  # check output
         cnts = dc.list_containers_with_name(self.stuff['container_name'])
         self.failif(len(cnts) < 1, "Test container not found in list")
         cnt = cnts[0]
