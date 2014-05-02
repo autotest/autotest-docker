@@ -386,7 +386,7 @@ class bad(kill_check_base):
         signals_sequence = ['USR1', 0, -1, -random.randint(2, 32767),
                             random.randint(32, 63), random.randint(64, 32767),
                             "SIGBADSIGNAL", "SIG", "%", "!", "\\", '', "''",
-                            '""', ' ', 'USR1']
+                            '""', ' ']
         signals_sequence = signals_sequence + [9]
         kill_cmds = []
         for signal in signals_sequence:
