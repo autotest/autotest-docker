@@ -16,10 +16,6 @@
 Docker Autotest
 ================
 
-**Warning:** The client-test code here is highly experimental and possibly
-temporary. Interfaces/Usage could change, or the entire contents could disappear
-without warning.
-
 .. sectnum::
 
 ----------------
@@ -295,6 +291,10 @@ Subtest Modules
 The following sections detail specific sub-tests, their configuration
 and any prerequisites or setup requirements.
 
+.. contents::
+   :depth: 1
+   :local:
+
 Default configuration options
 ================================
 
@@ -332,9 +332,10 @@ file is loaded *either* from ``config_defaults`` *or* ``config_custom``.
    of seconds to allow any single command to complete.
 *  Since all tests run by default (when no ``--args`` CSV
    list is used), it could be difficult to skip just a single
-   or several tests while running all others.  Adding a config
-   ``enable = false`` (or ``no``) option to any config file
-   will turn off just that test.
+   or several tests while running all others.  The ``disable``
+   option may be specified in ``DEFAULTS`` or any subtest
+   and contains a comma-separated-list of subtest or sub-subtest
+   names to skip.
 
 ``example`` Sub-test
 =======================
@@ -1027,7 +1028,7 @@ This is a set of subsubtests that test the inspect command.
    containers created during the test.
 *  The ``subsubtests`` tells which subtests to run in this test group.
 
-``docker_cli/dockerinspect/inspect_container_simple `` Configuration
+``docker_cli/dockerinspect/inspect_container_simple`` Configuration
 --------------------------------------------------------------------
 
 *  ``check_fields`` specifies which fields to check the existance of when
@@ -1042,6 +1043,10 @@ This is a set of subsubtests that test the inspect command.
 ----------------------------------
 Dockertest API Reference
 ----------------------------------
+
+.. contents::
+   :depth: 4
+   :local:
 
 Dockertest Package
 ========================

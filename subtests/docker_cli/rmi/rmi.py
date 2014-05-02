@@ -100,6 +100,7 @@ class rmi_base(SubSubtest):
 
     def cleanup(self):
         super(rmi_base, self).cleanup()
+        di = DockerImages(self.parent_subtest)
         # Auto-converts "yes/no" to a boolean
         if (self.config['remove_after_test'] and
             'image_list' in self.sub_stuff):
@@ -109,13 +110,16 @@ class rmi_base(SubSubtest):
                                              self.config['docker_rmi_timeout'])
                 clean_cont.execute()
             for image in self.sub_stuff["image_list"]:
+                # If removal by name fails, try id
                 try:
-                    di = DockerImages(self.parent_subtest)
-                    di.remove_image_by_image_obj(image)
-                    self.loginfo("Successfully removed test image")
+                    try:
+                        di.remove_image_by_full_name(image.full_name)
+                    except DockerCommandError:
+                        di.remove_image_by_id(image.long_id)
                 except DockerCommandError:
                     self.logwarning("Image not exist or failed"
                                     " to remove image.")
+                self.loginfo("Successfully removed test image")
 
     def check_image_exists(self, full_name):
         di = DockerImages(self.parent_subtest)
@@ -212,7 +216,7 @@ class with_blocking_container_by_tag(rmi_base):
     def _common_post(self):
         # Raise exception if problems found
         OutputGood(self.sub_stuff['cmdresult'],
-                   skip='error_check')  # error is expected
+                   skip=['error_check'])  # error is expected
         self.failif(self.sub_stuff['cmdresult'].exit_status == 0,
                     "Zero rmi exit status: Command should fail due to"
                     " wrong image name.")

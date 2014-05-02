@@ -29,12 +29,15 @@ import re
 from config import none_if_empty
 from autotest.client import utils
 from output import OutputGood
+# FIXME: from output import TextTable
+# FIXME: parse output table with TextTable
 from subtest import Subtest
 from xceptions import DockerFullNameFormatError
-
+from xceptions import DockerCommandError
 
 # Many attributes simply required here
 class DockerImage(object):  # pylint: disable=R0902
+
     """
     Represent a repository or image as a set of instance attributes.
     """
@@ -64,6 +67,7 @@ class DockerImage(object):  # pylint: disable=R0902
         :param repo_addr: Opaque instance representing network address/port
         :param user: String representing username as consumed by usage context
         """
+
         if repo_addr is None and user is None and tag is None:
             repo, tag, repo_addr, user = self.split_to_component(repo)
         elif repo_addr is None and user is None:
@@ -89,6 +93,7 @@ class DockerImage(object):  # pylint: disable=R0902
 
         :param other: An instance of this class (or subclass) for comparison.
         """
+
         self_val = [getattr(self, name) for name in self.__slots__]
         other_val = [getattr(other, name) for name in self.__slots__]
         for _self, _other in zip(self_val, other_val):
@@ -100,6 +105,7 @@ class DockerImage(object):  # pylint: disable=R0902
         """
         Break down full_name components into a human-readable string
         """
+
         return ("full_name:%s LONG_ID:%s CREATED:%s SIZE:%s" % (self.full_name,
                                                                 self.long_id,
                                                                 self.created,
@@ -122,6 +128,7 @@ class DockerImage(object):  # pylint: disable=R0902
         :param full_name: FQIN, Fully Qualified Image Name
         :return: Iterable of repo, tag, repo_addr, user strings
         """
+
         try:
             (repo_addr, _, user,
              repo, tag) = DockerImage.repo_split_p.match(full_name).groups()
@@ -146,6 +153,7 @@ class DockerImage(object):  # pylint: disable=R0902
         :param user: String representing username as consumed by usage context
         :return:  FQIN string, Fully Qualified Image Name
         """
+
         component = zip(("%s/", "%s/", "%s", ":%s"),
                         (repo_addr, user, repo, tag))
         return "".join([c % v for c, v in component if not v is None])
@@ -162,19 +170,20 @@ class DockerImage(object):  # pylint: disable=R0902
                            if less.
         :return: Fully Qualified Image Name string.
         """
+
         # Don't modify actual data
         config = config.copy()
         for key in ('docker_repo_name', 'docker_repo_tag',
                     'docker_registry_host', 'docker_registry_user'):
             none_if_empty(config, key)
         fqin = DockerImage.full_name_from_component(
-                                                config['docker_repo_name'],
-                                                config['docker_repo_tag'],
-                                                config['docker_registry_host'],
-                                                config['docker_registry_user'])
+            config['docker_repo_name'],
+            config['docker_repo_tag'],
+            config['docker_registry_host'],
+            config['docker_registry_user'])
         if len(fqin) < min_length:
             raise ValueError("FQIN '%s' likely wrong, from configuration %s"
-                            % (fqin, config))
+                             % (fqin, config))
         return fqin
 
     def cmp_id(self, image_id):
@@ -184,6 +193,7 @@ class DockerImage(object):  # pylint: disable=R0902
         :param image_id: Exactly 12-character string or longer image ID
         :return: True/False equality
         """
+
         if len(image_id) == 12:
             return image_id == self.short_id
         else:
@@ -200,6 +210,7 @@ class DockerImage(object):  # pylint: disable=R0902
         :param user: Optional string username as consumed by usage context
         :return: True/False on equality
         """
+
         return self.full_name == self.full_name_from_component(repo,
                                                                tag,
                                                                repo_addr,
@@ -212,13 +223,14 @@ class DockerImage(object):  # pylint: disable=R0902
         :param full_name: FQIN string, Fully Qualified Image Name
         :return: True/False on equality
         """
+
         return self.full_name == full_name
 
     def cmp_greedy(self, repo=None, tag=None, repo_addr=None, user=None):
         """
         Boolean compare instance full_name's components to Non-None arguments
 
-        For example:
+        example:
 
         ::
 
@@ -231,8 +243,13 @@ class DockerImage(object):  # pylint: disable=R0902
             i_2.cmp_greedy('repo', None, None, None)
             True
 
+        :param repo: String repository name component
+        :param tag: Optional tag name string
+        :param repo_addr: Optional String representing network address/port
+        :param user: Optional string username as consumed by usage context
         :return: True/false on all Non-None argument equality to instance
         """
+
         if repo is not None and repo != self.repo:
             return False
         if tag is not None and tag != self.tag:
@@ -253,11 +270,13 @@ class DockerImage(object):  # pylint: disable=R0902
         :return: True/false on all Non-None full_name components equality
                  to instance
         """
+
         (repo, tag, repo_addr, user) = self.split_to_component(full_name)
         return self.cmp_greedy(repo, tag, repo_addr, user)
 
 
 class DockerImagesBase(object):
+
     """
     Implementation defined collection of DockerImage-like instances with
     helpers
@@ -279,7 +298,8 @@ class DockerImagesBase(object):
         """
         Initialize subclass operational instance.
 
-        :param subtest: A subtest.Subtest or subclass instance
+        :param subtest: A subtest.Subtest (**NOT** a SubSubtest) subclass
+                        instance
         :param timeout: An opaque non-default timeout value to use on instance
         :param verbose: A boolean non-default verbose value to use on instance
         """
@@ -304,6 +324,7 @@ class DockerImagesBase(object):
         :param length: Length of random string (greater than 1)
         :return: Image name guaranteed to not be in-use.
         """
+
         assert length > 1
         all_images = self.list_imgs_full_name()
         _name = "_".join([_ for _ in (prefix, '%s', suffix) if _])
@@ -319,9 +340,13 @@ class DockerImagesBase(object):
         """
         Standard name for behavior specific to subclass implementation details
 
+        :note:  This is probably not the method you're looking for,
+                try ``list_imgs()`` instead.
+
         :raise RuntimeError: if not defined by subclass
-        :return: implementation-specific value
+        :return: **implementation-specific**
         """
+
         raise RuntimeError()
 
     @staticmethod
@@ -339,6 +364,7 @@ class DockerImagesBase(object):
         :param full_name: FQIN string, Fully Qualified Image Name
         :return: Iterable container-like of DockerImage-like instances
         """
+
         return [di for di in image_list if di.cmp_greedy_full_name(full_name)]
 
     @staticmethod
@@ -361,6 +387,7 @@ class DockerImagesBase(object):
         :return: Iterable of **possibly overlapping** DockerImage-like
                  instances
         """
+
         return [di for di in image_list if di.cmp_greedy(repo, tag,
                                                          repo_addr, user)]
 
@@ -371,6 +398,7 @@ class DockerImagesBase(object):
         :return: **possibly overlapping**
                  [DockerImage-like, DockerImage-like, ...]
         """
+
         return self.get_dockerimages_list()
 
     def list_imgs_full_name(self):
@@ -379,6 +407,7 @@ class DockerImagesBase(object):
 
         :return: **non-overlapping** [FQIN, FQIN, ...]
         """
+
         dis = self.get_dockerimages_list()
         return [(di.full_name) for di in dis]
 
@@ -389,6 +418,7 @@ class DockerImagesBase(object):
 
         :return: **possibly overlapping** [long ID, long ID, ...]
         """
+
         dis = self.get_dockerimages_list()
         return list(set([di.long_id for di in dis]))
 
@@ -401,15 +431,16 @@ class DockerImagesBase(object):
                  [DockerImage-like, DockerImage-like, ...] greedy-matching
                  on full_name (FQIN)
         """
+
         dis = self.get_dockerimages_list()
         return [di for di in dis if di.cmp_greedy_full_name(full_name)]
 
     # Extra verbosity in name is needed here
     # pylint: disable=C0103
     def list_imgs_with_full_name_components(self, repo=None,
-                                                  tag=None,
-                                                  repo_addr=None,
-                                                  user=None):
+                                            tag=None,
+                                            repo_addr=None,
+                                            user=None):
         """
         Return python-list of **possibly overlapping** DockerImage-like
         instances greedy-matching FQIN components.
@@ -418,6 +449,7 @@ class DockerImagesBase(object):
                  [DockerImage-like, DockerImage-like, ...] greedy-matching
                  on FQIN components.
         """
+
         dis = self.get_dockerimages_list()
         return [di for di in dis if di.cmp_greedy(repo, tag, repo_addr, user)]
 
@@ -430,6 +462,7 @@ class DockerImagesBase(object):
                  [DockerImage-like, DockerImage-like, ...] greedy-matching
                  on FQIN components.
         """
+
         dis = self.get_dockerimages_list()
         return [di for di in dis if di.cmp_id(image_id)]
 
@@ -441,6 +474,9 @@ class DockerImagesBase(object):
         :raise RuntimeError: when implementation does not permit image removal
         :return: Implementation specific value
         """
+        # FIXME: This should raise Implementation-independant exceptions
+        #        for common conditions, otherwise caller is locked to
+        #        implementation-specific exceptions :(
         del image_id  # keep pylint happy
         raise RuntimeError()
 
@@ -452,6 +488,9 @@ class DockerImagesBase(object):
         :raise RuntimeError: when implementation does not permit image removal
         :return: Implementation specific value
         """
+        # FIXME: This should raise Implementation-independant exceptions
+        #        for common conditions, otherwise caller is locked to
+        #        implementation-specific exceptions :(
         del full_name  # keep pylint happy
         raise RuntimeError()
 
@@ -462,10 +501,14 @@ class DockerImagesBase(object):
         :raise RuntimeError: when implementation does not permit image removal
         :return: Same as remove_image_by_full_name()
         """
+        # FIXME: This should raise Implementation-independant exceptions
+        #        for common conditions, otherwise caller is locked to
+        #        implementation-specific exceptions :(
         return self.remove_image_by_full_name(image_obj.full_name)
 
 
 class DockerImagesCLI(DockerImagesBase):
+
     """
     Docker command supported DockerImage-like instance collection and helpers.
     """
@@ -501,18 +544,26 @@ class DockerImagesCLI(DockerImagesBase):
         :param timeout: Override self.timeout if not None
         :return: ``autotest.client.utils.CmdResult`` instance
         """
+
         docker_image_cmd = ("%s %s" % (self.subtest.config['docker_path'],
                                        cmd))
         if timeout is None:
             timeout = self.timeout
-        return utils.run(docker_image_cmd,
-                         verbose=self.verbose,
-                         timeout=timeout)
+        # FIXME: catching DockerCommandError should work on this but it doesn't
+        from autotest.client.shared.error import CmdError
+        try:
+            return utils.run(docker_image_cmd,
+                             verbose=self.verbose,
+                             timeout=timeout)
+        except CmdError, detail:
+            raise DockerCommandError(detail.command, detail.result_obj,
+                                     additional_text=detail.additional_text)
 
     def docker_cmd_check(self, cmd, timeout=None):
         """
         Wrap docker_cmd, running result through OutputGood before returning
         """
+
         result = self.docker_cmd(cmd, timeout)
         OutputGood(result)
         return result
@@ -527,6 +578,7 @@ class DockerImagesCLI(DockerImagesBase):
 
         :returns: ``autotest.client.utils.CmdResult`` instance
         """
+
         if self.verify_output:
             dkrcmd = self.docker_cmd_check
         else:
@@ -539,6 +591,7 @@ class DockerImagesCLI(DockerImagesBase):
 
         :returns: ``autotest.client.utils.CmdResult`` instance
         """
+
         if self.verify_output:
             dkrcmd = self.docker_cmd_check
         else:
@@ -547,6 +600,7 @@ class DockerImagesCLI(DockerImagesBase):
 
 
 class DockerImages(object):
+
     """
     Encapsulates ``DockerImage`` interfaces for manipulation with docker images.
     """
@@ -570,11 +624,9 @@ class DockerImages(object):
         if not isinstance(subtest, Subtest):
             raise TypeError("Instance %s is not a Subtest instance or "
                             "subclass." % str(subtest))
-        else:
-            self.subtest = subtest
-
         _dic = self.interfaces[interface_name]
-        self._interface = _dic(self.subtest, timeout, verbose)
+        super(DockerImages, self).__setattr__('_interface',
+                                              _dic(subtest, timeout, verbose))
 
     def __getattr__(self, name):
         """
@@ -582,13 +634,26 @@ class DockerImages(object):
 
         :return: attribute/method provided by interface implementation.
         """
+
         return getattr(self._interface, name)
+
+    def __setattr__(self, name, value):
+        """
+        Hide interface choice while allowing attribute/method access.
+
+        :return: attribute/method provided by interface implementation.
+        """
+        if hasattr(self._interface, name):
+            return setattr(self._interface, name, value)
+        else:
+            super(DockerImages, self).__setattr__(name, value)
 
     @property
     def interface(self):
         """
         Interface class being encapsulated (read-only property)
         """
+
         return self._interface.__class__
 
     @property
@@ -596,6 +661,7 @@ class DockerImages(object):
         """
         Class name of interface being encapsulated (read-only property)
         """
+
         return self.interface.__name__
 
     @property
@@ -603,6 +669,7 @@ class DockerImages(object):
         """
         Short-name used to create this instance (read-only property)
         """
+
         keys = self.interfaces.keys()
         values = self.interfaces.values()
         try:

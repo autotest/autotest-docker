@@ -11,7 +11,6 @@ loading the specified configuration section (see `configuration module`_)
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
-import warnings
 import logging
 import tempfile
 import os.path
@@ -19,10 +18,9 @@ import imp
 import sys
 import traceback
 from autotest.client.shared import error
-from autotest.client.shared import base_job
 from autotest.client.shared.error import AutotestError
 from autotest.client.shared.version import get_version
-from autotest.client import job, test
+from autotest.client import test
 import version
 import config
 from xceptions import DockerTestFail
@@ -33,8 +31,11 @@ from xceptions import DockerSubSubtestNAError
 
 class Subtest(test.test):
 
-    """
+    r"""
     Extends autotest test.test with dockertest-specific items
+
+    :param \*args: Ignored and blindly passed through to super-class.
+    :param \*\*dargs: Ignored and blindly passed through to super-class.
     """
     #: Version number from configuration, read-only / setup inside __init__
     #: affects one-time building of bundled content in 'self.srcdir' by
@@ -52,7 +53,7 @@ class Subtest(test.test):
     #: Configuration section used for subclass, set by Subtest or auto-generated
     config_section = None
 
-    #: Private namespace for use by subclasses **ONLY**.  This attribute
+    #: Private name-space for use by subclasses **ONLY**.  This attribute
     #: is completely ignored everywhere inside the dockertest API.  Subtests
     #: are encouraged to use it for temporarily storing results/info. It is
     #: initialized to an empty dictionary, but subtests can reassign it to any
@@ -62,12 +63,10 @@ class Subtest(test.test):
     #: private method used by log*() methods internally, do not use.
     _re = None
 
-    def __init__(self, *args, **dargs):
-        r"""
-        Initialize new subtest, passes all arguments through to parent class
+    #: Subtest's config
+    config = None
 
-        :param *args & **dargs:  Ignored, passed through to parent class.
-        """
+    def __init__(self, *args, **dargs):
 
         def _make_cfgsect():
             testpath = os.path.abspath(self.bindir)
@@ -78,7 +77,8 @@ class Subtest(test.test):
             while dirlist.pop() != 'subtests':
                 pass  # work already done :)
             dirlist.reverse()  # correct order
-            return os.path.join(*dirlist)  # i.e. docker_cli/run_tiwce
+            # i.e. docker_cli/run_twice
+            return os.path.join(*dirlist)  # pylint: disable=W0142
 
         def _init_config():  # private, no docstring pylint: disable=C0111
             # So tests don't need to set this up every time
@@ -96,35 +96,35 @@ class Subtest(test.test):
                     # Mark this to not be checked, no config, no version info.
                     self.config['config_version'] = version.NOVERSIONCHECK
                     self.version = 0
+                    self.config_section = config_section
+                    # just in case anything looks
+                    self.config['config_section'] = config_section
             else:
                 # Version number used by one-time setup() test.test method
                 self.version = version.str2int(self.config['config_version'])
 
         def _init_logging():  # private, no docstring pylint: disable=C0111
-            # log indentation level not easy to get at, so use opaque impl.
-            _si = job.status_indenter(self.job)
-            _sl = base_job.status_logger(self.job, _si)
-            self._re = _sl.render_entry  # will return string w/ proper indent
             # Log original key/values before subtest could modify them
             self.write_test_keyval(self.config)
 
         super(Subtest, self).__init__(*args, **dargs)
         _init_config()
-        if not self.config.get('enable', True):
-            raise DockerTestNAError("Subtest disabled in configuration.")
         _init_logging()
+        self.check_disable(self.config_section)
         # Optionally setup different iterations if option exists
         self.iterations = self.config.get('iterations', self.iterations)
         # subclasses can do whatever they like with this
         self.stuff = {}
 
-    # Private workaround due to job/test instance private attributes/methods :(
-    def _log(self, level, message, *args):  # pylint: disable=C0111
-        method = getattr(logging, level)
-        message = '%s: %s' % (level.upper(), message)
-        sle = base_job.status_log_entry("RUNNING", None, None, message, {})
-        rendered = self._re(sle)
-        return method(rendered, *args)
+    def check_disable(self, config_section):
+        """
+        Raise DockerTestNAError if test disabled on this host/environment
+        """
+        disable = self.config.get('disable', '')
+        if config_section in disable.split(','):
+            msg = "Subtest disabled in configuration."
+            self.loginfo(msg)
+            raise DockerTestNAError(msg)
 
     def execute(self, *args, **dargs):
         """**Do not override**, needed to pull data from super class"""
@@ -143,11 +143,11 @@ class Subtest(test.test):
         """
         Called every time the test is run.
         """
+        self.loginfo("initialize()")
         # Fail test if autotest is too old
         version.check_autotest_version(self.config, get_version())
         # Fail test if configuration being used doesn't match dockertest API
         version.check_version(self.config)
-        self.loginfo("initialize()")
         # Don't bother logging subtest config if sub-subtests will
         # inherit & print anyway
         if 'subsubtests' not in self.config:
@@ -185,7 +185,7 @@ class Subtest(test.test):
     # Some convenience methods for tests to use
 
     @staticmethod
-    def failif(condition, reason):
+    def failif(condition, reason=None):
         """
         Convenience method for subtests to avoid importing TestFail exception
 
@@ -193,8 +193,30 @@ class Subtest(test.test):
         :param reason: Helpful text describing why the test failed
         :raise DockerTestFail: If condition evaluates ``True``
         """
+        if reason is None:
+            reason = "Failed test condition"
         if bool(condition):
             raise DockerTestFail(reason)
+
+    @staticmethod
+    def logindent(n_spaces, n_tabs, testname, msg):
+        """
+        Indent msg with extra spaces/tabs, prefix with a test name
+        """
+        tabs = str("\t" * n_tabs)
+        spaces = str(" " * n_spaces)
+        space_tabs = spaces + tabs
+        newline_indent = "\n" + space_tabs
+        msg = str(msg).replace("\n", newline_indent)
+        return str(tabs + "%s: %s") % (testname, msg)
+
+    def log_x(self, lvl, msg, *args):
+        """
+        Send msg & args through to logging module function with name lvl
+        """
+        meth = getattr(logging, lvl)
+        testname = self.__class__.__name__
+        return meth(self.logindent(16, 1, testname, msg), *args)
 
     def logdebug(self, message, *args):
         r"""
@@ -203,7 +225,7 @@ class Subtest(test.test):
         :param message: Same as logging.debug()
         :\*args: Same as logging.debug()
         """
-        return self._log('debug', message, *args)
+        self.log_x('debug', message, *args)
 
     def loginfo(self, message, *args):
         r"""
@@ -212,7 +234,7 @@ class Subtest(test.test):
         :param message: Same as logging.info()
         :\*args: Same as logging.info()
         """
-        return self._log('info', message, *args)
+        self.log_x('info', message, *args)
 
     def logwarning(self, message, *args):
         r"""
@@ -221,7 +243,7 @@ class Subtest(test.test):
         :param message: Same as logging.warning()
         :\*args: Same as logging.warning()
         """
-        return self._log('warning', message, *args)
+        self.log_x('warn', message, *args)
 
     def logerror(self, message, *args):
         r"""
@@ -230,13 +252,14 @@ class Subtest(test.test):
         :param message: Same as logging.error()
         :\*args: Same as logging.error()
         """
-        return self._log('error', message, *args)
+        self.log_x('error', message, *args)
 
     def logtraceback(self, name, exc_info, error_source, detail):
         r"""
-        Log error to error, traceback to debug, of controlling terminal **only**
+        Log error to error, traceback to debug, of controlling terminal
+        **only**
         """
-        error_head = ("%s failed to %s: %s: %s" % (name,
+        error_head = ("%s failed to %s\n%s\n%s" % (name,
                       error_source, detail.__class__.__name__,
                       detail))
         error_tb = traceback.format_exception(exc_info[0],
@@ -253,6 +276,8 @@ class SubSubtest(object):
     """
     Simplistic/minimal subtest interface matched with config section
 
+    :param parent_subtest: The Subtest instance calling this instance
+
     :*Note*: Contains, and is similar to, but DOES NOT represent
              the same interface as the Subtest class (above).
     """
@@ -267,7 +292,7 @@ class SubSubtest(object):
     #: removed during cleanup()
     tmpdir = None  # automatically determined in initialize()
 
-    #: Private namespace for use by subclasses **ONLY**.  This attribute
+    #: Private name-space for use by subclasses **ONLY**.  This attribute
     #: is completely ignored everywhere inside the dockertest API.  Subtests
     #: are encouraged to use it for temporarily storing results/info.  It
     #: is initialized to an empty dictionary, however subsubtests may
@@ -275,36 +300,32 @@ class SubSubtest(object):
     sub_stuff = None
 
     def __init__(self, parent_subtest):
-        """
-        Initialize sub-subtest
-
-        :param parent_subtest: The Subtest instance calling this instance
-        """
         # Allow parent_subtest to use any interface this
         # class is setup to support. Don't check type.
         self.parent_subtest = parent_subtest
         # Append this subclass's name onto parent's section name
         # e.g. [parent_config_section/child_class_name]
-        config_section = (os.path.join(self.parent_subtest.config_section,
-                                       self.__class__.__name__))
+        self.config_section = (os.path.join(self.parent_subtest.config_section,
+                                            self.__class__.__name__))
         # Allow child to inherit and override parent config
         all_configs = config.Config()
         # make_subsubtest_config will modify this
         parent_config = self.parent_subtest.config.copy()
         # subsubtest config is optional, overrides parent.
-        if config_section not in all_configs:
+        if self.config_section not in all_configs:
             self.config = parent_config
         else:
             self.make_subsubtest_config(all_configs,
                                         parent_config,
-                                        all_configs[config_section])
+                                        all_configs[self.config_section])
         if not self.config.get('enable', True):
             raise DockerSubSubtestNAError(self.__class__.__name__)
         # Not automatically logged along with parent subtest
         # for records/archival/logging purposes
-        note = {'Configuration_for_Subsubtest': config_section}
+        note = {'Configuration_for_Subsubtest': self.config_section}
         self.parent_subtest.write_test_keyval(note)
         self.parent_subtest.write_test_keyval(self.config)
+        self.parent_subtest.check_disable(self.config_section)
         # subclasses can do whatever they like with this
         self.sub_stuff = {}
 
@@ -314,14 +335,15 @@ class SubSubtest(object):
         Form subsubtest configuration by inheriting parent subtest config
         """
         self.config = parent_config  # a copy
-        # global defaults mixed in, even if overriden in parent :(
+        # global defaults mixed in, even if overridden in parent :(
         for key, val in subsubtest_config.items():
             if key in all_configs['DEFAULTS']:
                 def_val = all_configs['DEFAULTS'][key]
                 par_val = parent_config[key]
                 if val == def_val:
                     if par_val != def_val:
-                        # Parent overrides default, subsubtest inherited default
+                        # Parent overrides default, subsubtest inherited
+                        # default
                         self.config[key] = par_val
                     else:
                         # Parent uses default, subsubtest did not override
@@ -340,7 +362,7 @@ class SubSubtest(object):
         """
         Called every time the test is run.
         """
-        self.loginfo("%s initialize()", self.__class__.__name__)
+        self.loginfo("initialize()")
         self.tmpdir = tempfile.mkdtemp(prefix=self.__class__.__name__,
                                        suffix='tmp',
                                        dir=self.parent_subtest.tmpdir)
@@ -349,72 +371,60 @@ class SubSubtest(object):
         """
         Called once only to exercise subject of sub-subtest
         """
-        self.loginfo("%s run_once()", self.__class__.__name__)
+        self.loginfo("run_once()")
 
     def postprocess(self):
         """
         Called to process results of subject
         """
-        self.loginfo("%s postprocess()", self.__class__.__name__)
+        self.loginfo("postprocess()")
 
     def cleanup(self):
         """
         Always called, even despite any exceptions thrown.
         """
-        self.loginfo("%s cleanup()", self.__class__.__name__)
+        self.loginfo("cleanup()")
         # tmpdir is cleaned up automatically by harness
-
-    # TODO: Remove this after 0.7.x
-    def make_repo_name(self):
-        """
-        Convenience function to generate a unique test-repo name
-
-        :**note**: This method will be going away SOON!
-        """
-        self.logwarning("make_repo_name() is deprecated, use "
-                        "images.DockerImages.get_unique_name() "
-                        " instead.")
-        warnings.warn(PendingDeprecationWarning())
-        prefix = self.parent_subtest.config['repo_name_prefix']
-        name = os.path.basename(self.tmpdir)
-        postfix = self.parent_subtest.config['repo_name_postfix']
-        return "%s%s%s" % (prefix, name, postfix)
 
     # Handy to have here also
     failif = staticmethod(Subtest.failif)
+
+    def log_x(self, lvl, msg, *args):
+        """
+        Send msg & args through to logging module function with name lvl
+        """
+        meth = getattr(logging, lvl)
+        testname = self.__class__.__name__
+        return meth(self.parent_subtest.logindent(16, 2, testname, msg), *args)
 
     def logdebug(self, message, *args):
         """
         Same as Subtest.logdebug
         """
-        newmsg = 'SubSubtest %s DEBUG: %s' % (self.__class__.__name__, message)
-        return self.parent_subtest.logdebug(newmsg, *args)
+        return self.log_x('debug', message, *args)
 
     def loginfo(self, message, *args):
         """
         Same as Subtest.loginfo
         """
-        newmsg = 'SubSubtest %s INFO: %s' % (self.__class__.__name__, message)
-        return self.parent_subtest.loginfo(newmsg, *args)
+        return self.log_x('info', message, *args)
 
     def logwarning(self, message, *args):
         """
         Same as Subtest.logwarning
         """
-        newmsg = 'SubSubtest %s WARN: %s' % (self.__class__.__name__, message)
-        return self.parent_subtest.logwarning(newmsg, *args)
+        return self.log_x('warn', message, *args)
 
     def logerror(self, message, *args):
         """
         Same as Subtest.logerror
         """
-        newmsg = 'SubSubtest %s ERROR: %s' % (self.__class__.__name__, message)
-        return self.parent_subtest.logerror(newmsg, *args)
+        return self.log_x('error', message, *args)
 
 
 class SubSubtestCaller(Subtest):
 
-    """
+    r"""
     Extends Subtest by automatically discovering and calling child subsubtests.
 
     Child subsubtest methods ``initialize``, ``run_once``, and ``postprocess``,
@@ -445,11 +455,6 @@ class SubSubtestCaller(Subtest):
     exception_info = None
 
     def __init__(self, *args, **dargs):
-        r"""
-        Call subtest __init__ and setup local attributes
-
-        :param \*args & \*\*dargs: Opaque, passed through to super-class
-        """
         super(SubSubtestCaller, self).__init__(*args, **dargs)
         #: Need separate private dict similar to `sub_stuff` but different name
 
@@ -461,8 +466,8 @@ class SubSubtestCaller(Subtest):
     def initialize(self):
         """
         Perform initialization steps needed before loading subsubtests.  Split
-        up the ``subsubtests`` config. option by commas, into instance attribute
-        ``subsubtest_names`` (list).
+        up the ``subsubtests`` config. option by commas, into instance
+        attribute ``subsubtest_names`` (list).
         """
         super(SubSubtestCaller, self).initialize()
         # Private to this instance, outside of __init__
@@ -530,7 +535,6 @@ class SubSubtestCaller(Subtest):
         else:
             logging.warning("Failed importing sub-subtest %s", name)
 
-
     def run_once(self):
         """
         Find, instantiate, and call all testing methods on each subsubtest, in
@@ -572,7 +576,8 @@ class SubSubtestCaller(Subtest):
             self.exception_info["exc_info"] = sys.exc_info()
             raise
 
-    def import_if_not_loaded(self, name, pkg_path):
+    @staticmethod
+    def import_if_not_loaded(name, pkg_path):
         """
         Import module only if module is not loaded.
         """
@@ -618,7 +623,7 @@ class SubSubtestCaller(Subtest):
 
 class SubSubtestCallerSimultaneous(SubSubtestCaller):
 
-    """
+    r"""
     Variation on SubSubtestCaller that calls test methods in subsubtest order.
 
     Child subsubtest methods ``initialize``, ``run_once``, and ``postprocess``,
@@ -629,6 +634,9 @@ class SubSubtestCallerSimultaneous(SubSubtestCaller):
     child's subclass name onto the parent's ``config_section`` value.  Parent
     configuration is passed to subsubtest, with the subsubtest's section
     overriding values with the same option name.
+
+    :param \*args: Passed through to super-class.
+    :param \*\*dargs: Passed through to super-class.
     """
 
     #: Dictionary of subsubtests names to instances which successfully

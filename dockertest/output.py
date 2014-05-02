@@ -5,7 +5,6 @@ Handlers for command-line output processing, crash/panic detection, etc.
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
-import warnings
 import re
 from collections import Mapping, MutableSet, Sequence
 
@@ -17,6 +16,9 @@ class DockerVersion(object):
 
     """
     Parser of docker-cli version command output as client/server properties
+
+    :param version_string: Raw, possibly empty or multi-line output
+                           from docker version command.
     """
     #: Raw, possibly empty or multi-line output from docker version command.
     #: Read-only, set in __init__
@@ -28,12 +30,6 @@ class DockerVersion(object):
     _server = None
 
     def __init__(self, version_string):
-        """
-        Initialize version command output parser instance
-
-        :param version_string: Raw, possibly empty or multi-line output
-                               from docker version command.
-        """
         self.version_string = version_string
         self.version_lines = self.version_string.splitlines()
 
@@ -43,7 +39,7 @@ class DockerVersion(object):
         Read-only property representing version-number string of docker client
         """
         if self._client is None:
-            regex = re.compile(r'Client\s+version:\s+(\d+\.\d+\.\d+)',
+            regex = re.compile(r'Client\s+version:\s+(\d+\.\d+\.\d+\S*)',
                                re.IGNORECASE)
             mobj = None
             for line in self.version_lines:
@@ -61,7 +57,7 @@ class DockerVersion(object):
         Read-only property representing version-number string of docker server
         """
         if self._server is None:
-            regex = re.compile(r'Server\s*version:\s*(\d+\.\d+\.\d+)',
+            regex = re.compile(r'Server\s*version:\s*(\d+\.\d+\.\d+\S*)',
                                re.IGNORECASE)
             mobj = None
             for line in self.version_lines:
@@ -78,6 +74,11 @@ class ColumnRanges(Mapping):
 
     """
     Immutable map of start/end offsets to/from column names.
+
+    :param header: Table header string of multi-space separated column names
+    :param expected: Precise number of columns expected, or raise ValueError
+    :param min_col_len: Minimum number of characters for a column header
+    :raises ValueError: Column < than min_col_len or # columns != expected
     """
 
     __slots__ = ('ranges', 'columns', 'count')
@@ -95,14 +96,6 @@ class ColumnRanges(Mapping):
     _re = re.compile(r"\s\s+")
 
     def __init__(self, header, min_col_len=3, expected=None):
-        """
-        Initialize immutable mapping from header string.
-
-        :param header: Table header string of multi-space separated column names
-        :param expected: Precise number of columns expected, or raise ValueError
-        :param min_col_len: Minimum number of characters for a column header
-        :raises ValueError: Column < than min_col_len or # columns != expected
-        """
         header_strip = header.strip()  # just in case
         cols = [col for col in self._re.split(header_strip)]
         if expected is not None and len(cols) != expected:
@@ -179,6 +172,10 @@ class TextTable(MutableSet, Sequence):
 
     """
     Parser for tabular data with values separated by character offsets
+
+    :param table: String of table header, optionally followed by data rows
+    :raises TypeError: if table contains less than one line
+    :raises ValueError: if key_column is not in table_columns
     """
 
     #: Permit duplicate rows to be added
@@ -194,21 +191,16 @@ class TextTable(MutableSet, Sequence):
     _rows = None
 
     def __init__(self, table):
-        """
-        Initialize to hold data mapped from table header, & optionally data
-
-        :param table: String of table header, optionally followed by data rows
-        :raises TypeError: if table contains less than one line
-        :raises ValueError: if key_column is not in table_columns
-        """
         table_lines = table.strip().splitlines()
         if len(table_lines) < 1:
             raise TypeError("Table shorter than one line: %s" % table)
         # First line is header
         self.columnranges = ColumnRanges(table_lines[0])
         self._rows = []
-        if len(table_lines) > 1:
-            for line in table_lines[1:]:
+        header, tabledata = self.parseheader(table)
+        self.columnranges = ColumnRanges(header)
+        if tabledata is not None:
+            for line in self.parserows(tabledata):
                 line_strip = line.strip()
                 self.append(self.parse_line(line_strip))
 
@@ -252,7 +244,7 @@ class TextTable(MutableSet, Sequence):
 
     def discard(self, index):
         """
-        Wrapps del texttable[index[
+        Wraps del texttable[index[
         """
         return self.__delitem__(index)
 
@@ -298,6 +290,27 @@ class TextTable(MutableSet, Sequence):
             return None
         return value
 
+    @staticmethod
+    def parseheader(table):
+        """
+        Parse string into tuple(header, data)
+        """
+        lines = table.strip().splitlines()
+        if len(lines) < 1:
+            raise TypeError("Table shorter than one line: %s" % table)
+        if len(lines) == 1:
+            tabledata = None
+        else:
+            tabledata = "\n".join(lines[1:])  # put back together
+        return (lines[0], tabledata)  # both regular strings
+
+    @staticmethod
+    def parserows(tabledata):
+        """
+        Parse table data string (minus header line) into a list of rows
+        """
+        return tabledata.strip().splitlines()
+
     def parse_line(self, line):
         """
         Parse one line into a dict based on columnranges
@@ -328,10 +341,15 @@ class TextTable(MutableSet, Sequence):
                              % (len(found), col_name, value))
         return found[0]
 
+
 class OutputGoodBase(AllGoodBase):
 
     """
     Compare True if all methods ending in '_check' return True on stdout/stderr
+
+    :param cmdresult: autotest.client.utils.CmdResult instance
+    :param ignore_error: Raise exceptions.DockerOutputError if False
+    :param skip: Iterable of checks to bypass, None to run all
     """
 
     #: Reference to original CmdResult instance
@@ -344,18 +362,15 @@ class OutputGoodBase(AllGoodBase):
     stderr_strip = None
 
     def __init__(self, cmdresult, ignore_error=False, skip=None):
-        """
-        Run checks, define result attrs or raise xceptions.DockerOutputError
-
-        :param cmdresult: autotest.client.utils.CmdResult instance
-        :param ignore_error: Raise exceptions.DockerOutputError if False
-        :param skip: Iterable of checks to bypass, None to run all
-        """
+        # Base class __init__ is abstract
+        # pylint: disable=W0231
         self.cmdresult = cmdresult
         self.stdout_strip = cmdresult.stdout.strip()
         self.stderr_strip = cmdresult.stderr.strip()
         # All methods called twice with mangled names, mangle skips also
         if skip is not None:
+            if isinstance(skip, (str, unicode)):
+                skip = [skip]
             newskip = []
             for checker in skip:
                 newskip.append(checker + '_stdout')
@@ -397,26 +412,6 @@ class OutputGoodBase(AllGoodBase):
                 self.details[checker] = detail
                 duplicate = True  # all other failures will be same
         return super(OutputGoodBase, self).prepare_results(results)
-
-    # FIXME: Deprecate self.output_good in Major/Minor release
-    @property
-    def output_good(self):
-        """
-        Deprecated, do not use!
-        """
-        warnings.warn(PendingDeprecationWarning())
-        # Make sure PrepareResults gets called
-        self.__nonzero__()
-        og = {}
-        for key, value in self.results.items():
-            basekey = key.replace('_stdout', '')
-            basekey = basekey.replace('_stderr', '')
-            # Represent result as logical and of both stdout/stderr values
-            if basekey in og:
-                og[basekey] = og[basekey] and value
-            else:
-                og[basekey] = value
-        return og
 
 
 class OutputGood(OutputGoodBase):
@@ -465,5 +460,3 @@ class OutputGood(OutputGoodBase):
             if line.lower().strip().count('error: '):
                 return False
         return True
-
-    # TODO: Other checks?

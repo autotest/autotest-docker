@@ -12,7 +12,7 @@ docker start full_name
 """
 
 from autotest.client.shared import error
-from start import start_base, short_term_app, DockerContainersCLIRunOnly
+from start import short_term_app, DockerContainersCLIRunOnly
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import OutputGood
 
@@ -37,7 +37,6 @@ class long_term_app(short_term_app):
     def postprocess(self):
         super(long_term_app, self).postprocess()
         # Raise exception if problems found
-        OutputGood(self.sub_stuff['cmdresult'])
         if self.config["docker_expected_result"] == "PASS":
             self.failif(self.sub_stuff['cmdresult'].exit_status != 0,
                         "Non-zero start exit status: %s"

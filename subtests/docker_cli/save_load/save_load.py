@@ -82,17 +82,14 @@ class simple(save_load_base):
 
         dkrcmd = DockerCmd(self.parent_subtest, 'run',
                            self.sub_stuff['subargs'],
-                           timeout=self.config['docker_timeout'])
-        dkrcmd.verbose = True
+                           verbose=True)
 
-        # Runs in background
         cmdresult = dkrcmd.execute()
         if cmdresult.exit_status != 0:
             error.TestNAError("Unable to prepare env for test: %s" %
                               (cmdresult))
 
         c_name = self.sub_stuff["rand_name"]
-        self.sub_stuff["containers"].append(c_name)
         self.sub_stuff["images"].append(c_name)
         cid = self.sub_stuff["cont"].list_containers_with_name(c_name)
 
@@ -101,19 +98,22 @@ class simple(save_load_base):
                    (c_name, cmdresult))
 
         dkrcmd = DockerCmd(self.parent_subtest, 'commit',
-                           [c_name, c_name],
-                           timeout=self.config['docker_timeout'])
+                           [c_name, c_name], verbose=True)
         dkrcmd.verbose = True
 
-        # Runs in background
         cmdresult = dkrcmd.execute()
         if cmdresult.exit_status != 0:
             error.TestNAError("Unable to prepare env for test: %s" %
                               (cmdresult))
+        dkrcmd = DockerCmd(self.parent_subtest, 'rm', [c_name], verbose=True)
+        cmdresult = dkrcmd.execute()
+        if cmdresult.exit_status != 0:
+            error.TestNAError("Failed to cleanup env for test: %s" %
+                              (cmdresult))
 
     def run_once(self):
         super(simple, self).run_once()  # Prints out basic info
-        self.loginfo("Starting background docker command, timeout %s seconds",
+        self.loginfo("Starting docker command, timeout %s seconds",
                      self.config['docker_timeout'])
 
         # Save image
@@ -123,7 +123,7 @@ class simple(save_load_base):
 
         dkrcmd = DockerCmd(self.parent_subtest, 'save',
                            [self.sub_stuff['save_ar']],
-                           timeout=self.config['docker_timeout'])
+                           verbose=True)
         dkrcmd.verbose = True
         # Runs in background
         self.sub_stuff['cmdresult_save'] = dkrcmd.execute()
@@ -135,7 +135,7 @@ class simple(save_load_base):
         # Delete image
         dkrcmd = DockerCmd(self.parent_subtest, 'rmi',
                            [self.sub_stuff["rand_name"]],
-                           timeout=self.config['docker_timeout'])
+                           verbose=True)
         dkrcmd.verbose = True
         # Runs in background
         self.sub_stuff['cmdresult_del'] = dkrcmd.execute()
@@ -147,7 +147,7 @@ class simple(save_load_base):
 
         dkrcmd = DockerCmd(self.parent_subtest, 'load',
                            [self.sub_stuff['load_ar']],
-                           timeout=self.config['docker_timeout'])
+                           verbose=True)
         dkrcmd.verbose = True
         # Runs in background
         self.sub_stuff['cmdresult_load'] = dkrcmd.execute()
@@ -172,8 +172,8 @@ class simple(save_load_base):
                     str_load)
 
         self.failif(str_del.exit_status != 0,
-                    "Problem with load cmd detail :%s" %
-                    str_load)
+                    "Problem with del cmd detail :%s" %
+                    str_del)
 
         img_name = self.sub_stuff["rand_name"]
         images = self.sub_stuff["img"].list_imgs_with_full_name(img_name)

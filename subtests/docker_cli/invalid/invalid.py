@@ -155,4 +155,4 @@ class invalid_base(subtest.SubSubtest):
         super(invalid_base, self).cleanup()
         for container in self.sub_stuff['container_names']:
             cm = DockerCmd(self.parent_subtest, "rm", container)
-            result = cm.execute()
+            cm.execute()

@@ -13,24 +13,44 @@ from xceptions import (DockerNotImplementedError, DockerCommandError,
 
 
 class DockerCmdBase(object):
+
     """
     Setup a call docker subcommand as if by CLI w/ subtest config integration
+    Execute docker subcommand with arguments and a timeout.
+
+    :param subtest: A subtest.Subtest (**NOT** a SubSubtest) subclass instance
+    :param subcomd: A Subcommand or fully-formed option/argument string
+    :param subargs: (optional) A list of strings containing additional
+                    args to subcommand
+    :param timeout: Seconds to wait before terminating docker command
+                    None to use 'docker_timeout' config. option.
+    :raises DockerTestError: on incorrect usage
     """
 
     #: Evaluates ``True`` after first time ``execute()`` method is called
     executed = 0
 
-    def __init__(self, subtest, subcmd, subargs=None, timeout=None):
-        """
-        Execute docker subcommand with arguments and a timeout.
+    #: A list of strings containing additional args to subcommand, or None
+    subargs = None
 
-        :param subtest: A subtest.Subtest subclass instance
-        :param subcomd: A Subcommand or single option string
-        :param subargs: (optional) Iterable of additional args to subcommand
-        :param timeout: Seconds to wait before terminating docker command
-                        None to use 'docker_timeout' config. option.
-        :raises DockerTestError: on incorrect usage
-        """
+    #: Override for ``docker_timeout`` configuration value
+    timeout = None
+
+    #: String of subcommand or fully-formed option/argument string
+    subcmd = None
+
+    #: Log additional debugging related messages
+    verbose = None
+
+    def __init__(self, subtest, subcmd, subargs=None, timeout=None,
+                 verbose=True):
+        # Check for proper type of subargs
+        if subargs is not None:
+            if (not isinstance(subargs, list) or
+                    isinstance(subargs, (str, unicode))):
+                raise DockerTestError("Invalid argument type: %s,"
+                                      " subargs must be a list of"
+                                      " strings." % (subargs))
         # Prevent accidental test.test instance passing
         if not isinstance(subtest, Subtest):
             raise DockerTestError("%s is not a Subtest instance or "
@@ -50,6 +70,7 @@ class DockerCmdBase(object):
         else:
             # config() autoconverts otherwise catch non-float convertable
             self.timeout = float(timeout)
+        self.verbose = verbose
 
     def __str__(self):
         """
@@ -61,11 +82,12 @@ class DockerCmdBase(object):
         """
         Execute docker subcommand
 
-        :param stdin: String or file-like containing standard input contents
+        :param stdin: String or file-descriptor int supplying stdin data
         :raise DockerCommandError: on incorrect usage
         :raise DockerExecError: on command failure
         :return: A CmdResult instance
         """
+
         self.executed += 1
         # Keep pylint quiet
         del stdin
@@ -79,6 +101,7 @@ class DockerCmdBase(object):
 
         :raise DockerRuntimeError: if unsupported by subclass
         """
+
         raise DockerRuntimeError
 
     @property
@@ -86,6 +109,7 @@ class DockerCmdBase(object):
         """
         String of docker args
         """
+
         # Defined in [DEFAULTS] guaranteed to exist
         return self.subtest.config['docker_options']
 
@@ -94,6 +118,7 @@ class DockerCmdBase(object):
         """
         String of docker command path
         """
+
         # Defined in [DEFAULTS] guaranteed to exist
         return self.subtest.config['docker_path']
 
@@ -102,6 +127,7 @@ class DockerCmdBase(object):
         """
         String representation of command + subcommand + args
         """
+
         if len(self.subargs) > 0:
             return ("%s %s %s %s" % (self.docker_command,
                                      self.docker_options,
@@ -114,23 +140,22 @@ class DockerCmdBase(object):
 
 
 class DockerCmd(DockerCmdBase):
+
     """
     Setup a call docker subcommand as if by CLI w/ subtest config integration
+    Execute docker subcommand with arguments and a timeout.
     """
 
     def execute(self, stdin=None):
         """
         Run docker command, ignore any non-zero exit code
-
-        :param stdin: String or file-like containing standard input contents
-        :raise DockerCommandError: on incorrect usage
-        :raise DockerExecError: on command failure
-        :return: A CmdResult instance
         """
+
         self.executed += 1
         try:
             return utils.run(self.command, timeout=self.timeout,
-                             stdin=stdin, verbose=False, ignore_status=True)
+                             stdin=stdin, verbose=self.verbose,
+                             ignore_status=True)
         # ignore_status=True : should not see CmdError
         except error.CmdError, detail:
             # Something internal must have gone wrong
@@ -139,32 +164,34 @@ class DockerCmd(DockerCmdBase):
     def execute_calls(self):
         return int(self.executed)
 
+
 class NoFailDockerCmd(DockerCmd):
+
     """
     Setup a call docker subcommand as if by CLI w/ subtest config integration
+    Execute docker subcommand with arguments and a timeout.
     """
 
     def execute(self, stdin=None):
         """
         Execute docker command, raising DockerCommandError if non-zero exit
-
-        :param stdin: String or file-like containing standard input contents
-        :raises DockerCommandError: on incorrect usage
-        :raises DockerExecError: on if command returns non-zero exit code
-        :return: A CmdResult instance
         """
+
         self.executed += 1
         try:
             return utils.run(self.command, timeout=self.timeout,
-                             stdin=stdin, verbose=False, ignore_status=False)
+                             stdin=stdin, verbose=self.verbose,
+                             ignore_status=False)
         # Prevent caller from needing to import this exception class
         except error.CmdError, detail:
             raise DockerExecError(str(detail.result_obj))
 
 
 class MustFailDockerCmd(DockerCmd):
+
     """
     Setup a call docker subcommand as if by CLI w/ subtest config integration
+    Execute docker subcommand with arguments and a timeout.
     """
 
     def execute(self, stdin=None):
@@ -176,10 +203,11 @@ class MustFailDockerCmd(DockerCmd):
         :raises DockerExecError: on if command returns zero exit code
         :return: A CmdResult instance
         """
+
         self.executed += 1
         try:
             cmdresult = utils.run(self.command, timeout=self.timeout,
-                                  stdin=stdin, verbose=False,
+                                  stdin=stdin, verbose=self.verbose,
                                   ignore_status=True)
         # Prevent caller from needing to import this exception class
         except error.CmdError, detail:
@@ -192,8 +220,10 @@ class MustFailDockerCmd(DockerCmd):
 
 
 class AsyncDockerCmd(DockerCmdBase):
+
     """
     Execute docker command as asynchronous background process on ``execute()``
+    Execute docker subcommand with arguments and a timeout.
     """
 
     #: Used internally by execute()
@@ -202,10 +232,8 @@ class AsyncDockerCmd(DockerCmdBase):
     def execute(self, stdin=None):
         """
         Start execution of asynchronous docker command
-
-        :param stdin: String or file-like containing standard input contents
-        :return: A partial CmdResult instance
         """
+
         self._async_job = utils.AsyncJob(self.command, verbose=False,
                                          stdin=stdin, close_fds=True)
         return self._async_job.result
@@ -218,6 +246,7 @@ class AsyncDockerCmd(DockerCmdBase):
         :raises DockerTestError: on incorrect usage
         :return: Complete CmdResult instance
         """
+
         if timeout is None:
             timeout = self.timeout
         if self._async_job is not None:
@@ -232,6 +261,7 @@ class AsyncDockerCmd(DockerCmdBase):
 
         :raises DockerTestError: on incorrect usage
         """
+
         if self._async_job is None:
             raise DockerTestError("Attempted to wait for done before execute()"
                                   " called.")
@@ -244,6 +274,7 @@ class AsyncDockerCmd(DockerCmdBase):
 
         :raises DockerTestError: on incorrect usage
         """
+
         if self._async_job is not None:
             return self._async_job.get_stdout()
         else:
@@ -257,6 +288,7 @@ class AsyncDockerCmd(DockerCmdBase):
 
         :raises DockerTestError: on incorrect usage
         """
+
         if self._async_job is not None:
             return self._async_job.get_stderr()
         else:
@@ -270,6 +302,7 @@ class AsyncDockerCmd(DockerCmdBase):
 
         :raises DockerTestError: on incorrect usage
         """
+
         if self._async_job is not None:
             return self._async_job.sp.pid
         else:
@@ -283,6 +316,7 @@ class AsyncDockerCmd(DockerCmdBase):
 
         :raises DockerTestError: on incorrect usage
         """
+
         if self._async_job is None:
             raise DockerTestError("Attempted to get exit status before "
                                   "execute() called.")
@@ -293,4 +327,5 @@ class AsyncDockerCmd(DockerCmdBase):
         """
         Returns True if process was executed.
         """
+
         return self._async_job is not None

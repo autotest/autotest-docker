@@ -96,7 +96,7 @@ class wait_base(SubSubtest):
         if use_names:
             conts = self.sub_stuff['containers']
             containers = DockerContainers(self.parent_subtest)
-            containers = containers.get_container_list()
+            containers = containers.list_containers()
             cont_ids = [cont['id'] for cont in conts]
             for cont in containers:
                 if cont.long_id in cont_ids:

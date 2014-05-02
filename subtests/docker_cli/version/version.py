@@ -28,6 +28,7 @@ class version(subtest.Subtest):
         self.stuff['cmdresult'] = nfdc.execute()
 
     def postprocess(self):
+        super(version, self).postprocess()
         # Raise exception on Go Panic or usage help message
         outputgood = OutputGood(self.stuff['cmdresult'])
         docker_version = DockerVersion(outputgood.stdout_strip)

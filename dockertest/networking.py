@@ -20,8 +20,14 @@ import re
 
 
 class ContainerPort(object):
+
     """
     Represents a private container port mapping to public host ip, and port.
+
+    :param container_port: Port number visible inside the container
+    :param host_port: Port number on host container_Port maps to
+    :param host_ip: Host interface IP host_port maps to
+    :param protocol: Name of protocol for map (i.e. ``tcp`` or ``udp``)
     """
 
     #: There will likely be several instances per container
@@ -34,14 +40,6 @@ class ContainerPort(object):
 
     def __init__(self, container_port, host_port=None,
                  host_ip="0.0.0.0", protocol="tcp"):
-        """
-        Initialize a new port instance from parameters
-
-        :param container_port: Port number visible inside the container
-        :param host_port: Port number on host container_Port maps to
-        :param host_ip: Host interface IP host_port maps to
-        :param protocol: Name of protocol for map (i.e. ``tcp`` or ``udp``)
-        """
         self.container_port = int(container_port)
         if host_port is None:
             self.host_port = int(container_port)
@@ -60,6 +58,7 @@ class ContainerPort(object):
 
         :param other: An instance of this class (or subclass) for comparison.
         """
+
         self_val = [getattr(self, name) for name in self.__slots__]
         other_val = [getattr(other, name) for name in self.__slots__]
         for _self, _other in zip(self_val, other_val):
@@ -69,11 +68,11 @@ class ContainerPort(object):
 
     def __str__(self):
         """
-        Break down port string components into a human-readable format
+        Present port information in a human-readable format
         """
         return ("Container (private) port: %d, Host (public) port: %d, "
                 "Host (interface) IP: %s, Protocol: %s"
-                 % (self.container_port, self.host_port, self.host_ip,
+                % (self.container_port, self.host_port, self.host_ip,
                     self.protocol))
 
     def __repr__(self):

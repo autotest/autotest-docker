@@ -12,7 +12,6 @@ Test run
 # pylint: disable=C0103,C0111,R0904,C0103
 
 from autotest.client.shared import error
-from autotest.client import utils
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import OutputGood
 from dockertest.images import DockerImages

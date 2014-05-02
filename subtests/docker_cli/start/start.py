@@ -97,10 +97,13 @@ class start_base(SubSubtest):
 
         return cmds
 
-    def postprocess(self):
-        super(start_base, self).postprocess()
+    def outputgood(self):
         # Raise exception if problems found
         OutputGood(self.sub_stuff['cmdresult'])
+
+    def postprocess(self):
+        super(start_base, self).postprocess()
+        self.outputgood()
         if self.config["docker_expected_result"] == "PASS":
             self.failif(self.sub_stuff['cmdresult'].exit_status != 0,
                         "Non-zero start exit status: %s"
@@ -124,7 +127,6 @@ class start_base(SubSubtest):
                     self.wait_for_container_death(cont)
                 except Exception, e:
                     print e
-                    pass
                 self.sub_stuff["conts_obj"].remove_by_obj(cont)
 
     def wait_for_container_death(self, container_obj):

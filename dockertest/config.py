@@ -41,17 +41,14 @@ class ConfigSection(object):
     """
     Wraps SafeConfigParser with static section handling
 
+    :param defaults: dict-like containing default keys/values
+    :param section: name of section to initially bind to
+
     :note: Not an exact interface reproduction, some functionality
            left out!
     """
 
     def __init__(self, defaults, section):
-        """
-        Create new config parser
-
-        :param defaults: dict-like containing default keys/values
-        :param section: name of section to initially bind to
-        """
         self._section = section
         # SafeConfigParser is old-style, and we're changing method parameters
         self._scp = SafeConfigParser(defaults)
@@ -208,15 +205,16 @@ class ConfigSection(object):
 
 
 class ConfigDict(MutableMapping):
-    """
+    r"""
     Wraps ConfigSection instance in a dict-like, hides SafeConfigParser details.
+
+    :param section: Section name string to represent
+    :param defaults: dict-like of default parameters (lower-case keys)
+    :param \*args:  Passed through to dict-like super-class.
+    :param \*\*dargs:  Passed through to dict-like super-class.
     """
 
     def __init__(self, section, defaults=None, *args, **dargs):
-        """
-        Initialize a new dict-like object for section using optional defaults
-        dict-like object.
-        """
         self._config_section = ConfigSection(defaults=defaults,
                                              section=section)
         super(ConfigDict, self).__init__(*args, **dargs)
@@ -273,8 +271,13 @@ class ConfigDict(MutableMapping):
 
 
 class Config(dict):
-    """
+    r"""
     Global dict-like of dict-like(s) per section with defaulting values.
+
+    :param \*args: Same as built-in python ``dict()`` params.
+    :param \*\*dargs: Same as built-in python ``dict()`` params.
+    :return: Regular 'ole python dictionary of global config also as
+             python dictionaries (cached on first load)
     """
     #: Public instance attribute cache of defaults parsing w/ non-clashing name
     defaults_ = None
@@ -284,12 +287,6 @@ class Config(dict):
     _singleton = None
 
     def __new__(cls, *args, **dargs):
-        r"""
-        Return copy of dict holding parsed defaults + custom configs
-
-        :param \*args & \*\*dargs: Same as built-in python ``dict()`` params.
-        :return: Regular 'ole python dictionary of global config dicts.
-        """
         if cls._singleton is None:
             # Apply *args, *dargs _after_ making deep-copy
             cls._singleton = dict.__new__(cls)
