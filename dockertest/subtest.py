@@ -563,7 +563,8 @@ class SubSubtestCaller(Subtest):
             self.exception_info["exc_info"] = sys.exc_info()
             raise
 
-    def import_if_not_loaded(self, name, pkg_path):
+    @staticmethod
+    def import_if_not_loaded(name, pkg_path):
         """
         Import module only if module is not loaded.
         """

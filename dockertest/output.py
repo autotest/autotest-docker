@@ -290,7 +290,8 @@ class TextTable(MutableSet, Sequence):
             return None
         return value
 
-    def parseheader(self, table):
+    @staticmethod
+    def parseheader(table):
         """
         Parse string into tuple(header, data)
         """
@@ -303,7 +304,8 @@ class TextTable(MutableSet, Sequence):
             tabledata = "\n".join(lines[1:])  # put back together
         return (lines[0], tabledata)  # both regular strings
 
-    def parserows(self, tabledata):
+    @staticmethod
+    def parserows(tabledata):
         """
         Parse table data string (minus header line) into a list of rows
         """
@@ -360,6 +362,8 @@ class OutputGoodBase(AllGoodBase):
     stderr_strip = None
 
     def __init__(self, cmdresult, ignore_error=False, skip=None):
+        # Base class __init__ is abstract
+        # pylint: disable=W0231
         self.cmdresult = cmdresult
         self.stdout_strip = cmdresult.stdout.strip()
         self.stderr_strip = cmdresult.stderr.strip()

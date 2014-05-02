@@ -82,7 +82,8 @@ class AllGoodBase(object):
 
         return str(self.details.get(name, "No details"))
 
-    def callable_args(self, name):
+    #: Some subclasses need this to be a bound method
+    def callable_args(self, name):  # pylint: disable=R0201
         """
         Return dictionary of arguments to pass through to each callable
 
@@ -104,7 +105,8 @@ class AllGoodBase(object):
                 _results[name] = call(**self.callable_args(name))
         self.results.update(self.prepare_results(_results))
 
-    def prepare_results(self, results):
+    #: Some subclasses need this to be a bound method
+    def prepare_results(self, results):  # pylint: disable=R0201
         """
         Called to process results into instance results and details attributes
 
@@ -135,6 +137,8 @@ class EnvCheck(AllGoodBase):
     envcheckdir = None
 
     def __init__(self, config, envcheckdir):
+        # base-class __init__ is abstract
+        # pylint: disable=W0231
         self.config = config
         self.envcheckdir = envcheckdir
         envcheck_skip = self.config.get(self.envcheck_skip_option)
