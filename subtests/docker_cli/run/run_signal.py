@@ -9,7 +9,7 @@ import time
 
 from autotest.client import utils
 from dockertest.dockercmd import AsyncDockerCmd
-from run_simple import run_base
+from run import run_base
 
 
 class run_signal(run_base):

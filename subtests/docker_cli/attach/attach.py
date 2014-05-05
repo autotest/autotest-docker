@@ -174,7 +174,41 @@ class simple_base(attach_base):
             os.close(fd)
 
 
-class sig_proxy_off_base(simple_base):
+class sig_proxy_off_base(attach_base):
+
+    def initialize(self):
+        super(sig_proxy_off_base, self).initialize()
+        rand_name = utils.generate_random_string(8)
+
+        self.sub_stuff["rand_name"] = rand_name
+        self.sub_stuff["subargs"].insert(0, "--name=\"%s\"" % rand_name)
+
+        run_in_pipe_r, run_in_pipe_w = os.pipe()
+        self.sub_stuff['file_desc'].append(run_in_pipe_r)
+        self.sub_stuff['file_desc'].append(run_in_pipe_w)
+        self.sub_stuff["run_in_pipe_w"] = run_in_pipe_w
+        dkrcmd = AsyncDockerCmd(self.parent_subtest, 'run',
+                                self.sub_stuff['subargs'],
+                                timeout=self.config['docker_timeout'])
+        dkrcmd.verbose = True
+
+        # Runs in background
+        self.sub_stuff['cmdresult'] = dkrcmd.execute(run_in_pipe_r)
+        self.sub_stuff['cmd_run'] = dkrcmd
+        # Allow noticable time difference for date command,
+        # and eat into dkrcmd timeout after receiving signal.
+        # Throw exception if takes > docker_timeout to exit
+
+        attach_options = self.config['attach_options_csv'].split(',')
+        self.sub_stuff['subargs_a'] = attach_options
+
+        time.sleep(self.config['wait_interactive_cmd'])
+        c_name = self.sub_stuff["rand_name"]
+        self.sub_stuff["containers"].append(c_name)
+        cid = self.sub_stuff["cont"].list_containers_with_name(c_name)
+
+        self.failif(cid == [],
+                    "Unable to search container with name %s" % (c_name))
 
     def run_once(self):
         super(sig_proxy_off_base, self).run_once()
@@ -214,3 +248,8 @@ class sig_proxy_off_base(simple_base):
                         "sig-proxy=false. It shouldn't happened.")
         else:
             self.logerror("Unable to find started container.")
+
+    def cleanup(self):
+        super(sig_proxy_off_base, self).cleanup()
+        for fd in self.sub_stuff["file_desc"]:
+            os.close(fd)

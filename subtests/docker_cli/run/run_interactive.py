@@ -9,7 +9,7 @@ import os
 
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.output import OutputGood
-from run_simple import run_base
+from run import run_base
 
 
 class run_interactive(run_base):

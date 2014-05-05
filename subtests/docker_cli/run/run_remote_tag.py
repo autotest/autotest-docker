@@ -1,12 +1,14 @@
 """
-Test run
+Test if docker uses local copy image even if tag is different.
 
-1) Start docker run --interactive --attach=stdout --name=xxx fedora cat
-2) Start docker attach xxx
-3) Try write to stdin using docker run process (shouldn't pass)
-4) Try write to stdin using docker attach process (should pass)
-5) check if docker run process get input from attach process.
-6) check if docker attach/run process don't get stdin from docker run process.
+1) Remove remote_image_fqin from local repo.
+2) Start docker run --name=xxx remote_image_fqin cat
+3) Tag image with new local name to keep image id in local repo
+4) Remote image tag remote_image_fqin from local repo.
+5) Try to Start docker run --name=xxx remote_image_fqin cat and
+   check if docker using local copy of image or
+   remote copy of image was downloaded  again.
+6) Totally remove remote image from local repo.
 """
 # Okay to be less-strict for these cautions/warnings in subtests
 # pylint: disable=C0103,C0111,R0904,C0103
@@ -14,14 +16,26 @@ Test run
 from autotest.client.shared import error
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import OutputGood
-from dockertest.images import DockerImages
+from dockertest.images import DockerImages, DockerImage
 from dockertest.containers import DockerContainers
-from run_simple import run_base
+from run import run_base
+
 
 class run_remote_tag(run_base):
 
     def initialize(self):
+        if self.config["remote_image_fqin"] == "":
+            raise error.TestNAError("Unable to prepare env for test:"
+                                    "run_remote_tag/remote_image_fqin have to "
+                                    "be filled by functional repo address.")
+        comp = DockerImage.split_to_component(self.config["remote_image_fqin"])
+        (self.config["docker_repo_name"],
+         self.config["docker_repo_tag"],
+         self.config["docker_registry_host"],
+         self.config["docker_registry_user"]) = comp
+
         super(run_remote_tag, self).initialize()
+
         dc = DockerContainers(self.parent_subtest)
         rand_name = dc.get_unique_name()
         self.sub_stuff["rand_name"] = rand_name

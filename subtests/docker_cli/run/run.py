@@ -85,7 +85,7 @@ class run_base(SubSubtest):
         super(run_base, self).cleanup()
         # Auto-converts "yes/no" to a boolean
         if self.config['remove_after_test']:
-            for cont in self.sub_stuff["containers"]:
+            for cont in self.sub_stuff.get("containers", []):
                 dkrcmd = DockerCmd(self.parent_subtest, "rm",
                                    ['--volumes', '--force', cont])
                 cmdresult = dkrcmd.execute()
@@ -94,7 +94,7 @@ class run_base(SubSubtest):
                     self.logdebug("Successfully" + msg)
                 else:
                     self.logwarning("Failed" + msg)
-            for image in self.sub_stuff["images"]:
+            for image in self.sub_stuff.get("images", []):
                 try:
                     di = DockerImages(self.parent_subtest)
                     self.logdebug("Removing image %s", image)

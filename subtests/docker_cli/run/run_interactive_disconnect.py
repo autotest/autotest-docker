@@ -14,7 +14,7 @@ from autotest.client import utils
 from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
 from dockertest.containers import DockerContainers
 from dockertest.output import OutputGood
-from run_simple import run_base
+from run import run_base
 
 
 class run_interactive_disconnect(run_base):
