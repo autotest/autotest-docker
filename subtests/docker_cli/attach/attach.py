@@ -24,6 +24,12 @@ class attach(subtest.SubSubtestCaller):
 
 class attach_base(SubSubtest):
 
+    def wait_interactive_cmd(self):
+        wait = self.config['wait_interactive_cmd']
+        self.loginfo("Waiting %s seconds for the fog to settle."
+                     % wait)
+        time.sleep(wait)
+
     def initialize(self):
         super(attach_base, self).initialize()
         self.sub_stuff['subargs'] = self.config['run_options_csv'].split(',')
@@ -76,20 +82,18 @@ class simple_base(attach_base):
         self.sub_stuff["run_in_pipe_w"] = run_in_pipe_w
         dkrcmd = AsyncDockerCmd(self.parent_subtest, 'run',
                                 self.sub_stuff['subargs'],
-                                timeout=self.config['docker_timeout'])
-        dkrcmd.verbose = True
+                                verbose=True)
 
         # Runs in background
         self.sub_stuff['cmdresult'] = dkrcmd.execute(run_in_pipe_r)
         self.sub_stuff['cmd_run'] = dkrcmd
-        # Allow noticable time difference for date command,
-        # and eat into dkrcmd timeout after receiving signal.
-        # Throw exception if takes > docker_timeout to exit
+        self.wait_interactive_cmd()
+        dkrcmd.update_result()
+        self.logdebug("Detail after waiting: %s", dkrcmd)
 
         attach_options = self.config['attach_options_csv'].split(',')
         self.sub_stuff['subargs_a'] = attach_options
 
-        time.sleep(self.config['wait_interactive_cmd'])
         c_name = self.sub_stuff["rand_name"]
         self.sub_stuff["containers"].append(c_name)
         cid = self.sub_stuff["cont"].list_containers_with_name(c_name)
@@ -111,62 +115,66 @@ class simple_base(attach_base):
 
         dkrcmd = AsyncDockerCmd(self.parent_subtest, 'attach',
                                 self.sub_stuff['subargs_a'],
-                                timeout=self.config['docker_timeout'])
-        dkrcmd.verbose = True
+                                verbose=True)
         # Runs in background
         self.sub_stuff['cmd_attach'] = dkrcmd
         self.sub_stuff['cmdresult_attach'] = dkrcmd.execute(attach_in_pipe_r)
+        self.wait_interactive_cmd()
+        dkrcmd.update_result()
+        self.logdebug("Before input should be ignored: %s", dkrcmd)
 
-
-        time.sleep(self.config['wait_interactive_cmd'])
         # This input should be ignored.
         os.write(self.sub_stuff["run_in_pipe_w"],
                  self.config['interactive_cmd_run'] + "\n")
 
+        dkrcmd.update_result()
+        self.logdebug("Before input should be passed: %s", dkrcmd)
         # This input should be passed to container.
         os.write(attach_in_pipe_w,
                  self.config['interactive_cmd_attach'] + "\n")
 
-        time.sleep(self.config['wait_interactive_cmd'])
+        self.wait_interactive_cmd()
+        dkrcmd.update_result()
+        self.logdebug("After input was passsed: %s", dkrcmd)
+
+    def failif_contain(self, check_for, in_output, details):
+        self.failif(check_for not in in_output,
+                    "Command '%s' output must contain '%s' but doesn't."
+                    " Detail: %s" % (self.config["bash_cmd"],
+                                     check_for, details))
+        self.logdebug("Output does contain '%s'", check_for)
+
+    def failif_not_contain(self, check_for, in_output, details):
+        self.failif(check_for in in_output,
+                    "Command '%s' output must contain '%s' but doesn't."
+                    " Detail: %s" % (self.config["bash_cmd"],
+                                     check_for, details))
+        self.logdebug("Output does NOT contain '%s'", check_for)
+
+    def verify_output(self):
+        # e.g. "run_data"
+        check_for = self.config["check_run_cmd_out"]
+        in_output = self.sub_stuff['cmd_run'].stdout
+        details = self.sub_stuff['cmdresult']
+        self.failif_not_contain(check_for, in_output, details)
+
+        # e.g. "append_data"
+        check_for = self.config["check_attach_cmd_out"]
+        self.failif_not_contain(check_for, in_output, details)
+
+        in_output = self.sub_stuff['cmd_attach'].stdout
+        details = self.sub_stuff['cmdresult_attach']
+        self.failif_not_contain(check_for, in_output, details)
+
+        in_output = self.sub_stuff['cmd_attach'].stdout
+        self.failif_not_contain(check_for, in_output, details)
+
 
     def postprocess(self):
         super(simple_base, self).postprocess()  # Prints out basic info
         # Fail test if bad command or other stdout/stderr problems detected
-
         OutputGood(self.sub_stuff['cmdresult'])
-
-        str_run_cmd_output = self.config["check_run_cmd_out"]
-        str_attach_cmd_output = self.config["check_attach_cmd_out"]
-        cmd_stdout = self.sub_stuff['cmd_run'].stdout
-        cmd_stdout_attach = self.sub_stuff['cmd_attach'].stdout
-
-        self.failif(str_run_cmd_output not in cmd_stdout,
-                    "Command %s output must contain %s but doesn't."
-                    " Detail:%s" %
-                        (self.config["bash_cmd"],
-                         str_run_cmd_output,
-                         self.sub_stuff['cmdresult']))
-
-        self.failif(str_attach_cmd_output not in cmd_stdout,
-                    "Command %s output must contain %s but doesn't."
-                    " Detail:%s" %
-                        (self.config["bash_cmd"],
-                         str_attach_cmd_output,
-                         self.sub_stuff['cmdresult']))
-
-        self.failif(str_run_cmd_output not in cmd_stdout_attach,
-                    "Command %s output must contain %s but doesn't."
-                    " Detail:%s" %
-                        (self.config["bash_cmd"],
-                         str_run_cmd_output,
-                         self.sub_stuff['cmdresult_attach']))
-
-        self.failif(str_attach_cmd_output not in cmd_stdout_attach,
-                    "Command %s output must contain %s but doesn't."
-                    " Detail:%s" %
-                        (self.config["bash_cmd"],
-                         str_attach_cmd_output,
-                         self.sub_stuff['cmdresult_attach']))
+        self.verify_output()
 
     def cleanup(self):
         super(simple_base, self).cleanup()
@@ -189,26 +197,24 @@ class sig_proxy_off_base(attach_base):
         self.sub_stuff["run_in_pipe_w"] = run_in_pipe_w
         dkrcmd = AsyncDockerCmd(self.parent_subtest, 'run',
                                 self.sub_stuff['subargs'],
-                                timeout=self.config['docker_timeout'])
-        dkrcmd.verbose = True
+                                verbose=True)
 
         # Runs in background
         self.sub_stuff['cmdresult'] = dkrcmd.execute(run_in_pipe_r)
         self.sub_stuff['cmd_run'] = dkrcmd
-        # Allow noticable time difference for date command,
-        # and eat into dkrcmd timeout after receiving signal.
-        # Throw exception if takes > docker_timeout to exit
 
         attach_options = self.config['attach_options_csv'].split(',')
         self.sub_stuff['subargs_a'] = attach_options
 
-        time.sleep(self.config['wait_interactive_cmd'])
+        self.wait_interactive_cmd()
+        dkrcmd.update_result()
         c_name = self.sub_stuff["rand_name"]
         self.sub_stuff["containers"].append(c_name)
         cid = self.sub_stuff["cont"].list_containers_with_name(c_name)
 
         self.failif(cid == [],
-                    "Unable to search container with name %s" % (c_name))
+                    "Unable to search container with name %s, detail: %s"
+                    % (c_name, dkrcmd))
 
     def run_once(self):
         super(sig_proxy_off_base, self).run_once()
@@ -219,35 +225,37 @@ class sig_proxy_off_base(attach_base):
 
         dkrcmd = AsyncDockerCmd(self.parent_subtest, 'attach',
                                 self.sub_stuff['subargs_a'],
-                                timeout=self.config['docker_timeout'])
-        dkrcmd.verbose = True
+                                verbose=True)
         # Runs in background
         self.sub_stuff['cmd_attach'] = dkrcmd
         self.sub_stuff['cmdresult_attach'] = dkrcmd.execute()
 
-        time.sleep(self.config['wait_interactive_cmd'])
-        # This input should be ignored.
+        self.wait_interactive_cmd()
+        dkrcmd.update_result()
+
         pid = dkrcmd.process_id
         os.kill(pid, int(self.config["signal"]))
 
-        # This input should be passed to container.
+        self.wait_interactive_cmd()
+        dkrcmd.update_result()
+        self.logdebug("After the killing: %s", dkrcmd)
 
-        time.sleep(self.config['wait_interactive_cmd'])
-
-    def postprocess(self):
-        super(sig_proxy_off_base, self).postprocess()  # Prints out basic info
-        # Fail test if bad command or other stdout/stderr problems detected
-
-        OutputGood(self.sub_stuff['cmdresult'])
-
-        c_name = self.sub_stuff["rand_name"]
-        containers = self.sub_stuff['cont'].list_containers_with_name(c_name)
+    def check_containers(self, containers):
         if containers:
             self.failif("Exited" in containers[0].status,
                         "Docker command was killed by attached docker when"
                         "sig-proxy=false. It shouldn't happened.")
         else:
             self.logerror("Unable to find started container.")
+
+    def postprocess(self):
+        super(sig_proxy_off_base, self).postprocess()
+
+        OutputGood(self.sub_stuff['cmdresult'])
+
+        c_name = self.sub_stuff["rand_name"]
+        containers = self.sub_stuff['cont'].list_containers_with_name(c_name)
+        self.check_containers(containers)
 
     def cleanup(self):
         super(sig_proxy_off_base, self).cleanup()

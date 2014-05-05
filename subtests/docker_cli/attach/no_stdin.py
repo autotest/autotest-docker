@@ -8,49 +8,28 @@ Test attach
 5) check if docker run process didn't get input from attach process.
 6) check if docker attach/run process got stdin from docker run process.
 """
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
 
-from attach import simple_base, attach_base
-from dockertest.output import OutputGood
-
+from attach import simple_base
 
 class no_stdin(simple_base):
-    def postprocess(self):
-        super(attach_base, self).postprocess()  # Prints out basic info
-        # Fail test if bad command or other stdout/stderr problems detected
 
-        OutputGood(self.sub_stuff['cmdresult'])
+    def verify_output(self):
+        # e.g. "append_data"
+        check_for = self.config["check_attach_cmd_out"]
+        in_output = self.sub_stuff['cmd_run'].stdout
+        details = self.sub_stuff['cmdresult']
+        self.failif_contain(check_for, in_output, details)
 
-        str_run_cmd_output = self.config["check_run_cmd_out"]
-        str_attach_cmd_output = self.config["check_attach_cmd_out"]
-        cmd_stdout = self.sub_stuff['cmd_run'].stdout
-        cmd_stdout_attach = self.sub_stuff['cmd_attach'].stdout
+        in_output = self.sub_stuff['cmd_attach'].stdout
+        details = self.sub_stuff['cmdresult_attach']
+        self.failif_contain(check_for, in_output, details)
 
-        self.failif(str_run_cmd_output not in cmd_stdout,
-                    "Command %s output must contain %s but doesn't."
-                    " Detail:%s" %
-                        (self.config["bash_cmd"],
-                         str_run_cmd_output,
-                         self.sub_stuff['cmdresult']))
+        # e.g. "run_data"
+        check_for = self.config["check_run_cmd_out"]
+        in_output = self.sub_stuff['cmd_run'].stdout
+        details = self.sub_stuff['cmdresult']
+        self.failif_not_contain(check_for, in_output, details)
 
-        self.failif(str_attach_cmd_output in cmd_stdout,
-                    "Command %s output must not contain %s."
-                    " Detail:%s" %
-                        (self.config["bash_cmd"],
-                         str_attach_cmd_output,
-                         self.sub_stuff['cmdresult']))
-
-        self.failif(str_run_cmd_output not in cmd_stdout_attach,
-                    "Command %s output must contain %s but doesn't."
-                    " Detail:%s" %
-                        (self.config["bash_cmd"],
-                         str_run_cmd_output,
-                         self.sub_stuff['cmdresult_attach']))
-
-        self.failif(str_attach_cmd_output in cmd_stdout_attach,
-                    "Command %s output must not contain %s."
-                    " Detail:%s" %
-                        (self.config["bash_cmd"],
-                         str_attach_cmd_output,
-                         self.sub_stuff['cmdresult_attach']))
+        in_output = self.sub_stuff['cmd_attach'].stdout
+        details = self.sub_stuff['cmdresult_attach']
+        self.failif_not_contain(check_for, in_output, details)
