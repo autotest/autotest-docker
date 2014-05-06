@@ -9,7 +9,7 @@ unit-tested but not intended for wide-spread general use.
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
-from ConfigParser import SafeConfigParser, NoSectionError
+from ConfigParser import SafeConfigParser, Error
 from collections import MutableMapping
 import os.path
 import sys
@@ -310,7 +310,7 @@ class Config(dict):
                 defaults_.read(custom_defaults)
                 # Dump out all DEFAULTS section options into a dict. & cache it
                 self.__class__.defaults_ = dict(defaults_.items('DEFAULTS'))
-            except (IOError, NoSectionError):
+            except (IOError, Error):
                 defaults_.read(default_defaults)
                 self.__class__.defaults_ = dict(defaults_.items('DEFAULTS'))
         # Return CACHED defaults dictionary

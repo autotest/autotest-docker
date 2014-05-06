@@ -1,0 +1,173 @@
+AUTHOR = "Chris Evich <cevich@redhat.com>"
+DOC = "Runs various tests for Docker"
+NAME = "Docker"
+TIME = "SHORT"
+TEST_TYPE = "CLIENT"
+# timeout in seconds
+TIMEOUT = 600
+
+##############################################################################
+import sys, imp, os, os.path, logging, time, subprocess
+
+def find_subtests(control_path):
+    """
+    Descent search into subtests for all modules matching their directory name.
+    """
+    subtests = []
+    logging.info("Searching for docker subtests")
+    subtest_path = os.path.join(control_path, 'subtests')
+    # All subtest packages located beneath dir holding this control file
+    for dirpath, dirnames, filenames in os.walk(subtest_path):
+        del dirnames  #  Not used
+        # Skip top-level
+        if dirpath == subtest_path:
+            continue
+        # Subtest module must have same name as basename
+        basename = os.path.basename(dirpath)
+        # test.test class must be in module named same as directory
+        modname = basename + '.py'
+        if modname in filenames:
+            # 3rd item is dir relative to job.testdir
+            url = dirpath.partition(job.testdir)[2]
+            # job.testdir doesn't include trailing '/'
+            url = url.lstrip('/')
+            logging.info("Found docker subtest module %s", url)
+            subtests.append(url)
+    return subtests
+
+def step_init():
+    """
+    Entry-point & stepengine enable signal to load/run all or --args subtests.
+    """
+    # Several calls need directory containing this control file
+    control_path = os.path.dirname(job.control)
+    # job --args string is CSV of custom subtest list
+    if len(job.args) > 0:
+        names = job.args[0].split(',')
+        subtest_basename = os.path.join(os.path.basename(control_path),
+                                                         'subtests')
+        subtests = [os.path.join(subtest_basename, name) for name in names]
+    else:  # no --args specified, run all subtests found
+        subtests = find_subtests(control_path)
+    # Do one environment check before all testing
+    you = "BOFH"
+    job.next_step(run_envchecks, control_path, you)
+    # no need to calculate this every loop
+    total = len(subtests)
+    # Every step must be pickleable: use wrapper function + arguments
+    for index, url in enumerate(subtests):
+        tag = "test_%s-of-%s" % (index + 1, total)
+        job.next_step(run_test, control_path, url, tag, TIMEOUT)
+        job.next_step(run_envchecks, control_path, url)
+
+def get_doc_version(control_path):
+    """
+    Parse version string from conf.py module w/o importing it.
+    """
+    version = None
+    # Prevent documentation-generation mocks from clashing with testing
+    for line in open(os.path.join(control_path, 'conf.py'), 'rb'):
+        if line.startswith('version ='):
+            version = line.split("'")[1]
+    return version
+
+def run_envchecks(control_path, blame_url):
+    """
+    Execute run_envchecks.py with default configuration files
+    """
+    cmd = ('%s %s %s'
+           % (os.path.join(control_path, 'run_envchecks.py'),
+              os.path.join(control_path, 'config_defaults', 'defaults.ini'),
+              os.path.join(control_path, 'config_custom', 'defaults.ini')))
+    try:
+        subprocess.check_call(cmd, close_fds=True, shell=True)
+    except subprocess.CalledProcessError:
+        # CalledProcessError.__str__ doesn't include a message :(
+        print "Environment checks failed! Blame %s" % blame_url
+    # Keep these non-fatal for now
+
+def subtest_abspath(control_path, url):
+    control_parent = os.path.dirname(control_path)
+    subtest_path = os.path.join(control_parent, url)
+    return os.path.abspath(subtest_path)
+
+def mangle_syspath(control_path, url):
+    """
+    Allow test url to find modules in it's path first
+    """
+    subtest_path = subtest_abspath(control_path, url)
+    logging.debug("Injecting %s at beginning of module search path",
+                  subtest_path)
+    sys.path.insert(0, subtest_path)
+
+def unmangle_syspath(control_path, url):
+    """
+    Remove test url from module search path if it's at the beginning
+    """
+    subtest_path = subtest_abspath(control_path, url)
+    if sys.path[0] == subtest_path:
+        del sys.path[0]
+        logging.debug("Removing %s from module search path",
+                      subtest_path)
+    else:
+        logging.error("Subtest changed module search path: %s",
+                      str(sys.path))
+
+def run_test(control_path, url, tag, timeout):
+    """
+    Wrapper function around job.run_test() and setup for subtest namespace.
+    """
+    # Threads are/may be in use, so be careful with this stuff...
+    imp.acquire_lock()
+    dockertest = imp.load_module('dockertest',
+                                 *imp.find_module('dockertest', [control_path]))
+    # Hold reference to module so subtests may use it
+    sys.modules['dockertest'] = dockertest  # dockertest deleted below
+    # Modules in packages not automatically loaded
+    version = imp.load_module('dockertest.version',
+                              *imp.find_module('version',
+                              dockertest.__path__))
+    sys.modules['dockertest.version'] = version  # version deleted below
+    imp.release_lock()
+
+    # Get docs version for comparison so modules can be unloaded
+    doc_version = get_doc_version(control_path)
+    api_version = version.STRING
+    # This must happen here since subtests MUST NOT access docs conf.py
+    doc_eq_api = version.compare(api_version, doc_version) == 0
+
+    # Get rid of local references, so they may be cleaned from sys.modules later
+    imp.acquire_lock()
+    # hold onto sys.modules['dockertest'] for subtest use
+    del dockertest  # not needed here anymore
+    del version     # this one too
+    del sys.modules['dockertest.version'] #  Not needed here anymore
+    imp.release_lock()
+
+    # Docs version mismatch is not fatal, but annoying. Make sure it's annoying.
+    if not doc_eq_api:
+        logging.error("")
+        logging.error("Test API version %s does not match "
+                      "Documentation version %s.  Update "
+                      "documentation content, then adjust it's "
+                      "version string in '%s' and commit",
+                      api_version, doc_version, 'conf.py')
+        logging.error("")
+        # make sure it error gets read
+        time.sleep(10)
+
+    # Run the subtest module through autotest job interface
+    try:
+        mangle_syspath(control_path, url)
+        job.run_test(url=url, tag=tag, timeout=timeout)
+        unmangle_syspath(control_path, url)
+    # Guarantee cleanup of any docker related modules
+    finally:
+        imp.acquire_lock()
+        # Filter by internal module name, not sys.modules key.
+        modnames = [modname for (modname, module) in sys.modules.iteritems()
+                    if (hasattr(module, '__name__') and
+                        module.__name__.count('docker'))]
+        for modname in modnames:
+            del sys.modules[modname]
+        imp.release_lock()
