@@ -261,6 +261,16 @@ in the special ``DEFAULTS`` section are always available.
 :Note: The relative locations of files under ``config_defaults`` and ``config_custom``
        does not matter.  Multiple sections may appear in the same file.
 
+Config .ini Format
+-------------------
+The config parser will attempt to parse each item in the following order:
+intergers, booleans, floats, strings.
+
+*  Integrers are in the form of simple numbers, eg: "123"
+*  Booleans are in the form 'yes' or 'true', 'no' or 'false' (case insensitive)
+*  Floats are in the form of numbers with decimals eg: "123.456" or "123.0"
+*  All other items will be returned as strings.
+
 ------------------------
 Versioning Requirements
 ------------------------
