@@ -27,10 +27,10 @@ class dockerinspect(SubSubtestCaller):
 class inspect_base(SubSubtest):
 
     @staticmethod
-    def verify_same_configs(subtest, source, comp, ignore_fields=[]):
+    def verify_same_configs(subtest, source, comp, ignore_fields=None):
         for i in range(len(comp)):
             for key in comp[i].keys():
-                if key in ignore_fields:
+                if ignore_fields and key in ignore_fields:
                     continue
                 subtest.failif(not (source[i][key] == comp[i][key]),
                                "CLI output differs from container config: "
@@ -48,11 +48,12 @@ class inspect_base(SubSubtest):
     def parse_cli_output(self, output):
         try:
             output_map = json.loads(output)
-        except:
+        except ValueError:
             self.failif(True, "Unable to parse inspect output.")
         return output_map
 
-    def find_container_path(self, cid, docker_root='/var/lib/docker/'):
+    @staticmethod
+    def find_container_path(cid, docker_root='/var/lib/docker/'):
         """
         Finds the path to the container the same way that docker would
         :param cid: A string with the container id you want
@@ -60,12 +61,13 @@ class inspect_base(SubSubtest):
         :return: The container's config path
         """
         containers = os.walk(docker_root + 'containers/').next()[1]
-        search = filter(lambda x: x.startswith(cid), containers)
+        search = [x for x in containers if x.startswith(cid)]
         if not search:
             raise DockerTestError("No containers found for id: %s" % (cid))
         return "%scontainers/%s/" % (docker_root, search[0])
 
-    def build_config_map(self, container_path):
+    @staticmethod
+    def build_config_map(container_path):
         """
         Builds a hash map of the config for a container given
         its directory.
@@ -74,7 +76,7 @@ class inspect_base(SubSubtest):
         :raise: throw some exception handling in here
         """
         all_files = os.walk(container_path).next()[2]
-        json_files = filter(lambda x: x.endswith('json'), all_files)
+        json_files = [x for x in all_files if x.endswith('json')]
         config_data = {}
         for i in json_files:
             json_data = open(container_path + i)
@@ -110,6 +112,10 @@ class inspect_base(SubSubtest):
                    "'/bin/true'"]
         nfdc = NoFailDockerCmd(subtest.parent_subtest, 'run', subargs)
         nfdc.execute()
+        if not 'containers' in subtest.sub_stuff:
+            subtest.sub_stuff['containers'] = [name]
+        else:
+            subtest.sub_stuff['containers'] += [name]
         return name
 
     def cleanup(self):
@@ -125,7 +131,6 @@ class inspect_container_simple(inspect_base):
     def initialize(self):
         super(inspect_container_simple, self).initialize()
         self.sub_stuff['name'] = self.create_simple_container(self)
-        self.sub_stuff['containers'] = [self.sub_stuff['name']]
 
     def run_once(self):
         super(inspect_container_simple, self).run_once()

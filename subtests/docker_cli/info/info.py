@@ -23,7 +23,8 @@ class info(subtest.Subtest):
         nfdc = NoFailDockerCmd(self, "info")
         self.stuff['cmdresult'] = nfdc.execute()
 
-    def _build_table(self, cli_output):
+    @staticmethod
+    def _build_table(cli_output):
         out = cli_output.split('\n')
         out = [x.split(':', 1) for x in out if x]
         keys = [x[0].strip() for x in out]
@@ -61,7 +62,8 @@ class info(subtest.Subtest):
                     "Docker pool name does not mach dmsetup pool.")
         self.logdebug("Docker pool name matches dmsetup pool.")
 
-    def _sizeof_fmt_mb(self, num, input_unit='b'):
+    @staticmethod
+    def _sizeof_fmt_mb(num, input_unit='b'):
         conv = float(1024*1024)
         if input_unit == 'Kb':
             conv = float(1024)
