@@ -37,7 +37,7 @@ class volumes_one_source(volumes_base):
             template_keys = {'write_path': cntr_path + "/" + name,
                              'name': name}
             self.sub_stuff['names'] += [name]
-            cmd = [exec_command % safe_substitute(template_keys)]
+            cmd = [exec_command % template_keys]
             subargs = ['--name=%s' % (name)] + vols + fqin + cmd
             commands.append(AsyncDockerCmd(self.parent_subtest,
                                            'run',
@@ -57,8 +57,7 @@ class volumes_one_source(volumes_base):
         # assert exit statuses
         for result in self.sub_stuff['cmdresults']:
             self.failif(result.exit_status != 0,
-                        "Command: '%s' failed with exit "
-                        "status: %s " % (result.command, result.exit_status))
+                        "Failed: %s" % (result))
         #assert md5sums
         cntr_md5s = [x.stdout.split()[0] for x in self.sub_stuff['cmdresults']]
         cntr_results = zip(self.sub_stuff['names'], cntr_md5s)

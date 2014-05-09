@@ -13,7 +13,6 @@ import time
 import os
 import os.path
 import hashlib
-from string import Template
 
 from autotest.client import utils
 from dockertest.containers import DockerContainers
@@ -60,7 +59,7 @@ class volumes_base(SubSubtest):
     def init_path_info(path_info, host_paths, cntr_paths):
         for host_path, cntr_path in zip(host_paths, cntr_paths):
             # check for a valid host path for the test
-            if not host_path or len(host_path) < 4:
+            if not os.path.isdir(host_path):
                 raise DockerTestNAError("host_path '%s' invalid." % host_path)
             if not cntr_path or len(cntr_path) < 4:
                 raise DockerTestNAError("cntr_path '%s' invalid." % cntr_path)
@@ -75,15 +74,15 @@ class volumes_base(SubSubtest):
     def make_dockercmd(subtest, dockercmd_class, fqin,
                        run_template, cmd_tmplate, test_dict):
         # safe_substutute ignores unknown tokens
-        subargs = run_template.safe_substitute(test_dict).strip().split(',')
+        subargs = str(run_template % test_dict).strip().split(',')
         subargs.append(fqin)
-        subargs.append(cmd_tmplate.safe_substitute(test_dict))
+        subargs.append(cmd_tmplate % test_dict)
         return dockercmd_class(subtest.parent_subtest, 'run', subargs)
 
     @staticmethod
     def init_dkrcmds(subtest, path_info, dockercmds):
-        run_template = Template(subtest.config['run_template'])
-        cmd_tmplate = Template(subtest.config['cmd_template'])
+        run_template = subtest.config['run_template']
+        cmd_tmplate = subtest.config['cmd_template']
         fqin = DockerImage.full_name_from_defaults(subtest.config)
         for test_dict in path_info:
             dockercmds.append(subtest.make_dockercmd(subtest,
@@ -131,8 +130,6 @@ class volumes_rw(volumes_base):
         # Does not execute()
         self.init_dkrcmds(self, path_info, dockercmds)
         self.sub_stuff['cmdresults'] = []
-        for dcmd in dockercmds:
-            self.logdebug("Initialized Docker command: %s", dcmd.command)
 
     def run_once(self):
         super(volumes_rw, self).run_once()
@@ -149,6 +146,7 @@ class volumes_rw(volumes_base):
                 write_file = open(write_path, 'rb')
                 data = write_file.read()
                 # md5sum output format:  hash + ' ' + filename|-
+                self.logdebug("Data read from %s: '%s'", write_path, data)
                 test_dict['write_hash'] = data.strip().split(None, 1)[0]
             except (IOError, OSError, IndexError, AttributeError), xcept:
                 self.logerror("Problem reading hash from output file: %s: %s",
@@ -163,10 +161,14 @@ class volumes_rw(volumes_base):
                         "Non-zero exit status: %s" % cmdresult)
             wh = test_dict['write_hash']
             rh = test_dict['read_hash']
-            self.failif(wh != rh, "Test hash mismatch for %s; "
-                                  "%s (test wrote) != %s (test read)"
-                        # order is backwards for output readability
-                        % (cmdresult.command, rh, wh))
+            hp = test_dict['host_path']
+            cp = test_dict['cntr_path']
+            msg = ("Test hash mismatch for volume %s:%s; "
+                   "Expecting data %s, read data %s; "
+                   "Command result %s"
+                   # wh/rh order is backwards for readability
+                   % (hp, cp, rh, wh, cmdresult))
+            self.failif(wh != rh, msg)
 
     def cleanup(self):
         super(volumes_rw, self).cleanup()
