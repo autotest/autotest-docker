@@ -8,22 +8,26 @@ Test output of docker ps -a command
 # Okay to be less-strict for these cautions/warnings in subtests
 # pylint: disable=C0103,C0111,R0904,C0103
 
-import time, signal, os.path
+import time, signal, os.path, os
 from autotest.client import utils
 from dockertest import subtest
 from dockertest import images
 from dockertest.output import OutputGood
-from dockertest.dockercmd import DockerCmd
+from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.dockercmd import NoFailDockerCmd
 from dockertest.containers import DockerContainers
+from dockertest.xceptions import DockerTestFail
 
 class psa(subtest.Subtest):
     config_section = 'docker_cli/psa'
 
     def initialize(self):
         super(psa, self).initialize()
-        name = self.stuff['container_name'] = utils.generate_random_string(8)
+        dc = self.stuff['dc'] = DockerContainers(self)
+        dc.verify_output = True  # test subject, do extra checking
+        name = self.stuff['container_name'] = dc.get_unique_name("psa")
         cidfile = os.path.join(self.tmpdir, 'cidfile')
+        self.stuff['cidfile'] = cidfile
         subargs = ['--cidfile', cidfile, '--detach',
                    '--sig-proxy', '--name=%s' % name]
         fin = images.DockerImage.full_name_from_defaults(self.config)
@@ -35,48 +39,54 @@ class psa(subtest.Subtest):
         command = ("\"rm -f stop; trap '/usr/bin/date > stop' SIGUSR1; "
                    "while ! [ -f stop ]; do :; done\"")
         subargs.append(command)
-        dc = DockerContainers(self)
         self.stuff['cl0'] = dc.list_containers()
-        self.logdebug("Container list before execute: %s", self.stuff['cl0'])
-        dkrcmd = DockerCmd(self, 'run', subargs)
-        self.stuff['cmdresult'] = dkrcmd.execute()
-        self.stuff['container_id'] = open(cidfile, 'rb').read().strip()
+        dkrcmd = AsyncDockerCmd(self, 'run', subargs)
+        self.stuff['dkrcmd'] = dkrcmd
+        if os.path.isfile(cidfile):
+            os.unlink(cidfile)
+
+    def cidfile_has_cid(self):
+        """
+        Docker ps output updated once container assigned a CID
+        """
+        cidfile = self.stuff['cidfile']
+        if os.path.isfile(cidfile):
+            cid = open(cidfile, 'rb').read().strip()
+            if len(cid) >= 12:
+                self.stuff['container_id'] = cid
+                return True
+        return False
+
+    def wait_start(self):
+        cidfile = self.stuff['cidfile']
+        self.stuff['dkrcmd'].execute()
+        self.failif(not utils.wait_for(func=self.cidfile_has_cid,
+                                       timeout=self.config['docker_timeout'],
+                                       text="Waiting for container to start"))
 
     def run_once(self):
         super(psa, self).run_once()
-        OutputGood(self.stuff['cmdresult'], "test container failed on start")
+        self.wait_start()
         self.loginfo("Container running, waiting %d seconds to examine"
                      % self.config['wait_start'])
         time.sleep(self.config['wait_start'])
-        # This is the test-subject, need to check output of docker command
-        clic = DockerContainers(self)
-        clic.verify_output = True
-        self.stuff['cl1'] = clic.list_containers()
-        self.logdebug("Container list before kill: %s", self.stuff['cl1'])
-        sig = getattr(signal, 'SIGUSR1')  # odd-ball, infreq. used.
+        dc = self.stuff['dc']
+        self.stuff['cl1'] = dc.list_containers()
+        sig = getattr(signal, 'SIGUSR1')
         self.loginfo("Signaling container with signal %s", sig)
         nfdc = NoFailDockerCmd(self, 'kill', ['--signal', "USR1",
                                               self.stuff['container_id']])
         nfdc.execute()
         self.loginfo("Waiting up to %d seconds for exit",
                      self.config['wait_stop'])
-        time.sleep(self.config['wait_stop'])
-        self.logdebug("Container list after kill: %s", self.stuff['cl1'])
-        self.stuff['cl2'] = clic.get_container_list()
+        self.stuff['cmdresult'] = self.stuff['dkrcmd'].wait(
+                                                    self.config['wait_stop'])
+        self.stuff['cl2'] = dc.list_containers()
 
     def postprocess(self):
         super(psa, self).postprocess()
-        cl0_len = len(self.stuff['cl0'])
-        cl1_len = len(self.stuff['cl1'])
-        cl2_len = len(self.stuff['cl2'])
-        self.failif(cl1_len <= cl0_len, "Container list length did not "
-                                        "increase.")
-        self.failif(cl1_len != cl2_len, "Third container list length did "
-                                        "not stay same as second list.")
-        # TODO: Use 'inspect' command output to get actual PID
-        #       and utils.pid_is_alive(PID) to verify it's stopped
-        # Might as well do some more checking
-        dc = DockerContainers(self)  # check output
+        OutputGood(self.stuff['cmdresult'], "test container failed on start")
+        dc = self.stuff['dc']
         cnts = dc.list_containers_with_name(self.stuff['container_name'])
         self.failif(len(cnts) < 1, "Test container not found in list")
         cnt = cnts[0]
@@ -84,14 +94,32 @@ class psa(subtest.Subtest):
         estat2 = str(cnt.status).startswith("Exited (0)") # docker 0.9.1 & later
         self.failif(not (estat1 or estat2), "Exit status mismatch: %s"
                                             % str(cnt))
+        cid = self.stuff['container_id']
+        cl0_ids = [cnt.long_id for cnt in self.stuff['cl0']]
+        cl1_ids = [cnt.long_id for cnt in self.stuff['cl1']]
+        cl2_ids = [cnt.long_id for cnt in self.stuff['cl2']]
+        try:
+            self.failif(cid in cl0_ids, "Test container's ID found in ps "
+                                        "output before this test started it!")
+            self.failif(cid not in cl1_ids, "Test container's ID not found in "
+                                            "ps output after starting it")
+            self.failif(cid not in cl2_ids, "Test container's ID not found in "
+                                            "ps output after it exited")
+        except DockerTestFail:
+            self.logdebug("Parsed docker ps table before starting: %s",
+                          self.stuff['cl0'])
+            self.logdebug("Parsed docker ps table after starting: %s",
+                          self.stuff['cl1'])
+            self.logdebug("Parsed docker ps table after exiting: %s",
+                          self.stuff['cl2'])
+            raise
 
     def cleanup(self):
         super(psa, self).cleanup()
-        # Auto-converts "yes/no" to a boolean
-        if ((self.config['remove_after_test']) and
-            (self.stuff.get('container_id') is not None)):
-            long_id = self.stuff['container_id']
+        cid = self.stuff.get('container_id')
+        if ((self.config['remove_after_test']) and (cid is not None)):
+            self.logdebug("Cleaning container %s", cid)
             # We need to know about this breaking anyway, let it raise!
             nfdc = NoFailDockerCmd(self, "rm", ['--force',
-                                                '--volumes', long_id])
+                                                '--volumes', cid])
             nfdc.execute()
