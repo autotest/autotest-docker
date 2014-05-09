@@ -42,9 +42,9 @@ class inspect_keys(inspect_base):
 
     def get_keys(self, coll):
         if isinstance(coll, list):
-            return sum(map(self.get_keys, coll), [])
+            return sum([self.get_keys(_) for _ in coll], [])
         if isinstance(coll, dict):
-            return sum(map(self.get_keys, coll.values()), coll.keys())
+            return sum([self.get_keys(_) for _ in coll.values()], coll.keys())
         return []
 
     def assert_regex(self, keys, name):
