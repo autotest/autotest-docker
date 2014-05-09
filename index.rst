@@ -242,29 +242,59 @@ within ``config_custom`` will override anything found under
 ``config_defaults``.  Nothing except for the example ``config_custom/example.ini``
 should be checked into version control.
 
-Configuration files use the familiar ``ini`` style format with separate
+Organization
+==============
+
+Sections
+---------------
+
+Configuration files use the familiar *ini* style format with separate
 sections (e.g. ``[<section name>]``) preventing option names from colliding.
-All configuration files are loaded into a single name-space, containing
-sub-name-spaces for each section. Section names which exactly match a subtest
-module name, are automatically loaded (see Subtests_).
+All configuration files are loaded into a single name-space, divided by
+each section.   Section names can be arbitrary, however those which exactly
+match a subtest or subsubtest's name, will be automatically loaded (see Subtests_).
+
+Defaults
+----------------
 
 The Default, global values for **all** sections are located within the
 special ``defaults.ini`` file's ``DEFAULTS`` section.  These option
-names and values stand in for same-named options that are undefined
-in any section. See `Default configuration options`_ for more details.
+names and values are supplied for all sections which do not contain
+a identical named option. See `Default configuration options`_ for more details.
 
-Optional inline-value substitution is supported using the ``%(<option>)s`` format,
-where ``<option>`` is the name of another option.  The source option
-name may not reside outside the reference section, though options
-in the special ``DEFAULTS`` section are always available.
+Formatting
+=============
+
+Long values
+----------------
+
+Long values may be continued onto the next line by prefixing any run of one or
+more horizontal-whitespace characters with a newline.  For example:
+
+     option_name = This option value is super duper long,
+                   but will be un-folded into a single string with
+                   <---- all this whispace replaced by a single space.
+
+In this case, the runs of multiple whitespace following the newline will
+be folded into a single instance, and substituted for the previous newline.
+
+Value substitution
+---------------------
+
+Within each section, optional inline-value substitution is supported
+using the ``%(<option>)s`` token format.  Where ``<option>`` is the
+literal name of another option.  The referenced option must reside
+in the same section or in the special ``DEFAULTS`` section. This is
+useful when multiple option values need to be different but contain a
+shared element.
 
 :Note: The relative locations of files under ``config_defaults`` and ``config_custom``
        does not matter.  Multiple sections may appear in the same file.
 
-Config .ini Format
--------------------
+Type-conversion
+-----------------------
 The config parser will attempt to parse each item in the following order:
-intergers, booleans, floats, strings.
+intergers, booleans, floats, then strings.
 
 *  Integrers are in the form of simple numbers, eg: "123"
 *  Booleans are in the form 'yes' or 'true', 'no' or 'false' (case insensitive)
