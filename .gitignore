@@ -3,6 +3,6 @@
 *.pyc
 .*.swp
 docs_build
-config_custom
+config_custom/*.ini
 cscope.files
 cscope.out
