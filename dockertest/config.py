@@ -11,7 +11,6 @@ unit-tested but not intended for wide-spread general use.
 
 from ConfigParser import SafeConfigParser, NoSectionError
 from collections import MutableMapping
-import logging
 import os.path
 import sys
 
@@ -323,8 +322,6 @@ class Config(dict):
             fullpath = os.path.join(dirpath, filename)
             if (filename.startswith('.') or
                 not filename.endswith('.ini')):
-                logging.warning("Skipping unknown config file '%s'",
-                                fullpath)
                 continue
             config_file = open(fullpath, 'r')
             # Temp use sections variable for reading sections list
