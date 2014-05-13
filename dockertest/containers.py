@@ -410,6 +410,9 @@ class DockerContainersCLI(DockerContainersBase):
     #: Run important docker commands output through OutputGood when True
     verify_output = False
 
+    #: Extra arguments to use with remove methods
+    remove_args = None
+
     def __init__(self, subtest, timeout=120, verbose=False):
         super(DockerContainersCLI, self).__init__(subtest,
                                                   timeout,
@@ -511,7 +514,8 @@ class DockerContainersCLI(DockerContainersBase):
         pid = _json[0]["State"]["Pid"]
         if not _json[0]["State"]["Running"] or not utils.pid_is_alive(pid):
             raise ValueError("Cannot kill container %s, it is not running,"
-                             " or is a defunct or zombie process" % long_id)
+                             " or is a defunct or zombie process. Status: "
+                             " %s." % (long_id, _json[0]["State"]))
         _signal = self.kill_signal
         cmd = 'kill '
         if _signal is not None:
@@ -550,7 +554,11 @@ class DockerContainersCLI(DockerContainersBase):
             dkrcmd = self.docker_cmd_check
         else:
             dkrcmd = self.docker_cmd
-        return dkrcmd("rm %s" % (image_id), self.timeout)
+        if self.remove_args is not None:
+            return dkrcmd("rm %s %s" % (self.remove_args, image_id),
+                          self.timeout)
+        else:
+            return dkrcmd("rm %s" % (image_id), self.timeout)
 
     def wait_by_long_id(self, long_id):
         """
