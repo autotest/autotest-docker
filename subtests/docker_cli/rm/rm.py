@@ -13,63 +13,91 @@ Test for docker rm subcommand
 
 import os.path
 import time
+import signal
 from autotest.client import utils
 from dockertest.dockercmd import AsyncDockerCmd
-from dockertest.dockercmd import NoFailDockerCmd
-from dockertest.dockercmd import MustFailDockerCmd
+from dockertest.dockercmd import DockerCmd
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
 from dockertest.containers import DockerContainers
 from dockertest.images import DockerImage
+from dockertest.output import OutputGood
 
 class rm(SubSubtestCaller):
     config_section = 'docker_cli/rm'
 
     def initialize(self):
         # Fail if any containers are running
-        dc = DockerContainers(self, 'cli')
+        dc = self.stuff['dc'] = DockerContainers(self, 'cli')
         for cntr in dc.list_containers():
-            self.failif('Exit' not in cntr.status,
+            self.failif('exit' not in cntr.status.lower(),
                         "Container %s found running before test!"
                          % cntr.container_name)
         super(rm, self).initialize()
-        # Some common data for static content
+        # Static data for subtests to use
         self.stuff['init_time'] = int(time.time())
+
 
     def postprocess(self):
         super(rm, self).postprocess()
-        dc = DockerContainers(self, 'cli')
+        dc = self.stuff['dc']
         for cntr in dc.list_containers():
             self.failif('Exit' not in cntr.status,
                         "Container %s did not exit!" % cntr.container_name)
+
+    def cleanup(self):
+        dc = self.stuff['dc']
+        dc.remove_args = '--force --volumes'
+        for cnt in dc.list_containers():
+            self.logwarning("Removing leftover container: %s", cnt)
+            dc.remove_by_obj(cnt)
+
 class rm_sub_base(SubSubtest):
 
-    def signal_container(self, sig, name):
-        self.logdebug("Sending signal %s to %s", sig, name)
-        dc = DockerContainers(self.parent_subtest, 'cli')
-        dc.kill_signal = sig
-        return dc.kill_container_by_name(name)
+    def rm_container(self, what):
+        # Can't use containers module b/c "rm" is the test-subject
+        subargs = self.config['rm_options_csv'].strip().split(',')
+        subargs.append(what)
+        rm_cmd = DockerCmd(self.parent_subtest, 'rm', subargs, verbose=True)
+        self.sub_stuff['rm_cmdresult'] = rm_cmd.execute()
+        wait_rm = self.config['wait_rm']
+        self.loginfo("Sleeping %d seconds after rm",
+                      wait_rm)
+        time.sleep(wait_rm)
 
-    def finish_container_nicely(self, name):
-        sig = self.config['listen_signal']
-        self.sub_stuff['pid'] = self.signal_container(sig, name)
+    def signal_container(self, name):
+        dc = self.sub_stuff['dc']
+        sig = getattr(signal, self.config['listen_signal'])
+        self.loginfo("Signaling container %s with %s(%d)",
+                     name, self.config['listen_signal'], sig)
+        json = dc.json_by_name(name)
+        self.failif(not json[0]["State"]["Running"],
+                    "Can't signal non-running container, see debug "
+                    "log for more detail")
+        pid = int(json[0]["State"]["Pid"])
+        self.failif(not utils.signal_pid(pid, sig),
+                    "Failed to cause container exit with signal: "
+                    "still running, see debug log for more detail.")
+
+    def container_finished(self):
+        dkrcmd = self.sub_stuff['dkrcmd']
+        return dkrcmd.done
+
+    def wait_container(self):
         wait_stop = self.config['wait_stop']
         self.logdebug("Waiting up to %d seconds for container to exit",
                       wait_stop)
-        self.sub_stuff['dkrcmd'].wait(wait_stop)
-        self.logdebug("Exit code was: %s",
-                      self.sub_stuff['dkrcmd'].exit_status)
+        dkrcmd = self.sub_stuff['dkrcmd']
+        self.failif(not utils.wait_for(func=self.container_finished,
+                                       timeout=wait_stop,
+                                       text=("\t\tWaiting for container to "
+                                             "exit")),
+                    "Container did not exit w/in timeout: stdout '%s' "
+                    "stderr '%s'" % (dkrcmd.stdout, dkrcmd.stderr))
+        cmdresult = self.sub_stuff['cmdresult'] = dkrcmd.wait()
+        self.logdebug("Result: %s", cmdresult)
 
-    def try_commit(self, name):
-        mfdc = MustFailDockerCmd(self.parent_subtest, 'commit',
-                                 [name, 'test_%s' % name])
-        cmdresult = mfdc.execute()
-        self.failif(cmdresult == 0,
-                    "Should not have been able to commit from rm'd container")
-
-    def initialize(self):
-        super(rm_sub_base, self).initialize()
-        # initial static content
+    def init_static_data(self):
         volume = self.sub_stuff['volume'] = self.tmpdir
         start_filename = os.path.join(volume, 'start')
         self.sub_stuff['start_filename'] = start_filename
@@ -77,13 +105,19 @@ class rm_sub_base(SubSubtest):
         init_time = str(self.parent_subtest.stuff['init_time'])
         ssfile.write(init_time)
         ssfile.close()
-        # All run arguments csv from config
-        subargs = self.config['run_options_csv'].split(',')
-        cntr_name = utils.generate_random_string(8)
+
+    def init_subargs(self):
+        dc = self.sub_stuff['dc']
+        cntr_name = dc.get_unique_name(self.__class__.__name__)
         self.sub_stuff['cntr_name'] = cntr_name
+        subargs = self.config['run_options_csv'].split(',')
+        self.sub_stuff['subargs'] = subargs
         subargs.append("--name=%s" % cntr_name)
-        # Bind-mount point on host
-        subargs.append("--volume=%s:/workdir" % volume)
+        # Need to detect when container is running
+        cidfile = os.path.join(self.tmpdir, cntr_name)
+        self.sub_stuff['cidfile'] = cidfile
+        subargs.append("--cidfile=%s" % cidfile)
+        subargs.append("--volume=%s:/workdir" % self.sub_stuff['volume'])
         subargs.append("--workdir=/workdir")
         # FQIN is always last
         subargs.append(DockerImage.full_name_from_defaults(self.config))
@@ -91,43 +125,117 @@ class rm_sub_base(SubSubtest):
         subargs.append('-c')
         # Write to a file when signal received
         # Loop forever until marker-file exists
-        command = ("\"rm -f stop; trap '/usr/bin/date +%%s.%%N> stop' %s; "
-                   "while ! [ -f stop ]; do /usr/bin/sleep 0.1s; done\""
+        command = ("\""
+                   "echo 'foobar' > stop && "
+                   "rm -f stop && trap '/usr/bin/date +%%s> stop' %s && "
+                   "while ! [ -f stop ]; do /usr/bin/sleep 0.1s; done"
+                    "\""
                    % self.config['listen_signal'])
         subargs.append(command)
-        # Setup but don't execute docker command
-        self.sub_stuff['dkrcmd'] = AsyncDockerCmd(self.parent_subtest,
-                                                  'run', subargs)
+
+    def init_dkrcmd(self):
+        subargs = self.sub_stuff['subargs']
+        subtest = self.parent_subtest
+        self.sub_stuff['dkrcmd'] = AsyncDockerCmd(subtest, 'run', subargs)
+        self.logdebug("Initialized command: %s", self.sub_stuff['dkrcmd'])
+
+    def cidfile_has_cid(self):
+        """
+        Docker ps output updated once container assigned a CID
+        """
+        cidfile = self.sub_stuff['cidfile']
+        if os.path.isfile(cidfile):
+            cid = open(cidfile, 'rb').read().strip()
+            if len(cid) >= 12:
+                self.sub_stuff['container_id'] = cid
+                return True
+        return False
+
+    def wait_start(self):
+        self.sub_stuff['dkrcmd'].execute()
+        self.loginfo("Waiting up to %s seconds for container start",
+                     self.config['docker_timeout'])
+        self.failif(not utils.wait_for(func=self.cidfile_has_cid,
+                                       timeout=self.config['docker_timeout'],
+                                       text=("\t\tWaiting for container to "
+                                             "start")))
+
+    def initialize(self):
+        super(rm_sub_base, self).initialize()
+        self.sub_stuff['dc'] = self.parent_subtest.stuff['dc']
+        self.sub_stuff['init_time'] = self.parent_subtest.stuff['init_time']
+        self.sub_stuff['volume'] = None  # host-path to volume
+        self.sub_stuff['start_filename'] = None  # volume content filename
+        self.sub_stuff['cntr_name'] = None  # name of test container
+        self.sub_stuff['cidfile'] = None  # full path to file holding cnt ID
+        self.sub_stuff['container_id'] = None  # content of cidfile
+        self.sub_stuff['subargs'] = None  # list of docker run arguments
+        self.sub_stuff['dkrcmd'] = None  # DockerCmd instance for test
+        self.sub_stuff['cmdresult'] = None  # Result of DockerCmd.execute()
+        self.sub_stuff['rm_cmdresult'] = None  # Result of docker rm command
+        self.init_static_data()
+        self.init_subargs()
+        self.init_dkrcmd()
 
     def run_once(self):
         super(rm_sub_base, self).run_once()
-        self.logdebug("Starting test container with %s",
-                       self.sub_stuff['dkrcmd'].command)
-        dkrcmd = self.sub_stuff['dkrcmd']
-        self.sub_stuff['cmdresult'] = dkrcmd.execute()
+        self.wait_start()
         wait_start = self.config['wait_start']
-        self.loginfo("Sleeping %d seconds for container to get started",
+        self.loginfo("Sleeping %d seconds after container start",
                       wait_start)
         time.sleep(wait_start)
-        # Subclasses will take it from here
+        dkrcmd = self.sub_stuff['dkrcmd']
+        dkrcmd.update_result()
+        self.logdebug("Container status: %s", dkrcmd.cmdresult)
+        self.failif(dkrcmd.done, "Container exited before it could be "
+                                 "removed.  See debug log for details")
+
+    def verify_output(self):
+        cmdresult = self.sub_stuff['cmdresult']
+        rm_cmdresult = self.sub_stuff['rm_cmdresult']
+        self.failif(cmdresult.exit_status != 0, "Expected zero exit: %s"
+                                                % cmdresult)
+        self.failif(rm_cmdresult.exit_status != 0, "Expected zero exit: %s"
+                                                % rm_cmdresult)
+        OutputGood(cmdresult)
+        OutputGood(rm_cmdresult)
+
+    def verify_container(self):
+        cid = self.sub_stuff['container_id']
+        self.loginfo("Verifying container %s is gone", cid)
+        cl = self.sub_stuff['dc'].list_containers_with_cid(cid)
+        self.failif(cl != [], "Container %s was not removed!" % cid)
+        self.loginfo("Container is gone.  Verifying output")
+
+    def verify_start(self):
+        # Check static content is intact
+        start_filename = self.sub_stuff['start_filename']
+        self.failif(not os.path.isfile(start_filename),
+                    "Start file does not exist: %s" % start_filename)
+        start_file = open(start_filename, 'rb')
+        start_time = int(start_file.read())
+        init_time = self.sub_stuff['init_time']
+        self.failif(start_time != init_time,
+                    "Static data does not match, %s != %s"
+                    % (start_time, init_time))
+
+    def verify_stop(self):
+        stop_filename = os.path.join(self.sub_stuff['volume'], 'stop')
+        self.failif(not os.path.isfile(stop_filename),
+                    "Stop file does not exist: %s" % stop_filename)
+        stop_file = open(stop_filename, 'rb')
+        stop_time = int(stop_file.read())
+        init_time = self.sub_stuff['init_time']
+        self.failif(stop_time <= init_time,
+                    "Container stopped before it started, %s <= %s"
+                    % (stop_time, init_time))
 
     def postprocess(self):
         super(rm_sub_base, self).postprocess()
-        name = self.sub_stuff['cntr_name']
-        pid = self.sub_stuff['pid']
-        self.failif(utils.pid_is_alive(pid), "Container pid %s still alive!"
-                                             % pid)
-        self.try_commit(name)
-        # Check static content is intact and matches expected data
-        start_filename = self.sub_stuff['start_filename']
-        self.failif(not os.path.isfile(start_filename),
-                    "Start file does not exist")
-        start_file = open(start_filename, 'rb')
-        start_time = int(start_file.read())
-        init_time = self.parent_subtest.stuff['init_time']
-        self.failif(start_time != init_time,
-                    "Static data does not compare, %f != %f"
-                    % (start_time, init_time))
+        self.verify_container()
+        self.verify_output()
+        self.verify_start()
+        self.verify_stop()
 
 class finished(rm_sub_base):
     """
@@ -136,39 +244,30 @@ class finished(rm_sub_base):
 
     def run_once(self):
         super(finished, self).run_once()
-        self.finish_container_nicely(self.sub_stuff['cntr_name'])
-        # Actual test-subject
-        name = self.sub_stuff['cntr_name']
-        nfdc = NoFailDockerCmd(self.parent_subtest, 'rm',
-                               ['--volumes', name])
-        self.sub_stuff['rm_cmdresult'] = nfdc.execute()
-
-    def postprocess(self):
-        super(finished, self).postprocess()
-        exit_status = self.sub_stuff['cmdresult'].exit_status
-        name = self.sub_stuff['cntr_name']
-        self.failif(exit_status != 0,
-                    "Docker container %s failed to exit!, exit_status %s"
-                    % (name, exit_status))
+        cntr_name = self.sub_stuff['cntr_name']
+        self.signal_container(cntr_name)
+        self.wait_container()
+        self.rm_container(cntr_name)
 
 class forced(rm_sub_base):
 
     def run_once(self):
         super(forced, self).run_once()
-        name = self.sub_stuff['cntr_name']
-        nfdc = NoFailDockerCmd(self.parent_subtest, 'rm',
-                               ['--force', name])
-        self.sub_stuff['rm_cmdresult'] = nfdc.execute()
+        cntr_name = self.sub_stuff['cntr_name']
+        self.rm_container(cntr_name)
+        self.wait_container()
 
-    def postprocess(self):
-        self.sub_stuff['pid'] = self.sub_stuff['dkrcmd'].process_id
-        wait_stop = self.config['wait_stop']
-        self.logdebug("Waiting up to %d seconds for container to be killed",
-                      wait_stop)
-        self.sub_stuff['dkrcmd'].wait(wait_stop)
-        exit_status = self.sub_stuff['cmdresult'].exit_status
-        name = self.sub_stuff['cntr_name']
-        self.failif(exit_status == 0,
-                    "Unexpected container %s clean exit, exit_status %s"
-                    % (name, exit_status))
-        super(forced, self).postprocess()
+    def verify_output(self):
+        cmdresult = self.sub_stuff['cmdresult']
+        rm_cmdresult = self.sub_stuff['rm_cmdresult']
+        self.failif(cmdresult.exit_status == 0, "Expected non-zero exit: %s"
+                                                % cmdresult)
+        self.failif(rm_cmdresult.exit_status != 0, "Expected zero exit: %s"
+                                                % rm_cmdresult)
+        OutputGood(cmdresult)
+        OutputGood(rm_cmdresult)
+
+    def verify_stop(self):
+        stop_filename = os.path.join(self.sub_stuff['volume'], 'stop')
+        self.failif(os.path.isfile(stop_filename),
+                    "Stop file exists, but shouldn't: %s" % stop_filename)
