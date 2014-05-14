@@ -28,16 +28,19 @@ class psa(subtest.Subtest):
         name = self.stuff['container_name'] = dc.get_unique_name("psa")
         cidfile = os.path.join(self.tmpdir, 'cidfile')
         self.stuff['cidfile'] = cidfile
-        subargs = ['--cidfile', cidfile, '--detach',
-                   '--sig-proxy', '--name=%s' % name]
+        subargs = ['--cidfile', cidfile,
+                   '--name=%s' % name]
         fin = images.DockerImage.full_name_from_defaults(self.config)
         subargs.append(fin)
         subargs.append('/bin/bash')
         subargs.append('-c')
         # Write to a file when signal received
         # Loop forever until marker-file exists
-        command = ("\"rm -f stop; trap '/usr/bin/date > stop' SIGUSR1; "
-                   "while ! [ -f stop ]; do :; done\"")
+        command = ("\""
+                   "echo 'foobar' > stop && "
+                   "rm -f stop && trap '/usr/bin/date +%%s> stop' USR1 && "
+                   "while ! [ -f stop ]; do /usr/bin/sleep 0.1s; done"
+                    "\"")
         subargs.append(command)
         self.stuff['cl0'] = dc.list_containers()
         dkrcmd = AsyncDockerCmd(self, 'run', subargs)
@@ -58,7 +61,6 @@ class psa(subtest.Subtest):
         return False
 
     def wait_start(self):
-        cidfile = self.stuff['cidfile']
         self.stuff['dkrcmd'].execute()
         self.failif(not utils.wait_for(func=self.cidfile_has_cid,
                                        timeout=self.config['docker_timeout'],
@@ -70,13 +72,19 @@ class psa(subtest.Subtest):
         self.loginfo("Container running, waiting %d seconds to examine"
                      % self.config['wait_start'])
         time.sleep(self.config['wait_start'])
+        self.logdebug("Post-wait status: %s", self.stuff['dkrcmd'])
         dc = self.stuff['dc']
         self.stuff['cl1'] = dc.list_containers()
         sig = getattr(signal, 'SIGUSR1')
         self.loginfo("Signaling container with signal %s", sig)
-        nfdc = NoFailDockerCmd(self, 'kill', ['--signal', "USR1",
-                                              self.stuff['container_id']])
-        nfdc.execute()
+        json = dc.json_by_name(self.stuff['container_name'])
+        self.failif(not json[0]["State"]["Running"],
+                    "Can't signal non-running container, see debug "
+                    "log for more detail")
+        pid = int(json[0]["State"]["Pid"])
+        self.failif(not utils.signal_pid(pid, sig),
+                    "Failed to cause container exit with signal: "
+                    "still running, see debug log for more detail.")
         self.loginfo("Waiting up to %d seconds for exit",
                      self.config['wait_stop'])
         self.stuff['cmdresult'] = self.stuff['dkrcmd'].wait(
@@ -92,8 +100,10 @@ class psa(subtest.Subtest):
         cnt = cnts[0]
         estat1 = str(cnt.status).startswith("Exit 0") # pre docker 0.9.1
         estat2 = str(cnt.status).startswith("Exited (0)") # docker 0.9.1 & later
-        self.failif(not (estat1 or estat2), "Exit status mismatch: %s"
-                                            % str(cnt))
+        self.failif(not (estat1 or estat2), "Exit status mismatch: %s does not"
+                                            "start with %s or %s"
+                                            % (str(cnt), "Exit 0",
+                                               "Exited (0)"))
         cid = self.stuff['container_id']
         cl0_ids = [cnt.long_id for cnt in self.stuff['cl0']]
         cl1_ids = [cnt.long_id for cnt in self.stuff['cl1']]
