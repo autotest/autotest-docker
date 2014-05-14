@@ -42,6 +42,9 @@ class DockerCmdBase(object):
     #: Log additional debugging related messages
     verbose = None
 
+    #: Cached copy of result object from most recent execute() call
+    cmdresult = None
+
     def __init__(self, subtest, subcmd, subargs=None, timeout=None,
                  verbose=True):
         # Check for proper type of subargs
@@ -76,7 +79,10 @@ class DockerCmdBase(object):
         """
         Return full command-line string (wrapps command property)
         """
-        return self.command
+        if self.cmdresult is not None:
+            return str(self.cmdresult).replace('\n', ' ')
+        else:
+            return str(self.command)
 
     def execute(self, stdin):  # pylint: disable=R0201
         """
@@ -147,15 +153,19 @@ class DockerCmd(DockerCmdBase):
     """
 
     def execute(self, stdin=None):
+
         """
         Run docker command, ignore any non-zero exit code
         """
 
+        if self.verbose:
+            self.subtest.logdebug("Executing docker command: %s", self)
         self.executed += 1
         try:
-            return utils.run(self.command, timeout=self.timeout,
-                             stdin=stdin, verbose=self.verbose,
+            self.cmdresult = utils.run(self.command, timeout=self.timeout,
+                             stdin=stdin, verbose=False,
                              ignore_status=True)
+            return self.cmdresult
         # ignore_status=True : should not see CmdError
         except error.CmdError, detail:
             # Something internal must have gone wrong
@@ -173,15 +183,19 @@ class NoFailDockerCmd(DockerCmd):
     """
 
     def execute(self, stdin=None):
+
         """
         Execute docker command, raising DockerCommandError if non-zero exit
         """
 
+        if self.verbose:
+            self.subtest.logdebug("Executing docker command: %s", self)
         self.executed += 1
         try:
-            return utils.run(self.command, timeout=self.timeout,
-                             stdin=stdin, verbose=self.verbose,
+            self.cmdresult = utils.run(self.command, timeout=self.timeout,
+                             stdin=stdin, verbose=False,
                              ignore_status=False)
+            return self.cmdresult
         # Prevent caller from needing to import this exception class
         except error.CmdError, detail:
             raise DockerExecError(str(detail.result_obj))
@@ -204,19 +218,21 @@ class MustFailDockerCmd(DockerCmd):
         :return: A CmdResult instance
         """
 
+        if self.verbose:
+            self.subtest.logdebug("Executing docker command: %s", self)
         self.executed += 1
         try:
-            cmdresult = utils.run(self.command, timeout=self.timeout,
-                                  stdin=stdin, verbose=self.verbose,
+            self.cmdresult = utils.run(self.command, timeout=self.timeout,
+                                  stdin=stdin, verbose=False,
                                   ignore_status=True)
         # Prevent caller from needing to import this exception class
         except error.CmdError, detail:
             raise DockerCommandError(str(detail.result_obj))
-        if cmdresult.exit_status == 0:
+        if self.cmdresult.exit_status == 0:
             raise DockerExecError("Unexpected command success: %s"
-                                  % str(cmdresult))
+                                  % str(self.cmdresult))
         else:
-            return cmdresult
+            return self.cmdresult
 
 
 class AsyncDockerCmd(DockerCmdBase):
@@ -234,9 +250,12 @@ class AsyncDockerCmd(DockerCmdBase):
         Start execution of asynchronous docker command
         """
 
+        if self.verbose:
+            self.subtest.logdebug("Executing docker command: %s", self)
         self._async_job = utils.AsyncJob(self.command, verbose=False,
                                          stdin=stdin, close_fds=True)
-        return self._async_job.result
+        self.update_result()
+        return self.cmdresult
 
     def wait(self, timeout=None):
         """
@@ -253,6 +272,19 @@ class AsyncDockerCmd(DockerCmdBase):
             return self._async_job.wait_for(timeout)
         else:
             raise DockerTestError("Attempted to wait before execute() called.")
+
+    def update_result(self):
+        """
+        Forces cache update of current stdout/stdin content to self.cmdresult
+        """
+        if self.executed:
+            self.cmdresult = self._async_job.result
+            if self.stdout:
+                self.cmdresult.stdout = self.stdout
+            if self.stderr:
+                self.cmdresult.stdout = self.stderr
+            # Returns None if still running
+            self.cmdresult.exit_status = self._async_job.sp.poll()
 
     @property
     def done(self):

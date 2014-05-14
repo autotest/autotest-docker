@@ -35,13 +35,22 @@ def mock(mod_path):
             sys.modules[mod_path] = child_mod
         return sys.modules[mod_path]
 
+class FakePopen(object):
+    """needed for testing AsyncDockerCmd"""
+    def poll(self):
+        return True
 
 class FakeCmdResult(object):    # pylint: disable=R0903
     """ Just pack whatever args received into attributes """
     def __init__(self, **dargs):
+        self.sp = FakePopen()
         for key, val in dargs.items():
             setattr(self, key, val)
-
+    # needed for testing AsyncDockerCmd
+    def get_stdout(self):
+        return "STDOUT"
+    def get_stderr(self):
+        return "STDERR"
 
 def run(command, *args, **dargs):
     """ Don't actually run anything! """
@@ -204,11 +213,11 @@ class DockerCmdTestBasic(DockerCmdTestBase):
         expected = ("%s %s fake_subcommand fake arg list"
                     % (self.defaults['docker_path'],
                        self.defaults['docker_options']))
-        self.assertEqual(docker_command.command, expected)
+        self.assertTrue(docker_command.command in expected)
         self.assertEqual(str(docker_command), expected)
         cmdresult = docker_command.execute()
         self.assertTrue(docker_command.executed)
-        self.assertEqual(cmdresult.command, expected)
+        self.assertTrue(cmdresult.command in expected)
         # mocked cmdresult has '.dargs' pylint: disable=E1101
         self.assertAlmostEqual(cmdresult.dargs['timeout'], 1234567.0)
         # pylint: enable=E1101
@@ -255,9 +264,6 @@ class AsyncDockerCmd(DockerCmdTestBase):
     config_section = "Foo/Bar/Baz"
 
     def test_basic_workflow(self):
-        class DummyClass(object):   # pylint: disable=R0903
-            """ Clean class used for mocking """
-            pass
         docker_cmd = self.dockercmd.AsyncDockerCmd(self.fake_subtest,
                                                    'fake_subcommand',
                                                    timeout=123)
@@ -270,7 +276,6 @@ class AsyncDockerCmd(DockerCmdTestBase):
 
         # Modified run returns the async_job instead of the real results...
         async_job = docker_cmd.execute()
-        async_job.sp = DummyClass()
 
         async_job.wait_for = lambda x: x    # instead waiting return timeout
         self.assertEqual(docker_cmd.wait(), 123)
