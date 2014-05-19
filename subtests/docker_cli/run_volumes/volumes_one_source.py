@@ -18,6 +18,7 @@ from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
 from run_volumes import volumes_base
 import hashlib
+from dockertest import environment
 
 
 class volumes_one_source(volumes_base):
@@ -30,6 +31,7 @@ class volumes_one_source(volumes_base):
         exec_command = self.config['exec_command']
         cntr_path = self.config['cntr_path']
         host_path = self.tmpdir
+        environment.set_selinux_context(host_path, "svirt_sandbox_file_t")
         vols = ['--volume="%s:%s"' % (host_path, cntr_path)]
         fqin = [DockerImage.full_name_from_defaults(self.config)]
         for _ in range(num_containers):

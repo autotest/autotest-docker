@@ -22,6 +22,8 @@ from dockertest.subtest import SubSubtestCaller
 from dockertest.xceptions import DockerCommandError
 from dockertest.xceptions import DockerExecError
 from dockertest.xceptions import DockerTestNAError
+from dockertest import environment
+import subprocess
 
 
 class run_volumes(SubSubtestCaller):
@@ -62,6 +64,7 @@ class volumes_base(SubSubtest):
                 raise DockerTestNAError("host_path '%s' invalid." % host_path)
             if not cntr_path or len(cntr_path) < 4:
                 raise DockerTestNAError("cntr_path '%s' invalid." % cntr_path)
+            environment.set_selinux_context(host_path, "svirt_sandbox_file_t")
             # keys must coorespond with those used in *_template strings
             args = volumes_base.make_test_files(os.path.abspath(host_path))
             args += (host_path, cntr_path)
