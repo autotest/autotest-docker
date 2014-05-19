@@ -10,7 +10,6 @@ Test read & write to various host-paths as container volumes
 # pylint: disable=C0103,C0111,R0904,C0103
 
 import time
-import os
 import os.path
 import hashlib
 
@@ -20,9 +19,8 @@ from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
-from dockertest.xceptions import DockerCommandError
-from dockertest.xceptions import DockerExecError
 from dockertest.xceptions import DockerTestNAError
+from dockertest import environment
 
 
 class run_volumes(SubSubtestCaller):
@@ -66,6 +64,7 @@ class volumes_base(SubSubtest):
             if not cntr_path or len(cntr_path) < 4:
                 raise DockerTestNAError("Configured cntr_path '%s' invalid."
                                         % cntr_path)
+            environment.set_selinux_context(host_path, "svirt_sandbox_file_t")
             # keys must coorespond with those used in *_template strings
             args = volumes_base.make_test_files(os.path.abspath(host_path))
             args += (host_path, cntr_path)

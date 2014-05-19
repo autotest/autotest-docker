@@ -22,6 +22,7 @@ from dockertest.subtest import SubSubtestCaller
 from dockertest.containers import DockerContainers
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
+from dockertest import environment
 
 class rm(SubSubtestCaller):
     config_section = 'docker_cli/rm'
@@ -99,6 +100,7 @@ class rm_sub_base(SubSubtest):
 
     def init_static_data(self):
         volume = self.sub_stuff['volume'] = self.tmpdir
+        environment.set_selinux_context(volume, "svirt_sandbox_file_t")
         start_filename = os.path.join(volume, 'start')
         self.sub_stuff['start_filename'] = start_filename
         ssfile = open(start_filename, "wb")
