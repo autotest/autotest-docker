@@ -485,7 +485,13 @@ class DockerContainersCLI(DockerContainersBase):
             cmdresult = self.docker_cmd('inspect "%s"' % str(long_id),
                                         self.timeout)
             if cmdresult.exit_status == 0:
-                return json.loads(cmdresult.stdout.strip())
+                _json = json.loads(cmdresult.stdout.strip())
+                if len(_json) > 0:
+                    # No items in _json list should be empty either
+                    if all([len(item) > 0 for item in _json]):
+                        return _json
+            #  failed command, empty list, or empty list item
+            return None
         except (TypeError, ValueError, error.CmdError), details:
             self.subtest.logdebug("docker inspect %s raised: %s: %s",
                                   long_id, details.__class__.__name__,

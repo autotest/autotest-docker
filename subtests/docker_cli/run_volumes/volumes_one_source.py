@@ -11,13 +11,14 @@ volume at the same time.
 # Okay to be less-strict for these cautions/warnings in subtests
 # pylint: disable=C0103,C0111,R0904,C0103
 
-
+import hashlib
+import os.path
 from autotest.client import utils
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
+from dockertest import environment
 from run_volumes import volumes_base
-import hashlib
 
 
 class volumes_one_source(volumes_base):
@@ -30,11 +31,12 @@ class volumes_one_source(volumes_base):
         exec_command = self.config['exec_command']
         cntr_path = self.config['cntr_path']
         host_path = self.tmpdir
+        environment.set_selinux_context(host_path, "svirt_sandbox_file_t")
         vols = ['--volume="%s:%s"' % (host_path, cntr_path)]
         fqin = [DockerImage.full_name_from_defaults(self.config)]
         for _ in range(num_containers):
             name = utils.generate_random_string(12)
-            template_keys = {'write_path': cntr_path + "/" + name,
+            template_keys = {'write_path': os.path.join(cntr_path, name),
                              'name': name}
             self.sub_stuff['names'] += [name]
             cmd = [exec_command % template_keys]
