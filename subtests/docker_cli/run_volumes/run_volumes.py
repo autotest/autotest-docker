@@ -10,7 +10,6 @@ Test read & write to various host-paths as container volumes
 # pylint: disable=C0103,C0111,R0904,C0103
 
 import time
-import os
 import os.path
 import hashlib
 

@@ -7,7 +7,6 @@ Low-level/standalone host-environment handling/checking utilities/classes/data
        in autotest!
 """
 
-import os
 import os.path
 import subprocess
 
@@ -57,7 +56,7 @@ class AllGoodBase(object):
 
     def __str__(self):
         """
-        Make results of individual checkers accessible in human-readable format.
+        Make results of individual checkers accessible in human-readable format
         """
 
         goods = [name for (name, result) in self.results.items() if result]
