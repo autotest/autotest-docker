@@ -528,14 +528,15 @@ Ultra-simple test to confirm output table-format of docker CLI
 ``docker_cli/run_volumes`` Prerequisites
 ---------------------------------------------
 
-*  Remove filesystems are mounted and accessible on host system.
+*  Remote filesystems are mounted and accessible on host system.
 *  Containers have access to read & write files w/in mountpoints
 
 ``docker_cli/run_volumes/volumes_rw`` Configuration
 ----------------------------------------------------
 *  The ``host_paths`` and corresponding ``cntr_paths`` are most important.
    They are the host paths and container paths comma-separated values to
-   test.  There must be 1:1 correspondence between CSVs of both options
+   test.  There must be 1:1 correspondence between CSVs of both options.
+   The lists must also be the same length.
 *  ``run_template`` allows fine-tuning the options to the run command.
 *  The ``cmd_template`` allows fine-tuning the command to run inside
    the container.  It makes use of shell-like value substitution from

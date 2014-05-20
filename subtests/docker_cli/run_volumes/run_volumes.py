@@ -64,7 +64,6 @@ class volumes_base(SubSubtest):
             if not cntr_path or len(cntr_path) < 4:
                 raise DockerTestNAError("Configured cntr_path '%s' invalid."
                                         % cntr_path)
-            environment.set_selinux_context(host_path, "svirt_sandbox_file_t")
             # keys must coorespond with those used in *_template strings
             args = volumes_base.make_test_files(os.path.abspath(host_path))
             args += (host_path, cntr_path)
@@ -78,6 +77,12 @@ class volumes_base(SubSubtest):
             os.makedirs(os.path.join(tmpdir, hpr))
             test_dict['cidfile'] = uniq
             path_info.append(test_dict)
+
+    @staticmethod
+    def set_selinux_context(subtest, host_path):
+        context = subtest.config['selinux_context'].strip()
+        if context != '':
+            environment.set_selinux_context(host_path, context)
 
     @staticmethod
     def make_dockercmd(subtest, dockercmd_class, fqin,
@@ -137,6 +142,13 @@ class volumes_rw(volumes_base):
         super(volumes_rw, self).initialize()
         host_paths = self.config['host_paths'].strip().split(',')
         cntr_paths = self.config['cntr_paths'].strip().split(',')
+        if len(host_paths) != len(cntr_paths):
+            raise DockerTestNAError("Configuration option host_paths CSV list "
+                                    "must exactly match length of cntr_paths. "
+                                    "'%s' != '%s'" % (host_paths, cntr_paths))
+        if len(host_paths) < 1:
+            raise DockerTestNAError("Configuration options host_paths and "
+                                    "cntr_paths CSV lists are empty")
         # list of substitution dictionaries for each container
         path_info = self.sub_stuff['path_info'] = []
         # Throws DockerTestNAError if any host_paths is bad
