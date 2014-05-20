@@ -266,7 +266,7 @@ class Subtest(test.test):
                                               exc_info[1],
                                               exc_info[2])
 
-        error_tb = "".join(error_tb).strip()
+        error_tb = "".join(error_tb).strip() + "\n"
         self.logerror(error_head)
         self.logdebug(error_tb)
 
