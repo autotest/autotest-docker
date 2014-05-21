@@ -523,8 +523,6 @@ and any prerequisites or setup requirements.
    :depth: 1
    :local:
 
-.. include:: subtests.rst
-
 -------------------------------------
 Dockertest |release| API Reference
 -------------------------------------
