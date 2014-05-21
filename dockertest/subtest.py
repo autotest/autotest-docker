@@ -218,6 +218,20 @@ class Subtest(test.test):
         testname = self.__class__.__name__
         return meth(self.logindent(16, 1, testname, msg), *args)
 
+    def log_xn(self, lvl, msg, *args):
+        """
+        Multiline-split and send msg & args through to logging module
+        """
+        if msg.count('\n'):
+            # Breaks just-in-time substitution,
+            # only do this in cases where pretty (but less accurate)
+            # display is needed.
+            msg = str(msg) % args
+            for line in str(str(msg) % args).splitlines():
+                return self.log_x(lvl, line)
+        else:
+            return self.log_x(lvl, msg, *args)
+
     def logdebug(self, message, *args):
         r"""
         Log a DEBUG level message to the controlling terminal **only**
@@ -234,7 +248,7 @@ class Subtest(test.test):
         :param message: Same as logging.info()
         :\*args: Same as logging.info()
         """
-        self.log_x('info', message, *args)
+        self.log_xn('info', message, *args)
 
     def logwarning(self, message, *args):
         r"""
@@ -243,7 +257,7 @@ class Subtest(test.test):
         :param message: Same as logging.warning()
         :\*args: Same as logging.warning()
         """
-        self.log_x('warn', message, *args)
+        self.log_xn('warn', message, *args)
 
     def logerror(self, message, *args):
         r"""
@@ -252,7 +266,7 @@ class Subtest(test.test):
         :param message: Same as logging.error()
         :\*args: Same as logging.error()
         """
-        self.log_x('error', message, *args)
+        self.log_xn('error', message, *args)
 
     def logtraceback(self, name, exc_info, error_source, detail):
         r"""
@@ -388,6 +402,7 @@ class SubSubtest(object):
 
     # Handy to have here also
     failif = staticmethod(Subtest.failif)
+    log_xn = Subtest.log_xn
 
     def log_x(self, lvl, msg, *args):
         """

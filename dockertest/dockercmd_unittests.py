@@ -37,26 +37,37 @@ def mock(mod_path):
 
 class FakePopen(object):
     """needed for testing AsyncDockerCmd"""
+    pid = -1
     def poll(self):
         return True
 
 class FakeCmdResult(object):    # pylint: disable=R0903
     """ Just pack whatever args received into attributes """
-    def __init__(self, **dargs):
+    duration = 123
+    stdout = None
+    stderr = None
+    exit_status = 0
+    def __init__(self, *args, **dargs):
         self.sp = FakePopen()
         for key, val in dargs.items():
             setattr(self, key, val)
+    def __str__(self):
+        return self.command
     # needed for testing AsyncDockerCmd
     def get_stdout(self):
         return "STDOUT"
     def get_stderr(self):
         return "STDERR"
+    def wait_for(self, timeout):
+        self.duration = timeout
+        return self
+    @property
+    def result(self):
+        return self
 
 def run(command, *args, **dargs):
     """ Don't actually run anything! """
     result = FakeCmdResult(command=command, args=args, dargs=dargs)
-    # store myself to allow special AsyncJob magic
-    result.result = result
     if 'unittest_fail' in command:
         result.exit_status = 1
         if not dargs['ignore_status']:
@@ -73,6 +84,7 @@ def run(command, *args, **dargs):
 setattr(mock('autotest.client.utils'), 'run', run)
 # Similar enough to run
 setattr(mock('autotest.client.utils'), 'AsyncJob', run)
+setattr(mock('autotest.client.utils'), 'CmdResult', FakeCmdResult)
 # Mock module and class in one stroke
 setattr(mock('autotest.client.test'), 'test', object)
 # Mock module and exception class in one stroke
@@ -214,12 +226,12 @@ class DockerCmdTestBasic(DockerCmdTestBase):
                     % (self.defaults['docker_path'],
                        self.defaults['docker_options']))
         self.assertTrue(docker_command.command in expected)
-        self.assertEqual(str(docker_command), expected)
+        self.assertTrue(expected in str(docker_command))
         cmdresult = docker_command.execute()
         self.assertTrue(docker_command.executed)
         self.assertTrue(cmdresult.command in expected)
         # mocked cmdresult has '.dargs' pylint: disable=E1101
-        self.assertAlmostEqual(cmdresult.dargs['timeout'], 1234567.0)
+        self.assertAlmostEqual(cmdresult.duration, 123)
         # pylint: enable=E1101
         # Verify can change some stuff
         docker_command.timeout = 0
@@ -233,7 +245,7 @@ class DockerCmdTestBasic(DockerCmdTestBase):
         self.assertEqual(cmdresult.command, expected)
         self.assertEqual(docker_command.execute_calls(), 2)
         # mocked cmdresult has '.dargs' pylint: disable=E1101
-        self.assertEqual(cmdresult.dargs['timeout'], 0)
+        self.assertAlmostEqual(cmdresult.duration, 123)
         # pylint: enable=E1101
 
     def test_no_fail_docker_cmd(self):
@@ -270,26 +282,17 @@ class AsyncDockerCmd(DockerCmdTestBase):
 
         # Raise error when command not yet executed
         self.assertRaises(self.dockercmd.DockerTestError, docker_cmd.wait)
-        for prop in ('done', 'stdout', 'stderr', 'process_id'):
+        for prop in ('done', 'process_id'):
             self.assertRaises(self.dockercmd.DockerTestError,
                               getattr, docker_cmd, prop)
 
-        # Modified run returns the async_job instead of the real results...
-        async_job = docker_cmd.execute()
 
-        async_job.wait_for = lambda x: x    # instead waiting return timeout
-        self.assertEqual(docker_cmd.wait(), 123)
-
-        async_job.sp.poll = lambda: True
+        cmdresult = docker_cmd.execute()
+        self.assertTrue(isinstance(cmdresult, FakeCmdResult))
+        self.assertEqual(docker_cmd.wait(123).duration, 123)
         self.assertTrue(docker_cmd.done)
-
-        async_job.get_stdout = lambda: "STDOUT"
         self.assertEqual(docker_cmd.stdout, "STDOUT")
-
-        async_job.get_stderr = lambda: "STDERR"
         self.assertEqual(docker_cmd.stderr, "STDERR")
-
-        async_job.sp.pid = -1
         self.assertEqual(docker_cmd.process_id, -1)
 
     def test_no_execute_calls(self):
