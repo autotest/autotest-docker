@@ -6,12 +6,12 @@ Test output of docker run -m parameter
 
 1. Run some containers with different memory values via parameter -m
 2. Check if the container success start
-  2.a If positive == 1, pass a random number which in the valid range
+  2.a If expect_success == PASS, pass a random number which in the valid range
       and all the unit options, '', '0', 'b', 'B', 'k', 'K', 'm', 'M',
       'g','G'.Then check if the cgroup resource memory.limit_in_bytes match
       the memory, fail if both container start failed and memory
       mismatch its cgroup resource.
-  2.b If positive == 0, pass three numbers: smaller than the minimum,
+  2.b If expect_success == FAIL, pass three numbers: smaller than the minimum,
       larger than the maximal, invalid number, fail it the container
       success start.
 """
@@ -35,7 +35,6 @@ from dockertest.subtest import SubSubtestCallerSimultaneous
 class run_memory(SubSubtestCallerSimultaneous):
 
     """subtest Caller"""
-    config_section = 'docker_cli/run_memory'
 
 class run_memory_base(SubSubtest):
 
@@ -44,7 +43,7 @@ class run_memory_base(SubSubtest):
         """
         Compare container's memory which set by option -m, and its cgroup
         memory which is memory.limit_in_bytes that get from
-        /sys/fs/cgroup/memory/docker/$long_id/ in this case
+        /sys/fs/cgroup/memory/system.slice/docker-$long_id.scope/ in this case
         :param docker_memory: docker memory set by the option --m
                               under "run" command
         :param cgroup_memory: docker's cgroup memory.
@@ -58,6 +57,20 @@ class run_memory_base(SubSubtest):
             container_memory *= 1024 * 1024
         elif unit == 'g' or unit == 'G':
             container_memory *= 1024 * 1024 * 1024
+
+        if container_memory == 0:
+            if cgroup_memory == 9223372036854775807:
+                result = {'PASS':"container_memory is %s, "
+                             "unit %s, cgroup_memory is %s"
+                             % (container_memory, unit, cgroup_memory)}
+
+                return result
+            else:
+                result = {'FAIL':"container_memory is %s, "
+                             "unit %s, cgroup_memory is %s, status Unknown"
+                             % (container_memory, unit, cgroup_memory)}
+
+                return result
 
         if container_memory != cgroup_memory:
             result = {'FAIL':"container_memory is %s "
@@ -101,31 +114,83 @@ class run_memory_base(SubSubtest):
         subargs.append(sub_command)
         return subargs
 
-    def read_cgroup(self, long_id, path, content):
+    def read_cgroup(self, long_id, path, content,):
         """
-        Read container's cgroup value, return False if it doesn't exist.
-        :param long_id: a container's long id, can get via command --inspect
-        :param path: the cgroup path of container
-        :param content: the value need read
+        Read container's cgroup file, return its value
+        :param long_id: a container's long id, can get via command --inspect.
+        :param path: the cgroup path of container.
+        :param content: the value need read.
         """
-        cgroup_path = "%s/%s/%s" % (path, long_id, content)
+        cgroup_path = "%s-%s.scope/%s" % (path, long_id, content)
+        cgroup_file = open(cgroup_path,'r')
+        try:
+            cgroup_value = cgroup_file.read()
+        finally:
+            cgroup_file.close()
+
+        return cgroup_value
+
+    def check_cgroup_exist(self, long_id, path, content):
+        """
+        Test if container's cgroup exist.For now the path is
+        /sys/fs/cgroup/$content/system.slice/docker-$long_id.scope
+        :param long_id: a container's long id
+        :path: the cgroup path of container
+        :param content: the value need check.
+        """
+        cgroup_path = "%s-%s.scope/%s" % (path, long_id, content)
 
         if os.path.exists(cgroup_path):
-            cgroup_value = commands.getoutput('cat %s' % cgroup_path)
-            return cgroup_value
+            return True
         else:
             return False
 
-    def extract_unit(self, memory):
+
+    def get_arg_from_arglist(self, argslist, parameter):
         """
-        Help extract the unit from some memory like 512M.
-        :param memory: a list or a string value contains memory value.
+        Split single argument from a argslist, e.g will return '-m 5242889'
+        from this list:
+        ['--name=test_1GlH', '-m 5242889', 'mattdm/fedora:latest', '/bin/bash']
+        when set parameter to '-m'
+        :param argslist: a arg list, see abvoe.
+        :param parameter: the arg need return, like memory '-m'.
         """
-        unit = str(memory[-1])
+        temp_arg = []
+        for subarg in argslist:
+            if parameter in subarg:
+                temp_arg = subarg
+
+        return temp_arg
+
+    def get_value_from_arg(self, arg, method, locate):
+        """
+        Split single parameter from a argument, e.g will return 5242889G
+        from '-m 5242889' if method is ' ' and locate is 1.
+        :param arg: Single argument, like '--name=test'.
+        :param method: Split method, like ' ' or '='.
+        :locate: parameter located.
+        """
+        temp_value = arg.split(method)[locate]
+
+        return temp_value
+
+    def split_unit(self, memory_value):
+        """
+        Split unit from memory_value, e.g once 5242889G passes into,
+        will return a list ['5242889', 'G'].
+        :param memory_value: a memory value.
+        """
+        memory = []
+        unit = str(memory_value[-1])
         if unit.isalpha():
-            return unit
+            memory.append(memory_value.split(unit)[0])
+            memory.append(unit)
+            return memory
         else:
-            return ""
+            memory.append(memory_value)
+            memory.append(' ')
+            return memory
+
 
     def initialize(self):
         super(run_memory_base, self).initialize()
@@ -164,36 +229,39 @@ class run_memory_base(SubSubtest):
 
     def run_once(self):
         super(run_memory_base, self).run_once()
+
         for subargs in self.sub_stuff['subargs']:
             if self.config['expect_success'] == "PASS":
                 memory_container = NoFailDockerCmd(self.parent_subtest,
-                                                'run',
+                                                'run -d -t',
                                                 subargs).execute()
-                self.loginfo(
+                self.logdebug(
                     "Executing docker command: %s" % memory_container)
-                #Cut 'name' from "--name=$something",
-                #then pass it to container_json
+
                 long_id = self.container_json(str(subargs[0]).split('=')[1],
                                               'ID')
-                #Cut memory value from "-m $memory"
-                memory_value = str(subargs[1]).split(' ')[1]
-                unit = self.extract_unit(memory_value)
-                if unit is not False:
-                    memory = memory_value.split(unit)[0]
-                else:
-                    memory = memory_value
+                memory_arg = self.get_value_from_arg(
+                                    self.get_arg_from_arglist(subargs, '-m'),
+                                    ' ', 1)
+                memory = self.split_unit(memory_arg)
+                memory_value = memory[0]
+                memory_unit = memory[1]
 
-                cgroup_memory = self.read_cgroup(
+                cgroup_exist = self.check_cgroup_exist(long_id,
+                                           self.config['cgroup_path'],
+                                           self.config['cgroup_key_value'])
+                if cgroup_exist is True:
+                    cgroup_memory = self.read_cgroup(
                                             long_id,
                                             self.config['cgroup_path'],
                                             self.config['cgroup_key_value'])
-                #memory_no_cgroup test branch
-                if memory is '0':
-                    self.failif(cgroup_memory is not False,
-                                "The path exist when set memory equals to 0")
-                self.sub_stuff['result'].append(self.check_memory(memory,
-                                                                cgroup_memory,
-                                                                unit))
+                else:
+                    xceptions.DockerTestNAError("Docker path doesn't exist!")
+
+                self.sub_stuff['result'].append(self.check_memory(
+                                                     memory_value,
+                                                     cgroup_memory,
+                                                     memory_unit))
             else:
                 memory_container = MustFailDockerCmd(self.parent_subtest,
                                                      'run',
@@ -222,7 +290,7 @@ class run_memory_base(SubSubtest):
             self.failif(fail_check is True,
                         "Memory check mismatch ,%s" % fail_content)
         else:
-            self.failif(self.sub_stuff['result'].exit_status != 0,
+            self.failif(self.sub_stuff['result'].exit_status == 0,
                         "Non-zero pull exit status: %s"
                         % self.sub_stuff['result'])
 
@@ -253,7 +321,7 @@ class memory_no_cgroup(run_memory_base):
     Test usage of docker 'run -m' command that sets memory to 0.
 
     Pass 0 to container as a memory value, which means don't use
-    cgroup memory.limit_in_bytes.For now, fail if the cgroup exist or
+    cgroup memory.limit_in_bytes.For now, fail if the cgroup don't exist or
     the container start unsuccessfully
     """
     pass
