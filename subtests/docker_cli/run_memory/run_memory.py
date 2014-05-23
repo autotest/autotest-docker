@@ -18,11 +18,7 @@ Test output of docker run -m parameter
 # Okay to be less-strict for these cautions/warnings in subtests
 # pylint: disable=C0103,C0111,R0904,C0103
 
-import commands
 import os
-
-from autotest.client import utils
-from autotest.client.shared import error
 from dockertest import xceptions
 from dockertest.dockercmd import NoFailDockerCmd
 from dockertest.dockercmd import MustFailDockerCmd

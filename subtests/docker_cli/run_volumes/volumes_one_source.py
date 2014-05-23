@@ -17,7 +17,6 @@ from autotest.client import utils
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
-from dockertest import environment
 from run_volumes import volumes_base
 
 
