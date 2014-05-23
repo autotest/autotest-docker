@@ -31,6 +31,7 @@ class inspect_all(inspect_base):
         cli_output = self.parse_cli_output(self.sub_stuff['cmdresult'].stdout)
         cid = self.get_cid_from_name(self, self.sub_stuff['name'])
         config_map = self.get_config_maps([cid])
+        #https://bugzilla.redhat.com/show_bug.cgi?id=1092781
         ifields = self.config['ignore_fields'].split(',')
         self.verify_same_configs(self,
                                  config_map,
