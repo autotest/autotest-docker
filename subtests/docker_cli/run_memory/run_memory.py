@@ -59,7 +59,7 @@ class run_memory_base(SubSubtest):
             container_memory *= 1024 * 1024 * 1024
 
         if container_memory == 0:
-            if cgroup_memory == 9223372036854775807:
+            if cgroup_memory == 0:
                 result = {'PASS':"container_memory is %s, "
                              "unit %s, cgroup_memory is %s"
                              % (container_memory, unit, cgroup_memory)}

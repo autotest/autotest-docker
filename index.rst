@@ -73,7 +73,7 @@ Prerequisites
     *  Git (and basic familiarity with it's operation)
     *  Python 2.6 or greater (but not 3.0)
     *  Optional (for building documentation), ``make`` and ``python-sphinx``
-       or the equivilent for your platform (supplying the ``sphinx-build``
+       or the equivalent for your platform (supplying the ``sphinx-build``
        executable)
     *  Autotest 0.15.0 or later, specific version is configured.
 
@@ -273,7 +273,7 @@ more horizontal-whitespace characters with a newline.  For example:
 
      option_name = This option value is super duper long,
                    but will be un-folded into a single string with
-                   <---- all this whispace replaced by a single space.
+                   <---- all this whitespace replaced by a single space.
 
 In this case, the runs of multiple whitespace following the newline will
 be folded into a single instance, and substituted for the previous newline.
@@ -294,9 +294,9 @@ shared element.
 Type-conversion
 -----------------------
 The config parser will attempt to parse each item in the following order:
-intergers, booleans, floats, then strings.
+integers, booleans, floats, then strings.
 
-*  Integrers are in the form of simple numbers, eg: "123"
+*  Integers are in the form of simple numbers, eg: "123"
 *  Booleans are in the form 'yes' or 'true', 'no' or 'false' (case insensitive)
 *  Floats are in the form of numbers with decimals eg: "123.456" or "123.0"
 *  All other items will be returned as strings.
@@ -353,7 +353,7 @@ file is loaded *either* from ``config_defaults`` *or* ``config_custom``.
    most tests to fail after changing dockertest API versions. This is
    intentional behavior and so this option must **not** be overriden
    in any default/bundled subtest configuration.  It **should** be
-   overriden in custom/private test configuration.
+   overridden in custom/private test configuration.
 *  The ``autotest_version`` option specifies the minimum version
    of the autotest framework that is required.  It may be overridden
    by subtests to indicate they require a specific **later** version
@@ -410,7 +410,7 @@ The example subtest has no prerequisites.
 ``subexample`` Configuration
 -----------------------------
 
-Includes the requesite ``subsubtests`` CSV option, specifying
+Includes the requisite ``subsubtests`` CSV option, specifying
 the subtest names to include.  Their actual execution order
 us not defined.
 
@@ -422,7 +422,7 @@ Simple test that checks the output of the ``docker version`` command.
 ``docker_cli/version`` Prerequisites
 -------------------------------------
 
-Docker daemon is running and accessable by it's unix socket.
+Docker daemon is running and accessible by it's unix socket.
 
 ``docker_cli/version`` Configuration
 --------------------------------------
@@ -528,14 +528,14 @@ Ultra-simple test to confirm output table-format of docker CLI
 ``docker_cli/run_volumes`` Prerequisites
 ---------------------------------------------
 
-*  Remove filesystems are mounted and accessable on host system.
+*  Remove filesystems are mounted and accessible on host system.
 *  Containers have access to read & write files w/in mountpoints
 
 ``docker_cli/run_volumes/volumes_rw`` Configuration
 ----------------------------------------------------
-*  The ``host_paths`` and cooresponding ``cntr_paths`` are most important.
+*  The ``host_paths`` and corresponding ``cntr_paths`` are most important.
    They are the host paths and container paths comma-separated values to
-   test.  There must be 1:1 coorespondance between CSVs of both options
+   test.  There must be 1:1 correspondence between CSVs of both options
 *  ``run_template`` allows fine-tuning the options to the run command.
 *  The ``cmd_template`` allows fine-tuning the command to run inside
    the container.  It makes use of shell-like value substitution from
@@ -598,7 +598,7 @@ Several variations of running the dockerhelp command.
 ``docker_cli/run_simple`` Sub-test
 =====================================
 
-Three simple subsubtests that verify exit status and singnal pass-through capability
+Three simple subsubtests that verify exit status and signal pass-through capability
 
 ``docker_cli/run_simple`` Prerequisites
 -----------------------------------------
@@ -694,7 +694,7 @@ appear after container finishes and is removed.
 *  Historical events exist prior to running test (i.e.
    docker daemon hasn't been restarted in a while)
 *  Host clock is accurate, local timezone setup properly.
-*  Host clock does not change drasticly during test
+*  Host clock does not change drastically during test
 
 ``docker_cli/events`` Configuration
 --------------------------------------
@@ -831,7 +831,7 @@ Several variations of using ``docker start`` command
 *  The ``run_options_csv`` modifies the running container options.
 *  The ``container_name_prefix`` is prefix of the tested container followed by
    random characters to make it unique.
-*  The ``remove_after_test`` specifies wether to remove the container after
+*  The ``remove_after_test`` specifies whether to remove the container after
    the test
 
 ``docker_cli/kill`` Sub-test
@@ -920,11 +920,11 @@ Several variations of running the restart command
 *  The ``wait_options_csv`` modifies the wait command options.
 *  The ``exec_cmd`` modifies the container command. Note that in this tests
    you can specify per-container-exec_cmd using exec_cmd_$container.
-   This command has to containe ``exit $NUM``, which is used as docker exit
+   This command has to contain ``exit $NUM``, which is used as docker exit
    status and could contain ``sleep $NUM`` which signals the duration after
    which the container finishes.
 *  The ``wait_for`` specifies the containers the wait command should wait for.
-   you can use index of ``containers`` or ``_$your_string``. In the second
+   Use index of ``containers`` or ``_$your_string``. In the second
    case the leading character ``_`` will be removed.
 
 
@@ -937,7 +937,7 @@ It verifies the output against values obtained from userspace tools.
 ``docker_cli/info`` Prerequisites
 -------------------------------------
 
-*  Docker daemon is running and accessable by it's unix socket.
+*  Docker daemon is running and accessible by it's unix socket.
 *  ``dmsetup`` and ``du`` commands are available.
 
 ``docker_cli/info`` Configuration
@@ -955,12 +955,12 @@ copied successfully.
 ``docker_cli/cp`` Prerequisites
 -------------------------------------
 
-*  Docker daemon is running and accessable by it's unix socket.
+*  Docker daemon is running and accessible by it's unix socket.
 
 ``docker_cli/cp`` Configuration
 --------------------------------------
 
-*  The ``remove_after_test`` specifies wether to remove the
+*  The ``remove_after_test`` specifies whether to remove the
    container created during the test.
 
 ``docker_cli/insert`` Sub-test
@@ -973,12 +973,12 @@ it was inserted successfully.
 ``docker_cli/insert`` Prerequisites
 -------------------------------------
 
-*  Docker daemon is running and accessable by it's unix socket.
+*  Docker daemon is running and accessible by it's unix socket.
 
 ``docker_cli/insert`` Configuration
 --------------------------------------
 
-*  The ``remove_after_test`` specifies wether to remove the
+*  The ``remove_after_test`` specifies whether to remove the
    container created during the test.
 *  The ``file_url`` is the url to a file to be inserted during
    the test.
@@ -991,12 +991,12 @@ Verify that could not run a container which is already running.
 ``docker_cli/run_twice`` Prerequisites
 --------------------------------------
 
-*  Docker daemon is running and accessable by it's unix socket.
+*  Docker daemon is running and accessible by it's unix socket.
 
 ``docker_cli/run_twice`` Configuration
 --------------------------------------
 
-*  The ``remove_after_test`` specifies wether to remove the
+*  The ``remove_after_test`` specifies whether to remove the
    container created during the test.
 
 ``docker_cli/diff`` Sub-test
@@ -1008,30 +1008,30 @@ asserts that the changes are picked up correctly by ``docker diff``
 ``docker_cli/diff`` Prerequisites
 ---------------------------------
 
-*  Docker daemon is running and accessable by it's unix socket.
+*  Docker daemon is running and accessible by it's unix socket.
 
 ``docker_cli/diff`` Configuration
 ---------------------------------
 
-*  The ``remove_after_test`` specifies wether to remove the
+*  The ``remove_after_test`` specifies whether to remove the
    container created during the test.
 *  ``command`` is a csv arg list to ``docker run`` that specifies
    how a test will modify a file for the test
 *  ``files_changed`` is a csv list of expected change types and the
-   files/direcotires that are changed.  It is in the form of:
+   files/directories that are changed.  It is in the form of:
    <change type 1>,<path 1>,<change type 2>,<path 2> and so on.
 
 ``docker_cli/invalid`` Sub-test
 =================================
 
 Simple test that checks the success of the ``docker run`` command.
-It will run container using the invalid charactor, and then verify that
+It will run container using the invalid character, and then verify that
 it was not allowed.
 
 ``docker_cli/invalid`` Prerequisites
 -------------------------------------
 
-*  Docker daemon is running and accessable by it's unix socket.
+*  Docker daemon is running and accessible by it's unix socket.
 
 ``docker_cli/invalid`` Configuration
 --------------------------------------
@@ -1055,12 +1055,12 @@ not a path, like a file.
 ``docker_cli/workdir`` Prerequisites
 -------------------------------------
 
-*  Docker daemon is running and accessable by it's unix socket.
+*  Docker daemon is running and accessible by it's unix socket.
 
 ``docker_cli/workdir`` Configuration
 --------------------------------------
 
-*  The ``remove_after_test`` specifies wether to remove the
+*  The ``remove_after_test`` specifies whether to remove the
    container created during the test.
 
 ``docker_cli/dockerinspect`` Sub-test
@@ -1071,19 +1071,19 @@ This is a set of subsubtests that test the inspect command.
 ``docker_cli/dockerinspect`` Prerequisites
 ------------------------------------------
 
-*  Docker daemon is running and accessable by it's unix socket.
+*  Docker daemon is running and accessible by it's unix socket.
 
 ``docker_cli/dockerinspect`` Configuration
 ------------------------------------------
 
-*  The ``remove_after_test`` specifies wether to remove the
+*  The ``remove_after_test`` specifies whether to remove the
    containers created during the test.
 *  The ``subsubtests`` tells which subtests to run in this test group.
 
 ``docker_cli/dockerinspect/inspect_container_simple`` Configuration
 --------------------------------------------------------------------
 
-*  ``check_fields`` specifies which fields to check the existance of when
+*  ``check_fields`` specifies which fields to check the existence of when
    running "docker inspect" on a container.
 
 ``docker_cli/dockerinspect/inspect_all`` Configuration
@@ -1104,24 +1104,24 @@ This is a set of subsubtests that test the inspect command.
 ==================================
 
 Simple test that checks the output of the ``docker run -m`` command.
-It verifies that if the container's cgroup resrouce memory.limit_in_bytes
+It verifies that if the container's cgroup resource ``memory.limit_in_bytes``
 equals the value passed or if the container can handle invalid value
-parameters
+properly.
 
 ``docker_cli/run_memory`` Prerequisites
 ---------------------------------------
 
-*  Docker daemon is running and accessable by it's unix socket.
+*  Docker daemon is running and accessible by it's unix socket.
 
 ``docker_cli/run_memory`` Configuration
 ---------------------------------------
-*  The ``remove_after_test`` specifies weather to remove the
+*  The option ``remove_after_test`` specifies whether to remove the
    container created during the test.
 *  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
    and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
    i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
    and modify the values.
-*  The ``positive`` modifies weather positive test execute.
+*  The option ``positive``, sets the pass/fail logic for results processing.
 
 ----------------------------------
 Dockertest API Reference
