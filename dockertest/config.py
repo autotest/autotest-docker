@@ -368,6 +368,15 @@ class Config(dict):
         return the_copy
 
 
+def get_as_list(value, sep=","):
+    """
+    Return config value as list separated by sep.
+    value = "a,b , c, dd"
+    return ["a","b","c","dd"]
+    """
+    return [val.strip() for val in value.split(",")]
+
+
 def none_if_empty(dict_like, key_name=None):
     """
     Set (stripped) empty strings in dict-like to None, if not specific key_name.
