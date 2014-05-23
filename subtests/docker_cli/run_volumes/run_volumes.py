@@ -71,7 +71,7 @@ class volumes_base(SubSubtest):
             # list of dicts {'read_fn', 'write_fn', 'read_data', ...}
             test_dict = volumes_base.make_test_dict(*args)
             # unique cidfile for each container
-            hpr = host_path.replace('/','@')
+            hpr = host_path.replace('/', '@')
             uniq = os.path.join(tmpdir,
                                 hpr,
                                 'cidfile')

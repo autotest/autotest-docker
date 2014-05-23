@@ -122,7 +122,7 @@ class run_memory_base(SubSubtest):
         :param content: the value need read.
         """
         cgroup_path = "%s-%s.scope/%s" % (path, long_id, content)
-        cgroup_file = open(cgroup_path,'r')
+        cgroup_file = open(cgroup_path, 'r')
         try:
             cgroup_value = cgroup_file.read()
         finally:
