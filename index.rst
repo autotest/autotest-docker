@@ -457,6 +457,29 @@ and pre-defined build-content.
 *  The location of the statically linked ``busybox`` executable
    is specified by the ``busybox_url`` option.
 
+``docker_cli/build_paths`` Sub-test
+======================================
+
+Tests the ``docker build`` against a list of docker build paths or git
+locations.
+
+``docker_cli/build_paths`` Prerequisites
+------------------------------------------
+
+*  Valid docker build paths or git locations with a Dockerfile
+
+``docker_cli/build_paths`` Configuration
+-------------------------------------------
+
+*  ``build_paths`` is a csv list of docker build paths or
+   git locations.
+*  ``build_args`` are args passed directly to ``docker build``.
+*  ``image_repo_name`` lets you name the ``REPOSITORY`` of the images built.
+   Only applies if ``--tag`` is not used in ``build_args``
+*  ``image_tag_postfix`` lets you add a postfix to the randomly generated
+   ``TAG`` of the images built. Only applies if ``--tag`` is not
+   used in ``build_args``.
+
 ``docker_cli/dockerimport`` Sub-test
 =======================================
 
