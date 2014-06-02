@@ -12,16 +12,17 @@ the ``docker build`` command
 from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImages
 from dockertest.subtest import Subtest
+from dockertest.output import OutputGood
 from dockertest.xceptions import DockerTestNAError
 
 class build_paths(Subtest):
-    config_section = 'docker_cli/build_paths'
 
     def initialize(self):
         super(build_paths, self).initialize()
-        build_paths = self.config['build_paths'].strip().split(',')
-        self.stuff['build_paths'] = build_paths
-        self.iterations = len(build_paths)
+        _build_paths = self.config['build_paths'].strip().split(',')
+        self.stuff['build_paths'] = _build_paths
+        self.iterations = len(_build_paths)
+        self.stuff['passed'] = [False for _ in xrange(self.iterations)]
         self.stuff['gen_tag'] = True
         self.stuff['names'] = []
         build_args = self.config['build_args'].strip()
@@ -44,7 +45,7 @@ class build_paths(Subtest):
         reponame = self.config['image_repo_name']
         postfix = self.config['image_tag_postfix']
         di = DockerImages(self)
-        tag = '%s:%s' %(reponame, di.get_unique_name(suffix=postfix))
+        tag = '%s:%s' % (reponame, di.get_unique_name(suffix=postfix))
         tag = tag.lower()
         self.stuff['names'].append(tag)
         return tag
@@ -61,10 +62,23 @@ class build_paths(Subtest):
 
     def postprocess_iteration(self):
         super(build_paths, self).postprocess_iteration()
-        cmdresult = self.stuff['cmdresults'][self.iteration - 1]
-        self.loginfo("Command: '%s'" % cmdresult.command)
-        self.failif(cmdresult.exit_status != 0,
-                    "Docker build returned non-zero exit status.")
+        iter_index = self.iteration - 1
+        cmdresult = self.stuff['cmdresults'][iter_index]
+        self.loginfo("Exit: '%s'", cmdresult.exit_status)
+        self.logdebug("Stdout: '%s'", cmdresult.stdout)
+        self.logdebug("Stderr: '%s'", cmdresult.stderr)
+        og_true = OutputGood(cmdresult, ignore_error=True)
+        if cmdresult.exit_status == 0 and og_true:
+            # initialized False by default
+            self.stuff['passed'][iter_index] = True
+        self.logdebug("Output check: '%s'", str(og_true))
+
+    def postprocess(self):
+        super(build_paths, self).postprocess()
+        self.failif(not all(self.stuff['passed']),
+                    "One or more builds returned non-zero exit status or "
+                    "contained erroronious output. See debug log for details.")
+
 
     def cleanup(self):
         super(build_paths, self).cleanup()
