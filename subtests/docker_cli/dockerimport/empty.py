@@ -36,7 +36,7 @@ class empty(SubSubtest):
         tar_command = "%s %s" % (tar_command, tar_options)
         subargs = ['-', self.sub_stuff['image_name_tag']]
         docker_command = DockerCmd(self.parent_subtest, 'import', subargs)
-        self.run_tar(tar_command, str(docker_command))
+        self.run_tar(tar_command, docker_command.command)
 
     def postprocess(self):
         super(empty, self).postprocess()
