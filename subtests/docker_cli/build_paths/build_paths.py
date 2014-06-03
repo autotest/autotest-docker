@@ -10,21 +10,66 @@ the ``docker build`` command
 # pylint: disable=C0103,C0111,R0904,C0103
 
 from dockertest.dockercmd import DockerCmd
-from dockertest.images import DockerImages
-from dockertest.subtest import Subtest
+from dockertest.images import DockerImages, DockerImage
 from dockertest.output import OutputGood
+from dockertest.subtest import Subtest
 from dockertest.xceptions import DockerTestNAError
+import os.path
+import re
+import shutil
 
 class build_paths(Subtest):
 
-    def initialize(self):
-        super(build_paths, self).initialize()
-        _build_paths = self.config['build_paths'].strip().split(',')
-        self.stuff['build_paths'] = _build_paths
-        self.iterations = len(_build_paths)
-        self.stuff['passed'] = [False for _ in xrange(self.iterations)]
+    def _init_build_paths(self):
+        paths = self.config['build_paths'].strip().split(',')
+        self.stuff['build_paths'] = []
+        for p in paths:
+            # full paths or git locations
+            if p.startswith('/') or p.endswith('.git'):
+                self.stuff['build_paths'].append(p)
+            # else determine relative paths
+            else:
+                dpath = os.path.join(self.bindir, p)
+                if not os.path.isdir(dpath):
+                    msg = "%s is not a valid directory." % (dpath)
+                    raise DockerTestNAError(msg)
+                dfile = os.path.join(dpath, 'Dockerfile')
+                if not os.path.isfile(dfile):
+                    msg = "%s does not contain a Dockerfile." % (dpath)
+                    raise DockerTestNAError(msg)
+                dpath = self._set_dockerfile_from(p)
+                self.stuff['build_paths'].append(dpath)
+        self.iterations = len(paths)
+
+    @staticmethod
+    def _copy_directory(src, dest):
+        try:
+            shutil.copytree(src, dest)
+        # Directories are the same
+        except shutil.Error as e:
+            print 'Could not sandbox docker build path. Error: %s' % (e)
+        # Any error saying that the directory doesn't exist
+        except OSError as e:
+            print 'Could not sandbox docker build path. Error: %s' % (e)
+
+    def _set_dockerfile_from(self, folder):
+        src = os.path.join(self.bindir, folder)
+        dest = os.path.join(self.tmpdir, folder)
+        self._copy_directory(src, dest)
+        dfile = os.path.join(dest, 'Dockerfile')
+        image = DockerImage.full_name_from_defaults(self.config)
+        with open(dfile, 'r') as dockerfile:
+            lines = dockerfile.readlines()
+        with open(dfile, 'w') as dockerfile:
+            re_search = r'^(?i)FROM.*'
+            re_replace = 'FROM ' + image
+            for line in lines:
+                out = re.sub(re_search, re_replace, line)
+                dockerfile.write(out)
+        return dest
+
+    def _init_build_args(self):
         self.stuff['gen_tag'] = True
-        self.stuff['names'] = []
         build_args = self.config['build_args'].strip()
         if '--tag' in build_args or '-t' in build_args:
             if self.iterations > 1:
@@ -39,6 +84,18 @@ class build_paths(Subtest):
             else:
                 self.stuff['names'].append(args.index(item) + 1)
         self.stuff['build_args'] = build_args.split()
+
+    def initialize(self):
+        super(build_paths, self).initialize()
+        self._init_build_paths()
+
+        # determine iterations
+        self.iterations = len(self.stuff['build_paths'])
+        self.stuff['passed'] = [False for _ in xrange(self.iterations)]
+
+        self._init_build_args()
+        #stuff needed later
+        self.stuff['names'] = []
         self.stuff['cmdresults'] = []
 
     def gen_tag(self):
@@ -64,9 +121,7 @@ class build_paths(Subtest):
         super(build_paths, self).postprocess_iteration()
         iter_index = self.iteration - 1
         cmdresult = self.stuff['cmdresults'][iter_index]
-        self.loginfo("Exit: '%s'", cmdresult.exit_status)
-        self.logdebug("Stdout: '%s'", cmdresult.stdout)
-        self.logdebug("Stderr: '%s'", cmdresult.stderr)
+        self.logoutput(cmdresult)
         og_true = OutputGood(cmdresult, ignore_error=True)
         if cmdresult.exit_status == 0 and og_true:
             # initialized False by default
@@ -78,10 +133,22 @@ class build_paths(Subtest):
         self.failif(not all(self.stuff['passed']),
                     "One or more builds returned non-zero exit status or "
                     "contained erroronious output. See debug log for details.")
+        # https://bugzilla.redhat.com/show_bug.cgi?id=1097884
+        if self.config['try_remove_after_test']:
+            dkrcmd = DockerCmd(self, 'rmi', self.stuff['names'])
+            res = dkrcmd.execute()
+            self.logoutput(res)
+            testr = res.exit_status != 0 or "Error:" in res.stderr
+            self.failif(testr, "Errors during removal of images.")
 
+    def logoutput(self, result):
+        self.loginfo("Exit: '%s'", result.exit_status)
+        self.logdebug("Stdout: '%s'", result.stdout)
+        self.logdebug("Stderr: '%s'", result.stderr)
 
     def cleanup(self):
         super(build_paths, self).cleanup()
+        # same as the postprocess rmi, but with --force
         if self.config['remove_after_test']:
-            dkrcmd = DockerCmd(self, 'rmi', self.stuff['names'])
+            dkrcmd = DockerCmd(self, 'rmi', ['-f'] + self.stuff['names'])
             dkrcmd.execute()
