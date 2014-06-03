@@ -8,7 +8,7 @@ Frequently used docker CLI operations/data
 
 import time
 from autotest.client import utils
-from subtest import Subtest
+from subtest import SubBase
 from xceptions import (DockerNotImplementedError,
                        DockerExecError, DockerRuntimeError, DockerTestError)
 
@@ -18,7 +18,7 @@ class DockerCmdBase(object):
     """
     Call a docker subcommand as if by CLI w/ subtest config integration
 
-    :param subtest: A subtest.Subtest (**NOT** a SubSubtest) subclass instance
+    :param subtest: A subtest.SubBase or subclass instance
     :param subcomd: A Subcommand or fully-formed option/argument string
     :param subargs: (optional) A list of strings containing additional
                     args to subcommand
@@ -50,15 +50,15 @@ class DockerCmdBase(object):
         self._cmdresult = None
         # Check for proper type of subargs
         if subargs is not None:
-            if (not isinstance(subargs, list) or
+            if (not hasattr(subargs, '__iter__') or
                     isinstance(subargs, (str, unicode))):
                 raise DockerTestError("Invalid argument type: %s,"
-                                      " subargs must be a list of"
+                                      " subargs must be an iterable of"
                                       " strings." % (subargs))
-        # Prevent accidental test.test instance passing
-        if not isinstance(subtest, Subtest):
-            raise DockerTestError("%s is not a Subtest instance or "
-                                  "subclass.", subtest.__class__.__name__)
+        # Only used for 'config' and 'logfoo' attributes
+        if not isinstance(subtest, SubBase):
+            raise DockerTestError("%s is not a SubBase instance."
+                                  % subtest.__class__.__name__)
         else:
             self.subtest = subtest
         self.subcmd = str(subcmd)
