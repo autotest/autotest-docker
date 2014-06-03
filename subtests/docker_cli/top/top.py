@@ -27,6 +27,7 @@ from dockertest.images import DockerImage
 from dockertest.output import OutputGood
 from dockertest.xceptions import (DockerCommandError, DockerExecError)
 
+
 class top(subtest.Subtest):
 
     """ Subtest caller """
@@ -34,7 +35,7 @@ class top(subtest.Subtest):
     #F,UID,(PID),(PPID),(PRI),(NI),(VSZ),(RSS),(WCHAN),(STAT),(TTY),TIME,CMD
     __re_top_all = re.compile(r'\d+\s+\d+\s+(?P<pid>\d+)\s+(?P<ppid>\d+)\s+'
                               r'(?P<pri>\d+)\s+(?P<ni>\d+)\s+(?P<vsz>\d+)\s+'
-                              r'(?P<rss>\d+)\s+(?P<wchan>\w+|-)\s+'
+                              r'(?P<rss>\d+)\s+(?P<wchan>\w+|-|\?)\s+'
                               r'(?P<stat>[DRSTWXZ])[<NLsl+]*\s+'
                               r'(?P<tty>[^ ]+)\s+\d+:\d+\s*')
 
@@ -42,7 +43,7 @@ class top(subtest.Subtest):
         """ Initialize stuff """
         self.stuff['container_name'] = None     # name of the container
         self.stuff['container_cmd'] = None      # tested container
-        self.stuff['docker_top'] = []              # os outputs from host
+        self.stuff['docker_top'] = []           # os outputs from host
         self.stuff['container_ps'] = []         # ps output from containers
         self.stuff['stop_cmd'] = None           # cmd to stop test cmds
         # Permissable exceptions to ignore for stop_cmd
@@ -86,6 +87,10 @@ class top(subtest.Subtest):
         self._init_container()
 
     def _gather_processes(self, last_idx=0, fail=False):
+        """
+        Gathers `docker top` and in-container `ps` output and stores it in
+        `self.stuff`.
+        """
         if not fail:
             cmd = NoFailDockerCmd(self, "top", [self.stuff['container_name'],
                                                 'all'])
@@ -115,7 +120,8 @@ class top(subtest.Subtest):
                 continue
             if new_idx == len(out):    # wait twice for the same output
                 out = out[i + 1:]   # cut everything before this cmd execution
-                if out[-1].startswith("bash"):  # cut the last 'bash #' line
+                # cut the last line (bash prompt)
+                if out and not self.__re_top_all.match(out[-1]):
                     out = out[:-1]
                 break
             new_idx = len(out)
