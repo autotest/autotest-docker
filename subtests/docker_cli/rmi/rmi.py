@@ -43,9 +43,10 @@ class rmi_base(SubSubtest):
     def run_once(self):
         super(rmi_base, self).run_once()
         # 1. Run with no options
-        dkrcmd = AsyncDockerCmd(self.parent_subtest, 'rmi',
+        dkrcmd = AsyncDockerCmd(self, 'rmi',
                                 self.complete_docker_command_line(),
-                                self.config['docker_rmi_timeout'])
+                                self.config['docker_rmi_timeout'],
+                                True)
         self.loginfo("Executing background command: %s" % dkrcmd)
         dkrcmd.execute()
         while not dkrcmd.done:
@@ -54,7 +55,7 @@ class rmi_base(SubSubtest):
         self.sub_stuff["cmdresult"] = dkrcmd.wait()
 
     def remove_lock_container(self):
-        prep_changes = DockerCmd(self.parent_subtest, "rm",
+        prep_changes = DockerCmd(self, "rm",
                                  [self.sub_stuff["container"]],
                                  self.config['docker_rmi_timeout'])
 
@@ -105,7 +106,7 @@ class rmi_base(SubSubtest):
         if (self.config['remove_after_test'] and
             'image_list' in self.sub_stuff):
             for cont in self.sub_stuff["containers"]:
-                clean_cont = NoFailDockerCmd(self.parent_subtest, "rm",
+                clean_cont = NoFailDockerCmd(self, "rm",
                                              ['--force', cont],
                                              self.config['docker_rmi_timeout'])
                 clean_cont.execute()
@@ -153,7 +154,7 @@ class with_blocking_container_by_tag(rmi_base):
 
         cmd_with_rand = self.config['docker_data_prepare_cmd'] % (rand_data)
 
-        prep_changes = DockerCmd(self.parent_subtest, "run",
+        prep_changes = DockerCmd(self, "run",
                                  ["-d",
                                   self.parent_subtest.stuff['base_image'],
                                   cmd_with_rand],
@@ -169,14 +170,14 @@ class with_blocking_container_by_tag(rmi_base):
             self.sub_stuff["containers"].append(self.sub_stuff["container"])
         # Private to this instance, outside of __init__
 
-        dkrcmd = DockerCmd(self.parent_subtest, 'commit',
+        dkrcmd = DockerCmd(self, 'commit',
                            self.complete_commit_command_line(),
                            self.config['docker_commit_timeout'])
         results = dkrcmd.execute()
         if results.exit_status:
             raise DockerTestNAError(dnamsg)
 
-        prep_changes = DockerCmd(self.parent_subtest, "run",
+        prep_changes = DockerCmd(self, "run",
                                  ["-d",
                                   self.sub_stuff["image_name"],
                                   cmd_with_rand],

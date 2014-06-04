@@ -137,8 +137,8 @@ class build(subtest.Subtest):
                    self.srcdir]
         # Don't really need async here, just exercizing class
         dkrcmd = AsyncDockerCmd(self, 'build', subargs,
-                                self.config['build_timeout_seconds'])
-        self.loginfo("Executing background command: %s" % dkrcmd)
+                                self.config['build_timeout_seconds'],
+                                verbose=True)
         dkrcmd.execute()
         nss = NotSeenString(getattr, dkrcmd, 'stdout')
         while not dkrcmd.done:

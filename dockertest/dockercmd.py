@@ -1,3 +1,4 @@
+
 """
 Frequently used docker CLI operations/data
 """
@@ -5,20 +6,19 @@ Frequently used docker CLI operations/data
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
+import time
 from autotest.client import utils
-from autotest.client.shared import error
-from subtest import Subtest
-from xceptions import (DockerNotImplementedError, DockerCommandError,
+from subtest import SubBase
+from xceptions import (DockerNotImplementedError,
                        DockerExecError, DockerRuntimeError, DockerTestError)
 
 
 class DockerCmdBase(object):
 
     """
-    Setup a call docker subcommand as if by CLI w/ subtest config integration
-    Execute docker subcommand with arguments and a timeout.
+    Call a docker subcommand as if by CLI w/ subtest config integration
 
-    :param subtest: A subtest.Subtest (**NOT** a SubSubtest) subclass instance
+    :param subtest: A subtest.SubBase or subclass instance
     :param subcomd: A Subcommand or fully-formed option/argument string
     :param subargs: (optional) A list of strings containing additional
                     args to subcommand
@@ -42,22 +42,23 @@ class DockerCmdBase(object):
     #: Log additional debugging related messages
     verbose = None
 
-    #: Cached copy of result object from most recent execute() call
-    cmdresult = None
+    #: Silence all logging messages
+    quiet = False
 
     def __init__(self, subtest, subcmd, subargs=None, timeout=None,
                  verbose=True):
+        self._cmdresult = None
         # Check for proper type of subargs
         if subargs is not None:
-            if (not isinstance(subargs, list) or
+            if (not hasattr(subargs, '__iter__') or
                     isinstance(subargs, (str, unicode))):
                 raise DockerTestError("Invalid argument type: %s,"
-                                      " subargs must be a list of"
+                                      " subargs must be an iterable of"
                                       " strings." % (subargs))
-        # Prevent accidental test.test instance passing
-        if not isinstance(subtest, Subtest):
-            raise DockerTestError("%s is not a Subtest instance or "
-                                  "subclass.", subtest.__class__.__name__)
+        # Only used for 'config' and 'logfoo' attributes
+        if not isinstance(subtest, SubBase):
+            raise DockerTestError("%s is not a SubBase instance."
+                                  % subtest.__class__.__name__)
         else:
             self.subtest = subtest
         self.subcmd = str(subcmd)
@@ -75,16 +76,57 @@ class DockerCmdBase(object):
             self.timeout = float(timeout)
         self.verbose = verbose
 
-    def __str__(self):
+    @property
+    def details(self):
+
         """
-        Return full command-line string (wrapps command property)
+        Returns substitution dictionary for __str__ and logging.
         """
+
+        # No problem including extra details in dict
+        dct = {'exe': self.executed,
+               'to': self.timeout,
+               'suba': self.subargs,
+               'subc': self.subcmd,
+               'verb': self.verbose}
         if self.cmdresult is not None:
-            return str(self.cmdresult).replace('\n', ' ')
+            # Don't assume executed command is current command
+            dct['cmd'] = self.cmdresult.command
+            dct['exit'] = self.exit_status  # pulls from self.cmdresult
+            dct['out'] = self.stdout
+            dct['err'] = self.stderr
+            dct['dur'] = self.duration
         else:
-            return str(self.command)
+            dct['cmd'] = self.command  # not yet executed
+            dct['exit'] = None
+            dct['out'] = None
+            dct['err'] = None
+            dct['dur'] = None
+        return dct
+
+    def __str__(self):
+
+        """
+        Return string representation of instance w/ details if verbose=True
+        """
+
+        # If command hasn't executed yet, can be really short string
+        if not self.executed:
+            fmt = "Command: %(cmd)s"
+        else:
+            # provide more details
+            fmt = ("Command: %(cmd)s\n"
+                   "Timeout: %(to)s\n"
+                   "Executed: %(exe)s\n"
+                   "Duration: %(dur)s\n"
+                   "Exit code: %(exit)s\n"
+                   # Make whitespace in output clearly visible
+                   "Standard Out: \"\"\"%(out)s\"\"\"\n"
+                   "Standard Error: \"\"\"%(err)s\"\"\"\n")
+        return fmt % self.details
 
     def execute(self, stdin):  # pylint: disable=R0201
+
         """
         Execute docker subcommand
 
@@ -102,6 +144,7 @@ class DockerCmdBase(object):
 
     # Impl. specific stubb, can't be a function
     def execute_calls(self):  # pylint: disable=R0201
+
         """
         Returns the number of times ``execute()`` has been called
 
@@ -112,6 +155,7 @@ class DockerCmdBase(object):
 
     @property
     def docker_options(self):
+
         """
         String of docker args
         """
@@ -121,6 +165,7 @@ class DockerCmdBase(object):
 
     @property
     def docker_command(self):
+
         """
         String of docker command path
         """
@@ -130,6 +175,7 @@ class DockerCmdBase(object):
 
     @property
     def command(self):
+
         """
         String representation of command + subcommand + args
         """
@@ -144,6 +190,85 @@ class DockerCmdBase(object):
                                   self.docker_options,
                                   self.subcmd)).strip()
 
+    @property
+    def stdout(self):
+
+        """
+        Represent string of stdout
+
+        :raises DockerTestError: on incorrect usage
+        """
+
+        if self.cmdresult is None:
+            raise DockerTestError("Attempted to access stdout before execute()"
+                                  " called.")
+        return self.cmdresult.stdout
+
+    @property
+    def stderr(self):
+
+        """
+        Represent string of stderr
+
+        :raises DockerTestError: on incorrect usage
+        """
+
+        if self.cmdresult is None:
+            raise DockerTestError("Attempted to access stderr before execute()"
+                                  " called.")
+        return self.cmdresult.stderr
+
+    @property
+    def exit_status(self):
+
+        """
+        Represent exit code
+
+        :raises DockerTestError: on incorrect usage
+        """
+
+        if self.cmdresult is None:
+            raise DockerTestError("Attempted to access exit_code before "
+                                  "execute() called.")
+        else:
+            return self.cmdresult.exit_status
+
+    @property
+    def duration(self):
+
+        """
+        Represent the duration / elapsed time of command
+
+        :raises DockerTestError: on incorrect usage
+        """
+
+        if self.cmdresult is None:
+            raise DockerTestError("Attempted to access duration before "
+                                  "execute() called.")
+        else:
+            return self.cmdresult.duration
+
+    # Treat result CmdResult as immutable for uniform behavior across subclasses
+
+    @property
+    def cmdresult(self):
+
+        """
+        Represent fresh CmdResult value (not reference)
+        """
+
+        if self._cmdresult is None:
+            self._cmdresult = utils.CmdResult(command=self.command)
+        return self._cmdresult
+
+    @cmdresult.setter
+    def cmdresult(self, value):
+        self._cmdresult = utils.CmdResult(command=value.command,
+                                          stdout=value.stdout,
+                                          stderr=value.stderr,
+                                          exit_status=value.exit_status,
+                                          duration=value.duration)
+        return self.cmdresult
 
 class DockerCmd(DockerCmdBase):
 
@@ -158,25 +283,27 @@ class DockerCmd(DockerCmdBase):
         Run docker command, ignore any non-zero exit code
         """
 
-        if self.verbose:
-            self.subtest.logdebug("Executing docker command: %s", self)
+        if self.verbose and not self.quiet:
+            self.subtest.logdebug("Execute %s", self.command)
+        elif not self.quiet:  # less verbose
+            self.subtest.loginfo("Execute docker %s...", self.subcmd)
+        self.cmdresult = utils.run(self.command, timeout=self.timeout,
+                                   stdin=stdin, verbose=False,
+                                   ignore_status=True)
         self.executed += 1
-        try:
-            self.cmdresult = utils.run(self.command, timeout=self.timeout,
-                             stdin=stdin, verbose=False,
-                             ignore_status=True)
-            return self.cmdresult
-        # ignore_status=True : should not see CmdError
-        except error.CmdError, detail:
-            # Something internal must have gone wrong
-            raise DockerCommandError(self.command, detail.result_obj)
+        if self.verbose:
+            self.subtest.logdebug(str(self))
+        # Return value, not reference
+        return self.cmdresult
 
     def execute_calls(self):
-        return int(self.executed)
+        """
+        Return the number of times ``execute()`` has been called
+        """
+        return self.executed
 
 
 class NoFailDockerCmd(DockerCmd):
-
     """
     Setup a call docker subcommand as if by CLI w/ subtest config integration
     Execute docker subcommand with arguments and a timeout.
@@ -188,17 +315,10 @@ class NoFailDockerCmd(DockerCmd):
         Execute docker command, raising DockerCommandError if non-zero exit
         """
 
-        if self.verbose:
-            self.subtest.logdebug("Executing docker command: %s", self)
-        self.executed += 1
-        try:
-            self.cmdresult = utils.run(self.command, timeout=self.timeout,
-                             stdin=stdin, verbose=False,
-                             ignore_status=False)
-            return self.cmdresult
-        # Prevent caller from needing to import this exception class
-        except error.CmdError, detail:
-            raise DockerExecError(str(detail.result_obj))
+        super(NoFailDockerCmd, self).execute(stdin)
+        if self.exit_status != 0:
+            raise DockerExecError("Unexpected non-zero exit code")
+        return self.cmdresult
 
 
 class MustFailDockerCmd(DockerCmd):
@@ -209,30 +329,15 @@ class MustFailDockerCmd(DockerCmd):
     """
 
     def execute(self, stdin=None):
+
         """
         Execute docker command, raise DockerExecError if **zero** exit code
-
-        :param stdin: String or file-like containing standard input contents
-        :raises DockerCommandError: on incorrect usage
-        :raises DockerExecError: on if command returns zero exit code
-        :return: A CmdResult instance
         """
 
-        if self.verbose:
-            self.subtest.logdebug("Executing docker command: %s", self)
-        self.executed += 1
-        try:
-            self.cmdresult = utils.run(self.command, timeout=self.timeout,
-                                  stdin=stdin, verbose=False,
-                                  ignore_status=True)
-        # Prevent caller from needing to import this exception class
-        except error.CmdError, detail:
-            raise DockerCommandError(str(detail.result_obj))
-        if self.cmdresult.exit_status == 0:
-            raise DockerExecError("Unexpected command success: %s"
-                                  % str(self.cmdresult))
-        else:
-            return self.cmdresult
+        cmdresult = super(MustFailDockerCmd, self).execute(stdin)
+        if cmdresult.exit_status == 0:
+            raise DockerExecError("Unexpected zero exit code")
+        return cmdresult
 
 
 class AsyncDockerCmd(DockerCmdBase):
@@ -242,22 +347,30 @@ class AsyncDockerCmd(DockerCmdBase):
     Execute docker subcommand with arguments and a timeout.
     """
 
-    #: Used internally by execute()
+    #: Private, class assumes exclusive access and no locking is performed
     _async_job = None
 
     def execute(self, stdin=None):
+
         """
         Start execution of asynchronous docker command
         """
 
-        if self.verbose:
-            self.subtest.logdebug("Executing docker command: %s", self)
+        if self._async_job is not None:
+            self.subtest.logwarning("Calling execute() before "
+                                    "wait() on existing async job "
+                                    "is very likely going to leak "
+                                    "processes!!")
+        if self.verbose and not self.quiet:
+            self.subtest.logdebug("Async-execute: %s", str(self))
+        elif not self.quiet:
+            self.subtest.loginfo("Async-execute: docker %s...", self.subcmd)
         self._async_job = utils.AsyncJob(self.command, verbose=False,
                                          stdin=stdin, close_fds=True)
-        self.update_result()
         return self.cmdresult
 
     def wait(self, timeout=None):
+
         """
         Return CmdResult after waiting for process to end or timeout
 
@@ -266,28 +379,30 @@ class AsyncDockerCmd(DockerCmdBase):
         :return: Complete CmdResult instance
         """
 
+        if self._async_job is None:
+            raise DockerTestError("Attempted to wait before execute() called.")
         if timeout is None:
             timeout = self.timeout
-        if self._async_job is not None:
-            return self._async_job.wait_for(timeout)
-        else:
-            raise DockerTestError("Attempted to wait before execute() called.")
+        if self.verbose and not self.quiet:
+            self.subtest.logdebug("Waiting %s for async-command to finish",
+                                  timeout)
+        self._async_job.wait_for(timeout)
+        self.executed += 1  # complete start->finish cycles
+        return self.cmdresult
 
     def update_result(self):
+
         """
-        Forces cache update of current stdout/stdin content to self.cmdresult
+        Deprecated, do not use
+
+        :return: Up to date cmdresult value or None if not executed()
         """
-        if self.executed:
-            self.cmdresult = self._async_job.result
-            if self.stdout:
-                self.cmdresult.stdout = self.stdout
-            if self.stderr:
-                self.cmdresult.stdout = self.stderr
-            # Returns None if still running
-            self.cmdresult.exit_status = self._async_job.sp.poll()
+        self.subtest.logwarning("AsyncDockerCmd.update_result() is deprecated, "
+                                "use cmdresult property instead.")
 
     @property
     def done(self):
+
         """
         Return True if processes has ended
 
@@ -300,64 +415,64 @@ class AsyncDockerCmd(DockerCmdBase):
         return self._async_job.sp.poll() is not None
 
     @property
-    def stdout(self):
-        """
-        Represent string of stdout so far
-
-        :raises DockerTestError: on incorrect usage
-        """
-
-        if self._async_job is not None:
-            return self._async_job.get_stdout()
-        else:
-            raise DockerTestError("Attempted to access stdout before execute()"
-                                  " called.")
-
-    @property
-    def stderr(self):
-        """
-        Represent string of stderr output so far
-
-        :raises DockerTestError: on incorrect usage
-        """
-
-        if self._async_job is not None:
-            return self._async_job.get_stderr()
-        else:
-            raise DockerTestError("Attempted to access stderr before execute()"
-                                  " called.")
-
-    @property
     def process_id(self):
-        """
-        Return the process id of the backgtround job
 
-        :raises DockerTestError: on incorrect usage
         """
-
-        if self._async_job is not None:
-            return self._async_job.sp.pid
-        else:
-            raise DockerTestError("Attempted to get pid before execute()"
-                                  " called.")
-
-    @property
-    def exit_status(self):
-        """
-        Return exit status integer or None if process has not ended
+        Return the process id of the command
 
         :raises DockerTestError: on incorrect usage
         """
 
         if self._async_job is None:
-            raise DockerTestError("Attempted to get exit status before "
-                                  "execute() called.")
-        return self._async_job.sp.returncode
+            raise DockerTestError("Attempted to get pid before execute()"
+                                  " called.")
+        return self._async_job.sp.pid
+
+    # Override base-class property methods to give up-to-second details
 
     @property
-    def executed(self):
-        """
-        Returns True if process was executed.
-        """
+    def cmdresult(self):
+        # FIXME: Can't seem to assign to parent-class property
+        #        using private attribute instead, uggg.
+        if self._async_job is None:
+            self._cmdresult = utils.CmdResult(command=self.command)
+        else:
+            self._cmdresult = utils.CmdResult(command=self.command,
+                                              stdout=self.stdout,
+                                              stderr=self.stderr,
+                                              exit_status=self.exit_status,
+                                              duration=self.duration)
+        return super(AsyncDockerCmd, self).cmdresult
 
-        return self._async_job is not None
+    @property
+    def stdout(self):
+        if self._async_job is None:
+            return None
+        else:
+            return self._async_job.get_stdout()
+
+    @property
+    def stderr(self):
+        if self._async_job is None:
+            return None
+        else:
+            return self._async_job.get_stderr()
+
+    @property
+    def exit_status(self):
+        if self._async_job is None:
+            return None
+        else:
+            return self._async_job.sp.poll()
+
+    @property
+    def duration(self):
+        if self._async_job is None:
+            return None
+        if self._async_job.sp.poll() is not None:
+            # Total elapsed time
+            duration = self._async_job.result.duration
+        else:
+            # Current elapsed time
+            duration = time.time() - self._async_job.start_time
+        return duration

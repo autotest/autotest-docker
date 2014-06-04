@@ -37,7 +37,7 @@ class only_tag(rmi_base):
         self.sub_stuff["image_name"] = im_name
         # Private to this instance, outside of __init__
 
-        prep_changes = DockerCmd(self.parent_subtest, "tag",
+        prep_changes = DockerCmd(self, "tag",
                                  [self.parent_subtest.stuff["base_image"],
                                   self.sub_stuff["image_name"]],
                                  self.config['docker_rmi_timeout'])

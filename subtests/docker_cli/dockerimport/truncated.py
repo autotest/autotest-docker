@@ -24,7 +24,7 @@ class truncated(empty):
         # Fail test if **successful**
         image_name = self.sub_stuff['image_name']  #  assume id lookup failed
         if self.parent_subtest.config['try_remove_after_test']:
-            dkrcmd = MustFailDockerCmd(self.parent_subtest, 'rmi', [image_name])
+            dkrcmd = MustFailDockerCmd(self, 'rmi', [image_name])
             dkrcmd.execute()
 
     def run_tar(self, tar_command, dkr_command):

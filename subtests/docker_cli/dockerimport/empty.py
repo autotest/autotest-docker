@@ -35,8 +35,8 @@ class empty(SubSubtest):
         tar_options = self.config['tar_options']
         tar_command = "%s %s" % (tar_command, tar_options)
         subargs = ['-', self.sub_stuff['image_name_tag']]
-        docker_command = DockerCmd(self.parent_subtest, 'import', subargs)
-        self.run_tar(tar_command, str(docker_command))
+        docker_command = DockerCmd(self, 'import', subargs)
+        self.run_tar(tar_command, docker_command.command)
 
     def postprocess(self):
         super(empty, self).postprocess()
@@ -61,7 +61,7 @@ class empty(SubSubtest):
     def cleanup(self):
         super(empty, self).cleanup()
         if self.parent_subtest.config['try_remove_after_test']:
-            dkrcmd = DockerCmd(self.parent_subtest, 'rmi',
+            dkrcmd = DockerCmd(self, 'rmi',
                                [self.sub_stuff['image_name_tag']])
             cmdresult = dkrcmd.execute()
             if cmdresult.exit_status != 0:

@@ -1179,6 +1179,9 @@ complexity, while providing some helper methods for logging
 output to the controlling terminal (only) and automatically
 loading the specified configuration section (see `configuration module`_)
 
+.. autoclass:: dockertest.subtest.SubBase
+   :members:
+
 .. autoclass:: dockertest.subtest.Subtest
    :members:
    :no-inherited-members:

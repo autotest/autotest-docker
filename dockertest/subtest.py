@@ -28,8 +28,191 @@ from xceptions import DockerTestNAError
 from xceptions import DockerTestError
 from xceptions import DockerSubSubtestNAError
 
+class SubBase(object):
+    """
+    Methods/attributes common to Subtest & SubSubtest classes
 
-class Subtest(test.test):
+    :note: This class is indirectly referenced by the control-file
+           so it cannot contain anything dockertest-implementation
+           specific.
+    """
+
+    #: Configuration section used for subclass, set by Subtest or auto-generated
+    config_section = None
+
+    #: Configuration dictionary (read-only for instances)
+    config = None
+
+    #: Unique temporary directory for this instance (automatically cleaned up)
+    #: **warning**: DO NOT ASSUME DIRECTORY WILL BE EMPTY!!!
+    tmpdir = None
+
+    #: Number of additional space/tab characters to prefix when logging
+    n_spaces = 16  # date/timestamp length
+    n_tabs = 1     # one-level
+
+    def initialize(self):
+
+        """
+        Called every time the test is run.
+        """
+
+        self.loginfo("initialize()")
+
+    def run_once(self):
+
+        """
+        Called once only to exercise subject of sub-subtest
+        """
+
+        self.loginfo("run_once()")
+
+    def postprocess(self):
+
+        """
+        Called to process results of subject
+        """
+
+        self.loginfo("postprocess()")
+
+    def cleanup(self):
+
+        """
+        Always called, before any exceptions thrown are re-raised.
+        """
+
+        self.loginfo("cleanup()")
+
+    @staticmethod
+    def failif(condition, reason=None):
+
+        """
+        Convenience method for subtests to avoid importing TestFail exception
+
+        :param condition: Boolean condition, fail test if True.
+        :param reason: Helpful text describing why the test failed
+        :raise DockerTestFail: If condition evaluates ``True``
+        """
+
+        if reason is None:
+            reason = "Failed test condition"
+        if bool(condition):
+            raise DockerTestFail(reason)
+
+    @staticmethod
+    def logindent(n_spaces, n_tabs, testname, msg):
+
+        """
+        Indent msg with extra spaces/tabs, prefix with a test name
+
+        :param n_spaces: Number of space-characters to prefix
+        :param n_tabs: Number of tab-characters to prefix
+        :param testname: Sub/Sub-subtest name to prefix
+        :param msg: Message format-string to add above prefixes
+        :return: Reformatted message
+        """
+
+        tabs = str("\t" * n_tabs)
+        spaces = str(" " * n_spaces)
+        space_tabs = spaces + tabs
+        newline_indent = "\n" + space_tabs
+        msg = str(msg).replace("\n", newline_indent)
+        return str(tabs + "%s: %s") % (testname, msg)
+
+    @classmethod
+    def log_x(cls, lvl, msg, *args):
+
+        """
+        Send msg & args through to logging module function with name lvl
+        """
+
+        meth = getattr(logging, lvl)
+        testname = cls.__name__
+        return meth(cls.logindent(cls.n_spaces, cls.n_tabs,
+                                  testname, str(msg)), *args)
+
+    @classmethod
+    def log_xn(cls, lvl, msg, *args):
+
+        """
+        Multiline-split and send msg & args through to logging module
+
+        :param lvl: logging method name ('debug', 'info', etc.)
+        :param msg: Message format-string
+        """
+
+        if len(args) > 0:
+            msg = str(msg) % args
+        lines = str(msg).splitlines()
+        if len(lines) > 1:
+            # Breaks just-in-time substitution,
+            # only do this in cases where pretty (but less accurate)
+            # display is needed.
+            for line in lines:
+                cls.log_x(lvl, line)
+        else:
+            # No need to break just-in-time substitution, pass-through...
+            return cls.log_x(lvl, str(msg), *args)
+
+    @classmethod
+    def logdebug(cls, message, *args):
+        r"""
+        Log a DEBUG level message to the controlling terminal **only**
+
+        :param message: Same as logging.debug()
+        :\*args: Same as logging.debug()
+        """
+        # Never split over multiple lines
+        cls.log_x('debug', message, *args)
+
+    @classmethod
+    def loginfo(cls, message, *args):
+        r"""
+        Log a INFO level message to the controlling terminal **only**
+
+        :param message: Same as logging.info()
+        :\*args: Same as logging.info()
+        """
+        cls.log_xn('info', message, *args)
+
+    @classmethod
+    def logwarning(cls, message, *args):
+        r"""
+        Log a WARNING level message to the controlling terminal **only**
+
+        :param message: Same as logging.warning()
+        :\*args: Same as logging.warning()
+        """
+        cls.log_xn('warn', message, *args)
+
+    @classmethod
+    def logerror(cls, message, *args):
+        r"""
+        Log a ERROR level message to the controlling terminal **only**
+
+        :param message: Same as logging.error()
+        :\*args: Same as logging.error()
+        """
+        cls.log_xn('error', message, *args)
+
+    def logtraceback(self, name, exc_info, error_source, detail):
+        r"""
+        Log error to error, traceback to debug, of controlling terminal
+        **only**
+        """
+        error_head = ("%s failed to %s\n%s\n%s" % (name,
+                      error_source, detail.__class__.__name__,
+                      detail))
+        error_tb = traceback.format_exception(exc_info[0],
+                                              exc_info[1],
+                                              exc_info[2])
+
+        error_tb = "".join(error_tb).strip() + "\n"
+        self.logerror(error_head)
+        self.logdebug(error_tb)
+
+
+class Subtest(SubBase, test.test):
 
     r"""
     Extends autotest test.test with dockertest-specific items
@@ -50,21 +233,12 @@ class Subtest(test.test):
     #: The number of iterations to run in total, override this in subclass.
     iterations = 1
 
-    #: Configuration section used for subclass, set by Subtest or auto-generated
-    config_section = None
-
     #: Private name-space for use by subclasses **ONLY**.  This attribute
     #: is completely ignored everywhere inside the dockertest API.  Subtests
     #: are encouraged to use it for temporarily storing results/info. It is
     #: initialized to an empty dictionary, but subtests can reassign it to any
     #: type needed.
     stuff = None
-
-    #: private method used by log*() methods internally, do not use.
-    _re = None
-
-    #: Subtest's config
-    config = None
 
     def __init__(self, *args, **dargs):
 
@@ -140,157 +314,33 @@ class Subtest(test.test):
         self.loginfo("setup() for subtest version %s", self.version)
 
     def initialize(self):
-        """
-        Called every time the test is run.
-        """
-        self.loginfo("initialize()")
+        super(Subtest, self).initialize()
         # Fail test if autotest is too old
         version.check_autotest_version(self.config, get_version())
         # Fail test if configuration being used doesn't match dockertest API
         version.check_version(self.config)
-        # Don't bother logging subtest config if sub-subtests will
-        # inherit & print anyway
-        if 'subsubtests' not in self.config:
-            msg = "Subtest %s configuration:\n" % self.__class__.__name__
-            for key, value in self.config.items():
-                msg += '\t\t%s = "%s"\n' % (key, value)
-            self.logdebug(msg)
-
-    def run_once(self):
-        """
-        Called to run test for each iteration
-        """
-        self.loginfo("run_once() iteration %d of %d",
-                     self.iteration, self.iterations)
+        msg = "Subtest %s configuration:\n" % self.__class__.__name__
+        for key, value in self.config.items():
+            msg += '\t\t%s = "%s"\n' % (key, value)
+        self.logdebug(msg)
 
     def postprocess_iteration(self):
         """
         Called for each iteration, used to process results
         """
-        self.loginfo("postprocess_iteration(), iteration #%d",
-                     self.iteration)
+        self.loginfo("postprocess_iteration() #%d of #%d",
+                     self.iteration, self.iterations)
 
-    def postprocess(self):
-        """
-        Called after all postprocess_iteration()'s, processes all results
-        """
-        self.loginfo("postprocess()")
-
-    def cleanup(self):
-        """
-        Called after all other methods, even if exception is raised.
-        """
-        self.loginfo("cleanup()")
-
-    # Some convenience methods for tests to use
-
-    @staticmethod
-    def failif(condition, reason=None):
-        """
-        Convenience method for subtests to avoid importing TestFail exception
-
-        :param condition: Boolean condition, fail test if True.
-        :param reason: Helpful text describing why the test failed
-        :raise DockerTestFail: If condition evaluates ``True``
-        """
-        if reason is None:
-            reason = "Failed test condition"
-        if bool(condition):
-            raise DockerTestFail(reason)
-
-    @staticmethod
-    def logindent(n_spaces, n_tabs, testname, msg):
-        """
-        Indent msg with extra spaces/tabs, prefix with a test name
-        """
-        tabs = str("\t" * n_tabs)
-        spaces = str(" " * n_spaces)
-        space_tabs = spaces + tabs
-        newline_indent = "\n" + space_tabs
-        msg = str(msg).replace("\n", newline_indent)
-        return str(tabs + "%s: %s") % (testname, msg)
-
-    def log_x(self, lvl, msg, *args):
-        """
-        Send msg & args through to logging module function with name lvl
-        """
-        meth = getattr(logging, lvl)
-        testname = self.__class__.__name__
-        return meth(self.logindent(16, 1, testname, msg), *args)
-
-    def logdebug(self, message, *args):
-        r"""
-        Log a DEBUG level message to the controlling terminal **only**
-
-        :param message: Same as logging.debug()
-        :\*args: Same as logging.debug()
-        """
-        self.log_x('debug', message, *args)
-
-    def loginfo(self, message, *args):
-        r"""
-        Log a INFO level message to the controlling terminal **only**
-
-        :param message: Same as logging.info()
-        :\*args: Same as logging.info()
-        """
-        self.log_x('info', message, *args)
-
-    def logwarning(self, message, *args):
-        r"""
-        Log a WARNING level message to the controlling terminal **only**
-
-        :param message: Same as logging.warning()
-        :\*args: Same as logging.warning()
-        """
-        self.log_x('warn', message, *args)
-
-    def logerror(self, message, *args):
-        r"""
-        Log a ERROR level message to the controlling terminal **only**
-
-        :param message: Same as logging.error()
-        :\*args: Same as logging.error()
-        """
-        self.log_x('error', message, *args)
-
-    def logtraceback(self, name, exc_info, error_source, detail):
-        r"""
-        Log error to error, traceback to debug, of controlling terminal
-        **only**
-        """
-        error_head = ("%s failed to %s\n%s\n%s" % (name,
-                      error_source, detail.__class__.__name__,
-                      detail))
-        error_tb = traceback.format_exception(exc_info[0],
-                                              exc_info[1],
-                                              exc_info[2])
-
-        error_tb = "".join(error_tb).strip() + "\n"
-        self.logerror(error_head)
-        self.logdebug(error_tb)
-
-
-class SubSubtest(object):
+class SubSubtest(SubBase):
 
     """
     Simplistic/minimal subtest interface matched with config section
 
     :param parent_subtest: The Subtest instance calling this instance
-
-    :*Note*: Contains, and is similar to, but DOES NOT represent
-             the same interface as the Subtest class (above).
     """
+
     #: Reference to outer, parent test.  Read-only / set in __init__
     parent_subtest = None
-
-    #: subsubsub test config instance, read-write, setup in __init__ but
-    #: persists across iterations.  Handy for storing temporary results.
-    config = None
-
-    #: Path to a temporary directory which will automatically be
-    #: removed during cleanup()
-    tmpdir = None  # automatically determined in initialize()
 
     #: Private name-space for use by subclasses **ONLY**.  This attribute
     #: is completely ignored everywhere inside the dockertest API.  Subtests
@@ -299,14 +349,19 @@ class SubSubtest(object):
     #: re-assign it to any other type as needed.
     sub_stuff = None
 
+    #: Number of additional space/tab characters to prefix when logging
+    n_spaces = 16  # date/timestamp length
+    n_tabs = 2     # two-levels
+
     def __init__(self, parent_subtest):
+        classname = self.__class__.__name__
         # Allow parent_subtest to use any interface this
         # class is setup to support. Don't check type.
         self.parent_subtest = parent_subtest
         # Append this subclass's name onto parent's section name
         # e.g. [parent_config_section/child_class_name]
         self.config_section = (os.path.join(self.parent_subtest.config_section,
-                                            self.__class__.__name__))
+                                            classname))
         # Allow child to inherit and override parent config
         all_configs = config.Config()
         # make_subsubtest_config will modify this
@@ -319,7 +374,7 @@ class SubSubtest(object):
                                         parent_config,
                                         all_configs[self.config_section])
         if not self.config.get('enable', True):
-            raise DockerSubSubtestNAError(self.__class__.__name__)
+            raise DockerSubSubtestNAError(classname)
         # Not automatically logged along with parent subtest
         # for records/archival/logging purposes
         note = {'Configuration_for_Subsubtest': self.config_section}
@@ -328,6 +383,9 @@ class SubSubtest(object):
         self.parent_subtest.check_disable(self.config_section)
         # subclasses can do whatever they like with this
         self.sub_stuff = {}
+        self.tmpdir = tempfile.mkdtemp(prefix=classname + '_',
+                                       suffix='tmpdir',
+                                       dir=self.parent_subtest.tmpdir)
 
     def make_subsubtest_config(self, all_configs, parent_config,
                                subsubtest_config):
@@ -357,69 +415,6 @@ class SubSubtest(object):
             msg += '\t\t%s = "%s"\n' % (key, value)
         self.logdebug(msg)
         return self.config
-
-    def initialize(self):
-        """
-        Called every time the test is run.
-        """
-        self.loginfo("initialize()")
-        self.tmpdir = tempfile.mkdtemp(prefix=self.__class__.__name__,
-                                       suffix='tmp',
-                                       dir=self.parent_subtest.tmpdir)
-
-    def run_once(self):
-        """
-        Called once only to exercise subject of sub-subtest
-        """
-        self.loginfo("run_once()")
-
-    def postprocess(self):
-        """
-        Called to process results of subject
-        """
-        self.loginfo("postprocess()")
-
-    def cleanup(self):
-        """
-        Always called, even despite any exceptions thrown.
-        """
-        self.loginfo("cleanup()")
-        # tmpdir is cleaned up automatically by harness
-
-    # Handy to have here also
-    failif = staticmethod(Subtest.failif)
-
-    def log_x(self, lvl, msg, *args):
-        """
-        Send msg & args through to logging module function with name lvl
-        """
-        meth = getattr(logging, lvl)
-        testname = self.__class__.__name__
-        return meth(self.parent_subtest.logindent(16, 2, testname, msg), *args)
-
-    def logdebug(self, message, *args):
-        """
-        Same as Subtest.logdebug
-        """
-        return self.log_x('debug', message, *args)
-
-    def loginfo(self, message, *args):
-        """
-        Same as Subtest.loginfo
-        """
-        return self.log_x('info', message, *args)
-
-    def logwarning(self, message, *args):
-        """
-        Same as Subtest.logwarning
-        """
-        return self.log_x('warn', message, *args)
-
-    def logerror(self, message, *args):
-        """
-        Same as Subtest.logerror
-        """
-        return self.log_x('error', message, *args)
 
 
 class SubSubtestCaller(Subtest):
