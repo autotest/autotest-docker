@@ -56,7 +56,8 @@ class invalid_base(subtest.SubSubtest):
         self.sub_stuff['arg_inpars'] = arg_inpars
         self.sub_stuff['arg_invals'] = arg_invals
 
-    def array_args(self, section, conf_arg, arg1, arg2):
+    @staticmethod
+    def array_args(section, conf_arg, arg1, arg2):
         args = []
         if section == 'option':
             args = conf_arg + arg1 + arg2
