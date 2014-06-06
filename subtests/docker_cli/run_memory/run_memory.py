@@ -35,7 +35,8 @@ class run_memory(SubSubtestCallerSimultaneous):
 class run_memory_base(SubSubtest):
 
     """helper functions"""
-    def check_memory(self, docker_memory, cgroup_memory, unit):
+    @staticmethod
+    def check_memory(docker_memory, cgroup_memory, unit):
         """
         Compare container's memory which set by option -m, and its cgroup
         memory which is memory.limit_in_bytes that get from
@@ -79,22 +80,8 @@ class run_memory_base(SubSubtest):
                              % (container_memory, unit, cgroup_memory)}
             return result
 
-    def container_json(self, name, content):
-        """
-        Return container's json value.
-        :param name: An existing container's name
-        :param content: What the json value need get
-        """
-        inspect_id_args = ['--format={{.%s}}' % content]
-        inspect_id_args.append(name)
-        container_json = NoFailDockerCmd(self.parent_subtest,
-                                           'inspect',
-                                            inspect_id_args)
-        content_value = container_json.execute().stdout.strip()
-
-        return content_value
-
-    def combine_subargs(self, name, option, image, sub_command):
+    @staticmethod
+    def combine_subargs(name, option, image, sub_command):
         """
         Combine a list of args the docker command needed.
         e.g. --name=test -m 1000M $image /bin/bash
@@ -110,7 +97,8 @@ class run_memory_base(SubSubtest):
         subargs.append(sub_command)
         return subargs
 
-    def read_cgroup(self, long_id, path, content,):
+    @staticmethod
+    def read_cgroup(long_id, path, content,):
         """
         Read container's cgroup file, return its value
         :param long_id: a container's long id, can get via command --inspect.
@@ -126,7 +114,8 @@ class run_memory_base(SubSubtest):
 
         return cgroup_value
 
-    def check_cgroup_exist(self, long_id, path, content):
+    @staticmethod
+    def check_cgroup_exist(long_id, path, content):
         """
         Test if container's cgroup exist.For now the path is
         /sys/fs/cgroup/$content/system.slice/docker-$long_id.scope
@@ -141,8 +130,8 @@ class run_memory_base(SubSubtest):
         else:
             return False
 
-
-    def get_arg_from_arglist(self, argslist, parameter):
+    @staticmethod
+    def get_arg_from_arglist(argslist, parameter):
         """
         Split single argument from a argslist, e.g will return '-m 5242889'
         from this list:
@@ -158,7 +147,8 @@ class run_memory_base(SubSubtest):
 
         return temp_arg
 
-    def get_value_from_arg(self, arg, method, locate):
+    @staticmethod
+    def get_value_from_arg(arg, method, locate):
         """
         Split single parameter from a argument, e.g will return 5242889G
         from '-m 5242889' if method is ' ' and locate is 1.
@@ -170,7 +160,8 @@ class run_memory_base(SubSubtest):
 
         return temp_value
 
-    def split_unit(self, memory_value):
+    @staticmethod
+    def split_unit(memory_value):
         """
         Split unit from memory_value, e.g once 5242889G passes into,
         will return a list ['5242889', 'G'].
@@ -187,6 +178,20 @@ class run_memory_base(SubSubtest):
             memory.append(' ')
             return memory
 
+    def container_json(self, name, content):
+        """
+        Return container's json value.
+        :param name: An existing container's name
+        :param content: What the json value need get
+        """
+        inspect_id_args = ['--format={{.%s}}' % content]
+        inspect_id_args.append(name)
+        container_json = NoFailDockerCmd(self.parent_subtest,
+                                           'inspect',
+                                            inspect_id_args)
+        content_value = container_json.execute().stdout.strip()
+
+        return content_value
 
     def initialize(self):
         super(run_memory_base, self).initialize()
