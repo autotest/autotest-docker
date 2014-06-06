@@ -127,7 +127,7 @@ class psa(subtest.Subtest):
     def cleanup(self):
         super(psa, self).cleanup()
         cid = self.stuff.get('container_id')
-        if ((self.config['remove_after_test']) and (cid is not None)):
+        if self.config['remove_after_test'] and cid is not None:
             self.logdebug("Cleaning container %s", cid)
             # We need to know about this breaking anyway, let it raise!
             nfdc = NoFailDockerCmd(self, "rm", ['--force',

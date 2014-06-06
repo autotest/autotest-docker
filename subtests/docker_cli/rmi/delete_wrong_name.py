@@ -37,7 +37,7 @@ class delete_wrong_name(rmi_base):
         # Private to this instance, outside of __init__
 
     def postprocess(self):
-        super(rmi_base, self).postprocess()
+        super(delete_wrong_name, self).postprocess()
         # Raise exception if problems found
         OutputGood(self.sub_stuff['cmdresult'], ignore_error=True)
         if self.config["docker_expected_result"] == "FAIL":

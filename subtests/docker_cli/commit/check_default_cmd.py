@@ -25,7 +25,7 @@ class check_default_cmd(commit_base):
     config_section = 'docker_cli/commit/check_default_cmd'
 
     def postprocess(self):
-        super(commit_base, self).postprocess()
+        self.loginfo("postprocess()")
         # Raise exception if problems found
         OutputGood(self.sub_stuff['cmdresult'])
         self.failif(self.sub_stuff['cmdresult'].exit_status != 0,

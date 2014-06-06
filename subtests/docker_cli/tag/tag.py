@@ -137,11 +137,12 @@ class change_tag(tag_base):
 
     def generate_special_name(self):
         img = self.sub_stuff['image_list'][0]
-        tag = "%s_%s" % (img.tag, utils.generate_random_string(8))
+        _tag = "%s_%s" % (img.tag, utils.generate_random_string(8))
         repo = img.repo
         registry = img.repo_addr
         registry_user = img.user
-        new_img_name = DockerImage.full_name_from_component(repo, tag,
+        new_img_name = DockerImage.full_name_from_component(repo,
+                                                            _tag,
                                                             registry,
                                                             registry_user)
         return new_img_name
