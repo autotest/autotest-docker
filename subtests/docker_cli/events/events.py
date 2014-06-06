@@ -226,7 +226,10 @@ class events(Subtest):
         self.failif(len(stdout) < 80, "Output too short: '%s'" % stdout)
         all_events = parse_events(stdout)
         cid_events = events_by_cid(all_events)
-        test_events = cid_events[self.stuff['nfdc_cid']]
+        cid = self.stuff['nfdc_cid']
+        self.failif(cid not in cid_events,
+                    'Test container cid %s does not appear in events' % cid)
+        test_events = cid_events[cid]
         for event in test_events:
             if event['operation'] in self.stuff['leftovers']:
                 self.stuff['leftovers'].remove(event['operation'])
