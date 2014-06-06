@@ -1147,6 +1147,23 @@ properly.
    and modify the values.
 *  The option ``positive``, sets the pass/fail logic for results processing.
 
+
+``docker_cli/syslog`` Sub-test
+=================================
+
+Simple test that checks monitoring containers logs from host 
+via bind-mount /dev/log to containers.
+
+``docker_cli/syslog`` Prerequisites
+-------------------------------------
+
+*  Docker daemon is running and accessible by it's unix socket.
+*  /dev/log is existing and could be mounted to containers.
+
+``docker_cli/syslog`` Configuration
+--------------------------------------
+
+
 ----------------------------------
 Dockertest API Reference
 ----------------------------------
