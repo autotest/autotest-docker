@@ -1145,7 +1145,10 @@ properly.
    and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
    i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
    and modify the values.
-*  The option ``positive``, sets the pass/fail logic for results processing.
+*  The option ``expect_success``, sets the pass/fail logic for results processing.
+*  The option ``memory_value``, sets a quantity of memory to check
+*  Invalid range testing uses the options ``memory_min_invalid`` and
+   ``memory_max_invalid``.
 
 
 ``docker_cli/syslog`` Sub-test
