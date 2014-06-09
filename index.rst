@@ -472,7 +472,10 @@ locations.
 -------------------------------------------
 
 *  ``build_paths`` is a csv list of docker build paths or
-   git locations.
+   git locations.  Paths may be relative to the subtest's directory
+   or absolute.  They will copied, and the base image (``FROM`` line) updated
+   based on the standard ``docker_repo_name``, ``docker_repo_tag``
+   ``docker_registry_host``, and ``docker_registry_user`` options.
 *  ``build_args`` are args passed directly to ``docker build``.
 *  ``image_repo_name`` lets you name the ``REPOSITORY`` of the images built.
    Only applies if ``--tag`` is not used in ``build_args``
