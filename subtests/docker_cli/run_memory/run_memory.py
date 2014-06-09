@@ -47,6 +47,8 @@ class run_memory_base(SubSubtest):
         """
         container_memory = int(docker_memory)
         cgroup_memory = int(cgroup_memory)
+        if cgroup_memory == 9223372036854775807:
+            cgroup_memory = 0
 
         if unit == 'K' or unit == 'k':
             container_memory *= 1024
@@ -105,13 +107,13 @@ class run_memory_base(SubSubtest):
         :param path: the cgroup path of container.
         :param content: the value need read.
         """
-        cgroup_path = "%s-%s.scope/%s" % (path, long_id, content)
+        cgroup_path = os.path.join("%s-%s.scope" % (path, long_id),
+                                   content)
         cgroup_file = open(cgroup_path, 'r')
         try:
             cgroup_value = cgroup_file.read()
         finally:
             cgroup_file.close()
-
         return cgroup_value
 
     @staticmethod
@@ -123,8 +125,8 @@ class run_memory_base(SubSubtest):
         :path: the cgroup path of container
         :param content: the value need check.
         """
-        cgroup_path = "%s-%s.scope/%s" % (path, long_id, content)
-
+        cgroup_path = os.path.join("%s-%s.scope" % (path, long_id),
+                                   content)
         if os.path.exists(cgroup_path):
             return True
         else:
@@ -236,9 +238,6 @@ class run_memory_base(SubSubtest):
                 memory_container = NoFailDockerCmd(self.parent_subtest,
                                                 'run -d -t',
                                                 subargs).execute()
-                self.logdebug(
-                    "Executing docker command: %s" % memory_container)
-
                 long_id = self.container_json(str(subargs[0]).split('=')[1],
                                               'ID')
                 memory_arg = self.get_value_from_arg(
@@ -257,7 +256,8 @@ class run_memory_base(SubSubtest):
                                             self.config['cgroup_path'],
                                             self.config['cgroup_key_value'])
                 else:
-                    xceptions.DockerTestNAError("Docker path doesn't exist!")
+                    xceptions.DockerTestNAError("Docker cgroup path doesn't "
+                                                "exist!")
 
                 self.sub_stuff['result'].append(self.check_memory(
                                                      memory_value,
@@ -267,43 +267,46 @@ class run_memory_base(SubSubtest):
                 memory_container = MustFailDockerCmd(self.parent_subtest,
                                                      'run',
                                                      subargs)
-                self.loginfo(
-                    "Executing docker command: %s" % memory_container)
+                # throws exception if exit_status == 0
                 self.sub_stuff['result'] = memory_container.execute()
 
     def postprocess(self):
         super(run_memory_base, self).postprocess()
         fail_content = []
         fail_check = 0
-        print self.sub_stuff['result']
+        self.logdebug('Result: %s', self.sub_stuff['result'])
+        clsname = self.__class__.__name__
 
         if self.config['expect_success'] == "PASS":
             for result in self.sub_stuff['result']:
                 if list(result.keys())[0] is 'PASS':
-                    self.loginfo(result.values())
+                    self.logdebug(result.values())
                 elif list(result.keys())[0] is 'FAIL':
-                    self.logerror(result.values())
+                    self.logerror("%s failure result value %s",
+                                  clsname, result.values())
                     fail_content.append(result.values())
                     fail_check = True
                 else:
                     raise xceptions.DockerTestNAError(
-                         "Result %s is invalid" % result.keys()[0])
+                         "%s invalid result %s"
+                          % (clsname, result.keys()[0]))
             self.failif(fail_check is True,
-                        "Memory check mismatch ,%s" % fail_content)
+                        "%s memory check mismatch %s"
+                        % (clsname, fail_content))
         else:
             self.failif(self.sub_stuff['result'].exit_status == 0,
-                        "Non-zero pull exit status: %s"
-                        % self.sub_stuff['result'])
+                        "%s unexpected zero exit status: %s"
+                        % (clsname, self.sub_stuff['result']))
 
     def cleanup(self):
         super(run_memory_base, self).cleanup()
-        if self.config['expect_success'] == "PASS":
-            if self.config['remove_after_test']:
-                for name in self.sub_stuff['name']:
-                    dcmd = DockerCmd(self.parent_subtest,
-                                         'rm',
-                                         ['--force', name])
-                    dcmd.execute()
+        if self.config['remove_after_test']:
+            for name in self.sub_stuff.get('name', []):
+                self.logdebug("Cleaning up %s", name)
+                dcmd = DockerCmd(self.parent_subtest,
+                                     'rm',
+                                     ['--force', name])
+                dcmd.execute()
 
 class memory_positive(run_memory_base):
     """
