@@ -1190,6 +1190,30 @@ it was not allowed.
    i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
    and modify the values.
 
+
+``docker_cli/iptable`` Sub-test
+===============================
+
+This a set of test that check the container's iptable rules on host.
+
+``docker_cli/iptable`` Prerequisites
+------------------------------------
+
+*  Docker daemon is running and accessible by it's unix socket.
+*  Firewalld daemon is running and No error about fail to add rules.
+*  Command iptable and brctl are working well.
+
+``docker_cli/iptable`` Configuration
+-------------------------------------
+
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
+*  The option ``name`` sets the container's prefix name.
+*  The option ``bash_cmd`` sets the command that the container will execute.
+ 
+
 ----------------------------------
 Dockertest API Reference
 ----------------------------------
