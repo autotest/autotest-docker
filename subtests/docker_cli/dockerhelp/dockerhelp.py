@@ -22,10 +22,14 @@ class dockerhelp(subtest.Subtest):
         # Names are too long to put on one line
         sol = 'success_option_list'
         fol = 'failure_option_list'
-        self.stuff[sol] = self.config[sol].split(',')
-        self.stuff[fol] = self.config[fol].split(',')
         self.stuff["success_cmdresults"] = []
         self.stuff['failure_cmdresults'] = []
+        self.stuff[sol] = []
+        self.stuff[fol] = []
+        if sol in self.config:
+            self.stuff[sol] = self.config[sol].split(',')
+        if fol in self.config:
+            self.stuff[fol] = self.config[fol].split(',')
 
     def run_once(self):
         super(dockerhelp, self).run_once() # Prints out basic info
