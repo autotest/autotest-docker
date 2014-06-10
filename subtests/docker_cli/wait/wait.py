@@ -92,15 +92,24 @@ class wait_base(SubSubtest):
                                           [cont_id])
         cont['test_cmd_stdin'] = cmd
 
-    def init_use_names(self, use_names=False):
-        if use_names:
+    def init_use_names(self, use_names='IDS'):
+        if use_names == 'IDS':  # IDs are already set
+            return
+        else:
+            if use_names == 'RANDOM':    # log the current seed
+                if self.config.get("random_seed"):
+                    rand = self.config.get("random_seed")
+                else:
+                    rand = random.random()
+                self.loginfo("Using random seed: %s", rand)
+                rand = random.Random(rand)
             conts = self.sub_stuff['containers']
             containers = DockerContainers(self.parent_subtest)
             containers = containers.list_containers()
             cont_ids = [cont['id'] for cont in conts]
             for cont in containers:
                 if cont.long_id in cont_ids:
-                    if use_names is not True and random.choice((True, False)):
+                    if use_names == 'RANDOM' and rand.choice((True, False)):
                         continue    # 50% chance of using id vs. name
                     # replace the id with name
                     cont_idx = cont_ids.index(cont.long_id)

@@ -950,6 +950,8 @@ Several variations of running the restart command
    This command has to contain ``exit $NUM``, which is used as docker exit
    status and could contain ``sleep $NUM`` which signals the duration after
    which the container finishes.
+*  ``use_names`` - translate ids to names [IDS, NAMES, RANDOM]
+*  ``random_seed`` - overrides the initial random seed used in test
 *  The ``wait_for`` specifies the containers the wait command should wait for.
    Use index of ``containers`` or ``_$your_string``. In the second
    case the leading character ``_`` will be removed.
