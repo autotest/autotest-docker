@@ -17,33 +17,6 @@ from autotest.client.shared import error
 class run(SubSubtestCaller):
     config_section = 'docker_cli/run'
 
-    def cleanup(self):
-        super(run, self).cleanup()
-        # Clean up all containers
-        dc = DockerContainers(self)
-        for cobj in dc.list_containers():
-            self.logwarning("Found leftover container: %s", cobj.container_name)
-            try:
-                dc.kill_container_by_obj(cobj)
-            except ValueError:
-                pass  # already dead
-            else:
-                self.logdebug("Killed container %s, waiting up to %d seconds "
-                              "for it to exit", cobj.container_name,
-                              dc.timeout)
-                dc.wait_by_obj(cobj)
-            self.logdebug("Removing container %s", cobj.container_name)
-            dc.remove_by_obj(cobj)
-        # Clean up all non-default images
-        fqin = DockerImage.full_name_from_defaults(self.config)
-        di = DockerImages(self)
-        def_img_obj = di.list_imgs_with_full_name(fqin)[0]
-        for img_obj in di.list_imgs():
-            if img_obj.full_name != def_img_obj.full_name:
-                self.logwarning("Found leftover image: %s", img_obj)
-                di.remove_image_by_image_obj(img_obj)
-            else:
-                self.logdebug("Not removing default image: %s", def_img_obj)
 
 class run_base(SubSubtest):
 

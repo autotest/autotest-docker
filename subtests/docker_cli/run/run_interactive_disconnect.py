@@ -48,6 +48,7 @@ class run_interactive_disconnect(run_base):
 
         c_name = self.sub_stuff["rand_name"]
         cid = self.sub_stuff["cont"].list_containers_with_name(c_name)
+        self.sub_stuff["containers"].append(c_name)
 
         self.failif(cid == [],
                     "Unable to search container with name %s" % (c_name))
@@ -92,9 +93,9 @@ class run_interactive_disconnect(run_base):
                     self.sub_stuff['cmdresult_attach']))
 
     def cleanup(self):
-        super(run_interactive_disconnect, self).cleanup()
         c_name = self.sub_stuff["rand_name"]
         try:
             self.sub_stuff["cont"].kill_container_by_name(c_name)
         except KeyError:
             pass  # removal was the goal
+        super(run_interactive_disconnect, self).cleanup()
