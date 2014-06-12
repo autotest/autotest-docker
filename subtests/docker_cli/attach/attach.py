@@ -138,18 +138,18 @@ class simple_base(attach_base):
         self.logdebug("After input was passsed: %s", dkrcmd)
 
     def failif_contain(self, check_for, in_output, details):
-        self.failif(check_for not in in_output,
-                    "Command '%s' output must contain '%s' but doesn't."
-                    " Detail: %s" % (self.config["bash_cmd"],
-                                     check_for, details))
-        self.logdebug("Output does contain '%s'", check_for)
-
-    def failif_not_contain(self, check_for, in_output, details):
         self.failif(check_for in in_output,
                     "Command '%s' output must contain '%s' but doesn't."
                     " Detail: %s" % (self.config["bash_cmd"],
                                      check_for, details))
         self.logdebug("Output does NOT contain '%s'", check_for)
+
+    def failif_not_contain(self, check_for, in_output, details):
+        self.failif(check_for not in in_output,
+                    "Command '%s' output must contain '%s' but doesn't."
+                    " Detail: %s" % (self.config["bash_cmd"],
+                                     check_for, details))
+        self.logdebug("Output does contain '%s'", check_for)
 
     def verify_output(self):
         # e.g. "run_data"
