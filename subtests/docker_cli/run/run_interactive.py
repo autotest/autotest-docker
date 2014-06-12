@@ -25,7 +25,8 @@ class run_interactive(run_base):
         dkrcmd.verbose = True
         dkrcmd.timeout = 10
         # Runs in background
-        self.sub_stuff['cmdresult'] = dkrcmd.execute(in_pipe_r)
+        dkrcmd.execute(in_pipe_r)
+        self.sub_stuff['dkrcmd'] = dkrcmd
         wait = self.config['wait_interactive_cmd']
         icmd = self.config['interactive_cmd'] + "\n"
         # Allow noticable time difference for date command,
@@ -46,19 +47,20 @@ class run_interactive(run_base):
     def postprocess(self):
         super(run_interactive, self).postprocess()  # Prints out basic info
         # Fail test if bad command or other stdout/stderr problems detected
-        OutputGood(self.sub_stuff['cmdresult'])
+        cmdresult = self.sub_stuff['dkrcmd']
+        OutputGood(cmdresult)
         expected = self.config['exit_status']
-        self.failif(self.sub_stuff['cmdresult'].exit_status != expected,
+        self.failif(cmdresult.exit_status != expected,
                     "Exit status of %s non-zero: %s"
-                    % (self.sub_stuff["cmdresult"].command,
-                       self.sub_stuff['cmdresult']))
+                    % (cmdresult.command,
+                       cmdresult))
 
         str_in_output = self.config["check_i_cmd_out"]
-        cmd_stdout = self.sub_stuff['cmdresult'].stdout
+        cmd_stdout = cmdresult.stdout
 
         self.failif(not str_in_output in cmd_stdout,
                     "Command %s output must contain %s but doesn't."
                     " Detail:%s" %
                    (self.config["interactive_cmd"],
                     str_in_output,
-                    self.sub_stuff['cmdresult']))
+                    cmdresult))

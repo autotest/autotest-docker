@@ -45,9 +45,9 @@ class run_remote_tag(run_base):
         dkrcmd = DockerCmd(self.parent_subtest, cmd, subargs,
                            timeout=self.config['docker_timeout'])
         self.loginfo(dkrcmd.command)
-        result = dkrcmd.execute()
-        self.sub_stuff[cmd_name] = result
-        self.logdebug("Command %s: %s" % (cmd_name, result))
+        dkrcmd.execute()
+        self.sub_stuff[cmd_name] = dkrcmd
+        self.logdebug("Command %s: %s" % (cmd_name, dkrcmd.cmdresult))
 
     def run_once(self):
         fqin = self.sub_stuff['fqin']
@@ -98,7 +98,7 @@ class run_remote_tag(run_base):
                      'cmdresult_rmi2', 'cmdresult_run2',
                      'cmdresult_rm2']:
             try:
-                cmdresults[name] = self.sub_stuff[name]
+                cmdresults[name] = self.sub_stuff[name].cmdresult
             except KeyError:
                 self.logerror("A command %s did not run, prior cmdresults: %s"
                               % (name, cmdresults))

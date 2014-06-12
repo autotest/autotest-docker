@@ -68,18 +68,19 @@ class run_base(SubSubtest):
         dkrcmd = DockerCmd(self.parent_subtest, 'run',
                            self.sub_stuff['subargs'])
         dkrcmd.verbose = True
-        self.sub_stuff['cmdresult'] = dkrcmd.execute()
+        self.sub_stuff['dkrcmd'] = dkrcmd
+        dkrcmd.execute()
 
     def postprocess(self):
         super(run_base, self).postprocess()  # Prints out basic info
-        if 'cmdresult' in self.sub_stuff:
+        if 'dkrcmd' in self.sub_stuff:
             # Fail test if bad command or other stdout/stderr problems detected
-            OutputGood(self.sub_stuff['cmdresult'])
+            OutputGood(self.sub_stuff['dkrcmd'].cmdresult)
             expected = self.config['exit_status']
-            self.failif(self.sub_stuff['cmdresult'].exit_status != expected,
+            self.failif(self.sub_stuff['dkrcmd'].exit_status != expected,
                         "Exit status non-zero command %s"
-                        % self.sub_stuff['cmdresult'])
-            self.logdebug(self.sub_stuff['cmdresult'])
+                        % self.sub_stuff['dkrcmd'].cmdresult)
+            self.logdebug(self.sub_stuff['dkrcmd'].cmdresult)
 
     def cleanup(self):
         super(run_base, self).cleanup()

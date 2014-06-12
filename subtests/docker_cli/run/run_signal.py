@@ -23,7 +23,8 @@ class run_signal(run_base):
                      "%s", self.config['docker_timeout'], dkrcmd.command)
         dkrcmd.verbose = True
         # Runs in background
-        cmdresult = self.sub_stuff['cmdresult'] = dkrcmd.execute()
+        self.sub_stuff['dkrcmd'] = dkrcmd
+        dkrcmd.execute()
         pid = dkrcmd.process_id
         ss = self.config['secret_sauce']
         while True:
@@ -39,7 +40,7 @@ class run_signal(run_base):
         time.sleep(wait_start)
         self.failif(not utils.pid_is_alive(pid),
                     "Pid %s not running after wait: %s"
-                    % (pid, cmdresult))
+                    % (pid, dkrcmd.exit_status))
         self.loginfo("Signaling pid %d with signal %s",
                      pid, self.config['listen_signal'])
         utils.signal_pid(pid, sig)

@@ -36,11 +36,12 @@ class run_interactive_disconnect(run_base):
                            timeout=self.config['docker_timeout'])
         dkrcmd.verbose = True
         # Runs in background
-        results = self.sub_stuff['cmdresult'] = dkrcmd.execute()
+        self.sub_stuff['dkrcmd'] = dkrcmd
+        dkrcmd.execute()
         # Allow noticable time difference for date command,
         # and eat into dkrcmd timeout after receiving signal.
         # Throw exception if takes > docker_timeout to exit
-        if results.exit_status != self.config['exit_status']:
+        if dkrcmd.exit_status != self.config['exit_status']:
             return
 
         attach_options = self.config['attach_options_csv'].split(',')
@@ -59,7 +60,8 @@ class run_interactive_disconnect(run_base):
                                 timeout=self.config['docker_timeout'])
         dkrcmd.verbose = True
         # Runs in background
-        self.sub_stuff['cmdresult_attach'] = dkrcmd.execute(in_pipe_r)
+        self.sub_stuff['dkrcmd_attach'] = dkrcmd
+        dkrcmd.execute(in_pipe_r)
         os.write(in_pipe_w, self.config['interactive_cmd'] + "\n")
         pid = dkrcmd.process_id
         time.sleep(self.config['wait_interactive_cmd'])
@@ -72,24 +74,24 @@ class run_interactive_disconnect(run_base):
     def postprocess(self):
         super(run_interactive_disconnect, self).postprocess()
         # Fail test if bad command or other stdout/stderr problems detected
-
-        OutputGood(self.sub_stuff['cmdresult'])
+        cmdresult = self.sub_stuff['dkrcmd'].cmdresult
+        OutputGood(cmdresult)
         expected = self.config['exit_status']
-        self.failif(self.sub_stuff['cmdresult'].exit_status != expected,
+        self.failif(cmdresult.exit_status != expected,
                     "Exit status of %s non-zero: %s"
-                    % (self.sub_stuff["cmdresult"].command,
-                       self.sub_stuff['cmdresult']))
+                    % (cmdresult.command,
+                       cmdresult))
 
         str_in_output = self.config["check_i_cmd_out"]
 
-        cmd_stdout_attach = self.sub_stuff['cmdresult_attach'].stdout
+        cmd_stdout_attach = self.sub_stuff['dkrcmd_attach'].stdout
 
         self.failif(not str_in_output in cmd_stdout_attach,
                     "Command %s output must contain %s but doesn't."
                     " Detail:%s" %
                    (self.config["bash_cmd"],
                     str_in_output,
-                    self.sub_stuff['cmdresult_attach']))
+                    self.sub_stuff['dkrcmd_attach'].cmdresult))
 
     def cleanup(self):
         super(run_interactive_disconnect, self).cleanup()
