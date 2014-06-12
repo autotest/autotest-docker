@@ -88,8 +88,7 @@ class simple_base(attach_base):
         self.sub_stuff['cmdresult'] = dkrcmd.execute(run_in_pipe_r)
         self.sub_stuff['cmd_run'] = dkrcmd
         self.wait_interactive_cmd()
-        dkrcmd.update_result()
-        self.logdebug("Detail after waiting: %s", dkrcmd)
+        self.logdebug("Detail after waiting: %s", dkrcmd.cmdresult)
 
         attach_options = self.config['attach_options_csv'].split(',')
         self.sub_stuff['subargs_a'] = attach_options
@@ -120,22 +119,19 @@ class simple_base(attach_base):
         self.sub_stuff['cmd_attach'] = dkrcmd
         self.sub_stuff['cmdresult_attach'] = dkrcmd.execute(attach_in_pipe_r)
         self.wait_interactive_cmd()
-        dkrcmd.update_result()
-        self.logdebug("Before input should be ignored: %s", dkrcmd)
+        self.logdebug("Before input should be ignored: %s", dkrcmd.cmdresult)
 
         # This input should be ignored.
         os.write(self.sub_stuff["run_in_pipe_w"],
                  self.config['interactive_cmd_run'] + "\n")
 
-        dkrcmd.update_result()
-        self.logdebug("Before input should be passed: %s", dkrcmd)
+        self.logdebug("Before input should be passed: %s", dkrcmd.cmdresult)
         # This input should be passed to container.
         os.write(attach_in_pipe_w,
                  self.config['interactive_cmd_attach'] + "\n")
 
         self.wait_interactive_cmd()
-        dkrcmd.update_result()
-        self.logdebug("After input was passsed: %s", dkrcmd)
+        self.logdebug("After input was passsed: %s", dkrcmd.cmdresult)
 
     def failif_contain(self, check_for, in_output, details):
         self.failif(check_for in in_output,
@@ -207,7 +203,6 @@ class sig_proxy_off_base(attach_base):
         self.sub_stuff['subargs_a'] = attach_options
 
         self.wait_interactive_cmd()
-        dkrcmd.update_result()
         c_name = self.sub_stuff["rand_name"]
         self.sub_stuff["containers"].append(c_name)
         cid = self.sub_stuff["cont"].list_containers_with_name(c_name)
@@ -231,14 +226,12 @@ class sig_proxy_off_base(attach_base):
         self.sub_stuff['cmdresult_attach'] = dkrcmd.execute()
 
         self.wait_interactive_cmd()
-        dkrcmd.update_result()
 
         pid = dkrcmd.process_id
         os.kill(pid, int(self.config["signal"]))
 
         self.wait_interactive_cmd()
-        dkrcmd.update_result()
-        self.logdebug("After the killing: %s", dkrcmd)
+        self.logdebug("After the killing: %s", dkrcmd.cmdresult)
 
     def check_containers(self, containers):
         if containers:
