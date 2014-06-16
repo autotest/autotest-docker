@@ -71,10 +71,8 @@ class simple(subtest.SubSubtest):
 
         # Running container
         self._start_container(name)
-        result = MustFailDockerCmd(self.parent_subtest, "start",
-                                   [name]).execute()
-        self.failif("is already running" not in str(result), err_msg
-                    % ("running", "is already running", result))
+        result = NoFailDockerCmd(self.parent_subtest, "start",
+                                 [name]).execute()
 
         # Stopped container
         NoFailDockerCmd(self.parent_subtest, "kill", [name]).execute()

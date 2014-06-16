@@ -5,7 +5,7 @@ docker start full_name
 
 1. Create new container with run long term process.
 2. Try to start again running container.
-3. Check if start of running container failed.
+3. Check if start command finished with 0
 """
 
 from start import short_term_app
