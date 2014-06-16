@@ -178,7 +178,8 @@ class volumes_rw(volumes_base):
                 self.logdebug("Data read from %s: '%s'", write_path, data)
                 test_dict['write_hash'] = data.strip().split(None, 1)[0]
             except (IOError, OSError, IndexError, AttributeError), xcept:
-                self.logerror("Problem reading hash from output file: %s: %s",
+                self.logerror("Problem reading hash from output file: %s: "
+                              "%s: %s",
                               write_path, xcept.__class__.__name__, xcept)
 
     def postprocess(self):
