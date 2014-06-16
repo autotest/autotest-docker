@@ -14,6 +14,7 @@ from dockertest.output import OutputGood
 # Okay to be less-strict for these cautions/warnings in subtests
 # pylint: disable=C0103,C0111,R0904,C0103
 
+
 class rerun_long_term_app(short_term_app):
     config_section = 'docker_cli/start/rerun_long_term_app'
 
@@ -22,15 +23,3 @@ class rerun_long_term_app(short_term_app):
         # but ignore expected error message
         OutputGood(self.sub_stuff['cmdresult'], ignore_error=True,
                    skip=['error_check'])
-
-    def postprocess(self):
-        super(rerun_long_term_app, self).postprocess()
-        # Raise exception if problems found
-        # but ignore expected error message
-        OutputGood(self.sub_stuff['cmdresult'], ignore_error=True,
-                   skip=['error_check'])
-
-        if self.config["docker_expected_result"] == "FAIL":
-            self.failif(self.sub_stuff['cmdresult'].exit_status == 0,
-                        "Zero start exit status: Command should fail due to"
-                        " wrong command arguments.")
