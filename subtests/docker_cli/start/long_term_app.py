@@ -36,18 +36,12 @@ class long_term_app(short_term_app):
     def postprocess(self):
         super(long_term_app, self).postprocess()
         # Raise exception if problems found
-        if self.config["docker_expected_result"] == "PASS":
-            self.failif(self.sub_stuff['cmdresult'].exit_status != 0,
-                        "Non-zero start exit status: %s"
-                        % self.sub_stuff['cmdresult'])
+        self.failif(self.sub_stuff['cmdresult'].exit_status != 0,
+                    "Non-zero start exit status: %s"
+                    % self.sub_stuff['cmdresult'])
 
-            dc = DockerContainersCLIRunOnly(self.parent_subtest)
-            running_c = dc.list_containers_with_cid(
-                self.sub_stuff["container"].long_id)
-            self.failif(running_c == [],
-                        "Container with long term task should running.")
-
-        elif self.config["docker_expected_result"] == "FAIL":
-            self.failif(self.sub_stuff['cmdresult'].exit_status == 0,
-                        "Zero start exit status: Command should fail due to"
-                        " wrong command arguments.")
+        dc = DockerContainersCLIRunOnly(self.parent_subtest)
+        running_c = dc.list_containers_with_cid(
+            self.sub_stuff["container"].long_id)
+        self.failif(running_c == [],
+                    "Container with long term task should running.")

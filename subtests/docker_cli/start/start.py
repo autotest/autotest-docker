@@ -102,15 +102,10 @@ class start_base(SubSubtest):
     def postprocess(self):
         super(start_base, self).postprocess()
         self.outputgood()
-        if self.config["docker_expected_result"] == "PASS":
-            self.failif(self.sub_stuff['cmdresult'].exit_status != 0,
-                        "Non-zero start exit status: %s"
-                        % self.sub_stuff['cmdresult'])
+        self.failif(self.sub_stuff['cmdresult'].exit_status != 0,
+                    "Non-zero start exit status: %s"
+                    % self.sub_stuff['cmdresult'])
 
-        elif self.config["docker_expected_result"] == "FAIL":
-            self.failif(self.sub_stuff['cmdresult'].exit_status == 0,
-                        "Zero start exit status: Command should fail due to"
-                        " wrong command arguments.")
 
     def cleanup(self):
         super(start_base, self).cleanup()
@@ -142,6 +137,7 @@ class start_base(SubSubtest):
 
 class short_term_app(start_base):
     config_section = 'docker_cli/start/short_term_app'
+    check_if_cmd_finished = True
 
     def initialize(self):
         super(short_term_app, self).initialize()
@@ -170,5 +166,5 @@ class short_term_app(start_base):
             self.sub_stuff["container"] = cont[0]
             self.sub_stuff["containers"].append(self.sub_stuff["container"])
 
-        if self.config["check_if_cmd_finished"]:
+        if self.check_if_cmd_finished:
             self.wait_for_container_death(cont[0])

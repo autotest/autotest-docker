@@ -851,15 +851,15 @@ Several variations of using ``docker start`` command
 ``docker_cli/start`` Configuration
 --------------------------------------
 
-*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
-   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
-   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
-   and modify the values.
-*  The ``run_options_csv`` modifies the running container options.
 *  The ``container_name_prefix`` is prefix of the tested container followed by
    random characters to make it unique.
-*  The ``remove_after_test`` specifies whether to remove the container after
-   the test
+*  The ``run_cmd`` option
+*  Options ``docker_start_timeout`` and ``docker_run_timeout`` specify max
+   time to wait for container to start, and finish (``docker wait``).
+*  The ``docker_interactive`` and ``docker_attach`` options specify whether
+   or not the container is initially run with the ``-i`` and/or ``-d``
+   parameters.
+
 
 ``docker_cli/kill`` Sub-test
 =======================================
