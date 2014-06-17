@@ -51,9 +51,12 @@ class run_remote_tag(run_base):
 
     def run_once(self):
         fqin = self.sub_stuff['fqin']
+        self.sub_stuff["images"].append(fqin)
         di = DockerImages(self.parent_subtest)
         try:
-            di.remove_image_by_full_name(fqin)
+            images = di.list_imgs_with_full_name(fqin)
+            for i in images:
+                di.remove_image_by_id(i.long_id)
         except error.CmdError:
             pass  # removal was the goal
         images = di.list_imgs_with_full_name(fqin)
