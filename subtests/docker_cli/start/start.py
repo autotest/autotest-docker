@@ -7,7 +7,6 @@ Test output of docker start command
 4. Check if container was started.
 """
 
-import time
 from autotest.client.shared import error
 from dockertest.subtest import SubSubtest
 from dockertest.output import OutputGood
@@ -19,6 +18,7 @@ from dockertest import config
 
 # Okay to be less-strict for these cautions/warnings in subtests
 # pylint: disable=C0103,C0111,R0904,C0103
+
 
 class DockerContainersCLIWithOutSize(DockerContainersCLI):
 
@@ -76,12 +76,10 @@ class start_base(SubSubtest):
         dkrcmd = AsyncDockerCmd(self.parent_subtest, 'start',
                                 self.complete_docker_command_line(),
                                 self.config['docker_start_timeout'])
-        self.loginfo("Executing background command: %s" % dkrcmd)
+        self.loginfo("Starting container...")
+        self.loginfo("Executing background command: %s" % dkrcmd.command)
         dkrcmd.execute()
-        while not dkrcmd.done:
-            self.loginfo("Starting container...")
-            time.sleep(3)
-        self.sub_stuff["cmdresult"] = dkrcmd.wait()
+        self.sub_stuff["cmdresult"] = dkrcmd.wait(60)
 
     def complete_docker_command_line(self):
         cmds = []
@@ -160,12 +158,12 @@ class short_term_app(start_base):
             raise error.TestNAError("Problems during initialization of"
                                     " test: %s" % results)
         else:
-            cont_id = results.stdout.strip()
-            cont = self.sub_stuff["conts_obj"].list_containers_with_cid(cont_id)
+            c_id = results.stdout.strip()
+            cont = self.sub_stuff["conts_obj"].list_containers_with_cid(c_id)
             if cont == []:
                 raise error.TestNAError("Problems during initialization of"
                                         " test: Failed to find container with"
-                                        "id %s." % cont_id)
+                                        "id %s." % c_id)
             self.sub_stuff["container"] = cont[0]
             self.sub_stuff["containers"].append(self.sub_stuff["container"])
 
