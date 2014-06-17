@@ -123,9 +123,12 @@ class start_base(SubSubtest):
                     cid = cont.long_id
                     self.sub_stuff["conts_obj"].kill_container_by_long_id(cid)
                     self.wait_for_container_death(cont)
-                except Exception, e:
-                    print e
-                self.sub_stuff["conts_obj"].remove_by_obj(cont)
+                except (ValueError, KeyError):
+                    pass  # Death/removal is the goal
+                try:
+                    self.sub_stuff["conts_obj"].remove_by_obj(cont)
+                except (ValueError, KeyError):
+                    pass  # Removal is the goal
 
     def wait_for_container_death(self, container_obj):
         cont_id = container_obj.long_id
