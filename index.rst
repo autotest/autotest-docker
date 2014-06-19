@@ -1200,7 +1200,10 @@ This a set of test that check the container's iptable rules on host.
 ------------------------------------
 
 *  Docker daemon is running and accessible by it's unix socket.
-*  Firewalld daemon is running and No error about fail to add rules.
+*  iptables service is **not** running, nor other services which
+   change iptables (like libvirtd).
+*  Firewalld daemon is running and does not show any errors about
+   fail to add rules (https://bugzilla.redhat.com/show_bug.cgi?id=1101484).
 *  Command iptable and brctl are working well.
 
 ``docker_cli/iptable`` Configuration
