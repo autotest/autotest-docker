@@ -339,6 +339,7 @@ class DockerContainersBase(object):
 
         :raise: RuntimeError when implementation does not permit container
                 removal
+        :raise: ValueError when no container with name found
         :raise: Implementation-specific exception
         :return: Implementation specific value
         """

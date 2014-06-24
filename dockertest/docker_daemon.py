@@ -2,9 +2,15 @@
 Docker Daemon interface helpers and utilities
 """
 
+# Pylint runs from a different directory, it's fine to import this way
+# pylint: disable=W0403
+
 import httplib
 import socket
 import json
+from output import wait_for_output
+from autotest.client.shared import service
+from autotest.client.shared import utils
 
 
 class ClientBase(object):
@@ -101,4 +107,45 @@ class SocketClient(ClientBase):
 
         return self.get_json("/version")
 
-# TODO: Add tcp, and fd subclasses
+# Group of utils for managing docker daemon service.
+
+def start(docker_path, docker_args):
+    """
+    Start new docker daemon with special args.
+
+    :param docker_path: Full path to executable
+    :param docker_args: String of command-line arguments to pass
+    :returns: Opaque daemon_process object (not for direct use)
+    """
+    # _SpecificServiceManager creates it's methods during __init__()
+    service.SpecificServiceManager("docker").stop()  # pylint: disable=E1101
+    cmd = [docker_path]
+    cmd += docker_args
+
+    daemon_process = utils.AsyncJob(" ".join(cmd), close_fds=True)
+    return daemon_process
+
+def output_match(daemon_process,
+                 timeout=120,
+                 regex=r"-job acceptconnections\(\) = OK \(0\)"):
+    """
+    Return True if daemon_process output matches regex within timeout period
+
+    :param daemon_process: Opaque daemon_process object (not for direct use)
+    :param regex: Regular expression to search for
+    :param timeout: Maximum time to wait before returning False
+    """
+    return wait_for_output(daemon_process.get_stderr,
+                           regex,
+                           timeout=timeout)
+
+def restart_service(daemon_process=None):
+    """
+    Restart the docker service using host OS's service manager
+
+    :param daemon_process: Opaque daemon_process object (not for direct use)
+    """
+    if daemon_process:
+        daemon_process.wait_for(0)
+    # _SpecificServiceManager creates it's methods during __init__()
+    service.SpecificServiceManager("docker").start()  # pylint: disable=E1101

@@ -302,5 +302,6 @@ class AsyncDockerCmd(DockerCmdTestBase):
         self.assertRaises(self.xceptions.DockerRuntimeError,
                           docker_cmd.execute_calls)
 
+
 if __name__ == '__main__':
     unittest.main()

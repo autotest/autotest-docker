@@ -7,6 +7,7 @@ Handlers for command-line output processing, crash/panic detection, etc.
 
 import re
 from collections import Mapping, MutableSet, Sequence
+from autotest.client.shared import utils
 
 import xceptions
 from environment import AllGoodBase
@@ -460,3 +461,23 @@ class OutputGood(OutputGoodBase):
             if line.lower().strip().count('error: '):
                 return False
         return True
+
+
+def wait_for_output(output_fn, pattern, timeout=60, timestep=0.2):
+    r"""
+    Wait for matched_string in async_process.stdout max for time==timeout.
+
+    :param process_output_fn: function which returns data for matching.
+    :type process_output_fn: function
+    :param pattern: string which should be found in stdout.
+    :return: True if pattern matches process_output else False
+    """
+    if not callable(output_fn):
+        raise TypeError("Output function type %s value %s is not a callable"
+                        % (output_fn.__class__.__name__, str(output_fn)))
+    regex = re.compile(pattern)
+    _fn = lambda: regex.findall(output_fn()) != []
+    res = utils.wait_for(_fn, timeout, step=timestep)
+    if res:
+        return True
+    return False

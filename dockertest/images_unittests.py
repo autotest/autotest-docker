@@ -65,6 +65,7 @@ setattr(mock('autotest.client.shared.version'), 'get_version',
                                                lambda :version.AUTOTESTVERSION)
 mock('autotest.client.shared.base_job')
 mock('autotest.client.shared.job')
+mock('autotest.client.shared.utils')
 mock('autotest.client.job')
 
 import version
