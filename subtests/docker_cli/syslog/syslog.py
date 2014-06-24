@@ -11,7 +11,6 @@ Test containers can send log to host
 
 import os
 import datetime
-from autotest.client import utils
 from dockertest.subtest import Subtest
 from dockertest.dockercmd import NoFailDockerCmd, DockerCmd
 from dockertest.images import DockerImage

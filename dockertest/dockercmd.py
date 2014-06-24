@@ -263,6 +263,13 @@ class DockerCmdBase(object):
 
     @cmdresult.setter
     def cmdresult(self, value):
+
+        """
+        Allow subclasses ability to update the private cache attribute
+
+        :param value:  New CmdResult instance to set (will be copied)
+        """
+
         self._cmdresult = utils.CmdResult(command=value.command,
                                           stdout=value.stdout,
                                           stderr=value.stderr,

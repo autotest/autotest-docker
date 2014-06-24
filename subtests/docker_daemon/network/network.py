@@ -9,9 +9,9 @@ Test docker network driver.
 import os
 import time
 from autotest.client import utils
-from dockertest.subtest import SubSubtest
+from autotest.client.shared import error
+from dockertest.subtest import SubSubtest, SubSubtestCaller
 from dockertest.containers import DockerContainers, DockerContainersCLI
-from dockertest import subtest
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest import docker_daemon
 from dockertest.config import none_if_empty, get_as_list
@@ -175,13 +175,11 @@ class DockerContainersE(DockerContainers):
     interfaces = {"cli": DockerContainersCLISpec}
 
 
-class network(subtest.SubSubtestCaller):
+class network(SubSubtestCaller):
     config_section = 'docker_daemon/network'
 
 
 class network_base(SubSubtest):
-    conts = None
-    images = None
 
     dkr_cmd = None
 
@@ -191,8 +189,8 @@ class network_base(SubSubtest):
 
         bind_addr = self.config["docker_daemon_bind"]
 
-        self.conts = DockerContainersE(self.parent_subtest)
-        self.conts.interface.docker_daemon_bind = bind_addr
+        conts = self.sub_stuff['conts'] = DockerContainersE(self.parent_subtest)
+        conts.interface.docker_daemon_bind = bind_addr
         self.dkr_cmd = DkrcmdFactory(self.parent_subtest,
                                      dkrcmd_class=AsyncDockerCmdSpec)
         self.sub_stuff["image_name"] = None
@@ -202,9 +200,10 @@ class network_base(SubSubtest):
         docker_args = []
         docker_args += get_as_list(self.config["docker_daemon_args"])
         docker_args.append("-H %s" % bind_addr)
-        ret, dd = docker_daemon.start_docker_daemon(self.config["docker_path"],
-                                                    docker_args)
-        if not ret:
+        self.loginfo("Starting %s %s", self.config["docker_path"], docker_args)
+        dd = docker_daemon.start(self.config["docker_path"],
+                                               docker_args)
+        if not docker_daemon.output_match(dd):
             raise DockerTestNAError("Unable to start docker daemon:"
                                     "\n**STDOUT**:\n%s\n**STDERR**:\n%s" %
                                     (dd.get_stdout(), dd.get_stderr()))
@@ -214,26 +213,30 @@ class network_base(SubSubtest):
     def cleanup(self):
         super(network_base, self).cleanup()
         # Kill docker_daemon process
-
+        conts = self.sub_stuff['conts']
+        # Auto-converts "yes/no" to a boolean
         if (self.config['remove_after_test'] and
                 'containers' in self.sub_stuff):
             for cont in self.sub_stuff["containers"]:
                 try:
-                    self.conts.remove_args = "--force --volumes"
-                    self.conts.remove_by_name(cont)
-                except Exception, e:
-                    self.logwarning(e)
+                    conts.remove_args = "--force --volumes"
+                    conts.remove_by_name(cont)
+                except (ValueError, error.CmdError), e:
+                    self.logdebug(e)
 
         if "docker_daemon" in self.sub_stuff:
-            docker_daemon.restart_docker_service(self.sub_stuff["docker_daemon"])
-        # Auto-converts "yes/no" to a boolean
+            docker_daemon.restart_service(
+                                    self.sub_stuff["docker_daemon"])
 
 
     def get_container_ip(self, cont_id_name):
         # Wait untils container is ready.
         json = None
         for _ in xrange(10):
-            json = self.conts.get_container_metadata(cont_id_name)
+            try:
+                json = self.sub_stuff['conts'].json_by_name(cont_id_name)
+            except ValueError:
+                pass  # container doesn't exist yet
             if json is not None:
                 if len(json[0]["NetworkSettings"]["IPAddress"]) != 0:
                     return json[0]["NetworkSettings"]["IPAddress"]

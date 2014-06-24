@@ -33,8 +33,8 @@ class icc(network_base):
         super(icc, self).initialize()
 
         fin = DockerImage.full_name_from_defaults(self.config)
-
-        self.sub_stuff["cont1_name"] = self.conts.get_unique_name("server")
+        conts = self.sub_stuff['conts']
+        self.sub_stuff["cont1_name"] = conts.get_unique_name("server")
         self.sub_stuff["containers"].append(self.sub_stuff["cont1_name"])
         args1 = get_as_list(self.config["docker_cmd1_args"])
         args1.append("--name=%s" % (self.sub_stuff["cont1_name"]))
@@ -42,7 +42,7 @@ class icc(network_base):
         self.sub_stuff["bash1"] = self.dkr_cmd.async("run", args1 + ["sh"],
                                                stdin_r=AsyncDockerCmdSpec.PIPE)
 
-        self.sub_stuff["cont2_name"] = self.conts.get_unique_name("client")
+        self.sub_stuff["cont2_name"] = conts.get_unique_name("client")
         self.sub_stuff["containers"].append(self.sub_stuff["cont2_name"])
         args2 = get_as_list(self.config["docker_cmd2_args"])
         args2.append("--name=%s" % (self.sub_stuff["cont2_name"]))
