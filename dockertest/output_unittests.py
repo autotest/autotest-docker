@@ -6,6 +6,8 @@
 import sys
 import types
 import unittest
+import time
+import random
 
 
 # DO NOT allow this function to get loose in the wild!
@@ -31,7 +33,6 @@ def mock(mod_path):
         return sys.modules[mod_path]
 
 # Mock module and exception class in one stroke
-mock('autotest.client.utils')
 setattr(mock('autotest.client.shared.error'), 'CmdError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestFail', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
@@ -240,6 +241,94 @@ line three
         self.assertEqual(x['NAMES'], 'dreamy_brattain')
         self.assertEqual(x['SIZE'], '166 B')
         # The last item with newlines isn't parsed properly, hence no unittest
+
+
+def wait_for(func, timeout, first=0, step=1, text=None):
+    end_time = time.time() + timeout
+
+    time.sleep(first)
+
+    while time.time() < end_time:
+        output = func()
+        if output:
+            return output
+
+        time.sleep(step)
+
+    return None
+
+
+setattr(mock('autotest.client.shared.utils'), 'wait_for', wait_for)
+
+
+class WaitForOutput(unittest.TestCase):
+
+    def setUp(self):
+        self.old_time = time.time
+        self.old_sleep = time.sleep
+        setattr(mock('time'), 'time', self.get_time)
+        setattr(mock('time'), 'sleep', self.sleep)
+        import output
+        self.output = output
+        self.gtime = self.timegen()
+
+
+    def tearDown(self):
+        setattr(mock('time'), 'time', self.old_time)
+        setattr(mock('time'), 'sleep', self.old_sleep)
+
+
+    def test_wait_for_output(self):
+        pattern = r"exp_out"
+        ogen = self.outgenerator(2, pattern)
+        out = lambda: ogen.next()
+        self.assertEqual(self.output.wait_for_output(out, pattern, 8, 1),
+                         True)
+
+        t = time.time()
+        ogen = self.outgenerator(10, pattern)
+        out = lambda: ogen.next()
+        self.assertEqual(self.output.wait_for_output(out, pattern, 2, 1),
+                         False)
+        e = time.time()
+        self.assertGreater(t + 7, e,
+                           "Waiting for output takes longer time")
+
+
+    @staticmethod
+    def outgenerator(raise_time, expected_out):
+        t = time.time()
+        raise_t = t + raise_time
+        out = ""
+        while time.time() < raise_t:
+            for _ in xrange(30):
+                out += chr(random.randint(32, 100))
+            yield out
+        out += expected_out
+        yield out
+
+        while 1:
+            for _ in xrange(30):
+                out += chr(random.randint(32, 100))
+            yield out
+
+
+    @staticmethod
+    def timegen():
+        t = 0
+        while 1:
+            t += 1
+            yield t
+
+
+    def get_time(self):
+        return self.gtime.next()
+
+
+    @staticmethod
+    def sleep(_):
+        pass
+
 
 if __name__ == '__main__':
     unittest.main()

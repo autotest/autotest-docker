@@ -35,6 +35,7 @@ from subtest import Subtest
 from xceptions import DockerFullNameFormatError
 from xceptions import DockerCommandError
 
+
 # Many attributes simply required here
 class DockerImage(object):  # pylint: disable=R0902
 

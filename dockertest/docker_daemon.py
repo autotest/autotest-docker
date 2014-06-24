@@ -5,6 +5,9 @@ Docker Daemon interface helpers and utilities
 import httplib
 import socket
 import json
+from output import wait_for_output
+from autotest.client.shared import service
+from autotest.client.shared import utils
 
 
 class ClientBase(object):
@@ -102,3 +105,28 @@ class SocketClient(ClientBase):
         return self.get_json("/version")
 
 # TODO: Add tcp, and fd subclasses
+
+
+# Group of utils for managing docker daemon service.
+
+
+def start_docker_daemon(docker_path, docker_args):
+    """
+    Start new docker daemon with special args.
+    """
+    service.SpecificServiceManager("docker").stop()
+    cmd = [docker_path]
+    cmd += docker_args
+
+    daemon_process = utils.AsyncJob(" ".join(cmd), close_fds=True)
+
+    out_fn = lambda: daemon_process.get_stderr()
+    ret = wait_for_output(out_fn, r"-job acceptconnections\(\) = OK \(0\)")
+    return ret, daemon_process
+
+
+def restart_docker_service(daemon_process=None):
+    if daemon_process:
+        daemon_process.wait_for(0)
+
+    service.SpecificServiceManager("docker").start()
