@@ -228,18 +228,21 @@ class network_base(SubSubtest):
             docker_daemon.restart_service(
                                     self.sub_stuff["docker_daemon"])
 
+    def get_jason(self, cont_name):
+        try:
+            return self.sub_stuff['conts'].json_by_name(cont_name)
+        except ValueError:
+            return None  # container not up yet
 
-    def get_container_ip(self, cont_id_name):
+    def get_container_ip(self, cont_name):
+
         # Wait untils container is ready.
-        json = None
-        for _ in xrange(10):
-            try:
-                json = self.sub_stuff['conts'].json_by_name(cont_id_name)
-            except ValueError:
-                pass  # container doesn't exist yet
-            if json is not None:
-                if len(json[0]["NetworkSettings"]["IPAddress"]) != 0:
-                    return json[0]["NetworkSettings"]["IPAddress"]
-            time.sleep(0.50)
-
-        return None
+        got_json = lambda: self.get_jason(cont_name)
+        utils.wait_for(got_json,
+                       120,
+                       text='Waiting on container %s start' % cont_name)
+        json = self.get_jason(cont_name)
+        if len(json[0]["NetworkSettings"]["IPAddress"]) != 0:
+            return json[0]["NetworkSettings"]["IPAddress"]
+        else:
+            return None
