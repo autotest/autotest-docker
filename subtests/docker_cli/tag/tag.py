@@ -24,14 +24,32 @@ from dockertest import config
 from dockertest import xceptions
 
 class tag(subtest.SubSubtestCaller):
-    config_section = 'docker_cli/tag'
-
+    pass
 
 class tag_base(SubSubtest):
 
     def check_image_exists(self, full_name):
         di = DockerImages(self.parent_subtest)
         return di.list_imgs_with_full_name(full_name)
+
+    def prep_image(self, base_image):
+        pull_results = DockerCmd(self, "pull",
+                                 [base_image]).execute()
+        if pull_results.exit_status:
+            raise xceptions.DockerTestNAError("Problem pulling"
+                                              "base image %s for test"
+                                              % base_image)
+
+        tag_results = DockerCmd(self, "tag", [base_image,
+                                              self.sub_stuff["image"]]
+                               ).execute()
+        if tag_results.exit_status:
+            raise xceptions.DockerTestNAError("Problems during "
+                                              "initialization of"
+                                              " test: %s", results)
+
+        im = self.check_image_exists(self.sub_stuff["image"])
+        self.sub_stuff['image_list'] = im
 
     def initialize(self):
         super(tag_base, self).initialize()
@@ -44,25 +62,13 @@ class tag_base(SubSubtest):
         while self.check_image_exists(new_img_name):
             new_img_name = "%s_%s" % (name_prefix,
                                   utils.generate_random_string(8))
-
+        if self.config['gen_lower_only']:
+            new_img_name = new_img_name.lower()
+        else:
+            new_img_name += '_UP' # guarantee some upper-case
         self.sub_stuff["image"] = new_img_name
         base_image = DockerImage.full_name_from_defaults(self.config)
-
-        prep_changes = DockerCmd(self.parent_subtest, "tag",
-                                 [base_image,
-                                  self.sub_stuff["image"]],
-                                 self.config['docker_tag_timeout'])
-
-        results = prep_changes.execute()
-        if results.exit_status:
-            raise xceptions.DockerTestNAError("Problems during "
-                                              "initialization of"
-                                              " test: %s", results)
-
-        im = self.check_image_exists(self.sub_stuff["image"])
-        self.sub_stuff['image_list'] = im
-
-
+        self.prep_image(base_image)
 
     def complete_docker_command_line(self):
         force = self.config["tag_force"]
@@ -78,9 +84,8 @@ class tag_base(SubSubtest):
 
     def run_once(self):
         super(tag_base, self).run_once()
-        dkrcmd = AsyncDockerCmd(self.parent_subtest, 'tag',
-                                self.complete_docker_command_line(),
-                                self.config['docker_tag_timeout'])
+        dkrcmd = AsyncDockerCmd(self, 'tag',
+                                self.complete_docker_command_line())
         self.loginfo("Executing background command: %s" % dkrcmd)
         dkrcmd.execute()
         while not dkrcmd.done:
@@ -129,11 +134,14 @@ class tag_base(SubSubtest):
 
 
 class change_tag(tag_base):
-    config_section = 'docker_cli/tag/change_tag'
 
     def generate_special_name(self):
         img = self.sub_stuff['image_list'][0]
         _tag = "%s_%s" % (img.tag, utils.generate_random_string(8))
+        if self.config['gen_lower_only']:
+            _tag = _tag.lower()
+        else:
+            _tag += '_UP' # guarantee some upper-case
         repo = img.repo
         registry = img.repo_addr
         registry_user = img.user

@@ -18,7 +18,6 @@ from dockertest.images import DockerImage
 from autotest.client import utils
 
 class change_user(change_tag):
-    config_section = 'docker_cli/commit/change_repository'
 
     def generate_special_name(self):
         name_prefix = self.config["tag_repo_name_prefix"]
@@ -27,6 +26,10 @@ class change_user(change_tag):
         repo = img.repo
         registry = img.repo_addr
         reg_user = "%s_%s" % (name_prefix, utils.generate_random_string(8))
+        if self.config['gen_lower_only']:
+            reg_user = reg_user.lower()
+        else:
+            reg_user += '_UP'  # guarantee some upper-case
         new_img_name = DockerImage.full_name_from_component(repo, tag,
                                                             registry,
                                                             reg_user)
