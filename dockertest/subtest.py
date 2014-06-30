@@ -233,7 +233,7 @@ class Subtest(SubBase, test.test):
     #: The number of iterations to run in total, override this in subclass.
     iterations = 1
 
-    #: Private name-space for use by subclasses **ONLY**.  This attribute
+    #: Private dictionary for use by subclasses **ONLY**.  This attribute
     #: is completely ignored everywhere inside the dockertest API.  Subtests
     #: are encouraged to use it for temporarily storing results/info. It is
     #: initialized to an empty dictionary, but subtests can reassign it to any
@@ -342,7 +342,7 @@ class SubSubtest(SubBase):
     #: Reference to outer, parent test.  Read-only / set in __init__
     parent_subtest = None
 
-    #: Private name-space for use by subclasses **ONLY**.  This attribute
+    #: Private dictionary for use by subclasses **ONLY**.  This attribute
     #: is completely ignored everywhere inside the dockertest API.  Subtests
     #: are encouraged to use it for temporarily storing results/info.  It
     #: is initialized to an empty dictionary, however subsubtests may
