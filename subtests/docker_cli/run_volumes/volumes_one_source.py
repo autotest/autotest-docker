@@ -8,9 +8,6 @@ volume at the same time.
 3. Assert that they all were able to perform their task
 """
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
 import hashlib
 import os.path
 from autotest.client import utils

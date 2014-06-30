@@ -20,9 +20,6 @@ from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtest
 from dockertest.dockercmd import NoFailDockerCmd
 
-
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
 class restart(subtest.SubSubtestCaller):
 
     """ Subtest caller """

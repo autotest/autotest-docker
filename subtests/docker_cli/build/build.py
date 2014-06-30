@@ -8,9 +8,6 @@ Test run of docker build command
 5. Optionally remove built image
 """
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
 import os, os.path, shutil, time
 from urllib2 import urlopen
 from dockertest import subtest

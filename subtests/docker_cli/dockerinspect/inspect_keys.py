@@ -7,9 +7,6 @@ https://bugzilla.redhat.com/show_bug.cgi?id=1092773
 3. Check output keys againt known keys and a regex
 """
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
 from dockerinspect import inspect_base
 from dockertest.dockercmd import NoFailDockerCmd
 from dockertest.images import DockerImage

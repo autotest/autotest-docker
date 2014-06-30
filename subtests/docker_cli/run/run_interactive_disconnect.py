@@ -4,8 +4,6 @@
 3) Try write to stdin using docker attach process (should pass)
 4) check if docker attach process get input.
 """
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
 
 import time
 import os

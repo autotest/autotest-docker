@@ -9,9 +9,6 @@ Negative testing:
 2. Run a container with the workdir which is not a path, but a file
 """
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
 from autotest.client import utils
 from dockertest import subtest
 from dockertest.dockercmd import NoFailDockerCmd, DockerCmd

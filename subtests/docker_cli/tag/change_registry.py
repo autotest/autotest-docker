@@ -18,10 +18,6 @@ from dockertest.images import DockerImage
 import random
 import string
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
-
 class change_registry(change_tag):
     config_section = 'docker_cli/commit/change_registry'
 

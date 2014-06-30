@@ -6,9 +6,6 @@ Test containers can send log to host
 3. Verify that could see the message on host.
 """
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
 import os
 import datetime
 from dockertest.subtest import Subtest

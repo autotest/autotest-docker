@@ -6,9 +6,6 @@ Test output of docker inspect command
 3. Check output
 """
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
 from autotest.client import utils
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd

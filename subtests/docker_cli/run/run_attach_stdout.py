@@ -8,8 +8,6 @@ Test run
 5) check if docker run process get input from attach process.
 6) check if docker attach/run process don't get stdin from docker run process.
 """
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
 
 import time
 import os

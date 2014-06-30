@@ -6,9 +6,6 @@ Test output of the docker insert command
    inserted file and the url.
 """
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
 from autotest.client import utils
 from dockertest import subtest
 from dockertest.containers import DockerContainers

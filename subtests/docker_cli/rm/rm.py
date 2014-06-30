@@ -8,9 +8,6 @@ Test for docker rm subcommand
 4. Run sub-subtests to exercize 'rm' on container and verify volume file
 """
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
 import os.path
 import time
 import signal

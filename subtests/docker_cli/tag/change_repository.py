@@ -17,10 +17,6 @@ from tag import change_tag
 from dockertest.images import DockerImage
 from autotest.client import utils
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
-
 class change_repository(change_tag):
     config_section = 'docker_cli/commit/change_repository'
 

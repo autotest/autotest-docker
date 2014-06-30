@@ -7,7 +7,6 @@ Test docker network driver.
 """
 
 import os
-import time
 from autotest.client import utils
 from autotest.client.shared import error
 from dockertest.subtest import SubSubtest, SubSubtestCaller
@@ -16,11 +15,6 @@ from dockertest.dockercmd import AsyncDockerCmd
 from dockertest import docker_daemon
 from dockertest.config import none_if_empty, get_as_list
 from dockertest.xceptions import DockerTestNAError
-
-
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
 
 class AsyncDockerCmdStdIn(AsyncDockerCmd):
     r"""

@@ -31,8 +31,6 @@ SIGNAL_MAP = {1: 'HUP', 2: 'INT', 3: 'QUIT', 4: 'ILL', 5: 'TRAP', 6: 'ABRT',
               27: 'PROF', 28: 'WINCH', 29: 'IO', 30: 'PWR', 31: 'SYS'}
 
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
 class kill(subtest.SubSubtestCaller):
 
     """ Subtest caller """

@@ -12,10 +12,6 @@ from dockertest.dockercmd import NoFailDockerCmd
 from dockertest import xceptions
 from dockertest import subtest
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
-
 class import_export(subtest.SubSubtestCaller):
     config_section = 'docker_cli/import_export'
 

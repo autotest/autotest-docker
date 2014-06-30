@@ -7,9 +7,6 @@ Test attach
 3) Try to send signal to container process over attached docker
 4) Check if docker process is still alive.
 """
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
 
 from attach import sig_proxy_off_base
 

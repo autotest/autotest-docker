@@ -17,10 +17,6 @@ from dockertest.output import OutputGood
 from dockertest.dockercmd import DockerCmd
 from dockertest.containers import DockerContainers
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
-
 class check_default_cmd(commit_base):
     config_section = 'docker_cli/commit/check_default_cmd'
 

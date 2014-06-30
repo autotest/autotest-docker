@@ -11,10 +11,6 @@ docker start full_name
 from start import short_term_app
 from dockertest.output import OutputGood
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
-
 class rerun_long_term_app(short_term_app):
     config_section = 'docker_cli/start/rerun_long_term_app'
 

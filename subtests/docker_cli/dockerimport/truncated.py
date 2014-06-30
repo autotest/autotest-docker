@@ -7,9 +7,6 @@ Sub-subtest module used by dockerimport test
 4. Verify import failed
 """
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
 from autotest.client import utils
 import tempfile, os, os.path, shutil
 from empty import empty

@@ -6,9 +6,6 @@ Sub-subtest module used by dockerimport test
 3. Check imported image is available
 """
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
 import os
 from autotest.client import utils
 from dockertest import output

@@ -15,8 +15,6 @@ Test output of docker run -m parameter
       larger than the maximal, invalid number, fail it the container
       success start.
 """
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
 
 import os
 from dockertest import xceptions

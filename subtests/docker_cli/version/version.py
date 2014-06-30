@@ -6,9 +6,6 @@ Test output of docker version command
 3. compare to daemon API version
 """
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
 from dockertest import subtest
 from dockertest.output import OutputGood
 from dockertest.output import DockerVersion

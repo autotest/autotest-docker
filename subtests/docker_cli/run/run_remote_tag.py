@@ -10,8 +10,6 @@ Test if docker uses local copy image even if tag is different.
    remote copy of image was downloaded  again.
 6) Totally remove remote image from local repo.
 """
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
 
 from autotest.client.shared import error
 from dockertest.dockercmd import DockerCmd

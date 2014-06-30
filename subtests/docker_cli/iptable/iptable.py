@@ -3,8 +3,6 @@ Test output of the host iptable rules of container
 1. Run container and parse/gather it's iptable rules on host.
 2. Check if rules are affected as expected/are handled properly.
 """
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
 
 from dockertest.dockercmd import NoFailDockerCmd
 from dockertest.dockercmd import DockerCmd
@@ -128,7 +126,7 @@ class iptable_remove(iptable_base):
     def postprocess(self):
         net_device = self.sub_stuff['net_device']
         container_rules = lambda: self.read_iptable_rules(net_device)
-        added_rules = utils.wait_for(container_rules, 10, step = 0.1)
+        added_rules = utils.wait_for(container_rules, 10, step=0.1)
         self.failif(not added_rules, "No rules added when container started.")
         self.loginfo("Container %s\niptable rule list %s:" %
                       (self.sub_stuff['name'], added_rules))

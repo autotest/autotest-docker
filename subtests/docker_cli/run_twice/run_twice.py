@@ -6,9 +6,6 @@ Test could not run a container which is already running
 3. Fail to run a container again
 """
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
 from autotest.client import utils
 from dockertest import subtest
 from dockertest.dockercmd import NoFailDockerCmd

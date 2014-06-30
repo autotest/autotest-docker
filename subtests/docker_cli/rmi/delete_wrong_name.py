@@ -11,10 +11,6 @@ from autotest.client import utils
 from rmi import rmi_base
 from dockertest.output import OutputGood
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
-
 class delete_wrong_name(rmi_base):
     config_section = 'docker_cli/rmi/delete_wrong_name'
 

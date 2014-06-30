@@ -20,9 +20,6 @@ from dockertest.dockercmd import NoFailDockerCmd
 from dockertest.xceptions import DockerCommandError
 from dockertest.xceptions import DockerTestNAError
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
 class rmi(subtest.SubSubtestCaller):
     config_section = 'docker_cli/rmi'
 

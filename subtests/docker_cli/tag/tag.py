@@ -23,10 +23,6 @@ from dockertest import subtest
 from dockertest import config
 from dockertest import xceptions
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
-
 class tag(subtest.SubSubtestCaller):
     config_section = 'docker_cli/tag'
 

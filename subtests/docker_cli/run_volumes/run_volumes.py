@@ -6,9 +6,6 @@ Test read & write to various host-paths as container volumes
 3. Check second file on host, verify hash matches.
 """
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
 import time
 import os.path
 import hashlib

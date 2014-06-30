@@ -10,10 +10,6 @@ docker pull full_name
 
 from pull import pull_base, check_registry
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
-
 class good(pull_base):
     config_section = 'docker_cli/pull/good'
 

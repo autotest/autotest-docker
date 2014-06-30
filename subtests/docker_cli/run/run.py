@@ -2,8 +2,6 @@
 Test docker run by executing basic commands inside container and checking the
 results.
 """
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
 
 from dockertest.subtest import SubSubtest, SubSubtestCaller
 from dockertest.dockercmd import DockerCmd

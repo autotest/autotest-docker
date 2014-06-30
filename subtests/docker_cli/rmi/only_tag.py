@@ -13,9 +13,6 @@ from rmi import rmi_base
 from dockertest.dockercmd import DockerCmd
 from dockertest.xceptions import DockerTestNAError
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
 class only_tag(rmi_base):
     config_section = 'docker_cli/rmi/only_tag'
 

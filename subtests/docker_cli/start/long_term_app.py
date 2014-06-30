@@ -15,10 +15,6 @@ from autotest.client.shared import error
 from start import short_term_app, DockerContainersCLIRunOnly
 from dockertest.dockercmd import DockerCmd
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
-
 class long_term_app(short_term_app):
     config_section = 'docker_cli/start/long_term_app'
 

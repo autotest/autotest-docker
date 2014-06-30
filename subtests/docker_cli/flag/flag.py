@@ -7,9 +7,6 @@ exception, don't log any message and are silently ignored.
 3. Test will FAIL if the container could be run.
 """
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
 from dockertest import subtest
 from dockertest.dockercmd import DockerCmd
 from dockertest.dockercmd import MustFailDockerCmd

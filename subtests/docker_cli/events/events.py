@@ -6,9 +6,6 @@ Test docker events captured during simple container run
 3. Check parsing of events and container events present
 """
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
 import re
 from string import Template
 import time

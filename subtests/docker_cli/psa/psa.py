@@ -5,9 +5,6 @@ Test output of docker ps -a command
 2. Fail if table-format changes or is not parseable
 """
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
 import time, signal, os.path, os
 from autotest.client import utils
 from dockertest import subtest

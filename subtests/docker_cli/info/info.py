@@ -6,9 +6,6 @@ Test output of docker info command
 3. Compare output with values obtained in userspace
 """
 
-# Okay to be less-strict for these cautions/warnings in subtests
-# pylint: disable=C0103,C0111,R0904,C0103
-
 from autotest.client import utils
 from dockertest import subtest
 from dockertest.output import OutputGood
