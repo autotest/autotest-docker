@@ -99,26 +99,6 @@ class SubBase(object):
         if bool(condition):
             raise DockerTestFail(reason)
 
-    @staticmethod
-    def logindent(n_spaces, n_tabs, testname, msg):
-
-        """
-        Indent msg with extra spaces/tabs, prefix with a test name
-
-        :param n_spaces: Number of space-characters to prefix
-        :param n_tabs: Number of tab-characters to prefix
-        :param testname: Sub/Sub-subtest name to prefix
-        :param msg: Message format-string to add above prefixes
-        :return: Reformatted message
-        """
-
-        tabs = str("\t" * n_tabs)
-        spaces = str(" " * n_spaces)
-        space_tabs = spaces + tabs
-        newline_indent = "\n" + space_tabs
-        msg = str(msg).replace("\n", newline_indent)
-        return str(tabs + "%s: %s") % (testname, msg)
-
     @classmethod
     def log_x(cls, lvl, msg, *args):
 
@@ -128,8 +108,7 @@ class SubBase(object):
 
         meth = getattr(logging, lvl)
         testname = cls.__name__
-        return meth(cls.logindent(cls.n_spaces, cls.n_tabs,
-                                  testname, str(msg)), *args)
+        return meth("%s%s: %s" % ("\t" * cls.n_tabs, testname, msg), *args)
 
     @classmethod
     def log_xn(cls, lvl, msg, *args):
@@ -140,19 +119,15 @@ class SubBase(object):
         :param lvl: logging method name ('debug', 'info', etc.)
         :param msg: Message format-string
         """
-
-        if len(args) > 0:
-            msg = str(msg) % args
-        lines = str(msg).splitlines()
-        if len(lines) > 1:
-            # Breaks just-in-time substitution,
-            # only do this in cases where pretty (but less accurate)
-            # display is needed.
-            for line in lines:
-                cls.log_x(lvl, line)
-        else:
-            # No need to break just-in-time substitution, pass-through...
-            return cls.log_x(lvl, str(msg), *args)
+        # date, loglevel, this module offset
+        newline = '\n' + ' ' * cls.n_spaces + '\t' * cls.n_tabs
+        newline += " " * (len(cls.__name__) + 2)    # cls name + ': '
+        try:
+            msg = (str(msg) % args).replace('\n', newline)
+        except TypeError:
+            raise TypeError("Not all arguments converted during formatting: "
+                            "msg='%s', args=%s" % (msg, args))
+        return cls.log_x(lvl, msg)
 
     @classmethod
     def logdebug(cls, message, *args):
