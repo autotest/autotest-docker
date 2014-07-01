@@ -1,13 +1,12 @@
 """
 Stress test
 """
+
 import os
 import time
-
 from autotest.client import utils
 from dockertest import xceptions
-from dockertest.dockercmd import DockerCmd
-from kill import kill_base, SIGNAL_MAP
+from kill import kill_base, SIGNAL_MAP, QDockerCmd, Output
 
 
 class stress(kill_base):
@@ -71,7 +70,7 @@ class stress(kill_base):
             pid = self.sub_stuff['container_cmd'].process_id
             cmd = "kill -$SIGNAL %s" % pid
         else:
-            cmd = DockerCmd(self.parent_subtest, 'kill', subargs).command
+            cmd = QDockerCmd(self, 'kill', subargs).command
         cmd = ("for SIGNAL in %s; do %s || exit 255; done"
                % (" ".join(signals_sequence), cmd))
         self.sub_stuff['kill_cmds'] = [cmd]
@@ -79,10 +78,8 @@ class stress(kill_base):
         if sigproxy:
             self.sub_stuff['kill_cmds'].append(False)
         else:
-            self.sub_stuff['kill_cmds'].append(DockerCmd(self.parent_subtest,
-                                                         'kill',
-                                                         extra_subargs,
-                                                         verbose=False))
+            dc = QDockerCmd(self, 'kill', extra_subargs)
+            self.sub_stuff['kill_cmds'].append(dc)
         self.sub_stuff['signals_set'] = signals_set
 
         self.logdebug("kill_command: %s", cmd)
@@ -110,14 +107,7 @@ class stress(kill_base):
             except ValueError:
                 pass
         else:
-            msg = ("Not all signals were handled inside container after quick."
-                   " series of kill commands.\n"
-                   "Expected output (unordered):\n  %s\nActual container "
-                   "output:\n  %s\nFirst missing line:\n  %s"
-                   % ("\n  ".join([_check % sig
-                                   for sig in signals_set]),
-                      "\n  ".join(container_cmd.stdout.splitlines()), line))
-            raise xceptions.DockerTestFail(msg)
+            self.fail_missing(_check, signals_set, Output(container_cmd), line)
         # Kill -9
         if kill_cmds[1] is not False:   # Custom kill command
             self.sub_stuff['kill_results'].append(kill_cmds[1].execute())

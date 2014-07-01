@@ -21,6 +21,22 @@ from dockertest.images import DockerImage
 from dockertest.output import OutputGood
 
 
+# Quiet/non-verbose versions of docker command classes
+class QAsyncDockerCmd(AsyncDockerCmd):
+    verbose = False
+    quiet = True
+
+
+class QDockerCmd(DockerCmd):
+    verbose = False
+    quiet = True
+
+
+class QNoFailDockerCmd(NoFailDockerCmd):
+    verbose = False
+    quiet = True
+
+
 # TODO: Not all named signals seems to be supported with docker0.9
 SIGNAL_MAP = {1: 'HUP', 2: 'INT', 3: 'QUIT', 4: 'ILL', 5: 'TRAP', 6: 'ABRT',
               7: 'BUS', 8: 'FPE', 9: 'KILL', 10: 'USR1', 11: 'SEGV',
@@ -74,7 +90,7 @@ class kill_base(subtest.SubSubtest):
         subargs.append("bash")
         subargs.append("-c")
         subargs.append(self.config['exec_cmd'])
-        container = AsyncDockerCmd(self.parent_subtest, 'run', subargs)
+        container = QAsyncDockerCmd(self, 'run', subargs)
         self.sub_stuff['container_cmd'] = container
         container.execute()
 
@@ -90,7 +106,7 @@ class kill_base(subtest.SubSubtest):
         subargs.append("bash")
         subargs.append("-c")
         subargs.append(self.config['exec_cmd'])
-        container = NoFailDockerCmd(self.parent_subtest, 'run', subargs)
+        container = QNoFailDockerCmd(self, 'run', subargs)
         self.sub_stuff['container_cmd'] = container
         container.execute()
 
@@ -100,7 +116,7 @@ class kill_base(subtest.SubSubtest):
         else:
             subargs = []
         subargs.append(name)
-        container = AsyncDockerCmd(self.parent_subtest, 'attach', subargs)
+        container = QAsyncDockerCmd(self, 'attach', subargs)
         self.sub_stuff['container_cmd'] = container  # overwrites finished cmd
         container.execute()
 
@@ -183,16 +199,17 @@ class kill_base(subtest.SubSubtest):
                     sig_long = False
                 else:
                     subargs = ["-s %s" % signal] + extra_subargs
-                kill_cmds.append(DockerCmd(self.parent_subtest, 'kill',
-                                           subargs, verbose=False))
+                dc = QDockerCmd(self, 'kill', subargs)
+                kill_cmds.append(dc)
 
         # Kill -9 is the last one :-)
         signal = 9
         signals_sequence.append(signal)
         if self.config.get('kill_map_signals'):
             signal = SIGNAL_MAP.get(signal, signal)
-        kill_cmds.append(DockerCmd(self.parent_subtest, 'kill',
-                                   ["-s %s" % signal] + extra_subargs))
+        dc = QDockerCmd(self, 'kill', ["-s %s" % signal] + extra_subargs)
+        dc.quiet = True
+        kill_cmds.append(dc)
 
         if sigproxy:
             self.logdebug("kill_command_example: Killing directly the "
@@ -202,6 +219,19 @@ class kill_base(subtest.SubSubtest):
         self.logdebug("signals_sequence: %s", " ".join(sequence))
         self.sub_stuff['signals_sequence'] = signals_sequence
         self.sub_stuff['kill_cmds'] = kill_cmds
+
+    def fail_missing(self, check, stopped_log, container_out, line):
+        """Expected signal missing, log details, fail the test"""
+        idx = container_out.idx
+        msg = ("Not all signals were handled inside container "
+               "after SIGCONT execution.\nExpected output "
+               "(unordered):\n  %s\nActual container output:\n"
+               "  %s\nFirst missing line:\n  %s"
+               % ("\n  ".join([check % sig for sig in stopped_log]),
+                  "\n  ".join(container_out.get(idx)), line))
+        self.logdebug(msg)
+        raise xceptions.DockerTestFail("Missing Signal(s), see debug "
+                                       "log for more details.")
 
     def postprocess(self):
         super(kill_base, self).postprocess()
@@ -236,8 +266,7 @@ class kill_base(subtest.SubSubtest):
             msg = ("Multiple containers matches name %s, not removing any of "
                    "them...", name)
             raise xceptions.DockerTestError(msg)
-        NoFailDockerCmd(self.parent_subtest, 'rm', ['--force', '--volumes',
-                                                    name]).execute()
+        QNoFailDockerCmd(self, 'rm', ['--force', '--volumes', name]).execute()
 
     def cleanup(self):
         super(kill_base, self).cleanup()
@@ -298,11 +327,10 @@ class kill_check_base(kill_base):
                                            "was executed.")
         self.sub_stuff['container_results'] = container_cmd.wait()
 
-    @staticmethod
-    def _check_previous_payload(stopped_log, container_out, timeout,
-                                _check):
+    def _check_previous_payload(self, stopped_log, container_out,
+                                timeout, _check):
         """
-        Checks that all signals from stopped_log are present in container out
+        Checks that all signals from stopped_log are present in container_out
         """
         # TODO: Signals 20, 21 and 22 are not reported after SIGCONT
         #       even thought they are reported when docker is not
@@ -321,17 +349,9 @@ class kill_check_base(kill_base):
                 except ValueError:
                     pass
             else:
-                msg = ("Not all signals were handled inside container "
-                       "after SIGCONT execution.\nExpected output "
-                       "(unordered):\n  %s\nActual container output:\n"
-                       "  %s\nFirst missing line:\n  %s"
-                       % ("\n  ".join([_check % sig
-                                       for sig in stopped_log]),
-                          "\n  ".join(container_out.get(_idx)), line))
-                raise xceptions.DockerTestFail(msg)
+                self.fail_missing(_check, stopped_log, container_out, line)
 
-    @staticmethod
-    def _check_signal(container_out, _check, signal, timeout):
+    def _check_signal(self, container_out, _check, signal, timeout):
         """
         Check container for $signal check output presence
         """
@@ -344,7 +364,9 @@ class kill_check_base(kill_base):
                    "output:\n  %s\nActual container output:\n  %s"
                    % (signal, check,
                       "\n  ".join(container_out.get(_idx))))
-            raise xceptions.DockerTestFail(msg)
+            self.logdebug(msg)
+            raise xceptions.DockerTestFail("Unhandled signal(s), see debug"
+                                           "log for more details")
 
     def run_once(self):
         # Execute the kill command
@@ -358,6 +380,7 @@ class kill_check_base(kill_base):
         self.sub_stuff['kill_results'] = []
         stopped_log = False
         _container_pid = container_cmd.process_id
+        self.loginfo("Running kill sequence...")
         for cmd, signal in itertools.izip(kill_cmds, signals_sequence):
             self._execute_command(cmd, signal, _container_pid)
             if signal == -1:    # Bad signal, no other checks

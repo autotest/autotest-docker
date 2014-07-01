@@ -6,8 +6,7 @@ import time
 
 from autotest.client import utils
 from dockertest import xceptions
-from dockertest.dockercmd import DockerCmd
-from kill import kill_base
+from kill import kill_base, QDockerCmd, Output
 
 
 class parallel_stress(kill_base):
@@ -41,7 +40,7 @@ class parallel_stress(kill_base):
         cmds = []
         for signal in signals:
             subargs = ["-s %s" % signal] + extra_subargs
-            docker_cmd = DockerCmd(self.parent_subtest, 'kill', subargs)
+            docker_cmd = QDockerCmd(self, 'kill', subargs)
             cmd = ("while [ -e %s/docker_kill_stress ]; "
                    "do %s || exit 255; done" % (self.tmpdir,
                                                 docker_cmd.command))
@@ -52,8 +51,7 @@ class parallel_stress(kill_base):
         self.sub_stuff['signals_set'] = signals
 
         # kill -9
-        self.sub_stuff['kill_docker'] = DockerCmd(self.parent_subtest, 'kill',
-                                                  extra_subargs)
+        self.sub_stuff['kill_docker'] = QDockerCmd(self, 'kill', extra_subargs)
 
     def _execute_stress_loops(self, kill_jobs):
         """
@@ -121,14 +119,7 @@ class parallel_stress(kill_base):
             except ValueError:
                 pass
         else:
-            msg = ("Not all signals were handled inside container after quick."
-                   " series of kill commands.\n"
-                   "Expected output (unordered):\n  %s\nActual container "
-                   "output:\n  %s\nFirst missing line:\n  %s"
-                   % ("\n  ".join([_check % sig
-                                   for sig in signals_set]),
-                      "\n  ".join(container_cmd.stdout.splitlines()), line))
-            raise xceptions.DockerTestFail(msg)
+            self.fail_missing(_check, signals_set, Output(container_cmd), line)
 
     def _destroy_container(self, container_cmd):
         """

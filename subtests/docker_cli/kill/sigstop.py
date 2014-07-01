@@ -1,8 +1,5 @@
 import random
-
-from dockertest.dockercmd import DockerCmd
-from kill import kill_check_base
-
+from kill import kill_check_base, QDockerCmd
 
 class sigstop(kill_check_base):
 
@@ -38,8 +35,8 @@ class sigstop(kill_check_base):
         for signal in signals_sequence:
             subargs = (["%s%s" % (random.choice(('-s ', '--signal=')), signal)]
                        + extra_subargs)
-            kill_cmds.append(DockerCmd(self.parent_subtest, 'kill', subargs,
-                             verbose=False))
+            dc = QDockerCmd(self, 'kill', subargs)
+            kill_cmds.append(dc)
 
         self.logdebug("kill_command_example: %s", kill_cmds[0])
         self.logdebug("signals_sequence: %s", signals_sequence)

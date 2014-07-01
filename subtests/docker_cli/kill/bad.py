@@ -1,8 +1,5 @@
 import random
-
-from kill import kill_check_base
-from dockertest.dockercmd import DockerCmd
-
+from kill import kill_check_base, QDockerCmd
 
 class bad(kill_check_base):
 
@@ -35,8 +32,8 @@ class bad(kill_check_base):
         for signal in signals_sequence:
             subargs = (["%s%s" % (random.choice(('-s ', '--signal=')), signal)]
                        + extra_subargs)
-            kill_cmds.append(DockerCmd(self.parent_subtest, 'kill', subargs,
-                             verbose=False))
+            dc = QDockerCmd(self.parent_subtest, 'kill', subargs)
+            kill_cmds.append(dc)
 
         # Change signals_sequence into results-like numbers
         # -1 => incorrect signal, otherwise signal number
