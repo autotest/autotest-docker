@@ -644,6 +644,26 @@ Three simple subsubtests that verify exit status and signal pass-through capabil
    i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
    and modify the values.
 
+``docker_cli/run_sigproxy`` Sub-test
+=======================================
+
+Test usage of docker run/attach with/without '--sig-proxy'
+
+``docker_cli/run_sigproxy`` Prerequisites
+---------------------------------------------
+
+*  A remote registry server
+
+``docker_cli/run_sigproxy`` Configuration
+--------------------------------------
+
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
+   and modify the values.
+*  The ``exec_cmd`` modifies the container command
+*  The ``wait_start`` is duration of container init
+*  The ``kill_signals`` space separated list of signals used in test
 
 ``docker_cli/rmi`` Sub-test
 =======================================
@@ -885,22 +905,25 @@ Several variations of running the kill command
    and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
    i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
    and modify the values.
-*  The ``top_name_prefix`` is prefix of the tested container followed by
-   random characters to make it unique.
-*  The ``run_options_csv`` modifies the running container options.
-*  The ``exec_cmd`` modifies the container command
-*  The ``wait_start`` is duration of container init
+*  The ``run_container_attached`` - When ``True``, creates detached container
+   and uses docker attach process in test. 
+*  The ``run_options_csv`` modifies the ``docker run`` options.
+*  The ``attach_options_csv`` modifies the ``docker attach`` options.
+*  The ``exec_cmd`` modifies the container command.
+*  ``stress_cmd_timeout`` - maximal acceptable delay caused by stress command
+*  The ``wait_start`` is duration of container initialization
 *  The ``no_iterations`` is number of signals (in some subsubtests)
 *  The ``kill_map_signals`` chooses between numerical and named signals (USR1)
    *  ``true`` - all signals are mapped
    *  ``false`` - all signals are numbers
    *  ``none`` - randomize for each signal
 *  The ``signals_sequence`` allows you to force given sequence of signals.
-   it's generated in case it's missing and printed in log for later use.
+   When none, new one is generated and logged for possible reuse.
 *  The ``kill_signals`` specifies used signals ``[range(*args)]``
 *  The ``skip_signals`` specifies which signals should be omitted
-*  The ``kill_sigproxy`` changes the kill command (false - ``docker kill``,
-   true - ``os.kill $docker_cmd.pid``.
+*  The ``kill_sigproxy`` changes the kill command:
+   *  ``false`` -> ``docker kill $name``
+   *  `true`` -> ``os.kill $docker_cmd.pid``
 
 
 ``docker_cli/top`` Sub-test

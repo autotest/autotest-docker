@@ -388,6 +388,14 @@ class OutputGoodBase(AllGoodBase):
             # Str representation will provide details
             raise xceptions.DockerOutputError(str(self))
 
+    def __str__(self):
+        if not self.__nonzero__():
+            msg = super(OutputGoodBase, self).__str__()
+            return "%s\nSTDOUT:\n%s\nSTDERR:\n%s" % (msg, self.stdout_strip,
+                                                     self.stderr_strip)
+        else:
+            return super(OutputGoodBase, self).__str__()
+
     def callable_args(self, name):
         if name.endswith('_stdout'):
             return {'output': self.stdout_strip}
