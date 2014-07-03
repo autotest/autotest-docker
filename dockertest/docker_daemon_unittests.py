@@ -30,7 +30,7 @@ setattr(mock('autotest.client.shared.error'), 'TestFail', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
 setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
-
+mock('autotest.client.utils')
 mock('autotest.client.shared.utils')
 mock('autotest.client.shared.error')
 mock('autotest.client.shared.service')
