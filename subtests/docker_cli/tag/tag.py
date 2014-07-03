@@ -46,7 +46,7 @@ class tag_base(SubSubtest):
         if tag_results.exit_status:
             raise xceptions.DockerTestNAError("Problems during "
                                               "initialization of"
-                                              " test: %s", results)
+                                              " test: %s", tag_results)
 
         im = self.check_image_exists(self.sub_stuff["image"])
         self.sub_stuff['image_list'] = im
