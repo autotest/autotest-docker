@@ -281,6 +281,8 @@ mock('autotest.client.shared')
 setattr(mock('autotest.client.utils'), 'CmdResult', type)
 setattr(mock('autotest.client.utils'), 'run', object)
 setattr(mock('autotest.client.utils'), 'AsyncJob', object)
+setattr(mock('autotest.client.utils'), 'wait_for', object)
+setattr(mock('autotest.client.shared'), 'service', object)
 # Mock module and test class in one call
 setattr(mock('autotest.client.test'), 'test', type)
 setattr(mock('autotest.client.shared.error'), 'CmdError', Exception)

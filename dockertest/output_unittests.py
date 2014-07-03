@@ -32,13 +32,27 @@ def mock(mod_path):
             sys.modules[mod_path] = child_mod
         return sys.modules[mod_path]
 
+def wait_for(func, timeout, first=0, step=1, text=None):
+    end_time = time.time() + timeout
+
+    time.sleep(first)
+
+    while time.time() < end_time:
+        output = func()
+        if output:
+            return output
+
+        time.sleep(step)
+
+    return None
+
 # Mock module and exception class in one stroke
 setattr(mock('autotest.client.shared.error'), 'CmdError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestFail', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
 setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
-
+setattr(mock('autotest.client.utils'), 'wait_for', wait_for)
 
 class FakeCmdResult(object):
 
@@ -241,24 +255,6 @@ line three
         self.assertEqual(x['NAMES'], 'dreamy_brattain')
         self.assertEqual(x['SIZE'], '166 B')
         # The last item with newlines isn't parsed properly, hence no unittest
-
-
-def wait_for(func, timeout, first=0, step=1, text=None):
-    end_time = time.time() + timeout
-
-    time.sleep(first)
-
-    while time.time() < end_time:
-        output = func()
-        if output:
-            return output
-
-        time.sleep(step)
-
-    return None
-
-
-setattr(mock('autotest.client.shared.utils'), 'wait_for', wait_for)
 
 
 class WaitForOutput(unittest.TestCase):

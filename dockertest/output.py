@@ -7,7 +7,7 @@ Handlers for command-line output processing, crash/panic detection, etc.
 
 import re
 from collections import Mapping, MutableSet, Sequence
-from autotest.client.shared import utils
+from autotest.client import utils
 
 import xceptions
 from environment import AllGoodBase

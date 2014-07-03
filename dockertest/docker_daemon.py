@@ -10,7 +10,7 @@ import socket
 import json
 from output import wait_for_output
 from autotest.client.shared import service
-from autotest.client.shared import utils
+from autotest.client import utils
 
 
 class ClientBase(object):

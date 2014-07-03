@@ -11,7 +11,6 @@ from dockertest.images import DockerImages
 from dockertest.output import OutputGood
 from autotest.client.shared import error
 
-
 class run(SubSubtestCaller):
     config_section = 'docker_cli/run'
 
@@ -85,3 +84,39 @@ class run_true(run_base):
 
 class run_false(run_base):
     pass  # Only change is in configuration
+
+class run_names(run_base):
+
+    def initialize(self):
+        super(run_names, self).initialize()
+        cont = self.sub_stuff["cont"]
+        names = []
+        for number in xrange(self.config['names_count']):
+            names.append(cont.get_unique_name(prefix='names',
+                                              suffix=str(number)))
+        subargs = self.sub_stuff['subargs']
+        self.sub_stuff['subargs'] = ["--name %s" % n for n in names] + subargs
+        if self.config['last_name_sticks']:
+            self.sub_stuff['expected_name'] = names[-1]
+        else:
+            self.sub_stuff['expected_name'] = names[0]
+
+    def run_once(self):
+        super(run_names, self).run_once()
+        cid = self.sub_stuff['cid'] = self.sub_stuff['dkrcmd'].stdout.strip()
+        self.sub_stuff['containers'].append(cid)
+        try:
+            self.sub_stuff["cont"].wait_by_long_id(cid)
+        except ValueError:
+            pass  # container already finished and exited
+
+    def postprocess(self):
+        super(run_names, self).postprocess()
+        cont = self.sub_stuff["cont"]
+        json = cont.json_by_long_id(self.sub_stuff['cid'])
+        self.failif(len(json) == 0)
+        # docker sticks a "/" prefix on name (documented?)
+        actual_name = str(json[0]['Name'][1:])
+        self.failif(actual_name != self.sub_stuff['expected_name'],
+                    "Actual name %s != expected name %s"
+                    % (actual_name, self.sub_stuff['expected_name']))

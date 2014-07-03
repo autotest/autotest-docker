@@ -610,7 +610,7 @@ Test usage of docker run/attach with/without '--sig-proxy'
 *  A remote registry server
 
 ``docker_cli/run_sigproxy`` Configuration
---------------------------------------
+-------------------------------------------
 
 *  The ``exec_cmd`` modifies the container command
 *  The ``wait_start`` is duration of container init
