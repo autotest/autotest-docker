@@ -54,7 +54,7 @@ class inspect_keys(inspect_base):
         fails = [x for x in keys if not bool(regex.match(x))]
         self.failif(fails,
                     "Keys: %s, do not match "
-                    "regex: %s in %s" % (fails, regex, name))
+                    "regex: %s in %s" % (fails, regex.pattern, name))
 
     def assert_keys(self, check_keys, keys, name):
         fails = [x for x in check_keys if x not in keys]
@@ -75,7 +75,7 @@ class inspect_keys(inspect_base):
 
         #verify container keys
         name = "container: %s" % (self.sub_stuff['containers'][0])
-        keys = self.get_keys(self.sub_sutff['container_config'])
+        keys = self.get_keys(self.sub_stuff['container_config'])
         if self.config['container_keys']:
             check_keys = self.config['container_keys'].split(',')
             self.assert_keys(check_keys, keys, name)

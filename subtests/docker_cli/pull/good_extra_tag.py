@@ -7,16 +7,28 @@ docker pull --tag=xxx full_name
 2. Check if image is in local repository.
 3. Remote image from local repository
 """
+from distutils.version import LooseVersion
 from pull import pull_base, check_registry
 from dockertest.images import DockerImage
+from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.output import DockerVersion
+from dockertest.xceptions import DockerTestNAError
 
 class good_extra_tag(pull_base):
-    config_section = 'docker_cli/pull/good_extra_tag'
+    max_version = "0.11.1-dev"  # Skip test after this docker version
 
     def setup(self):
         # check docker registry:
         registry_addr = self.config["docker_registry_host"]
         check_registry(registry_addr)
+
+    def initialize(self):
+        super(good_extra_tag, self).initialize()
+        dv = DockerVersion(NoFailDockerCmd(self, "version").execute().stdout)
+        client_version = LooseVersion(dv.client)
+        max_version = LooseVersion(self.max_version)
+        if client_version > max_version:
+            raise DockerTestNAError("Not testing deprecated --tag option")
 
     def complete_docker_command_line(self):
         super(good_extra_tag, self).complete_docker_command_line()
