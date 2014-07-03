@@ -347,6 +347,11 @@ file is loaded *either* from ``config_defaults`` *or* ``config_custom``.
    it's fully-qualified name is formed by the values to the
    ``docker_repo_name``, ``docker_repo_tag``
    ``docker_registry_host``, and ``docker_registry_user`` options.
+   Be aware that some subtests have specific image content requirements.
+   See the individual sections below for more details if this is the case.
+*  Most tests that create images and/or containers will automatically
+   remove them if the ``remove_after_test`` option is set to ``yes``
+   (the default)
 *  The ``config_version`` option is set to the API version
    this configuration is intended for.  Because a copy of the ``defaults.ini``
    file will not inherit default version number changes, it **will** cause
@@ -418,17 +423,6 @@ us not defined.
 =================================
 
 Simple test that checks the output of the ``docker version`` command.
-
-``docker_cli/version`` Prerequisites
--------------------------------------
-
-Docker daemon is running and accessible by it's unix socket.
-
-``docker_cli/version`` Configuration
---------------------------------------
-
-None
-
 
 ``docker_cli/build`` Sub-test
 ==============================
@@ -534,14 +528,6 @@ for each sub-sub-test are also used.
 Ultra-simple test to confirm output table-format of docker CLI
 'images' command.
 
-``docker_cli/images`` Prerequisites
----------------------------------------------
-*  None
-
-``docker_cli/images`` Configuration
---------------------------------------
-*  None
-
 ``docker_cli/run_volumes`` Sub-test
 =======================================
 
@@ -567,10 +553,6 @@ Ultra-simple test to confirm output table-format of docker CLI
 *  The ``cmd_template`` allows fine-tuning the command to run inside
    the container.  It makes use of shell-like value substitution from
    the contents of ``host_paths`` and ``cntr_paths``.
-*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
-   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
-   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
-   and modify the values.
 *  The ``wait_stop`` option specifies the time in seconds to wait after all
    docker run processes exit.
 
@@ -589,29 +571,10 @@ Ultra-simple test to confirm output table-format of docker CLI
 
 Start up a container, run the rm subcommand on it in various ways
 
-``docker_cli/rm`` Prerequisites
----------------------------------------------
-
-*  None
-
-``docker_cli/rm`` Configuration
---------------------------------------
-
-*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
-   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
-   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
-   and modify the values.
-
-
 ``docker_cli/dockerhelp`` Sub-test
 =======================================
 
 Several variations of running the dockerhelp command.
-
-``docker_cli/dockerhelp`` Prerequisites
----------------------------------------------
-
-*  None
 
 ``docker_cli/dockerhelp`` Configuration
 -------------------------------------------
@@ -636,14 +599,6 @@ Three simple subsubtests that verify exit status and signal pass-through capabil
 *  Container image with a ``/bin/date`` executable
 *  Accurate (relative to host) timekeeping in container
 
-``docker_cli/run_simple`` Configuration
------------------------------------------
-
-*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
-   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
-   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
-   and modify the values.
-
 ``docker_cli/run_sigproxy`` Sub-test
 =======================================
 
@@ -657,10 +612,6 @@ Test usage of docker run/attach with/without '--sig-proxy'
 ``docker_cli/run_sigproxy`` Configuration
 --------------------------------------
 
-*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
-   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
-   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
-   and modify the values.
 *  The ``exec_cmd`` modifies the container command
 *  The ``wait_start`` is duration of container init
 *  The ``kill_signals`` space separated list of signals used in test
@@ -680,11 +631,6 @@ Several variations of running the rmi command.
 ``docker_cli/rmi`` Configuration
 --------------------------------------
 
-*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
-   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
-   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
-   and modify the values.
-*  The ``remove_after_test`` option controls cleanup after all sub-subtests.
 *  The ``docker_rmi_force`` option causes sub-subtests to force remove images
 *  ``docker_expected_result`` should be "PASS" or "FAIL" to indicate result
    handling behavior of sub-subtests.
@@ -700,14 +646,6 @@ Several variations of running the pull command against a registry server.
 *  A remote registry server
 *  Image on remote registry with 'latest' and some other tag
 
-``docker_cli/pull`` Configuration
---------------------------------------
-
-*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
-   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
-   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
-   and modify the values.
-
 ``docker_cli/commit`` Sub-test
 =======================================
 
@@ -718,15 +656,6 @@ Several variations of running the commit command
 
 *  A remote registry server
 *  Image on remote registry with 'latest' and some other tag
-
-``docker_cli/commit`` Configuration
---------------------------------------
-
-*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
-   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
-   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
-   and modify the values.
-
 
 ``docker_cli/events`` Sub-test
 =======================================
@@ -746,10 +675,6 @@ appear after container finishes and is removed.
 ``docker_cli/events`` Configuration
 --------------------------------------
 
-*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
-   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
-   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
-   and modify the values.
 *  ``run_args`` is a CSV list of arguments to the run command
 *  ``rm_after_run`` specifies whether or not to use the ``docker rm``
    command after the container finishes.
@@ -768,18 +693,9 @@ appear after container finishes and is removed.
 Verify the table output and formatting of the ``docker ps -a``
 command.
 
-``docker_cli/psa`` Prerequisites
----------------------------------------------
-
-*  None
-
 ``docker_cli/psa`` Configuration
 --------------------------------------
 
-*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
-   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
-   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
-   and modify the values.
 *  The ``wait_stop`` and ``wait_start`` options specify time in seconds to wait
    before/after starting the test container.
 *  The ``remove_after_test`` option controls cleanup after test
@@ -798,10 +714,6 @@ Several variations of running the docker tag command
 ``docker_cli/tag`` Configuration
 --------------------------------------
 
-*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
-   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
-   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
-   and modify the values.
 *  ``tag_force`` specifies use of ``--force`` option
 *  The ``tag_repo_name_prefix`` option has random characters appended
    before it is used for tagging.
@@ -821,10 +733,6 @@ Several variations of running the stop command
 ``docker_cli/stop`` Configuration
 --------------------------------------
 
-*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
-   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
-   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
-   and modify the values.
 *  The ``top_name_prefix`` is prefix of the tested container followed by
    random characters to make it unique.
 *  The ``run_options_csv`` modifies the running container options.
@@ -845,10 +753,6 @@ Several variations of running the restart command
 ``docker_cli/restart`` Configuration
 --------------------------------------
 
-*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
-   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
-   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
-   and modify the values.
 *  The ``run_options_csv`` modifies the running container options.
 *  The ``restart_options_csv`` modifies the restart command options.
 *  The ``stop_options_csv`` specifies the stop command options.
@@ -901,12 +805,8 @@ Several variations of running the kill command
 ``docker_cli/kill`` Configuration
 --------------------------------------
 
-*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
-   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
-   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
-   and modify the values.
 *  The ``run_container_attached`` - When ``True``, creates detached container
-   and uses docker attach process in test. 
+   and uses docker attach process in test.
 *  The ``run_options_csv`` modifies the ``docker run`` options.
 *  The ``attach_options_csv`` modifies the ``docker attach`` options.
 *  The ``exec_cmd`` modifies the container command.
@@ -960,10 +860,6 @@ Several variations of running the restart command
 ``docker_cli/wait`` Configuration
 --------------------------------------
 
-*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
-   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
-   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
-   and modify the values.
 *  The ``run_options_csv`` modifies the running container options.
 *  The ``wait_options_csv`` modifies the wait command options.
 *  The ``exec_cmd`` modifies the container command. Note that in this tests
@@ -1005,12 +901,6 @@ copied successfully.
 
 *  Docker daemon is running and accessible by it's unix socket.
 
-``docker_cli/cp`` Configuration
---------------------------------------
-
-*  The ``remove_after_test`` specifies whether to remove the
-   container created during the test.
-
 ``docker_cli/insert`` Sub-test
 =================================
 
@@ -1026,8 +916,6 @@ it was inserted successfully.
 ``docker_cli/insert`` Configuration
 --------------------------------------
 
-*  The ``remove_after_test`` specifies whether to remove the
-   container created during the test.
 *  The ``file_url`` is the url to a file to be inserted during
    the test.
 
@@ -1035,17 +923,6 @@ it was inserted successfully.
 =================================
 
 Verify that could not run a container which is already running.
-
-``docker_cli/run_twice`` Prerequisites
---------------------------------------
-
-*  Docker daemon is running and accessible by it's unix socket.
-
-``docker_cli/run_twice`` Configuration
---------------------------------------
-
-*  The ``remove_after_test`` specifies whether to remove the
-   container created during the test.
 
 ``docker_cli/diff`` Sub-test
 ============================
@@ -1061,8 +938,6 @@ asserts that the changes are picked up correctly by ``docker diff``
 ``docker_cli/diff`` Configuration
 ---------------------------------
 
-*  The ``remove_after_test`` specifies whether to remove the
-   container created during the test.
 *  ``command`` is a csv arg list to ``docker run`` that specifies
    how a test will modify a file for the test
 *  ``files_changed`` is a csv list of expected change types and the
@@ -1086,12 +961,6 @@ it was not allowed.
 
 *  The ``section`` specifies which section to test.
 *  The ``subsubtests`` specifies which subtests to run.
-*  Customized configuration for ``invalid_run_params``,
-   ``expected_result`` and ``invalid_pars_expected_output``,
-   ``invalid_vals_expected_output`` and ``input_docker_tag``,
-   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
-   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
-   and modify the values.
 
 ``docker_cli/workdir`` Sub-test
 =================================
@@ -1165,10 +1034,6 @@ properly.
 ---------------------------------------
 *  The option ``remove_after_test`` specifies whether to remove the
    container created during the test.
-*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
-   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
-   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
-   and modify the values.
 *  The option ``expect_success``, sets the pass/fail logic for results processing.
 *  The option ``memory_value``, sets a quantity of memory to check
 *  Invalid range testing uses the options ``memory_min_invalid`` and
@@ -1178,7 +1043,7 @@ properly.
 ``docker_cli/syslog`` Sub-test
 =================================
 
-Simple test that checks monitoring containers logs from host 
+Simple test that checks monitoring containers logs from host
 via bind-mount /dev/log to containers.
 
 ``docker_cli/syslog`` Prerequisites
@@ -1207,10 +1072,6 @@ it was not allowed.
 --------------------------------------
 *  The option ``remove_after_test`` specifies whether to remove the
    container created during the test.
-*  Customized configuration for ``flag_args`` and ``searched_info``
-   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
-   and modify the values.
-
 
 ``docker_cli/iptable`` Sub-test
 ===============================
@@ -1230,13 +1091,8 @@ This a set of test that check the container's iptable rules on host.
 ``docker_cli/iptable`` Configuration
 -------------------------------------
 
-*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
-   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
-   i.e. Copy ``config_defaults/defaults.ini`` to ``config_custom/defaults.ini``
-   and modify the values.
 *  The option ``name`` sets the container's prefix name.
 *  The option ``bash_cmd`` sets the command that the container will execute.
- 
 
 ----------------------------------
 Dockertest API Reference
