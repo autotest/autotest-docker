@@ -17,6 +17,7 @@ from dockertest.output import OutputGood
 from dockertest.dockercmd import DockerCmd
 from dockertest.containers import DockerContainers
 
+
 class check_default_cmd(commit_base):
     config_section = 'docker_cli/commit/check_default_cmd'
 
@@ -51,8 +52,8 @@ class check_default_cmd(commit_base):
                 dc = DockerCmd(self.parent_subtest, "rm", ["-f", cont.long_id])
                 rm_results = dc.execute()
                 self.failif(rm_results.exit_status != 0,
-                    "Non-zero commit exit status: %s"
-                    % rm_results)
+                            "Non-zero commit exit status: %s"
+                            % rm_results)
 
         self.failif(results.exit_status != 0,
                     "Non-zero commit exit status: %s"

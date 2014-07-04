@@ -20,6 +20,7 @@ from dockertest.dockercmd import NoFailDockerCmd
 from dockertest.xceptions import DockerCommandError
 from dockertest.xceptions import DockerTestNAError
 
+
 class rmi(subtest.SubSubtestCaller):
     config_section = 'docker_cli/rmi'
 
@@ -27,6 +28,7 @@ class rmi(subtest.SubSubtestCaller):
         super(rmi, self).initialize()
         base_image = images.DockerImage.full_name_from_defaults(self.config)
         self.stuff['base_image'] = base_image
+
 
 class rmi_base(SubSubtest):
 
@@ -85,7 +87,7 @@ class rmi_base(SubSubtest):
             im = self.check_image_exists(self.sub_stuff["image_name"])
             self.sub_stuff['image_list'] = im
             self.failif(im != [], "Deleted image still exits: %s" %
-                                                self.sub_stuff["image_name"])
+                        self.sub_stuff["image_name"])
 
         elif self.config["docker_expected_result"] == "FAIL":
             self.failif(self.sub_stuff['cmdresult'].exit_status == 0,
@@ -101,7 +103,7 @@ class rmi_base(SubSubtest):
         di = DockerImages(self.parent_subtest)
         # Auto-converts "yes/no" to a boolean
         if (self.config['remove_after_test'] and
-            'image_list' in self.sub_stuff):
+                'image_list' in self.sub_stuff):
             for cont in self.sub_stuff["containers"]:
                 clean_cont = NoFailDockerCmd(self, "rm",
                                              ['--force', cont],
@@ -125,6 +127,7 @@ class rmi_base(SubSubtest):
 
 
 class with_blocking_container_by_tag(rmi_base):
+
     """
     Test output of docker rmi command
 
@@ -159,7 +162,7 @@ class with_blocking_container_by_tag(rmi_base):
 
         results = prep_changes.execute()
         dnamsg = ("Problems during initialization of"
-                                    " test: %s", results)
+                  " test: %s", results)
         if results.exit_status:
             raise DockerTestNAError(dnamsg)
         else:
@@ -219,7 +222,6 @@ class with_blocking_container_by_tag(rmi_base):
                     "Zero rmi exit status: Command should fail due to"
                     " wrong image name.")
 
-
     def postprocess(self):
         self._common_post()
         im = self.check_image_exists(self.sub_stuff["image_name"])
@@ -227,7 +229,9 @@ class with_blocking_container_by_tag(rmi_base):
                               " %s is still used by container." %
                     self.sub_stuff["image_name"])
 
+
 class with_blocking_container_by_id(with_blocking_container_by_tag):
+
     """
     Test output of docker Pull command
 

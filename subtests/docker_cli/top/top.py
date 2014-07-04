@@ -30,7 +30,7 @@ class top(subtest.Subtest):
 
     """ Subtest caller """
     config_section = 'docker_cli/top'
-    #F,UID,(PID),(PPID),(PRI),(NI),(VSZ),(RSS),(WCHAN),(STAT),(TTY),TIME,CMD
+    # F,UID,(PID),(PPID),(PRI),(NI),(VSZ),(RSS),(WCHAN),(STAT),(TTY),TIME,CMD
     __re_top_all = re.compile(r'\d+\s+\d+\s+(?P<pid>\d+)\s+(?P<ppid>\d+)\s+'
                               r'(?P<pri>\d+)\s+(?P<ni>\d+)\s+(?P<vsz>\d+)\s+'
                               r'(?P<rss>\d+)\s+(?P<wchan>\w+|-|\?)\s+'
@@ -148,7 +148,7 @@ class top(subtest.Subtest):
             os.write(cont_stdin, "while [ -e /test_cmd_lock ]; do :; "
                      "done &\n")
 
-        #time.sleep(3)
+        # time.sleep(3)
 
         last_idx = self._gather_processes(last_idx)
 

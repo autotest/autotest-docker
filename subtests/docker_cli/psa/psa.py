@@ -5,7 +5,10 @@ Test output of docker ps -a command
 2. Fail if table-format changes or is not parseable
 """
 
-import time, signal, os.path, os
+import time
+import signal
+import os.path
+import os
 from autotest.client import utils
 from dockertest import subtest
 from dockertest import images
@@ -14,6 +17,7 @@ from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.dockercmd import NoFailDockerCmd
 from dockertest.containers import DockerContainers
 from dockertest.xceptions import DockerTestFail
+
 
 class psa(subtest.Subtest):
     config_section = 'docker_cli/psa'
@@ -37,7 +41,7 @@ class psa(subtest.Subtest):
                    "echo 'foobar' > stop && "
                    "rm -f stop && trap '/usr/bin/date +%%s> stop' USR1 && "
                    "while ! [ -f stop ]; do /usr/bin/sleep 0.1s; done"
-                    "\"")
+                   "\"")
         subargs.append(command)
         self.stuff['cl0'] = dc.list_containers()
         dkrcmd = AsyncDockerCmd(self, 'run', subargs)
@@ -85,7 +89,7 @@ class psa(subtest.Subtest):
         self.loginfo("Waiting up to %d seconds for exit",
                      self.config['wait_stop'])
         self.stuff['cmdresult'] = self.stuff['dkrcmd'].wait(
-                                                    self.config['wait_stop'])
+            self.config['wait_stop'])
         self.stuff['cl2'] = dc.list_containers()
 
     def postprocess(self):
@@ -95,8 +99,8 @@ class psa(subtest.Subtest):
         cnts = dc.list_containers_with_name(self.stuff['container_name'])
         self.failif(len(cnts) < 1, "Test container not found in list")
         cnt = cnts[0]
-        estat1 = str(cnt.status).startswith("Exit 0") # pre docker 0.9.1
-        estat2 = str(cnt.status).startswith("Exited (0)") # docker 0.9.1 & later
+        estat1 = str(cnt.status).startswith("Exit 0")  # pre docker 0.9.1
+        estat2 = str(cnt.status).startswith("Exited (0)")  # docker 0.9.1 & later
         self.failif(not (estat1 or estat2), "Exit status mismatch: %s does not"
                                             "start with %s or %s"
                                             % (str(cnt), "Exit 0",

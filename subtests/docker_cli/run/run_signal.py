@@ -18,7 +18,7 @@ class run_signal(run_base):
                                 self.sub_stuff['subargs'],
                                 timeout=self.config['docker_timeout'])
         self.logdebug("Starting background docker command, timeout %s seconds: "
-                     "%s", self.config['docker_timeout'], dkrcmd.command)
+                      "%s", self.config['docker_timeout'], dkrcmd.command)
         dkrcmd.verbose = True
         # Runs in background
         self.sub_stuff['dkrcmd'] = dkrcmd

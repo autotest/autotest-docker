@@ -10,6 +10,7 @@ import tempfile
 import os
 import shutil
 
+
 class ContainersTestBase(unittest.TestCase):
 
     def setUp(self):
@@ -95,6 +96,7 @@ def mock(mod_path):
 
 # Just pack whatever args received into attributes
 class FakeCmdResult(object):
+
     def __init__(self, **dargs):
         for key, val in dargs.items():
             setattr(self, key, val)
@@ -115,9 +117,9 @@ def run(command, *_args, **_dargs):
         "Domainname": ""
     }
 }]""",
-    stderr='',
-    exit_status=0,
-    duration=1.21)
+                             stderr='',
+                             exit_status=0,
+                             duration=1.21)
     return FakeCmdResult(command=command.strip(),
                          stdout=r"""
 CONTAINER ID                                                       IMAGE                             COMMAND                                            CREATED             STATUS              PORTS                                            NAMES               SIZE
@@ -129,9 +131,9 @@ c0c35064e4d2bdcf86e6fd83e0de2e599473c12a6599415a9a021bdf382a3589   busybox:lates
 abf8c40b19e353ff1f67e3a26a967c14944b07b8f5aceb752f781ffca285a2a9   10.16.71.105:5000/fedora:latest   /bin/bash                                          22 hours ago        Exit 0                                                               suspicious_pare     77 B
 e1820ef428b51a95c963353cc4ce6b57ea0a20c44537a8336792510713dfe524   10.16.71.105:5000/fedora:latest   /bin/bash                                          22 hours ago        Exit 0                                                               thirsty_mccarthy    77 B
 """,
-                        stderr='',
-                        exit_status=0,
-                        duration=42)
+                         stderr='',
+                         exit_status=0,
+                         duration=42)
 
 # Mock module and mock function run in one line
 setattr(mock('autotest.client.utils'), 'run', run)
@@ -148,9 +150,10 @@ setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
 setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
 setattr(mock('autotest.client.shared.version'), 'get_version',
-                                               lambda :version.AUTOTESTVERSION)
+        lambda: version.AUTOTESTVERSION)
 
 import version
+
 
 class DockerContainersTestBase(ContainersTestBase):
 
@@ -175,8 +178,8 @@ class DockerContainersTestBase(ContainersTestBase):
 
     def _setup_defaults(self):
         self.config.DEFAULTSFILE = self._setup_inifile('DEFAULTS',
-                                   self.config.CONFIGDEFAULT,
-                                   self.defaults)
+                                                       self.config.CONFIGDEFAULT,
+                                                       self.defaults)
 
     def _setup_customs(self):
         self._setup_inifile(self.config_section,

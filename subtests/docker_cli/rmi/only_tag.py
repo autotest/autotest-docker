@@ -13,6 +13,7 @@ from rmi import rmi_base
 from dockertest.dockercmd import DockerCmd
 from dockertest.xceptions import DockerTestNAError
 
+
 class only_tag(rmi_base):
     config_section = 'docker_cli/rmi/only_tag'
 

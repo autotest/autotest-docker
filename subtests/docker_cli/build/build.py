@@ -8,7 +8,10 @@ Test run of docker build command
 5. Optionally remove built image
 """
 
-import os, os.path, shutil, time
+import os
+import os.path
+import shutil
+import time
 from urllib2 import urlopen
 from dockertest import subtest
 from dockertest.images import DockerImages
@@ -18,7 +21,9 @@ from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.dockercmd import DockerCmd
 from dockertest.dockercmd import NoFailDockerCmd
 
+
 class NotSeenString(object):
+
     """
     Represent the next line of a string not already returned previously
     """
@@ -80,7 +85,7 @@ class NotSeenString(object):
             del lines[0:self.end]
             self.end += 1
         else:
-            return None # no new lines
+            return None  # no new lines
         result = lines[0]
         stripped = result.strip()
         if len(stripped) > 0:
@@ -88,6 +93,7 @@ class NotSeenString(object):
             return True
         else:
             return False  # skip blank line
+
 
 class build(subtest.Subtest):
     config_section = 'docker_cli/build'

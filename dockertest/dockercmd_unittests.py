@@ -35,35 +35,47 @@ def mock(mod_path):
             sys.modules[mod_path] = child_mod
         return sys.modules[mod_path]
 
+
 class FakePopen(object):
+
     """needed for testing AsyncDockerCmd"""
     pid = -1
+
     def poll(self):
         return True
 
+
 class FakeCmdResult(object):    # pylint: disable=R0903
+
     """ Just pack whatever args received into attributes """
     duration = 123
     stdout = None
     stderr = None
     exit_status = 0
+
     def __init__(self, *args, **dargs):
         self.sp = FakePopen()
         for key, val in dargs.items():
             setattr(self, key, val)
+
     def __str__(self):
         return self.command
     # needed for testing AsyncDockerCmd
+
     def get_stdout(self):
         return "STDOUT"
+
     def get_stderr(self):
         return "STDERR"
+
     def wait_for(self, timeout):
         self.duration = timeout
         return self
+
     @property
     def result(self):
         return self
+
 
 def run(command, *args, **dargs):
     """ Don't actually run anything! """
@@ -94,13 +106,14 @@ setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
 setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
 setattr(mock('autotest.client.shared.version'), 'get_version',
-                                               lambda :version.AUTOTESTVERSION)
+        lambda: version.AUTOTESTVERSION)
 # Need all three for Subtest class
 mock('autotest.client.shared.base_job')
 mock('autotest.client.shared.job')
 mock('autotest.client.job')
 
 import version
+
 
 class DockerCmdTestBase(unittest.TestCase):
 
@@ -124,8 +137,8 @@ class DockerCmdTestBase(unittest.TestCase):
 
     def _setup_defaults(self):
         self.config.DEFAULTSFILE = self._setup_inifile('DEFAULTS',
-                                   self.config.CONFIGDEFAULT,
-                                   self.defaults)
+                                                       self.config.CONFIGDEFAULT,
+                                                       self.defaults)
 
     def _setup_customs(self):
         self._setup_inifile(self.config_section,
@@ -134,6 +147,7 @@ class DockerCmdTestBase(unittest.TestCase):
 
     def _make_fake_subtest(self):
         class FakeSubtestException(Exception):
+
             def __init__(fake_self, *_args, **_dargs):  # pylint: disable=E0213
                 super(FakeSubtestException, self).__init__()
 
@@ -210,7 +224,7 @@ class DockerCmdTestBasic(DockerCmdTestBase):
         docker_command.timeout = 24
         self.assertEqual(docker_command.timeout, 24)
         self.assertRaises(NotImplementedError, docker_command.execute,
-                           'not stdin')
+                          'not stdin')
 
         self.assertRaises(self.dockercmd.DockerTestError,
                           self.dockercmd.DockerCmdBase, "ThisIsNotSubtest",
@@ -285,7 +299,6 @@ class AsyncDockerCmd(DockerCmdTestBase):
         for prop in ('done', 'process_id'):
             self.assertRaises(self.dockercmd.DockerTestError,
                               getattr, docker_cmd, prop)
-
 
         cmdresult = docker_cmd.execute()
         self.assertTrue(isinstance(cmdresult, FakeCmdResult))

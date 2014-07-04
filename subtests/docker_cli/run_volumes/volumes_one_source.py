@@ -63,10 +63,10 @@ class volumes_one_source(volumes_base):
             file_path = self.tmpdir + "/" + name
             with open(file_path, 'r') as content:
                 data = content.read()
-                #uncommenting these print lines will show that the files are
-                #being written at the same time
-                #print file_path
-                #print data
+                # uncommenting these print lines will show that the files are
+                # being written at the same time
+                # print file_path
+                # print data
             md5 = hashlib.md5(data).hexdigest()
             self.failif(result != md5,
                         "MD5 mismatch for container: %s" % (name))

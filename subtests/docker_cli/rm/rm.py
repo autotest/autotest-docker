@@ -21,6 +21,7 @@ from dockertest.images import DockerImage
 from dockertest.output import OutputGood
 from dockertest import environment
 
+
 class rm(SubSubtestCaller):
     config_section = 'docker_cli/rm'
 
@@ -30,11 +31,10 @@ class rm(SubSubtestCaller):
         for cntr in dc.list_containers():
             self.failif('exit' not in cntr.status.lower(),
                         "Container %s found running before test!"
-                         % cntr.container_name)
+                        % cntr.container_name)
         super(rm, self).initialize()
         # Static data for subtests to use
         self.stuff['init_time'] = int(time.time())
-
 
     def postprocess(self):
         super(rm, self).postprocess()
@@ -50,6 +50,7 @@ class rm(SubSubtestCaller):
             self.logwarning("Removing leftover container: %s", cnt)
             dc.remove_by_obj(cnt)
 
+
 class rm_sub_base(SubSubtest):
 
     def rm_container(self, what):
@@ -60,7 +61,7 @@ class rm_sub_base(SubSubtest):
         self.sub_stuff['rm_cmdresult'] = rm_cmd.execute()
         wait_rm = self.config['wait_rm']
         self.loginfo("Sleeping %d seconds after rm",
-                      wait_rm)
+                     wait_rm)
         time.sleep(wait_rm)
 
     def signal_container(self, name):
@@ -128,7 +129,7 @@ class rm_sub_base(SubSubtest):
                    "echo 'foobar' > stop && "
                    "rm -f stop && trap '/usr/bin/date +%%s> stop' %s && "
                    "while ! [ -f stop ]; do /usr/bin/sleep 0.1s; done"
-                    "\""
+                   "\""
                    % self.config['listen_signal'])
         subargs.append(command)
 
@@ -181,7 +182,7 @@ class rm_sub_base(SubSubtest):
         self.wait_start()
         wait_start = self.config['wait_start']
         self.loginfo("Sleeping %d seconds after container start",
-                      wait_start)
+                     wait_start)
         time.sleep(wait_start)
         dkrcmd = self.sub_stuff['dkrcmd']
         dkrcmd.update_result()
@@ -195,7 +196,7 @@ class rm_sub_base(SubSubtest):
         self.failif(cmdresult.exit_status != 0, "Expected zero exit: %s"
                                                 % cmdresult)
         self.failif(rm_cmdresult.exit_status != 0, "Expected zero exit: %s"
-                                                % rm_cmdresult)
+                    % rm_cmdresult)
         OutputGood(cmdresult)
         OutputGood(rm_cmdresult)
 
@@ -236,7 +237,9 @@ class rm_sub_base(SubSubtest):
         self.verify_start()
         self.verify_stop()
 
+
 class finished(rm_sub_base):
+
     """
     Signal to update timestamp, exit bash, verify container exit(0), call rm
     """
@@ -247,6 +250,7 @@ class finished(rm_sub_base):
         self.signal_container(cntr_name)
         self.wait_container()
         self.rm_container(cntr_name)
+
 
 class forced(rm_sub_base):
 
@@ -262,7 +266,7 @@ class forced(rm_sub_base):
         self.failif(cmdresult.exit_status == 0, "Expected non-zero exit: %s"
                                                 % cmdresult)
         self.failif(rm_cmdresult.exit_status != 0, "Expected zero exit: %s"
-                                                % rm_cmdresult)
+                    % rm_cmdresult)
         OutputGood(cmdresult)
         OutputGood(rm_cmdresult)
 

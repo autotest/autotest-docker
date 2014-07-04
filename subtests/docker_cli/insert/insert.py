@@ -16,17 +16,18 @@ from dockertest.xceptions import DockerTestNAError
 import hashlib
 import urllib2
 
+
 class insert(subtest.Subtest):
     config_section = 'docker_cli/insert'
 
     def initialize(self):
         super(insert, self).initialize()
         self.stuff['cntr_objs'] = []
-        #check for a valid url for the test
+        # check for a valid url for the test
         file_url = self.config['file_url']
         if not file_url or len(file_url) < 4:
             raise DockerTestNAError("'file_url' in insert.ini not set.")
-        #pull down file at url for use later
+        # pull down file at url for use later
         response = urllib2.urlopen(file_url)
         contents = response.read()
         self.stuff['contents'] = contents

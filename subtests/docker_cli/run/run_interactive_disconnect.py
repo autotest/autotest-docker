@@ -88,9 +88,9 @@ class run_interactive_disconnect(run_base):
         self.failif(not str_in_output in cmd_stdout_attach,
                     "Command %s output must contain %s but doesn't."
                     " Detail:%s" %
-                   (self.config["bash_cmd"],
-                    str_in_output,
-                    self.sub_stuff['dkrcmd_attach'].cmdresult))
+                    (self.config["bash_cmd"],
+                     str_in_output,
+                     self.sub_stuff['dkrcmd_attach'].cmdresult))
 
     def cleanup(self):
         c_name = self.sub_stuff["rand_name"]

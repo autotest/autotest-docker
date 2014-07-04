@@ -16,7 +16,9 @@ from dockertest import docker_daemon
 from dockertest.config import none_if_empty, get_as_list
 from dockertest.xceptions import DockerTestNAError
 
+
 class AsyncDockerCmdStdIn(AsyncDockerCmd):
+
     r"""
     Setup a call docker subcommand as if by CLI w/ subtest config integration
     Execute docker subcommand with arguments and a timeout.
@@ -42,7 +44,7 @@ class AsyncDockerCmdStdIn(AsyncDockerCmd):
     def __init__(self, subtest, subcmd, subargs=None, timeout=None,
                  verbose=True, stdin_r=None, stdin=None):
         super(AsyncDockerCmdStdIn, self).__init__(subtest, subcmd, subargs,
-                                                 timeout, verbose)
+                                                  timeout, verbose)
 
         self.stdin = stdin
         if stdin_r == self.PIPE:
@@ -62,6 +64,7 @@ class AsyncDockerCmdStdIn(AsyncDockerCmd):
 
 
 class AsyncDockerCmdSpec(AsyncDockerCmdStdIn):
+
     r"""
     Setup a call docker subcommand as if by CLI w/ subtest config integration
     Execute docker subcommand with arguments and a timeout.
@@ -88,6 +91,7 @@ class AsyncDockerCmdSpec(AsyncDockerCmdStdIn):
 
 
 class DkrcmdFactory(object):
+
     r"""
     DockerCmd factory create dockercmd object with specified subtest and more.
     Simplifies DockerCmd because replace blocking calling of docker by
@@ -196,13 +200,12 @@ class network_base(SubSubtest):
         docker_args.append("-H %s" % bind_addr)
         self.loginfo("Starting %s %s", self.config["docker_path"], docker_args)
         dd = docker_daemon.start(self.config["docker_path"],
-                                               docker_args)
+                                 docker_args)
         if not docker_daemon.output_match(dd):
             raise DockerTestNAError("Unable to start docker daemon:"
                                     "\n**STDOUT**:\n%s\n**STDERR**:\n%s" %
                                     (dd.get_stdout(), dd.get_stderr()))
         self.sub_stuff["docker_daemon"] = dd
-
 
     def cleanup(self):
         super(network_base, self).cleanup()
@@ -220,7 +223,7 @@ class network_base(SubSubtest):
 
         if "docker_daemon" in self.sub_stuff:
             docker_daemon.restart_service(
-                                    self.sub_stuff["docker_daemon"])
+                self.sub_stuff["docker_daemon"])
 
     def get_jason(self, cont_name):
         try:

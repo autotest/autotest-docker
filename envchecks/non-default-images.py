@@ -4,6 +4,7 @@ import os
 import sys
 from subprocess import Popen, PIPE, STDOUT
 
+
 def get_envcheck_ignore_iids():
     csv = os.environ.get('envcheck_ignore_iids')
     if csv is not None:
@@ -11,12 +12,14 @@ def get_envcheck_ignore_iids():
     else:
         return []
 
+
 def get_envcheck_ignore_fqin():
     csv = os.environ.get('envcheck_ignore_fqin')
     if csv is not None:
         return csv.strip().split(',')
     else:
         return []
+
 
 def get_docker_path():
     docker_path = os.environ.get('docker_path')

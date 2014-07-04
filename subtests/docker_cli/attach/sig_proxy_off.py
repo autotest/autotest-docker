@@ -10,5 +10,6 @@ Test attach
 
 from attach import sig_proxy_off_base
 
+
 class sig_proxy_off(sig_proxy_off_base):
     pass

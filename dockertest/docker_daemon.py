@@ -109,6 +109,7 @@ class SocketClient(ClientBase):
 
 # Group of utils for managing docker daemon service.
 
+
 def start(docker_path, docker_args):
     """
     Start new docker daemon with special args.
@@ -125,6 +126,7 @@ def start(docker_path, docker_args):
     daemon_process = utils.AsyncJob(" ".join(cmd), close_fds=True)
     return daemon_process
 
+
 def output_match(daemon_process,
                  timeout=120,
                  regex=r"-job acceptconnections\(\) = OK \(0\)"):
@@ -138,6 +140,7 @@ def output_match(daemon_process,
     return wait_for_output(daemon_process.get_stderr,
                            regex,
                            timeout=timeout)
+
 
 def restart_service(daemon_process=None):
     """

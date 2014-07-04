@@ -9,6 +9,7 @@ Test attach
 """
 from attach import sig_proxy_off_base
 
+
 class sig_proxy_on(sig_proxy_off_base):
 
     def check_containers(self, containers):

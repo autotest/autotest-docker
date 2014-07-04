@@ -12,6 +12,7 @@ from dockertest.dockercmd import NoFailDockerCmd
 from dockertest import xceptions
 from dockertest import subtest
 
+
 class import_export(subtest.SubSubtestCaller):
     config_section = 'docker_cli/import_export'
 
@@ -27,11 +28,11 @@ class import_export_base(SubSubtest):
         cmdresult = dkrcmd.execute()
         if cmdresult.exit_status != 0:
             xceptions.DockerTestNAError("Unable to prepare env for test: %s" %
-                                       (cmdresult))
+                                        (cmdresult))
         cid = self.sub_stuff["cont"].list_containers_with_name(name)
         self.failif(cid == [],
                     "Unable to search container with name %s: details :%s" %
-                   (name, cmdresult))
+                    (name, cmdresult))
 
     def init_ei_dockercmd(self, export_arg_csv, import_arg_csv):
         # Never execute()'d, just used for command property
@@ -81,6 +82,7 @@ class import_export_base(SubSubtest):
                         raise
                 except xceptions.DockerTestError:
                     pass  # best effort removal, maybe image wasn't there
+
 
 class simple(import_export_base):
 

@@ -78,7 +78,6 @@ class DockerCmdBase(object):
 
     @property
     def details(self):
-
         """
         Returns substitution dictionary for __str__ and logging.
         """
@@ -105,7 +104,6 @@ class DockerCmdBase(object):
         return dct
 
     def __str__(self):
-
         """
         Return string representation of instance w/ details if verbose=True
         """
@@ -126,7 +124,6 @@ class DockerCmdBase(object):
         return fmt % self.details
 
     def execute(self, stdin):  # pylint: disable=R0201
-
         """
         Execute docker subcommand
 
@@ -144,7 +141,6 @@ class DockerCmdBase(object):
 
     # Impl. specific stubb, can't be a function
     def execute_calls(self):  # pylint: disable=R0201
-
         """
         Returns the number of times ``execute()`` has been called
 
@@ -155,7 +151,6 @@ class DockerCmdBase(object):
 
     @property
     def docker_options(self):
-
         """
         String of docker args
         """
@@ -165,7 +160,6 @@ class DockerCmdBase(object):
 
     @property
     def docker_command(self):
-
         """
         String of docker command path
         """
@@ -175,7 +169,6 @@ class DockerCmdBase(object):
 
     @property
     def command(self):
-
         """
         String representation of command + subcommand + args
         """
@@ -192,7 +185,6 @@ class DockerCmdBase(object):
 
     @property
     def stdout(self):
-
         """
         Represent string of stdout
 
@@ -206,7 +198,6 @@ class DockerCmdBase(object):
 
     @property
     def stderr(self):
-
         """
         Represent string of stderr
 
@@ -220,7 +211,6 @@ class DockerCmdBase(object):
 
     @property
     def exit_status(self):
-
         """
         Represent exit code
 
@@ -235,7 +225,6 @@ class DockerCmdBase(object):
 
     @property
     def duration(self):
-
         """
         Represent the duration / elapsed time of command
 
@@ -252,7 +241,6 @@ class DockerCmdBase(object):
 
     @property
     def cmdresult(self):
-
         """
         Represent fresh CmdResult value (not reference)
         """
@@ -263,7 +251,6 @@ class DockerCmdBase(object):
 
     @cmdresult.setter
     def cmdresult(self, value):
-
         """
         Allow subclasses ability to update the private cache attribute
 
@@ -277,6 +264,7 @@ class DockerCmdBase(object):
                                           duration=value.duration)
         return self.cmdresult
 
+
 class DockerCmd(DockerCmdBase):
 
     """
@@ -285,7 +273,6 @@ class DockerCmd(DockerCmdBase):
     """
 
     def execute(self, stdin=None):
-
         """
         Run docker command, ignore any non-zero exit code
         """
@@ -311,13 +298,13 @@ class DockerCmd(DockerCmdBase):
 
 
 class NoFailDockerCmd(DockerCmd):
+
     """
     Setup a call docker subcommand as if by CLI w/ subtest config integration
     Execute docker subcommand with arguments and a timeout.
     """
 
     def execute(self, stdin=None):
-
         """
         Execute docker command, raising DockerCommandError if non-zero exit
         """
@@ -336,7 +323,6 @@ class MustFailDockerCmd(DockerCmd):
     """
 
     def execute(self, stdin=None):
-
         """
         Execute docker command, raise DockerExecError if **zero** exit code
         """
@@ -358,7 +344,6 @@ class AsyncDockerCmd(DockerCmdBase):
     _async_job = None
 
     def execute(self, stdin=None):
-
         """
         Start execution of asynchronous docker command
         """
@@ -377,7 +362,6 @@ class AsyncDockerCmd(DockerCmdBase):
         return self.cmdresult
 
     def wait(self, timeout=None):
-
         """
         Return CmdResult after waiting for process to end or timeout
 
@@ -398,7 +382,6 @@ class AsyncDockerCmd(DockerCmdBase):
         return self.cmdresult
 
     def update_result(self):
-
         """
         Deprecated, do not use
 
@@ -409,7 +392,6 @@ class AsyncDockerCmd(DockerCmdBase):
 
     @property
     def done(self):
-
         """
         Return True if processes has ended
 
@@ -423,7 +405,6 @@ class AsyncDockerCmd(DockerCmdBase):
 
     @property
     def process_id(self):
-
         """
         Return the process id of the command
 

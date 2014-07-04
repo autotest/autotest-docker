@@ -55,13 +55,15 @@ class DDTest(DDTestBase):
 
     def test_client_subclass(self):
         class c(self.dd.ClientBase):
+
             def get(self, resource):
                 return (self.uri, resource)
+
             @staticmethod
             def value_to_json(value):
                 return json.loads('[{"%s":"%s"}]' % value)
         i = c('foo')
-        self.assertEqual(i.get_json('bar'), [{u'foo':u'bar'}])
+        self.assertEqual(i.get_json('bar'), [{u'foo': u'bar'}])
         self.assertEqual(i.interface, None)
 
 if __name__ == '__main__':

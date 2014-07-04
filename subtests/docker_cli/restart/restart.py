@@ -20,6 +20,7 @@ from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtest
 from dockertest.dockercmd import NoFailDockerCmd
 
+
 class restart(subtest.SubSubtestCaller):
 
     """ Subtest caller """
@@ -29,6 +30,7 @@ class restart(subtest.SubSubtestCaller):
 class restart_base(SubSubtest):
 
     """ Base class """
+
     def initialize(self):
         super(restart_base, self).initialize()
         config.none_if_empty(self.config)

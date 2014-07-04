@@ -26,9 +26,11 @@ from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCallerSimultaneous
 
+
 class run_memory(SubSubtestCallerSimultaneous):
 
     """subtest Caller"""
+
 
 class run_memory_base(SubSubtest):
 
@@ -57,27 +59,27 @@ class run_memory_base(SubSubtest):
 
         if container_memory == 0:
             if cgroup_memory == 0:
-                result = {'PASS':"container_memory is %s, "
-                             "unit %s, cgroup_memory is %s"
-                             % (container_memory, unit, cgroup_memory)}
+                result = {'PASS': "container_memory is %s, "
+                          "unit %s, cgroup_memory is %s"
+                          % (container_memory, unit, cgroup_memory)}
 
                 return result
             else:
-                result = {'FAIL':"container_memory is %s, "
-                             "unit %s, cgroup_memory is %s, status Unknown"
-                             % (container_memory, unit, cgroup_memory)}
+                result = {'FAIL': "container_memory is %s, "
+                          "unit %s, cgroup_memory is %s, status Unknown"
+                          % (container_memory, unit, cgroup_memory)}
 
                 return result
 
         if container_memory != cgroup_memory:
-            result = {'FAIL':"container_memory is %s "
-                             ",unit %s, cgroup_memory is %s"
-                             % (container_memory, unit, cgroup_memory)}
+            result = {'FAIL': "container_memory is %s "
+                      ",unit %s, cgroup_memory is %s"
+                      % (container_memory, unit, cgroup_memory)}
             return result
         else:
-            result = {'PASS':"container_memory is %s, "
-                             "unit %s, cgroup_memory is %s"
-                             % (container_memory, unit, cgroup_memory)}
+            result = {'PASS': "container_memory is %s, "
+                      "unit %s, cgroup_memory is %s"
+                      % (container_memory, unit, cgroup_memory)}
             return result
 
     @staticmethod
@@ -187,8 +189,8 @@ class run_memory_base(SubSubtest):
         inspect_id_args = ['--format={{.%s}}' % content]
         inspect_id_args.append(name)
         container_json = NoFailDockerCmd(self.parent_subtest,
-                                           'inspect',
-                                            inspect_id_args)
+                                         'inspect',
+                                         inspect_id_args)
         content_value = container_json.execute().stdout.strip()
 
         return content_value
@@ -234,23 +236,23 @@ class run_memory_base(SubSubtest):
         for subargs in self.sub_stuff['subargs']:
             if self.config['expect_success'] == "PASS":
                 memory_container = NoFailDockerCmd(self.parent_subtest,
-                                                'run -d -t',
-                                                subargs).execute()
+                                                   'run -d -t',
+                                                   subargs).execute()
                 long_id = self.container_json(str(subargs[0]).split('=')[1],
                                               'ID')
                 memory_arg = self.get_value_from_arg(
-                                    self.get_arg_from_arglist(subargs, '-m'),
+                    self.get_arg_from_arglist(subargs, '-m'),
                                     ' ', 1)
                 memory = self.split_unit(memory_arg)
                 memory_value = memory[0]
                 memory_unit = memory[1]
 
                 cgroup_exist = self.check_cgroup_exist(long_id,
-                                           self.config['cgroup_path'],
-                                           self.config['cgroup_key_value'])
+                                                       self.config['cgroup_path'],
+                                                       self.config['cgroup_key_value'])
                 if cgroup_exist is True:
                     cgroup_memory = self.read_cgroup(
-                                            long_id,
+                        long_id,
                                             self.config['cgroup_path'],
                                             self.config['cgroup_key_value'])
                 else:
@@ -258,7 +260,7 @@ class run_memory_base(SubSubtest):
                                                 "exist!")
 
                 self.sub_stuff['result'].append(self.check_memory(
-                                                     memory_value,
+                    memory_value,
                                                      cgroup_memory,
                                                      memory_unit))
             else:
@@ -286,7 +288,7 @@ class run_memory_base(SubSubtest):
                     fail_check = True
                 else:
                     raise xceptions.DockerTestNAError(
-                         "%s invalid result %s"
+                        "%s invalid result %s"
                           % (clsname, result.keys()[0]))
             self.failif(fail_check is True,
                         "%s memory check mismatch %s"
@@ -302,11 +304,13 @@ class run_memory_base(SubSubtest):
             for name in self.sub_stuff.get('name', []):
                 self.logdebug("Cleaning up %s", name)
                 dcmd = DockerCmd(self.parent_subtest,
-                                     'rm',
-                                     ['--force', name])
+                                 'rm',
+                                 ['--force', name])
                 dcmd.execute()
 
+
 class memory_positive(run_memory_base):
+
     """
     Test usage of docker 'run -m' command positively.
 
@@ -318,7 +322,9 @@ class memory_positive(run_memory_base):
     """
     pass
 
+
 class memory_no_cgroup(run_memory_base):
+
     """
     Test usage of docker 'run -m' command that sets memory to 0.
 
@@ -328,7 +334,9 @@ class memory_no_cgroup(run_memory_base):
     """
     pass
 
+
 class memory_negative(run_memory_base):
+
     """
     Test usage of docker 'run -m' command negatively
 

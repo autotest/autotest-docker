@@ -15,6 +15,7 @@ from autotest.client.shared import error
 from start import short_term_app, DockerContainersCLIRunOnly
 from dockertest.dockercmd import DockerCmd
 
+
 class long_term_app(short_term_app):
     config_section = 'docker_cli/start/long_term_app'
 

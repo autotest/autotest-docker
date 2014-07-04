@@ -14,6 +14,7 @@ from dockertest import subtest
 from dockertest import config
 from dockertest import xceptions
 
+
 class history(subtest.SubSubtestCaller):
     config_section = 'docker_cli/history'
 
@@ -37,7 +38,7 @@ class history_base(SubSubtest):
         self.sub_stuff["new_image_name"] = new_img_name
 
         new_img_name2 = "%s_%s" % (name_prefix,
-                                  utils.generate_random_string(8).lower())
+                                   utils.generate_random_string(8).lower())
         self.sub_stuff["new_image_name2"] = new_img_name2
 
         self.sub_stuff['rand_data'] = utils.generate_random_string(8)
@@ -45,10 +46,10 @@ class history_base(SubSubtest):
                          % self.sub_stuff['rand_data'])
 
         fqin = DockerImage.full_name_from_defaults(self.config)
-        #create new image in history
+        # create new image in history
         self.create_image(fqin, new_img_name, cmd_with_rand)
         self.sub_stuff["images"].append(new_img_name)
-        #create new image in history
+        # create new image in history
         self.create_image(new_img_name, new_img_name2, cmd_with_rand)
         self.sub_stuff["images"].append(new_img_name2)
 
@@ -87,19 +88,18 @@ class history_base(SubSubtest):
 
             self.failif(base_img_name in self.sub_stuff['cmdresult'].stdout,
                         "Unable find image name %s in image history: %s" %
-                         (base_img_name,
-                          self.sub_stuff['cmdresult'].stdout))
+                        (base_img_name,
+                         self.sub_stuff['cmdresult'].stdout))
 
             self.failif(new_img_name in self.sub_stuff['cmdresult'].stdout,
                         "Unable find image name %s in image history: %s" %
-                         (new_img_name,
-                          self.sub_stuff['cmdresult'].stdout))
+                        (new_img_name,
+                         self.sub_stuff['cmdresult'].stdout))
 
             self.failif(new_img_name2 in self.sub_stuff['cmdresult'].stdout,
                         "Unable find image name %s in image history: %s" %
-                         (new_img_name2,
-                          self.sub_stuff['cmdresult'].stdout))
-
+                        (new_img_name2,
+                         self.sub_stuff['cmdresult'].stdout))
 
     def cleanup(self):
         super(history_base, self).cleanup()
@@ -120,7 +120,7 @@ class history_base(SubSubtest):
                     self.logdebug("Removing image %s", image)
                     di.remove_image_by_full_name(image)
                     self.logdebug("Successfully removed test image: %s",
-                                 image)
+                                  image)
                 except error.CmdError, e:
                     error_text = "tagged in multiple repositories"
                     if not error_text in e.result_obj.stderr:

@@ -10,6 +10,6 @@ subtest-arg: the invalid charactor occurs in [ARG...]
 
 from invalid import invalid_base
 
+
 class arg(invalid_base):
     config_section = 'docker_cli/invalid/arg'
-

@@ -25,6 +25,7 @@ from dockertest import subtest
 from dockertest import config
 from dockertest import xceptions
 
+
 class commit(subtest.SubSubtestCaller):
     config_section = 'docker_cli/commit'
 
@@ -158,5 +159,5 @@ class commit_base(SubSubtest):
                             "Data read from image do not match"
                             " data written to container during"
                             " test initialization: %s != %s" %
-                           (results.stdout.strip(),
-                            self.sub_stuff["rand_data"]))
+                            (results.stdout.strip(),
+                             self.sub_stuff["rand_data"]))

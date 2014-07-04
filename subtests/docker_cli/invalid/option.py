@@ -13,6 +13,6 @@ subtest-option: the invalid charactor occurs in [OPTIONS]
 
 from invalid import invalid_base
 
+
 class option(invalid_base):
     config_section = 'docker_cli/invalid/option'
-

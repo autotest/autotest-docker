@@ -15,6 +15,7 @@ import os.path
 import re
 import shutil
 
+
 class build_paths(Subtest):
 
     def _init_build_paths(self):
@@ -91,7 +92,7 @@ class build_paths(Subtest):
         self.stuff['passed'] = [False for _ in xrange(self.iterations)]
 
         self._init_build_args()
-        #stuff needed later
+        # stuff needed later
         self.stuff['names'] = []
         self.stuff['cmdresults'] = []
 

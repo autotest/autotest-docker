@@ -40,7 +40,7 @@ class icc(network_base):
         args1.append("--name=%s" % (self.sub_stuff["cont1_name"]))
         args1.append(fin)
         self.sub_stuff["bash1"] = self.dkr_cmd.async("run", args1 + ["sh"],
-                                               stdin_r=AsyncDockerCmdSpec.PIPE)
+                                                     stdin_r=AsyncDockerCmdSpec.PIPE)
 
         self.sub_stuff["cont2_name"] = conts.get_unique_name("client")
         self.sub_stuff["containers"].append(self.sub_stuff["cont2_name"])
@@ -48,7 +48,7 @@ class icc(network_base):
         args2.append("--name=%s" % (self.sub_stuff["cont2_name"]))
         args2.append(fin)
         self.sub_stuff["bash2"] = self.dkr_cmd.async("run", args2 + ["sh"],
-                                               stdin_r=AsyncDockerCmdSpec.PIPE)
+                                                     stdin_r=AsyncDockerCmdSpec.PIPE)
 
         ip = self.get_container_ip(self.sub_stuff["cont1_name"])
         if ip is None:
@@ -59,7 +59,6 @@ class icc(network_base):
     def run_cmd(self, bash_stdin, cmd):
         self.logdebug("send command to container:\n%s" % (cmd))
         os.write(bash_stdin, cmd)
-
 
     def run_once(self):
         super(icc, self).run_once()
@@ -77,7 +76,7 @@ class icc(network_base):
                      " print \"Recv:\" + s.recv(100); s.close();'\n" %
                      self.sub_stuff["ip1"])
 
-        #Wait for possible ping passing.
+        # Wait for possible ping passing.
         out_fn = lambda: self.sub_stuff["bash2"].stdout
         wait_for_output(out_fn, "64 bytes", 10)
         if "python: not found" in out_fn():

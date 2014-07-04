@@ -55,8 +55,8 @@ class run_attach_stdout(run_base):
 
         self.logdebug("Starting attach command")
         attachcmd = AsyncDockerCmd(self.parent_subtest, 'attach',
-                                  self.sub_stuff['attach_options'],
-                                  timeout=self.config['docker_timeout'])
+                                   self.sub_stuff['attach_options'],
+                                   timeout=self.config['docker_timeout'])
         self.logdebug("Attach Command: %s", runcmd.command)
         attachcmd.execute()
         self.loginfo("Waiting for %s seconds for attach",
@@ -89,5 +89,5 @@ class run_attach_stdout(run_base):
         try:
             dc.kill_container_by_name(name)
         except ValueError:
-            pass  #  death was the goal
+            pass  # death was the goal
         dc.remove_by_name(self.sub_stuff["rand_name"])

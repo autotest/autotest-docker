@@ -8,6 +8,7 @@ docker pull full_name_wrong_tag
 """
 from pull import pull_base, check_registry
 
+
 class wrong_tag(pull_base):
     config_section = 'docker_cli/pull/wrong_tag'
 

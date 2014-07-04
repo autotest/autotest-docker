@@ -268,11 +268,9 @@ class WaitForOutput(unittest.TestCase):
         self.output = output
         self.gtime = self.timegen()
 
-
     def tearDown(self):
         setattr(mock('time'), 'time', self.old_time)
         setattr(mock('time'), 'sleep', self.old_sleep)
-
 
     def test_wait_for_output(self):
         pattern = r"exp_out"
@@ -289,7 +287,6 @@ class WaitForOutput(unittest.TestCase):
         e = time.time()
         self.assertGreater(t + 7, e,
                            "Waiting for output takes longer time")
-
 
     @staticmethod
     def outgenerator(raise_time, expected_out):
@@ -308,7 +305,6 @@ class WaitForOutput(unittest.TestCase):
                 out += chr(random.randint(32, 100))
             yield out
 
-
     @staticmethod
     def timegen():
         t = 0
@@ -316,10 +312,8 @@ class WaitForOutput(unittest.TestCase):
             t += 1
             yield t
 
-
     def get_time(self):
         return self.gtime.next()
-
 
     @staticmethod
     def sleep(_):

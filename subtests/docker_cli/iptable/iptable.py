@@ -13,6 +13,7 @@ from dockertest.subtest import SubSubtestCallerSimultaneous
 from autotest.client import utils
 import re
 
+
 class iptable(SubSubtestCallerSimultaneous):
 
     pass
@@ -100,17 +101,19 @@ class iptable_base(SubSubtest):
         super(iptable_base, self).cleanup()
         if self.config['remove_after_test']:
             dcmd = DockerCmd(self.parent_subtest,
-                                 'rm',
-                                 ['--force',
-                                  '--volumes',
+                             'rm',
+                             ['--force',
+                              '--volumes',
                                  self.sub_stuff['name']])
             dcmd.execute()
 
 
 class iptable_remove(iptable_base):
+
     """
     Test if container iptable rules are removed after stopped
     """
+
     def run_once(self):
         super(iptable_remove, self).run_once()
         before_net = set(self.sub_stuff['net_device_list'])
@@ -129,7 +132,7 @@ class iptable_remove(iptable_base):
         added_rules = utils.wait_for(container_rules, 10, step=0.1)
         self.failif(not added_rules, "No rules added when container started.")
         self.loginfo("Container %s\niptable rule list %s:" %
-                      (self.sub_stuff['name'], added_rules))
+                     (self.sub_stuff['name'], added_rules))
 
         NoFailDockerCmd(self.parent_subtest,
                         'stop',
