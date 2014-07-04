@@ -247,9 +247,11 @@ class run_memory_base(SubSubtest):
                 memory_value = memory[0]
                 memory_unit = memory[1]
 
+                cgpath = self.config['cgroup_path']
+                cgvalue = self.config['cgroup_key_value']
                 cgroup_exist = self.check_cgroup_exist(long_id,
-                                                       self.config['cgroup_path'],
-                                                       self.config['cgroup_key_value'])
+                                                       cgpath,
+                                                       cgvalue)
                 if cgroup_exist is True:
                     cgroup_memory = self.read_cgroup(
                         long_id,

@@ -100,7 +100,7 @@ class psa(subtest.Subtest):
         self.failif(len(cnts) < 1, "Test container not found in list")
         cnt = cnts[0]
         estat1 = str(cnt.status).startswith("Exit 0")  # pre docker 0.9.1
-        estat2 = str(cnt.status).startswith("Exited (0)")  # docker 0.9.1 & later
+        estat2 = str(cnt.status).startswith("Exited (0)")  # docker 0.9.1+
         self.failif(not (estat1 or estat2), "Exit status mismatch: %s does not"
                                             "start with %s or %s"
                                             % (str(cnt), "Exit 0",
