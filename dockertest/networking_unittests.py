@@ -65,7 +65,7 @@ class ContainerPortTest(NetworkingTestBase):
         self.assertTrue(cp.cmp_portstr_with_component(4321, 1234,
                                                       "1.2.3.4", "foobar"))
         self.assertFalse(cp.cmp_portstr_with_component(4321, 1234,
-                                                      "1.2.3.4"))
+                                                       "1.2.3.4"))
 
     def test_split_to_component(self):
         # host_ip:host_port->container_port/protocol

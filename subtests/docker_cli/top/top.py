@@ -23,14 +23,15 @@ from dockertest.dockercmd import (AsyncDockerCmd, NoFailDockerCmd,
                                   MustFailDockerCmd)
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
-from dockertest.xceptions import (DockerCommandError, DockerExecError)
+from dockertest.xceptions import (DockerCommandError, DockerExecError,
+                                  DockerTestNAError)
 
 
 class top(subtest.Subtest):
 
     """ Subtest caller """
     config_section = 'docker_cli/top'
-    #F,UID,(PID),(PPID),(PRI),(NI),(VSZ),(RSS),(WCHAN),(STAT),(TTY),TIME,CMD
+    # F,UID,(PID),(PPID),(PRI),(NI),(VSZ),(RSS),(WCHAN),(STAT),(TTY),TIME,CMD
     __re_top_all = re.compile(r'\d+\s+\d+\s+(?P<pid>\d+)\s+(?P<ppid>\d+)\s+'
                               r'(?P<pri>\d+)\s+(?P<ni>\d+)\s+(?P<vsz>\d+)\s+'
                               r'(?P<rss>\d+)\s+(?P<wchan>\w+|-|\?)\s+'
@@ -59,7 +60,11 @@ class top(subtest.Subtest):
         else:
             subargs = []
         subargs.append("--name %s" % name)
-        fin = DockerImage.full_name_from_defaults(self.config)
+        try:
+            fin = DockerImage.full_name_from_defaults(self.config)
+        except ValueError:
+            raise DockerTestNAError("Empty test image name configured,"
+                                    "did you set one for this test?")
         subargs.append(fin)
         subargs.append("bash")
         container = NoFailDockerCmd(self, 'run', subargs)
@@ -148,7 +153,7 @@ class top(subtest.Subtest):
             os.write(cont_stdin, "while [ -e /test_cmd_lock ]; do :; "
                      "done &\n")
 
-        #time.sleep(3)
+        # time.sleep(3)
 
         last_idx = self._gather_processes(last_idx)
 

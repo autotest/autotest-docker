@@ -32,11 +32,13 @@ def mock(mod_path):
 
 
 class DockerVersionError(IOError):
+
     """ Dummy exception """
     pass
 
 
 class DockerValueError(IOError):
+
     """ Dummy exception """
     pass
 

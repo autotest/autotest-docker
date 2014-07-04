@@ -8,18 +8,22 @@ Sub-subtest module used by dockerimport test
 """
 
 from autotest.client import utils
-import tempfile, os, os.path, shutil
+import tempfile
+import os
+import os.path
+import shutil
 from empty import empty
 from dockertest.dockercmd import MustFailDockerCmd
 from dockertest import output
+
 
 class truncated(empty):
 
     def cleanup(self):
         # Call empty parent's cleanup, not empty's.
-        super(empty, self).cleanup() # pylint: disable=E1003
+        super(empty, self).cleanup()  # pylint: disable=E1003
         # Fail test if **successful**
-        image_name = self.sub_stuff['image_name']  #  assume id lookup failed
+        image_name = self.sub_stuff['image_name']  # assume id lookup failed
         if self.parent_subtest.config['try_remove_after_test']:
             dkrcmd = MustFailDockerCmd(self, 'rmi', [image_name])
             dkrcmd.execute()
@@ -41,7 +45,7 @@ class truncated(empty):
         # instance-specific namespace
         self.loginfo("Expected to fail: %s", command)
         self.sub_stuff['cmdresult'] = utils.run(command, ignore_status=True,
-                                             verbose=False)
+                                                verbose=False)
 
     def check_output(self):
         outputgood = output.OutputGood(self.sub_stuff['cmdresult'],

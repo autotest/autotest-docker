@@ -10,6 +10,7 @@ docker pull wrong_full_name
 from dockertest import output
 from pull import pull_base
 
+
 class wrong_registry_addr(pull_base):
     config_section = 'docker_cli/pull/wrong_registry_addr'
 

@@ -17,9 +17,11 @@ from dockertest.xceptions import DockerTestError
 import json
 import os
 
+
 class dockerinspect(SubSubtestCaller):
 
     config_section = 'docker_cli/dockerinspect'
+
 
 class inspect_base(SubSubtest):
 
@@ -123,6 +125,7 @@ class inspect_base(SubSubtest):
                                self.sub_stuff['containers'])
             dkrcmd.execute()
 
+
 class inspect_container_simple(inspect_base):
 
     def initialize(self):
@@ -142,4 +145,3 @@ class inspect_container_simple(inspect_base):
         for field in check_fields:
             self.failif(field not in cli_output[0],
                         "Field: '%s' not found in output." % (field))
-

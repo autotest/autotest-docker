@@ -13,11 +13,12 @@ from dockertest.images import DockerImage
 from dockertest.xceptions import DockerTestError
 import re
 
+
 class inspect_keys(inspect_base):
 
     def initialize(self):
         super(inspect_keys, self).initialize()
-        #make a container to check
+        # make a container to check
         self.create_simple_container(self)
         image = DockerImage.full_name_from_defaults(self.config)
         self.sub_stuff['image'] = image
@@ -29,11 +30,11 @@ class inspect_keys(inspect_base):
 
     def run_once(self):
         super(inspect_keys, self).run_once()
-        #inspect a container
+        # inspect a container
         subargs = self.sub_stuff['containers']
         self.sub_stuff['container_config'] = self.inspect_and_parse(subargs)
 
-        #inspect an image
+        # inspect an image
         subargs = [self.sub_stuff['image']]
         self.sub_stuff['image_config'] = self.inspect_and_parse(subargs)
 
@@ -73,7 +74,7 @@ class inspect_keys(inspect_base):
         if self.config['key_regex']:
             self.assert_regex(keys, name)
 
-        #verify container keys
+        # verify container keys
         name = "container: %s" % (self.sub_stuff['containers'][0])
         keys = self.get_keys(self.sub_stuff['container_config'])
         if self.config['container_keys']:

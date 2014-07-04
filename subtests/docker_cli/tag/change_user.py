@@ -17,6 +17,7 @@ from tag import change_tag
 from dockertest.images import DockerImage
 from autotest.client import utils
 
+
 class change_user(change_tag):
 
     def generate_special_name(self):

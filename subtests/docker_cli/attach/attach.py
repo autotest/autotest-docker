@@ -14,6 +14,7 @@ from dockertest.output import OutputGood
 from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
 from dockertest import subtest
 
+
 class attach(subtest.SubSubtestCaller):
     config_section = 'docker_cli/attach'
 
@@ -57,7 +58,7 @@ class attach_base(SubSubtest):
                     self.logdebug("Removing image %s", image)
                     di.remove_image_by_full_name(image)
                     self.logdebug("Successfully removed test image: %s",
-                                 image)
+                                  image)
                 except error.CmdError, e:
                     error_text = "tagged in multiple repositories"
                     if not error_text in e.result_obj.stderr:
@@ -95,7 +96,6 @@ class simple_base(attach_base):
 
         self.failif(cid == [],
                     "Unable to search container with name %s" % (c_name))
-
 
     def run_once(self):
         super(simple_base, self).run_once()
@@ -160,7 +160,6 @@ class simple_base(attach_base):
 
         in_output = self.sub_stuff['cmd_attach'].stdout
         self.failif_not_contain(check_for, in_output, details)
-
 
     def postprocess(self):
         super(simple_base, self).postprocess()  # Prints out basic info

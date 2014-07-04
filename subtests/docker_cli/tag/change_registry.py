@@ -18,6 +18,7 @@ from dockertest.images import DockerImage
 import random
 import string
 
+
 class change_registry(change_tag):
 
     def generate_special_name(self):

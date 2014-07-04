@@ -18,6 +18,7 @@ from dockertest.images import DockerImage
 from dockertest.output import OutputGood
 from dockertest.subtest import SubSubtest
 
+
 class stop(subtest.SubSubtestCaller):
 
     """ Subtest caller """

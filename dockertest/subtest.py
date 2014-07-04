@@ -28,7 +28,9 @@ from xceptions import DockerTestNAError
 from xceptions import DockerTestError
 from xceptions import DockerSubSubtestNAError
 
+
 class SubBase(object):
+
     """
     Methods/attributes common to Subtest & SubSubtest classes
 
@@ -52,7 +54,6 @@ class SubBase(object):
     n_tabs = 1     # one-level
 
     def initialize(self):
-
         """
         Called every time the test is run.
         """
@@ -60,7 +61,6 @@ class SubBase(object):
         self.loginfo("initialize()")
 
     def run_once(self):
-
         """
         Called once only to exercise subject of sub-subtest
         """
@@ -68,7 +68,6 @@ class SubBase(object):
         self.loginfo("run_once()")
 
     def postprocess(self):
-
         """
         Called to process results of subject
         """
@@ -76,7 +75,6 @@ class SubBase(object):
         self.loginfo("postprocess()")
 
     def cleanup(self):
-
         """
         Always called, before any exceptions thrown are re-raised.
         """
@@ -85,7 +83,6 @@ class SubBase(object):
 
     @staticmethod
     def failif(condition, reason=None):
-
         """
         Convenience method for subtests to avoid importing TestFail exception
 
@@ -101,7 +98,6 @@ class SubBase(object):
 
     @classmethod
     def log_x(cls, lvl, msg, *args):
-
         """
         Send msg & args through to logging module function with name lvl
         """
@@ -112,7 +108,6 @@ class SubBase(object):
 
     @classmethod
     def log_xn(cls, lvl, msg, *args):
-
         """
         Multiline-split and send msg & args through to logging module
 
@@ -305,6 +300,7 @@ class Subtest(SubBase, test.test):
         """
         self.loginfo("postprocess_iteration() #%d of #%d",
                      self.iteration, self.iterations)
+
 
 class SubSubtest(SubBase):
 

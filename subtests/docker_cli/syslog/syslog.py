@@ -15,6 +15,7 @@ from dockertest.containers import DockerContainers
 
 
 class syslog(Subtest):
+
     def initialize(self):
         super(syslog, self).initialize()
         dc = DockerContainers(self)

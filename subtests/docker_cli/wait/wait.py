@@ -236,6 +236,7 @@ class wait_base(SubSubtest):
 
 
 class no_wait(wait_base):
+
     """
     Test usage of docker 'wait' command (waits only for containers, which
     should already exited. Expected execution duration is 0s)
@@ -255,6 +256,7 @@ class no_wait(wait_base):
 
 
 class wait_first(wait_base):
+
     """
     Test usage of docker 'wait' command (first container exits after 10s,
     others immediately. Expected execution duration is 10s)
@@ -274,6 +276,7 @@ class wait_first(wait_base):
 
 
 class wait_last(wait_base):
+
     """
     Test usage of docker 'wait' command (last container exits after 10s,
     others immediately. Expected execution duration is 10s)
@@ -293,6 +296,7 @@ class wait_last(wait_base):
 
 
 class wait_missing(wait_base):
+
     """
     Test usage of docker 'wait' command (first and last containers doesn't
     exist, second takes 10s to finish and the rest should finish immediately.

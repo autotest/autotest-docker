@@ -8,6 +8,7 @@ Test output of docker Images command
 from dockertest import subtest
 from dockertest.images import DockerImages
 
+
 class images(subtest.Subtest):
     config_section = 'docker_cli/images'
 

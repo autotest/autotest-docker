@@ -4,6 +4,7 @@ Call superclass during each stage
 
 from dockertest import subtest
 
+
 class example(subtest.Subtest):
     iterations = 3
     config_section = 'example'

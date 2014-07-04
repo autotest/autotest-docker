@@ -37,6 +37,7 @@ DEFAULTSFILE = 'defaults.ini'
 
 
 class ConfigSection(object):
+
     """
     Wraps SafeConfigParser with static section handling
 
@@ -204,6 +205,7 @@ class ConfigSection(object):
 
 
 class ConfigDict(MutableMapping):
+
     r"""
     Wraps ConfigSection instance in a dict-like, hides SafeConfigParser details.
 
@@ -266,10 +268,11 @@ class ConfigDict(MutableMapping):
     def write(filelike):
         """Raise an IOError exception, instance is read-only"""
         raise xceptions.DockerIOError("Instance does not permit writing to %s"
-                                       % filelike.name)
+                                      % filelike.name)
 
 
 class Config(dict):
+
     r"""
     Global dict-like of dict-like(s) per section with defaulting values.
 
@@ -321,7 +324,7 @@ class Config(dict):
         for filename in filenames:
             fullpath = os.path.join(dirpath, filename)
             if (filename.startswith('.') or
-                not filename.endswith('.ini')):
+                    not filename.endswith('.ini')):
                 continue
             config_file = open(fullpath, 'r')
             # Temp use sections variable for reading sections list

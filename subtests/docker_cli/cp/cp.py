@@ -13,6 +13,7 @@ from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
 import hashlib
 
+
 class cp(subtest.Subtest):
     config_section = 'docker_cli/cp'
 
@@ -36,14 +37,14 @@ class cp(subtest.Subtest):
 
     def run_once(self):
         super(cp, self).run_once()
-        #build arg list and execute command
+        # build arg list and execute command
         subargs = [self.stuff['container_name'] + ":" + self.stuff['cpfile']]
         subargs.append(self.tmpdir)
         nfdc = NoFailDockerCmd(self, "cp", subargs,
                                timeout=self.config['docker_timeout'])
         nfdc.execute()
         copied_path = "%s/%s" % (self.tmpdir,
-                                   self.stuff['cpfile'].split('/')[-1])
+                                 self.stuff['cpfile'].split('/')[-1])
         self.stuff['copied_path'] = copied_path
 
     def postprocess(self):

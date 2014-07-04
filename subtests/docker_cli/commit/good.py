@@ -10,5 +10,6 @@ docker commit full_name
 
 from commit import commit_base
 
+
 class good(commit_base):
     config_section = 'docker_cli/commit/good'

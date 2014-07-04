@@ -11,6 +11,7 @@ docker start full_name
 from start import short_term_app
 from dockertest.output import OutputGood
 
+
 class rerun_long_term_app(short_term_app):
     config_section = 'docker_cli/start/rerun_long_term_app'
 

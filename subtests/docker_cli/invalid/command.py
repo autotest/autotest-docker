@@ -10,6 +10,6 @@ subtest-command:the invalid charactor occurs in [COMMAND]
 
 from invalid import invalid_base
 
+
 class command(invalid_base):
     config_section = 'docker_cli/invalid/command'
-

@@ -20,15 +20,16 @@ from dockertest.xceptions import DockerValueError
 
 # TODO: Turn this into a general module?
 cid_regex = re.compile(r'\s+([a-z0-9]{64})\:\s+')
-dt_regex = re.compile(r'\[(\d{4}-\d{2}-\d{2})\s+' # date part
-                      r'(\d{2}:\d{2}:\d{2})\s+' # time part
+dt_regex = re.compile(r'\[(\d{4}-\d{2}-\d{2})\s+'  # date part
+                      r'(\d{2}:\d{2}:\d{2})\s+'  # time part
                       r'([+-]?\d{4})\s+'  # UTC offset part
-                      r'([a-zA-Z]+)\]\s+') # Timezone part
+                      r'([a-zA-Z]+)\]\s+')  # Timezone part
 ymd_regex = re.compile(r'(\d{4})-(\d{2})-(\d{2})')
 hms_regex = re.compile(r'(\d{2})\:(\d{2})\:(\d{2})')
 source_regex = re.compile(r'\s+\(from\s+%s\)\s+'
                           % DockerImage.repo_split_p.pattern)
 operation_regex = re.compile(r'\s+(\w+)$')  # final word chars
+
 
 def event_dt(line):
     try:
@@ -47,12 +48,14 @@ def event_dt(line):
     except (AttributeError, TypeError, ValueError):  # regex.search() failed
         return None
 
+
 def event_cid(line):
     mobj = cid_regex.search(line)
     if mobj is not None:
         return mobj.group(1)
     else:
         return None
+
 
 def event_source(line):
     mobj = source_regex.search(line)
@@ -64,6 +67,7 @@ def event_source(line):
     else:
         return None
 
+
 def event_operation(line):
     mobj = operation_regex.search(line)
     if mobj is not None:
@@ -71,23 +75,25 @@ def event_operation(line):
     else:
         return None
 
+
 def event_details(line):
     # TODO: An event class object?
-    return {'datetime':event_dt(line),
-            'source':event_source(line),
-            'operation':event_operation(line)}
+    return {'datetime': event_dt(line),
+            'source': event_source(line),
+            'operation': event_operation(line)}
+
 
 def is_dupe_event(needle, haystack):
     for event in haystack:
         # Fastest comparison order
         if (needle['datetime'] == event['datetime'] and
             needle['source'] == event['source'] and
-            needle['operation'] == event['operation']):
+                needle['operation'] == event['operation']):
             return True
     return False
 
-def parse_event(line):
 
+def parse_event(line):
     """
     Return tuple(CID, {DETAILS}) from parsing line
 
@@ -101,8 +107,8 @@ def parse_event(line):
     else:
         return (cid, details)
 
-def parse_events(lines, slop=None):
 
+def parse_events(lines, slop=None):
     """
     Return list of tuples for valid lines returned by parse_events()
 
@@ -132,6 +138,7 @@ def parse_events(lines, slop=None):
                                        % (slop, n_lines, n_lines - n_slop,
                                           sloppy))
     return result
+
 
 def events_by_cid(events_list, previous=None):
     """
@@ -166,7 +173,7 @@ class events(Subtest):
         fullname = dc.get_unique_name(prefix=self.config['name_prefix'])
         fqin = DockerImage.full_name_from_defaults(self.config)
         # generic args have spots for some value substitution
-        mapping = {'NAME':fullname, 'IMAGE':fqin}
+        mapping = {'NAME': fullname, 'IMAGE': fqin}
         subargs = []
         for arg in self.config['run_args'].strip().split(','):
             tmpl = Template(arg)

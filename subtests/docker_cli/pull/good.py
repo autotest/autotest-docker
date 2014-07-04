@@ -10,6 +10,7 @@ docker pull full_name
 
 from pull import pull_base, check_registry
 
+
 class good(pull_base):
     config_section = 'docker_cli/pull/good'
 

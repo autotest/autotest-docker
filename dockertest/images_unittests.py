@@ -10,6 +10,7 @@ import tempfile
 import types
 import unittest
 
+
 def mock(mod_path):
     name_list = mod_path.split('.')
     child_name = name_list.pop()
@@ -30,6 +31,7 @@ def mock(mod_path):
 
 
 class FakeCmdResult(object):
+
     def __init__(self, **dargs):
         for key, val in dargs.items():
             setattr(self, key, val)
@@ -62,13 +64,14 @@ setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
 setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
 setattr(mock('autotest.client.shared.version'), 'get_version',
-                                               lambda :version.AUTOTESTVERSION)
+        lambda: version.AUTOTESTVERSION)
 mock('autotest.client.shared.base_job')
 mock('autotest.client.shared.job')
 mock('autotest.client.shared.utils')
 mock('autotest.client.job')
 
 import version
+
 
 class ImageTestBase(unittest.TestCase):
 
@@ -92,8 +95,8 @@ class ImageTestBase(unittest.TestCase):
 
     def _setup_defaults(self):
         self.config.DEFAULTSFILE = self._setup_inifile('DEFAULTS',
-                                   self.config.CONFIGDEFAULT,
-                                   self.defaults)
+                                                       self.config.CONFIGDEFAULT,
+                                                       self.defaults)
 
     def _setup_customs(self):
         self._setup_inifile(self.config_section,
@@ -204,7 +207,7 @@ class DockerImageTestBasic(ImageTestBase):
         self.assertEqual(str(act), exp)
 
         images = str(d.list_imgs_with_full_name_components(repo_addr="192.168.122.245:5000",
-                                                                 tag="32"))
+                                                           tag="32"))
         self.assertEqual(images,
                          "[DockerImage(full_name:192.168.122.245:5000/fedora:32 LONG_ID:0d20aec6529d5d396b195182c0eaa82bfe014c3e82ab390203ed56a774d2c404 CREATED:5 weeks ago SIZE:387 MB)]")
 
@@ -238,7 +241,7 @@ class DockerImageTestBasic(ImageTestBase):
 
         full_name = "fedora_addr/user_user/fedora_repo:last_tag"
         (repo, tag, repo_addr, user) = self.images.DockerImage.split_to_component(
-                                             full_name)
+            full_name)
         self.assertRaises(self.images.DockerFullNameFormatError,
                           self.images.DockerImage.split_to_component, ["dd/"])
         self.assertRaises(self.images.DockerFullNameFormatError,
@@ -253,7 +256,7 @@ class DockerImageTestBasic(ImageTestBase):
                           ["<none>:<none>"])
 
         self.assertEqual(self.images.DockerImage.full_name_from_component(
-                                    repo, tag, repo_addr, user), full_name)
+            repo, tag, repo_addr, user), full_name)
 
         self.assertEqual((repo, tag, repo_addr, user),
                          ("fedora_repo", "last_tag", "fedora_addr",
@@ -270,7 +273,7 @@ class DockerImageTestBasic(ImageTestBase):
         self.assertFalse(di_ref == di_dif)
 
         self.assertTrue(self.images.DockerImage(
-                                         "fedora_addr:44/user_user/"
+            "fedora_addr:44/user_user/"
                                          "fedora_repo:last_tag", None,
                                          "0d20aec6529d5d396b195182c0eaa82bfe0"
                                          "14c3e82ab390203ed56a774d2c404",
@@ -278,9 +281,9 @@ class DockerImageTestBasic(ImageTestBase):
                                          "50 MB",
                                          None,
                                          None).cmp_full_name_with_component("fedora_repo",
-                                                             "last_tag",
-                                                             "fedora_addr:44",
-                                                             "user_user"))
+                                                                            "last_tag",
+                                                                            "fedora_addr:44",
+                                                                            "user_user"))
 
         self.assertTrue(di_ref.cmp_id(di_ref2.short_id))
         self.assertTrue(di_ref.cmp_id(di_ref2.long_id))

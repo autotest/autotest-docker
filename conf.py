@@ -13,7 +13,9 @@ serve to show the default.
 # Okay to be less-strict for these
 # pylint: disable=C0103,C0111,R0904,C0103,C0301,W0622
 
-import sys, os, types
+import sys
+import os
+import types
 
 #: The documentation version for this instance of the test.  It is compared
 #: to the API version before every test.  This ensures any API changes
@@ -107,7 +109,7 @@ html_theme = 'default'
 #: Theme options are theme-specific and customize the look and feel of a theme
 #: further.  For a list of options available for each theme, see the
 #: documentation.
-html_theme_options = {'stickysidebar':True}
+html_theme_options = {'stickysidebar': True}
 
 #: Add any paths that contain custom themes here, relative to this directory.
 html_theme_path = []
@@ -181,21 +183,21 @@ htmlhelp_basename = 'DockerAutotestdoc'
 # -- Options for LaTeX output --------------------------------------------------
 
 latex_elements = {
-# The paper size ('letterpaper' or 'a4paper').
-#'papersize': 'letterpaper',
+    # The paper size ('letterpaper' or 'a4paper').
+    #'papersize': 'letterpaper',
 
-# The font size ('10pt', '11pt' or '12pt').
-#'pointsize': '10pt',
+    # The font size ('10pt', '11pt' or '12pt').
+    #'pointsize': '10pt',
 
-# Additional stuff for the LaTeX preamble.
-#'preamble': '',
+    # Additional stuff for the LaTeX preamble.
+    #'preamble': '',
 }
 
 #: Grouping the document tree into LaTeX files. List of tuples
 #: (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'DockerAutotest.tex', u'Docker Autotest Documentation',
-   u'Chris Evich', 'manual'),
+    ('index', 'DockerAutotest.tex', u'Docker Autotest Documentation',
+     u'Chris Evich', 'manual'),
 ]
 
 #: The name of an image file (relative to this directory) to place at the top of
@@ -238,9 +240,9 @@ man_show_urls = False
 #: (source start file, target name, title, author,
 #: dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'DockerAutotest', u'Docker Autotest Documentation',
-   u'Chris Evich', 'DockerAutotest', 'One line description of project.',
-   'Miscellaneous'),
+    ('index', 'DockerAutotest', u'Docker Autotest Documentation',
+     u'Chris Evich', 'DockerAutotest', 'One line description of project.',
+     'Miscellaneous'),
 ]
 
 #: Documents to append as an appendix to all manuals.
@@ -290,7 +292,7 @@ setattr(mock('autotest.client.shared.error'), 'TestFail', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
 setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
-setattr(mock('autotest.client.shared.version'), 'get_version', lambda : "0.15.0")
+setattr(mock('autotest.client.shared.version'), 'get_version', lambda: "0.15.0")
 mock('autotest.client.shared.base_job')
 mock('autotest.client.shared.job')
 mock('autotest.client.job')

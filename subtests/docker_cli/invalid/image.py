@@ -11,6 +11,6 @@ subtest-image:  the invalid charactor occurs in IMAGE
 
 from invalid import invalid_base
 
+
 class image(invalid_base):
     config_section = 'docker_cli/invalid/image'
-

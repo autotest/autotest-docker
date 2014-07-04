@@ -13,10 +13,13 @@ from dockertest.containers import DockerContainers
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
 
+
 class diff(SubSubtestCaller):
     pass
 
+
 class diff_base(SubSubtest):
+
     @staticmethod
     def parse_diff_output(output):
         xsplit = [x.split() for x in output.split('\n') if x]
@@ -65,11 +68,14 @@ class diff_base(SubSubtest):
                                [self.sub_stuff['name']])
             dkrcmd.execute()
 
+
 class diff_add(diff_base):
-    pass #only change in configuration
+    pass  # only change in configuration
+
 
 class diff_change(diff_base):
-    pass #only change in configuration
+    pass  # only change in configuration
+
 
 class diff_delete(diff_base):
-    pass #only change in configuration
+    pass  # only change in configuration

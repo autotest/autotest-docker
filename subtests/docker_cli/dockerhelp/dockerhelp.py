@@ -11,11 +11,13 @@ from dockertest.output import OutputGood
 from dockertest.dockercmd import DockerCmd, NoFailDockerCmd
 
 # 'help()' is reserved in python
+
+
 class dockerhelp(subtest.Subtest):
     config_section = 'docker_cli/dockerhelp'
 
     def initialize(self):
-        super(dockerhelp, self).initialize() # Prints out basic info
+        super(dockerhelp, self).initialize()  # Prints out basic info
         # Names are too long to put on one line
         sol = 'success_option_list'
         fol = 'failure_option_list'
@@ -29,7 +31,7 @@ class dockerhelp(subtest.Subtest):
             self.stuff[fol] = self.config[fol].split(',')
 
     def run_once(self):
-        super(dockerhelp, self).run_once() # Prints out basic info
+        super(dockerhelp, self).run_once()  # Prints out basic info
         for option in self.stuff['success_option_list']:
             # No successful command should throw an exception
             dkrcmd = NoFailDockerCmd(self, option)

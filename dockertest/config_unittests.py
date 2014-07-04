@@ -35,6 +35,7 @@ def mock(mod_path):
 
 
 class DockerKeyError(Exception):
+
     """ Fake class for errors """
     pass
 

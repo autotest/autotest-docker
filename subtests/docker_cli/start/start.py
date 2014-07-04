@@ -16,6 +16,7 @@ from dockertest.images import DockerImage
 from dockertest import subtest
 from dockertest import config
 
+
 class DockerContainersCLIWithOutSize(DockerContainersCLI):
 
     """
@@ -101,7 +102,6 @@ class start_base(SubSubtest):
         self.failif(self.sub_stuff['cmdresult'].exit_status != 0,
                     "Non-zero start exit status: %s"
                     % self.sub_stuff['cmdresult'])
-
 
     def cleanup(self):
         super(start_base, self).cleanup()

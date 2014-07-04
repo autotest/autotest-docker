@@ -11,6 +11,7 @@ from autotest.client import utils
 from rmi import rmi_base
 from dockertest.output import OutputGood
 
+
 class delete_wrong_name(rmi_base):
     config_section = 'docker_cli/rmi/delete_wrong_name'
 

@@ -59,6 +59,6 @@ class run_interactive(run_base):
         self.failif(not str_in_output in cmd_stdout,
                     "Command %s output must contain %s but doesn't."
                     " Detail:%s" %
-                   (self.config["interactive_cmd"],
-                    str_in_output,
-                    cmdresult))
+                    (self.config["interactive_cmd"],
+                     str_in_output,
+                     cmdresult))

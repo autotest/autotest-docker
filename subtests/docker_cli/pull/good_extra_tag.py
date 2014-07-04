@@ -14,6 +14,7 @@ from dockertest.dockercmd import NoFailDockerCmd
 from dockertest.output import DockerVersion
 from dockertest.xceptions import DockerTestNAError
 
+
 class good_extra_tag(pull_base):
     max_version = "0.11.1-dev"  # Skip test after this docker version
 

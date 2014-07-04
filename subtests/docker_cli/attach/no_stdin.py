@@ -11,6 +11,7 @@ Test attach
 
 from attach import simple_base
 
+
 class no_stdin(simple_base):
 
     def verify_output(self):

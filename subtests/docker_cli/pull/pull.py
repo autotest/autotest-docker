@@ -18,6 +18,7 @@ from dockertest.dockercmd import AsyncDockerCmd
 from dockertest import subtest
 from dockertest import config
 
+
 class pull(subtest.SubSubtestCaller):
     config_section = 'docker_cli/pull'
 

@@ -23,8 +23,10 @@ from dockertest import subtest
 from dockertest import config
 from dockertest import xceptions
 
+
 class tag(subtest.SubSubtestCaller):
     pass
+
 
 class tag_base(SubSubtest):
 
@@ -40,9 +42,9 @@ class tag_base(SubSubtest):
                                               "base image %s for test"
                                               % base_image)
 
-        tag_results = DockerCmd(self, "tag", [base_image,
-                                              self.sub_stuff["image"]]
-                               ).execute()
+        tag_results = DockerCmd(self, "tag",
+                                [base_image, self.sub_stuff["image"]]
+                                ).execute()
         if tag_results.exit_status:
             raise xceptions.DockerTestNAError("Problems during "
                                               "initialization of"
@@ -61,11 +63,11 @@ class tag_base(SubSubtest):
         new_img_name = di.get_unique_name(name_prefix)
         while self.check_image_exists(new_img_name):
             new_img_name = "%s_%s" % (name_prefix,
-                                  utils.generate_random_string(8))
+                                      utils.generate_random_string(8))
         if self.config['gen_lower_only']:
             new_img_name = new_img_name.lower()
         else:
-            new_img_name += '_UP' # guarantee some upper-case
+            new_img_name += '_UP'  # guarantee some upper-case
         self.sub_stuff["image"] = new_img_name
         base_image = DockerImage.full_name_from_defaults(self.config)
         self.prep_image(base_image)
@@ -141,7 +143,7 @@ class change_tag(tag_base):
         if self.config['gen_lower_only']:
             _tag = _tag.lower()
         else:
-            _tag += '_UP' # guarantee some upper-case
+            _tag += '_UP'  # guarantee some upper-case
         repo = img.repo
         registry = img.repo_addr
         registry_user = img.user
@@ -150,7 +152,6 @@ class change_tag(tag_base):
                                                             registry,
                                                             registry_user)
         return new_img_name
-
 
     def initialize(self):
         super(change_tag, self).initialize()

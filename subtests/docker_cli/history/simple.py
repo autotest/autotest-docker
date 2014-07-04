@@ -16,5 +16,6 @@ clean
 
 from history import history_base
 
+
 class simple(history_base):
     config_section = 'docker_cli/history/simple'

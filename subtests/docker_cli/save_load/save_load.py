@@ -25,6 +25,7 @@ from dockertest.output import OutputGood
 from dockertest.dockercmd import DockerCmd
 from dockertest import subtest
 
+
 class save_load(subtest.SubSubtestCaller):
     config_section = 'docker_cli/save_load'
 
@@ -91,7 +92,7 @@ class simple(save_load_base):
 
         self.failif(cid == [],
                     "Unable to search container with name %s: details :%s" %
-                   (c_name, cmdresult))
+                    (c_name, cmdresult))
 
         dkrcmd = DockerCmd(self.parent_subtest, 'commit',
                            [c_name, c_name], verbose=True)

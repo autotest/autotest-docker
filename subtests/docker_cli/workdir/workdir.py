@@ -17,6 +17,7 @@ from dockertest.output import OutputGood
 
 
 class workdir(subtest.Subtest):
+
     def initialize(self):
         super(workdir, self).initialize()
         self.stuff['fin'] = DockerImage.full_name_from_defaults(self.config)
