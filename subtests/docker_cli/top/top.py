@@ -23,7 +23,8 @@ from dockertest.dockercmd import (AsyncDockerCmd, NoFailDockerCmd,
                                   MustFailDockerCmd)
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
-from dockertest.xceptions import (DockerCommandError, DockerExecError)
+from dockertest.xceptions import (DockerCommandError, DockerExecError,
+                                  DockerTestNAError)
 
 
 class top(subtest.Subtest):
@@ -59,7 +60,11 @@ class top(subtest.Subtest):
         else:
             subargs = []
         subargs.append("--name %s" % name)
-        fin = DockerImage.full_name_from_defaults(self.config)
+        try:
+            fin = DockerImage.full_name_from_defaults(self.config)
+        except ValueError:
+            raise DockerTestNAError("Empty test image name configured,"
+                                    "did you set one for this test?")
         subargs.append(fin)
         subargs.append("bash")
         container = NoFailDockerCmd(self, 'run', subargs)
