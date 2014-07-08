@@ -1,0 +1,35 @@
+language: python
+python:
+    - "2.7"
+
+branches:
+    only:
+        - master
+
+git:
+    submodules: false
+
+virtualenv:
+    system_site_packages: true
+
+before_script:
+    - echo "deb http://ppa.launchpad.net/lmr/autotest/ubuntu trusty main" | sudo tee -a /etc/apt/sources.list
+    - sudo apt-get update -q
+    - sudo apt-get -y --force-yes install autotest python-sphinx
+
+install:
+    - pip install pylint autopep8
+    - pip install inspektor
+
+script:
+    - inspekt lint
+    - inspekt style
+    - ./run_unittests.sh
+    - make
+
+# TODO: Do we need notifications?
+#notifications:
+#  irc:
+#    channels: "irc.oftc.net#autotest"
+#    template:
+#      - "%{repository}@%{branch}: %{message} (%{build_url})"
