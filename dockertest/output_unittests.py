@@ -32,6 +32,7 @@ def mock(mod_path):
             sys.modules[mod_path] = child_mod
         return sys.modules[mod_path]
 
+
 def wait_for(func, timeout, first=0, step=1, text=None):
     end_time = time.time() + timeout
 
@@ -53,6 +54,7 @@ setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
 setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
 setattr(mock('autotest.client.utils'), 'wait_for', wait_for)
+
 
 class FakeCmdResult(object):
 

@@ -170,9 +170,9 @@ class SubBase(object):
         Log error to error, traceback to debug, of controlling terminal
         **only**
         """
-        error_head = ("%s failed to %s\n%s\n%s" % (name,
-                      error_source, detail.__class__.__name__,
-                      detail))
+        error_head = ("%s failed to %s\n%s\n%s" % (name, error_source,
+                                                   detail.__class__.__name__,
+                                                   detail))
         error_tb = traceback.format_exception(exc_info[0],
                                               exc_info[1],
                                               exc_info[2])
@@ -548,7 +548,7 @@ class SubSubtestCaller(Subtest):
         Import module only if module is not loaded.
         """
         # Safe because test is running in a separate process from main test
-        if not name in sys.modules:
+        if name not in sys.modules:
             mod = imp.load_module(name, *imp.find_module(name, pkg_path))
             sys.modules[name] = mod
             return mod

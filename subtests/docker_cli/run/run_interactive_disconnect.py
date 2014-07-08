@@ -85,7 +85,7 @@ class run_interactive_disconnect(run_base):
 
         cmd_stdout_attach = self.sub_stuff['dkrcmd_attach'].stdout
 
-        self.failif(not str_in_output in cmd_stdout_attach,
+        self.failif(str_in_output not in cmd_stdout_attach,
                     "Command %s output must contain %s but doesn't."
                     " Detail:%s" %
                     (self.config["bash_cmd"],

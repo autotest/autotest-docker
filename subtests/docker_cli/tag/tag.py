@@ -121,7 +121,7 @@ class tag_base(SubSubtest):
         super(tag_base, self).cleanup()
         # Auto-converts "yes/no" to a boolean
         if (self.config['remove_after_test'] and
-           'image_list' in self.sub_stuff):
+                'image_list' in self.sub_stuff):
             for image in self.sub_stuff["image_list"]:
                 di = DockerImages(self.parent_subtest)
                 self.logdebug("Removing image %s", image.full_name)
@@ -129,7 +129,7 @@ class tag_base(SubSubtest):
                     di.remove_image_by_image_obj(image)
                 except error.CmdError, e:
                     err = e.result_obj.stderr
-                    if not "tagged in multiple repositories" in err:
+                    if "tagged in multiple repositories" not in err:
                         raise
                 self.loginfo("Successfully removed test image: %s",
                              image.full_name)

@@ -1,6 +1,7 @@
 import random
 from kill import kill_check_base, QDockerCmd
 
+
 class bad(kill_check_base):
 
     """

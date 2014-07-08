@@ -27,7 +27,7 @@ class DockerContainersCLIWithOutSize(DockerContainersCLI):
     #: This is probably test-subject related, be a bit more noisy
     verbose = True
 
-        # private methods don't need docstrings
+    # private methods don't need docstrings
     def _get_container_list(self):  # pylint: disable=C0111
         return self.docker_cmd("ps -a --no-trunc",
                                self.timeout)
@@ -43,7 +43,7 @@ class DockerContainersCLIRunOnly(DockerContainersCLIWithOutSize):
     #: This is probably test-subject related, be a bit more noisy
     verbose = True
 
-        # private methods don't need docstrings
+    # private methods don't need docstrings
     def _get_container_list(self):  # pylint: disable=C0111
         return self.docker_cmd("ps --no-trunc",
                                self.timeout)

@@ -33,7 +33,7 @@ sys.path.insert(0, os.path.abspath('dockertest'))
 # -- General configuration -----------------------------------------------------
 
 #: If your documentation needs a minimal Sphinx version, state it here.
-#needs_sphinx = '1.0'
+# needs_sphinx = '1.0'
 
 #: Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
@@ -64,9 +64,9 @@ language = None
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
-#today = ''
+# today = ''
 # Else, today_fmt is used as the format for a strftime call.
-#today_fmt = '%B %d, %Y'
+# today_fmt = '%B %d, %Y'
 
 #: List of patterns, relative to source directory, that match files and
 #: directories to ignore when looking for source files.
@@ -133,7 +133,7 @@ html_favicon = None
 #: Add any paths that contain custom static files (such as style sheets) here,
 #: relative to this directory. They are copied after the builtin static files,
 #: so a file named "default.css" will overwrite the builtin "default.css".
-#html_static_path = ['docs_static']
+# html_static_path = ['docs_static']
 
 #: If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 #: using the given strftime format.
@@ -184,13 +184,13 @@ htmlhelp_basename = 'DockerAutotestdoc'
 
 latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
-    #'papersize': 'letterpaper',
+    # 'papersize': 'letterpaper',
 
     # The font size ('10pt', '11pt' or '12pt').
-    #'pointsize': '10pt',
+    # 'pointsize': '10pt',
 
     # Additional stuff for the LaTeX preamble.
-    #'preamble': '',
+    # 'preamble': '',
 }
 
 #: Grouping the document tree into LaTeX files. List of tuples

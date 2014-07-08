@@ -7,7 +7,8 @@ docker pull --tag=xxx full_name
 2. Check if image is in local repository.
 3. Remote image from local repository
 """
-from distutils.version import LooseVersion
+# distutils.version is incorrectly missing in Travis CI, disable warning
+from distutils.version import LooseVersion  # pylint: disable=E0611
 from pull import pull_base, check_registry
 from dockertest.images import DockerImage
 from dockertest.dockercmd import NoFailDockerCmd

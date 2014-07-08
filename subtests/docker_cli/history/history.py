@@ -123,7 +123,7 @@ class history_base(SubSubtest):
                                   image)
                 except error.CmdError, e:
                     error_text = "tagged in multiple repositories"
-                    if not error_text in e.result_obj.stderr:
+                    if error_text not in e.result_obj.stderr:
                         raise
 
     def create_image(self, old_name, new_name, cmd):

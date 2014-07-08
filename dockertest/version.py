@@ -16,7 +16,8 @@ also match (less the REVIS number).
 # pylint: disable=W0403
 
 import logging
-from distutils.version import LooseVersion
+# distutils.version is incorrectly missing in Travis CI, disable warning
+from distutils.version import LooseVersion  # pylint: disable=E0611
 
 import xceptions
 
