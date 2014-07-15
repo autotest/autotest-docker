@@ -132,7 +132,7 @@ class build_paths(Subtest):
                     "One or more builds returned non-zero exit status or "
                     "contained erroronious output. See debug log for details.")
         # https://bugzilla.redhat.com/show_bug.cgi?id=1097884
-        if self.config['try_remove_after_test']:
+        if self.config['remove_after_test']:
             dkrcmd = DockerCmd(self, 'rmi', self.stuff['names'])
             res = dkrcmd.execute()
             self.logoutput(res)
