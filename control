@@ -209,7 +209,7 @@ def get_bzojb(bzopts):
         import bugzilla  # Keep confined to this function
     except ImportError:
         logging.warning("Bugzilla status exclusion filter configured "
-                        "but bugzilla python module unavailable")
+                        "but bugzilla python module unavailable.")
         return None
     quiet_bz()  # the bugzilla module is very noisy
     bz = bugzilla.Bugzilla(url=url)
@@ -246,7 +246,7 @@ def bugged_subthings(control_ini, subthings):
     bzopts = dict(control_ini.items('Bugzilla'))
     bz = get_bzojb(bzopts)
     if bz is None:
-        return set()
+        return {}
     namestobzs = {}  # docker_cli/test/name = 12345,67890,...
     for name, bzcsv in control_ini.items('NamesToBZs'):
         namestobzs[name] = [int(bugnum.strip())  # needed by bz.getbugs()
@@ -314,6 +314,7 @@ def filter_bugged(subthings, bug_blocked, subtest_modules):
                          "blocked by bugzilla(s): %s", subtest,
                          bug_blocked[subtest])
             subthings.remove(subtest)
+    return None  # mods were done in-place!!!
 
 def only_subtests(subthings, subtest_modules):
     """
@@ -340,6 +341,7 @@ def write_control_ini(control_ini, resultdir,
     exclude_csv = ",".join(subthing_exclude) # + bug_blocked
     control_ini.set("Control", "exclude", exclude_csv)
     control_ini.write(open(reference_control_ini, "wb"))
+    return reference_control_ini  # in case it's ever needed
 
 def filter_subthings(control_path, args):
     """
@@ -399,6 +401,7 @@ def step_init():
         tag = "test_%s-of-%s" % (index + 1, total)
         job.next_step(run_test, control_path, uri, tag, TIMEOUT)
         job.next_step(run_envchecks, control_path, uri)
+    return None  # End of test
 
 def get_doc_version(control_path):
     """
