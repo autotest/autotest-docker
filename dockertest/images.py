@@ -29,8 +29,7 @@ import re
 from config import none_if_empty
 from autotest.client import utils
 from output import OutputGood
-# FIXME: from output import TextTable
-# FIXME: parse output table with TextTable
+from output import TextTable
 from subtest import Subtest
 from xceptions import DockerFullNameFormatError
 from xceptions import DockerCommandError
@@ -517,25 +516,28 @@ class DockerImagesCLI(DockerImagesBase):
     #: Run important docker commands output through OutputGood when True
     verify_output = False
 
+    #: Arguments to use when listing images
+    images_args = "--no-trunc"
+
     def __init__(self, subtest, timeout=None, verbose=False):
         super(DockerImagesCLI, self).__init__(subtest,
                                               timeout,
                                               verbose)
 
-    # private methods don't need docstrings
-    def _get_images_list(self):  # pylint: disable=C0111
-        return self.docker_cmd("images --no-trunc", self.timeout)
+    @staticmethod
+    def _di_from_row(row):
+        # Translate from row dictionary, to DockerImage parameters
+        repo = row['REPOSITORY']
+        tag = row['TAG']
+        long_id = row['IMAGE ID']
+        created = row['CREATED']
+        size = row['VIRTUAL SIZE']
+        return DockerImage(repo, tag, long_id, created, size)
 
     # private methods don't need docstrings
-    @staticmethod
-    def _parse_colums(d_image_stdout):  # pylint: disable=C0111
-        images = []
-        lines = d_image_stdout.strip().splitlines()
-        for line in lines[1:]:
-            col = re.split("  +", line)
-            # It's not magic, it's convenience!
-            images.append(DockerImage(*col))  # pylint: disable=W0142
-        return images
+    def _parse_colums(self, stdout_strip):  # pylint: disable=C0111
+        texttable = TextTable(stdout_strip)
+        return [self._di_from_row(row) for row in texttable]
 
     def docker_cmd(self, cmd, timeout=None):
         """
@@ -550,7 +552,6 @@ class DockerImagesCLI(DockerImagesBase):
                                        cmd))
         if timeout is None:
             timeout = self.timeout
-        # FIXME: catching DockerCommandError should work on this but it doesn't
         from autotest.client.shared.error import CmdError
         try:
             return utils.run(docker_image_cmd,
@@ -570,8 +571,9 @@ class DockerImagesCLI(DockerImagesBase):
         return result
 
     def get_dockerimages_list(self):
-        stdout = self._get_images_list().stdout
-        return self._parse_colums(stdout)
+        cmdresult = self.docker_cmd("images %s" % self.images_args,
+                                    self.timeout)
+        return self._parse_colums(cmdresult.stdout.strip())
 
     def remove_image_by_id(self, image_id):
         """
