@@ -30,7 +30,7 @@ from config import none_if_empty
 from autotest.client import utils
 from output import OutputGood
 from output import TextTable
-from subtest import Subtest
+from subtest import SubBase
 from xceptions import DockerFullNameFormatError
 from xceptions import DockerCommandError
 
@@ -298,8 +298,7 @@ class DockerImagesBase(object):
         """
         Initialize subclass operational instance.
 
-        :param subtest: A subtest.Subtest (**NOT** a SubSubtest) subclass
-                        instance
+        :param subtest: A subtest.SubBase subclass instance
         :param timeout: An opaque non-default timeout value to use on instance
         :param verbose: A boolean non-default verbose value to use on instance
         """
@@ -617,16 +616,16 @@ class DockerImages(object):
         """
         Execute docker subcommand with arguments and a timeout.
 
-        :param subtest: A subtest.Subtest subclass instance
+        :param subtest: A subtest.SubBase subclass instance
         :param interface_name: Class-defined string representing a
                                DockerImagesBase subclass
         :param timeout: Operational timeout override specific to interface
         :param verbose: Operational verbose override specific to interface
         """
         # Prevent accidental test.test instance passing
-        if not isinstance(subtest, Subtest):
-            raise TypeError("Instance %s is not a Subtest instance or "
-                            "subclass." % str(subtest))
+        if not isinstance(subtest, SubBase):
+            raise TypeError("Instance %s is not a SubBase or "
+                            "subclass instance." % str(subtest))
         _dic = self.interfaces[interface_name]
         super(DockerImages, self).__setattr__('_interface',
                                               _dic(subtest, timeout, verbose))
