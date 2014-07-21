@@ -56,7 +56,7 @@ class run_interactive(run_base):
         str_in_output = self.config["check_i_cmd_out"]
         cmd_stdout = cmdresult.stdout
 
-        self.failif(not str_in_output in cmd_stdout,
+        self.failif(str_in_output not in cmd_stdout,
                     "Command %s output must contain %s but doesn't."
                     " Detail:%s" %
                     (self.config["interactive_cmd"],

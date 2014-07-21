@@ -121,7 +121,7 @@ class commit_base(SubSubtest):
         super(commit_base, self).cleanup()
         # Auto-converts "yes/no" to a boolean
         if (self.config['remove_after_test'] and
-           'image_list' in self.sub_stuff):
+                'image_list' in self.sub_stuff):
             dkrcmd = DockerCmd(self.parent_subtest, "rm",
                                ['--volumes', '--force',
                                 self.sub_stuff["container"]])
@@ -140,7 +140,7 @@ class commit_base(SubSubtest):
                                  image.full_name)
                 except error.CmdError, e:
                     error_text = "tagged in multiple repositories"
-                    if not error_text in e.result_obj.stderr:
+                    if error_text not in e.result_obj.stderr:
                         raise
 
     def check_file_in_image(self):

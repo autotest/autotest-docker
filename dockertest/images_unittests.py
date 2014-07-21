@@ -106,7 +106,7 @@ class ImageTestBase(unittest.TestCase):
     def _make_fake_subtest(self):
         class FakeSubtestException(Exception):
 
-            def __init__(fake_self, *args, **dargs):
+            def __init__(fake_self, *args, **dargs):  # pylint: disable=E0213
                 super(FakeSubtestException, self).__init__()
 
         class FakeSubtest(self.subtest.Subtest):
@@ -115,7 +115,7 @@ class ImageTestBase(unittest.TestCase):
             iteration = 1
             iterations = 1
 
-            def __init__(fake_self, *args, **dargs):
+            def __init__(fake_self, *args, **dargs):  # pylint: disable=E0213
                 config_parser = self.config.Config()
                 fake_self.config = config_parser.get(self.config_section)
                 for symbol in ('execute', 'setup', 'initialize', 'run_once',
@@ -274,16 +274,16 @@ class DockerImageTestBasic(ImageTestBase):
 
         self.assertTrue(self.images.DockerImage(
             "fedora_addr:44/user_user/"
-                                         "fedora_repo:last_tag", None,
-                                         "0d20aec6529d5d396b195182c0eaa82bfe0"
-                                         "14c3e82ab390203ed56a774d2c404",
-                                         "dd",
-                                         "50 MB",
-                                         None,
-                                         None).cmp_full_name_with_component("fedora_repo",
-                                                                            "last_tag",
-                                                                            "fedora_addr:44",
-                                                                            "user_user"))
+            "fedora_repo:last_tag", None,
+            "0d20aec6529d5d396b195182c0eaa82bfe0"
+            "14c3e82ab390203ed56a774d2c404",
+            "dd",
+            "50 MB",
+            None,
+            None).cmp_full_name_with_component("fedora_repo",
+                                               "last_tag",
+                                               "fedora_addr:44",
+                                               "user_user"))
 
         self.assertTrue(di_ref.cmp_id(di_ref2.short_id))
         self.assertTrue(di_ref.cmp_id(di_ref2.long_id))

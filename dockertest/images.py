@@ -156,7 +156,7 @@ class DockerImage(object):  # pylint: disable=R0902
 
         component = zip(("%s/", "%s/", "%s", ":%s"),
                         (repo_addr, user, repo, tag))
-        return "".join([c % v for c, v in component if not v is None])
+        return "".join([c % v for c, v in component if v is not None])
 
     @staticmethod
     def full_name_from_defaults(config, min_length=4):

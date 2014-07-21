@@ -78,7 +78,7 @@ class import_export_base(SubSubtest):
                                   image)
                 except xceptions.DockerCommandError, e:
                     error_text = "tagged in multiple repositories"
-                    if not error_text in e.result_obj.stderr:
+                    if error_text not in e.result_obj.stderr:
                         raise
                 except xceptions.DockerTestError:
                     pass  # best effort removal, maybe image wasn't there

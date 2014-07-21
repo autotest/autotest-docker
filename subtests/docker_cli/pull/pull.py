@@ -92,7 +92,7 @@ def check_registry(registry_addr):
     r1 = conn.getresponse()
     if r1.status != 200:
         response = r1.read()
-        if not "docker-registry server" in response:
+        if "docker-registry server" not in response:
             error.TestNAError("Registry %s is not docker registry."
                               " Response: %s" % (registry_addr, response))
     else:

@@ -241,30 +241,26 @@ class run_memory_base(SubSubtest):
                 long_id = self.container_json(str(subargs[0]).split('=')[1],
                                               'ID')
                 memory_arg = self.get_value_from_arg(
-                    self.get_arg_from_arglist(subargs, '-m'),
-                                    ' ', 1)
+                    self.get_arg_from_arglist(subargs, '-m'), ' ', 1)
                 memory = self.split_unit(memory_arg)
                 memory_value = memory[0]
                 memory_unit = memory[1]
 
                 cgpath = self.config['cgroup_path']
                 cgvalue = self.config['cgroup_key_value']
-                cgroup_exist = self.check_cgroup_exist(long_id,
-                                                       cgpath,
+                cgroup_exist = self.check_cgroup_exist(long_id, cgpath,
                                                        cgvalue)
                 if cgroup_exist is True:
                     cgroup_memory = self.read_cgroup(
                         long_id,
-                                            self.config['cgroup_path'],
-                                            self.config['cgroup_key_value'])
+                        self.config['cgroup_path'],
+                        self.config['cgroup_key_value'])
                 else:
                     xceptions.DockerTestNAError("Docker cgroup path doesn't "
                                                 "exist!")
 
                 self.sub_stuff['result'].append(self.check_memory(
-                    memory_value,
-                                                     cgroup_memory,
-                                                     memory_unit))
+                    memory_value, cgroup_memory, memory_unit))
             else:
                 memory_container = MustFailDockerCmd(self.parent_subtest,
                                                      'run',
@@ -289,9 +285,9 @@ class run_memory_base(SubSubtest):
                     fail_content.append(result.values())
                     fail_check = True
                 else:
-                    raise xceptions.DockerTestNAError(
-                        "%s invalid result %s"
-                          % (clsname, result.keys()[0]))
+                    raise xceptions.DockerTestNAError("%s invalid result %s"
+                                                      % (clsname,
+                                                         result.keys()[0]))
             self.failif(fail_check is True,
                         "%s memory check mismatch %s"
                         % (clsname, fail_content))

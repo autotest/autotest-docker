@@ -11,6 +11,7 @@ from dockertest.images import DockerImages
 from dockertest.output import OutputGood
 from autotest.client.shared import error
 
+
 class run(SubSubtestCaller):
     config_section = 'docker_cli/run'
 
@@ -74,7 +75,7 @@ class run_base(SubSubtest):
                                   image)
                 except error.CmdError, e:
                     error_text = "tagged in multiple repositories"
-                    if not error_text in e.result_obj.stderr:
+                    if error_text not in e.result_obj.stderr:
                         raise
 
 
@@ -84,6 +85,7 @@ class run_true(run_base):
 
 class run_false(run_base):
     pass  # Only change is in configuration
+
 
 class run_names(run_base):
 

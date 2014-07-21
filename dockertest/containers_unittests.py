@@ -189,7 +189,7 @@ class DockerContainersTestBase(ContainersTestBase):
     def _make_fake_subtest(self):
         class FakeSubtestException(Exception):
 
-            def __init__(fake_self, *_args, **_dargs):
+            def __init__(fake_self, *_args, **_dargs):  # pylint: disable=E0213
                 super(FakeSubtestException, self).__init__()
 
         class FakeSubtest(self.subtest.Subtest):
@@ -198,7 +198,7 @@ class DockerContainersTestBase(ContainersTestBase):
             iteration = 1
             iterations = 1
 
-            def __init__(fake_self, *_args, **_dargs):
+            def __init__(fake_self, *_args, **_dargs):  # pylint: disable=E0213
                 config_parser = self.config.Config()
                 fake_self.config = config_parser.get(self.config_section)
                 for symbol in ('execute', 'setup', 'initialize', 'run_once',
