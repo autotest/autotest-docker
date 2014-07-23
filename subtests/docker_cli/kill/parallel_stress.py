@@ -1,12 +1,12 @@
 """
 Parallel stress test
 """
-
 import time
 
 from autotest.client import utils
 from dockertest import xceptions
-from kill import kill_base, QDockerCmd, Output
+from dockertest.dockercmd import DockerCmd
+from kill import kill_base, Output
 
 
 class parallel_stress(kill_base):
@@ -40,7 +40,7 @@ class parallel_stress(kill_base):
         cmds = []
         for signal in signals:
             subargs = ["-s %s" % signal] + extra_subargs
-            docker_cmd = QDockerCmd(self, 'kill', subargs)
+            docker_cmd = DockerCmd(self, 'kill', subargs, verbose=False)
             cmd = ("while [ -e %s/docker_kill_stress ]; "
                    "do %s || exit 255; done" % (self.tmpdir,
                                                 docker_cmd.command))
@@ -50,8 +50,14 @@ class parallel_stress(kill_base):
         signals.remove(19)  # SIGSTOP is also not catchable
         self.sub_stuff['signals_set'] = signals
 
+        # SIGCONT after the test finishes (to resume possibly stopped container
+        self.sub_stuff['cont_docker'] = DockerCmd(self, 'kill',
+                                                  ['-s 18'] + extra_subargs,
+                                                  verbose=False)
+
         # kill -9
-        self.sub_stuff['kill_docker'] = QDockerCmd(self, 'kill', extra_subargs)
+        self.sub_stuff['kill_docker'] = DockerCmd(self, 'kill', extra_subargs,
+                                                  verbose=False)
 
     def _execute_stress_loops(self, kill_jobs):
         """
@@ -106,6 +112,8 @@ class parallel_stress(kill_base):
         """
         signals_set = self.sub_stuff['signals_set']
         _check = self.config['check_stdout']
+        cmd = self.sub_stuff['cont_docker']
+        self.sub_stuff['kill_results'].append(cmd.execute())
         endtime = time.time() + self.config['stress_cmd_timeout']
         line = None
         out = None
@@ -119,7 +127,8 @@ class parallel_stress(kill_base):
             except ValueError:
                 pass
         else:
-            self.fail_missing(_check, signals_set, Output(container_cmd), line)
+            self.fail_missing(_check, signals_set, Output(container_cmd, 0),
+                              line)
 
     def _destroy_container(self, container_cmd):
         """

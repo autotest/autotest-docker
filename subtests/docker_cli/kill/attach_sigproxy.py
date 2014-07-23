@@ -1,3 +1,6 @@
+"""
+Attached sigproxy test
+"""
 from kill import kill_check_base
 
 

@@ -277,10 +277,8 @@ class DockerCmd(DockerCmdBase):
         Run docker command, ignore any non-zero exit code
         """
 
-        if self.verbose and not self.quiet:
+        if not self.quiet:
             self.subtest.logdebug("Execute %s", self.command)
-        elif not self.quiet:  # less verbose
-            self.subtest.loginfo("Execute docker %s...", self.subcmd)
         self.cmdresult = utils.run(self.command, timeout=self.timeout,
                                    stdin=stdin, verbose=False,
                                    ignore_status=True)
@@ -353,10 +351,8 @@ class AsyncDockerCmd(DockerCmdBase):
                                     "wait() on existing async job "
                                     "is very likely going to leak "
                                     "processes!!")
-        if self.verbose and not self.quiet:
+        if not self.quiet:
             self.subtest.logdebug("Async-execute: %s", str(self))
-        elif not self.quiet:
-            self.subtest.loginfo("Async-execute: docker %s...", self.subcmd)
         self._async_job = utils.AsyncJob(self.command, verbose=False,
                                          stdin=stdin, close_fds=True)
         return self.cmdresult

@@ -1,12 +1,13 @@
 """
 Stress test
 """
-
 import os
 import time
+
 from autotest.client import utils
 from dockertest import xceptions
-from kill import kill_base, SIGNAL_MAP, QDockerCmd, Output
+from dockertest.dockercmd import DockerCmd
+from kill import kill_base, SIGNAL_MAP, Output
 
 
 class stress(kill_base):
@@ -70,7 +71,7 @@ class stress(kill_base):
             pid = self.sub_stuff['container_cmd'].process_id
             cmd = "kill -$SIGNAL %s" % pid
         else:
-            cmd = QDockerCmd(self, 'kill', subargs).command
+            cmd = DockerCmd(self, 'kill', subargs).command
         cmd = ("for SIGNAL in %s; do %s || exit 255; done"
                % (" ".join(signals_sequence), cmd))
         self.sub_stuff['kill_cmds'] = [cmd]
@@ -78,8 +79,8 @@ class stress(kill_base):
         if sigproxy:
             self.sub_stuff['kill_cmds'].append(False)
         else:
-            dc = QDockerCmd(self, 'kill', extra_subargs)
-            self.sub_stuff['kill_cmds'].append(dc)
+            dcmd = DockerCmd(self, 'kill', extra_subargs, verbose=False)
+            self.sub_stuff['kill_cmds'].append(dcmd)
         self.sub_stuff['signals_set'] = signals_set
 
         self.logdebug("kill_command: %s", cmd)
@@ -107,7 +108,8 @@ class stress(kill_base):
             except ValueError:
                 pass
         else:
-            self.fail_missing(_check, signals_set, Output(container_cmd), line)
+            self.fail_missing(_check, signals_set, Output(container_cmd, 0),
+                              line)
         # Kill -9
         if kill_cmds[1] is not False:   # Custom kill command
             self.sub_stuff['kill_results'].append(kill_cmds[1].execute())
