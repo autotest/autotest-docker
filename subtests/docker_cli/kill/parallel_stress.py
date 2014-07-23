@@ -1,7 +1,6 @@
 """
 Parallel stress test
 """
-
 import time
 
 from autotest.client import utils

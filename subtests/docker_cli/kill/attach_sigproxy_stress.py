@@ -1,3 +1,6 @@
+"""
+Attached sigproxy test
+"""
 from stress import stress
 
 

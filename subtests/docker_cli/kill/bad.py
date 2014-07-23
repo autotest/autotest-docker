@@ -1,3 +1,6 @@
+"""
+Bad signals test
+"""
 import random
 from kill import kill_check_base, QDockerCmd
 
