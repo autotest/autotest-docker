@@ -446,3 +446,18 @@ class random_name(kill_check_base):
     5) analyze results
     """
     pass
+
+
+class go_lang_bad_signals(kill_check_base):
+
+    """
+    Tests signals, which are not forwarded due of outstanding Golang bug.
+
+    initialize:
+    1) start VM with test command
+    run_once:
+    2) execute specific series of kill signals and checks the output
+    postprocess:
+    3) analyze results
+    """
+    pass
