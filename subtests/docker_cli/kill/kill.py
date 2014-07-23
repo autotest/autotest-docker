@@ -21,23 +21,6 @@ from dockertest.images import DockerImage
 from dockertest.output import OutputGood
 
 
-# Quiet/non-verbose versions of docker command classes
-class QAsyncDockerCmd(AsyncDockerCmd):
-    verbose = False
-    quiet = True
-
-
-class QDockerCmd(DockerCmd):
-    verbose = False
-    quiet = True
-
-
-class QNoFailDockerCmd(NoFailDockerCmd):
-    verbose = False
-    quiet = True
-
-
-# TODO: Not all named signals seems to be supported with docker0.9
 SIGNAL_MAP = {1: 'HUP', 2: 'INT', 3: 'QUIT', 4: 'ILL', 5: 'TRAP', 6: 'ABRT',
               7: 'BUS', 8: 'FPE', 9: 'KILL', 10: 'USR1', 11: 'SEGV',
               12: 'USR2', 13: 'PIPE', 14: 'ALRM', 15: 'TERM', 16: 'STKFLT',
@@ -52,9 +35,12 @@ class Output(object):   # only containment pylint: disable=R0903
     Wraps object with `.stdout` method and returns only new chars out of it
     """
 
-    def __init__(self, stuff):
+    def __init__(self, stuff, idx=None):
         self.stuff = stuff
-        self.idx = len(stuff.stdout)
+        if idx is None:
+            self.idx = len(stuff.stdout)
+        else:
+            self.idx = idx
 
     def get(self, idx=None):
         """
@@ -79,6 +65,9 @@ class kill_base(subtest.SubSubtest):
     """ Base class """
 
     def _init_container_normal(self, name):
+        """
+        Starts container
+        """
         if self.config.get('run_options_csv'):
             subargs = [arg for arg in
                        self.config['run_options_csv'].split(',')]
@@ -90,11 +79,14 @@ class kill_base(subtest.SubSubtest):
         subargs.append("bash")
         subargs.append("-c")
         subargs.append(self.config['exec_cmd'])
-        container = QAsyncDockerCmd(self, 'run', subargs)
+        container = AsyncDockerCmd(self, 'run', subargs, verbose=False)
         self.sub_stuff['container_cmd'] = container
         container.execute()
 
     def _init_container_attached(self, name):
+        """
+        Starts detached container and attaches it using docker attach
+        """
         if self.config.get('run_options_csv'):
             subargs = [arg for arg in
                        self.config['run_options_csv'].split(',')]
@@ -106,7 +98,7 @@ class kill_base(subtest.SubSubtest):
         subargs.append("bash")
         subargs.append("-c")
         subargs.append(self.config['exec_cmd'])
-        container = QNoFailDockerCmd(self, 'run', subargs)
+        container = NoFailDockerCmd(self, 'run', subargs, verbose=False)
         self.sub_stuff['container_cmd'] = container
         container.execute()
 
@@ -116,7 +108,7 @@ class kill_base(subtest.SubSubtest):
         else:
             subargs = []
         subargs.append(name)
-        container = QAsyncDockerCmd(self, 'attach', subargs)
+        container = AsyncDockerCmd(self, 'attach', subargs, verbose=False)
         self.sub_stuff['container_cmd'] = container  # overwrites finished cmd
         container.execute()
 
@@ -174,6 +166,9 @@ class kill_base(subtest.SubSubtest):
         return sequence
 
     def _populate_kill_cmds(self, extra_subargs):
+        """
+        Populates variables according to sequence
+        """
         sequence = self._create_kill_sequence()
         signals_sequence = []
         kill_cmds = []
@@ -199,17 +194,17 @@ class kill_base(subtest.SubSubtest):
                     sig_long = False
                 else:
                     subargs = ["-s %s" % signal] + extra_subargs
-                dc = QDockerCmd(self, 'kill', subargs)
-                kill_cmds.append(dc)
+                kill_cmds.append(DockerCmd(self, 'kill', subargs,
+                                           verbose=False))
 
         # Kill -9 is the last one :-)
         signal = 9
         signals_sequence.append(signal)
         if self.config.get('kill_map_signals'):
             signal = SIGNAL_MAP.get(signal, signal)
-        dc = QDockerCmd(self, 'kill', ["-s %s" % signal] + extra_subargs)
-        dc.quiet = True
-        kill_cmds.append(dc)
+        kill_cmds.append(DockerCmd(self, 'kill',
+                                   ["-s %s" % signal] + extra_subargs,
+                                   verbose=False))
 
         if sigproxy:
             self.logdebug("kill_command_example: Killing directly the "
@@ -252,9 +247,15 @@ class kill_base(subtest.SubSubtest):
         #                 % self.sub_stuff['container_results'].exit_status)
 
     def pre_cleanup(self):
+        """
+        Executed before cleanup
+        """
         pass
 
     def container_cleanup(self):
+        """
+        Cleanup the container
+        """
         if self.sub_stuff.get('container_name') is None:
             return  # Docker was not created, we are clean
         containers = DockerContainers(self.parent_subtest)
@@ -266,7 +267,8 @@ class kill_base(subtest.SubSubtest):
             msg = ("Multiple containers matches name %s, not removing any of "
                    "them...", name)
             raise xceptions.DockerTestError(msg)
-        QNoFailDockerCmd(self, 'rm', ['--force', '--volumes', name]).execute()
+        NoFailDockerCmd(self, 'rm', ['--force', '--volumes', name],
+                        verbose=False).execute()
 
     def cleanup(self):
         super(kill_base, self).cleanup()
