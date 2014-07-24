@@ -172,12 +172,12 @@ class wait_base(SubSubtest):
         super(wait_base, self).postprocess()
         result = self.sub_stuff['wait_results']
         self.failif(self.sub_stuff['wait_stdout'] not in result.stdout,
-                    "Expected wait_stdout not in results:\nexpected:\n%s\n"
-                    "actual:\n%s" % (self.sub_stuff['wait_stdout'],
+                    "Expected: \n%s\n"
+                    "in stdout:\n%s" % (self.sub_stuff['wait_stdout'],
                                      result.stdout))
         self.failif(self.sub_stuff['wait_stderr'] not in result.stderr,
-                    "Expected wait_stderr not in results:\nexpected:\n%s\n"
-                    "actual:\n%s" % (self.sub_stuff['wait_stderr'],
+                    "Expected: \n%s\n"
+                    "in stderr:\n%s" % (self.sub_stuff['wait_stderr'],
                                      result.stderr))
         if self.sub_stuff['wait_should_fail']:
             try:
