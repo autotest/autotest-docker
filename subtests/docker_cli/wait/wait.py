@@ -113,6 +113,7 @@ class wait_base(SubSubtest):
         wait_duration = 0
         wait_stdout = []
         wait_stderr = []
+
         for cont in wait_for.split(' '):  # digit or _$STRING
             if cont.isdigit():
                 cont = conts[int(cont)]
@@ -121,7 +122,7 @@ class wait_base(SubSubtest):
                 wait_duration = max(wait_duration, cont['sleep_time'])
             else:
                 subargs.append(cont[1:])
-                msg = "Error: wait: no such container: %s" % cont[1:]
+                msg = "Error response from daemon: wait: no such container: %s" % cont[1:]
                 wait_stderr.append(msg)
                 end = True
         self.sub_stuff['wait_stdout'] = '\n'.join(wait_stdout)
@@ -171,6 +172,7 @@ class wait_base(SubSubtest):
         # Check if execution took the right time (SIGTERM 0s vs. SIGKILL 10s)
         super(wait_base, self).postprocess()
         result = self.sub_stuff['wait_results']
+
         self.failif(self.sub_stuff['wait_stdout'] not in result.stdout,
                     "Expected: \n%s\n"
                     "in stdout:\n%s" % (self.sub_stuff['wait_stdout'],
