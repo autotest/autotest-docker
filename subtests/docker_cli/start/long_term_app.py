@@ -33,9 +33,10 @@ class long_term_app(short_term_app):
     def postprocess(self):
         super(long_term_app, self).postprocess()
         # Raise exception if problems found
-        self.failif(self.sub_stuff['cmdresult'].exit_status != 0,
+        cmdresult = self.sub_stuff['dkrcmd'].cmdresult
+        self.failif(cmdresult.exit_status != 0,
                     "Non-zero start exit status: %s"
-                    % self.sub_stuff['cmdresult'])
+                    % cmdresult)
 
         dc = DockerContainersCLIRunOnly(self.parent_subtest)
         running_c = dc.list_containers_with_cid(

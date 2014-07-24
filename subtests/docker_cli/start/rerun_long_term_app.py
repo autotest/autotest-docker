@@ -18,5 +18,6 @@ class rerun_long_term_app(short_term_app):
     def outputgood(self):
         # Raise exception if problems found
         # but ignore expected error message
-        OutputGood(self.sub_stuff['cmdresult'], ignore_error=True,
+        cmdresult = self.sub_stuff['dkrcmd'].cmdresult
+        OutputGood(cmdresult, ignore_error=True,
                    skip=['error_check'])

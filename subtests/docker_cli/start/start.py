@@ -76,7 +76,8 @@ class start_base(SubSubtest):
         self.loginfo("Starting container...")
         self.loginfo("Executing background command: %s" % dkrcmd.command)
         dkrcmd.execute()
-        self.sub_stuff["cmdresult"] = dkrcmd.wait(60)
+        dkrcmd.wait(60)
+        self.sub_stuff["dkrcmd"] = dkrcmd
 
     def complete_docker_command_line(self):
         cmds = []
@@ -94,14 +95,15 @@ class start_base(SubSubtest):
 
     def outputgood(self):
         # Raise exception if problems found
-        OutputGood(self.sub_stuff['cmdresult'])
+        OutputGood(self.sub_stuff['dkrcmd'])
 
     def postprocess(self):
         super(start_base, self).postprocess()
         self.outputgood()
-        self.failif(self.sub_stuff['cmdresult'].exit_status != 0,
+        cmdresult = self.sub_stuff['dkrcmd'].cmdresult
+        self.failif(cmdresult.exit_status != 0,
                     "Non-zero start exit status: %s"
-                    % self.sub_stuff['cmdresult'])
+                    % cmdresult)
 
     def cleanup(self):
         super(start_base, self).cleanup()
