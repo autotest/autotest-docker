@@ -176,22 +176,22 @@ class with_blocking_container_by_tag(rmi_base):
                                   cmd_with_rand],
                                  self.config['docker_commit_timeout'])
 
-        results = prep_changes.execute()
         dnamsg = ("Problems during initialization of"
-                  " test: %s", results)
-        if results.exit_status:
-            raise DockerTestNAError(dnamsg)
+                      " test: %s")
+        prep_changes.execute()
+        if prep_changes.cmdresult.exit_status:
+            raise DockerTestNAError(dnamsg % prep_changes.cmdresult)
         else:
-            self.sub_stuff["container"] = results.stdout.strip()
+            self.sub_stuff["container"] = prep_changes.cmdresult.stdout.strip()
             self.sub_stuff["containers"].append(self.sub_stuff["container"])
         # Private to this instance, outside of __init__
 
         dkrcmd = DockerCmd(self, 'commit',
                            self.complete_commit_command_line(),
                            self.config['docker_commit_timeout'])
-        results = dkrcmd.execute()
-        if results.exit_status:
-            raise DockerTestNAError(dnamsg)
+        dkrcmd.execute()
+        if dkrcmd.cmdresult.exit_status:
+            raise DockerTestNAError(dnamsg % dkrcmd.cmdresult)
 
         prep_changes = DockerCmd(self, "run",
                                  ["-d",
@@ -199,11 +199,12 @@ class with_blocking_container_by_tag(rmi_base):
                                   cmd_with_rand],
                                  self.config['docker_commit_timeout'])
 
-        results = prep_changes.execute()
-        if results.exit_status:
-            raise DockerTestNAError(dnamsg)
+        prep_changes.execute()
+        if prep_changes.cmdresult.exit_status:
+            raise DockerTestNAError(dnamsg % dkrcmd.cmdresult)
         else:
-            self.sub_stuff["containers"].append(results.stdout.strip())
+            prep_stdout = prep_changes.cmdresult.stdout.strip()
+            self.sub_stuff["containers"].append(prep_stdout)
 
         im = self.check_image_exists(self.sub_stuff["image_name"])
         self.sub_stuff['image_list'] = im
@@ -211,7 +212,7 @@ class with_blocking_container_by_tag(rmi_base):
     def complete_commit_command_line(self):
         c_author = self.config["commit_author"]
         c_msg = self.config["commit_message"]
-        run_params = self.config["commit_run_params"]
+        run_params = self.config.get("commit_run_params")
         repo_addr = self.sub_stuff["image_name"]
 
         cmds = []
