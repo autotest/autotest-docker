@@ -202,20 +202,11 @@ class top(subtest.Subtest):
 
     def cleanup(self):
         super(top, self).cleanup()
-        cleanup_log = []
-        if self.stuff.get('stop_cmd'):
-            try:
+        try:
+            if self.stuff.get('stop_cmd'):
                 self.stuff['stop_cmd']()    # stop stressers
-            except self.stuff['stop_xcpt'], details:
-                cleanup_log.append("Stop_cmd execution failed: %s" % details)
-        name = self.stuff.get('container_name')
-        if name and self.config.get('remove_after_test'):
-            try:
-                NoFailDockerCmd(self, 'rm', ['--force', '--volumes',
-                                             name]).execute()
-            except (DockerCommandError, DockerExecError), details:
-                cleanup_log.append("docker rm failed: %s" % details)
-        if cleanup_log:
-            msg = "Cleanup failed:\n%s" % "\n".join(cleanup_log)
-            self.logerror(msg)  # message is not logged nicely in exc
-            raise xceptions.DockerTestError(msg)
+        finally:
+            name = self.stuff.get('container_name')
+            if name and self.config.get('remove_after_test'):
+                    DockerCmd(self, 'rm', ['--force', '--volumes',
+                                           name]).execute()
