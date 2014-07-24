@@ -50,6 +50,12 @@ class top(subtest.Subtest):
 
     def _init_container(self):
         """ Create, store in self.stuff and execute container """
+        try:
+            fin = DockerImage.full_name_from_defaults(self.config)
+        except ValueError:
+            raise DockerTestNAError("Empty test image name configured,"
+                                    "did you set one for this test?")
+
         docker_containers = DockerContainers(self)
         prefix = self.config["container_name_prefix"]
         name = docker_containers.get_unique_name(prefix, length=4)
@@ -60,11 +66,7 @@ class top(subtest.Subtest):
         else:
             subargs = []
         subargs.append("--name %s" % name)
-        try:
-            fin = DockerImage.full_name_from_defaults(self.config)
-        except ValueError:
-            raise DockerTestNAError("Empty test image name configured,"
-                                    "did you set one for this test?")
+
         subargs.append(fin)
         subargs.append("bash")
         container = NoFailDockerCmd(self, 'run', subargs)
