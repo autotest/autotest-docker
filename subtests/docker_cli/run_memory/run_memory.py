@@ -100,37 +100,30 @@ class run_memory_base(SubSubtest):
         return subargs
 
     @staticmethod
-    def read_cgroup(long_id, path, content,):
+    def cgroup_fullpath(long_id, path, content):
+        """
+        Return full cgroup path for a container.
+        :param long_id: a container's long id
+        :path: the cgroup path of container
+        :param content: the value need check.
+        """
+        return os.path.join("%s-%s.scope" % (path, long_id), content)
+
+    @staticmethod
+    def read_cgroup(long_id, path, content):
         """
         Read container's cgroup file, return its value
         :param long_id: a container's long id, can get via command --inspect.
         :param path: the cgroup path of container.
         :param content: the value need read.
         """
-        cgroup_path = os.path.join("%s-%s.scope" % (path, long_id),
-                                   content)
+        cgroup_path = run_memory_base.cgroup_fullpath(long_id, path, content)
         cgroup_file = open(cgroup_path, 'r')
         try:
             cgroup_value = cgroup_file.read()
         finally:
             cgroup_file.close()
         return cgroup_value
-
-    @staticmethod
-    def check_cgroup_exist(long_id, path, content):
-        """
-        Test if container's cgroup exist.For now the path is
-        /sys/fs/cgroup/$content/system.slice/docker-$long_id.scope
-        :param long_id: a container's long id
-        :path: the cgroup path of container
-        :param content: the value need check.
-        """
-        cgroup_path = os.path.join("%s-%s.scope" % (path, long_id),
-                                   content)
-        if os.path.exists(cgroup_path):
-            return True
-        else:
-            return False
 
     @staticmethod
     def get_arg_from_arglist(argslist, parameter):
@@ -146,7 +139,6 @@ class run_memory_base(SubSubtest):
         for subarg in argslist:
             if parameter in subarg:
                 temp_arg = subarg
-
         return temp_arg
 
     @staticmethod
@@ -188,7 +180,7 @@ class run_memory_base(SubSubtest):
         """
         inspect_id_args = ['--format={{.%s}}' % content]
         inspect_id_args.append(name)
-        container_json = NoFailDockerCmd(self.parent_subtest,
+        container_json = NoFailDockerCmd(self,
                                          'inspect',
                                          inspect_id_args)
         content_value = container_json.execute().stdout.strip()
@@ -197,7 +189,7 @@ class run_memory_base(SubSubtest):
 
     def initialize(self):
         super(run_memory_base, self).initialize()
-        docker_containers = DockerContainers(self.parent_subtest)
+        docker_containers = DockerContainers(self)
         image = DockerImage.full_name_from_defaults(self.config)
         unit_list = ['', 'b', 'B', 'k', 'K', 'm', 'M', 'g', 'G']
         memory_list = []
@@ -235,11 +227,11 @@ class run_memory_base(SubSubtest):
 
         for subargs in self.sub_stuff['subargs']:
             if self.config['expect_success'] == "PASS":
-                memory_container = NoFailDockerCmd(self.parent_subtest,
+                memory_container = NoFailDockerCmd(self,
                                                    'run -d -t',
                                                    subargs).execute()
                 long_id = self.container_json(str(subargs[0]).split('=')[1],
-                                              'ID')
+                                              'Id')
                 memory_arg = self.get_value_from_arg(
                     self.get_arg_from_arglist(subargs, '-m'), ' ', 1)
                 memory = self.split_unit(memory_arg)
@@ -248,21 +240,23 @@ class run_memory_base(SubSubtest):
 
                 cgpath = self.config['cgroup_path']
                 cgvalue = self.config['cgroup_key_value']
-                cgroup_exist = self.check_cgroup_exist(long_id, cgpath,
+                cgroup_fullpath = self.cgroup_fullpath(long_id, cgpath,
                                                        cgvalue)
+                cgroup_exist = os.path.exists(cgroup_fullpath)
                 if cgroup_exist is True:
                     cgroup_memory = self.read_cgroup(
                         long_id,
                         self.config['cgroup_path'],
                         self.config['cgroup_key_value'])
                 else:
-                    xceptions.DockerTestNAError("Docker cgroup path doesn't "
-                                                "exist!")
+                    raise xceptions.DockerTestNAError("Docker cgroup path "
+                                                      "doesn't exist: %s"
+                                                      % cgroup_fullpath)
 
                 self.sub_stuff['result'].append(self.check_memory(
                     memory_value, cgroup_memory, memory_unit))
             else:
-                memory_container = MustFailDockerCmd(self.parent_subtest,
+                memory_container = MustFailDockerCmd(self,
                                                      'run',
                                                      subargs)
                 # throws exception if exit_status == 0
