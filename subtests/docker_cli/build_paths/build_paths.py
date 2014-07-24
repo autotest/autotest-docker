@@ -137,7 +137,7 @@ class build_paths(Subtest):
             res = dkrcmd.execute()
             self.logoutput(res)
             testr = res.exit_status != 0 or "Error:" in res.stderr
-            self.failif(testr, "Errors during removal of images.")
+            self.failif(testr, "Errors during removal of images %s" % dkrcmd)
 
     def logoutput(self, result):
         self.loginfo("Exit: '%s'", result.exit_status)
