@@ -239,7 +239,7 @@ class network_base(SubSubtest):
                        120,
                        text='Waiting on container %s start' % cont_name)
         json = self.get_jason(cont_name)
-        if len(json[0]["NetworkSettings"]["IPAddress"]) != 0:
+        try:
             return json[0]["NetworkSettings"]["IPAddress"]
-        else:
+        except:
             return None
