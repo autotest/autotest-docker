@@ -118,6 +118,9 @@ def start(docker_path, docker_args):
     :returns: Opaque daemon_process object (not for direct use)
     """
     # _SpecificServiceManager creates it's methods during __init__()
+    if service.get_name_of_init() == "systemd":
+        # pylint: disable=E1101
+        utils.run("systemctl stop docker.socket", ignore_status=True)
     service.SpecificServiceManager("docker").stop()  # pylint: disable=E1101
     cmd = [docker_path]
     cmd += docker_args
@@ -148,6 +151,9 @@ def restart_service(daemon_process=None):
     :param daemon_process: Opaque daemon_process object (not for direct use)
     """
     if daemon_process:
-        daemon_process.wait_for(0)
+        daemon_process.kill_func()
+        daemon_process.wait_for(10)
     # _SpecificServiceManager creates it's methods during __init__()
+    if service.get_name_of_init() == "systemd":
+        utils.run("systemctl start docker.socket", ignore_status=True)
     service.SpecificServiceManager("docker").start()  # pylint: disable=E1101
