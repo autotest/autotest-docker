@@ -122,7 +122,8 @@ class wait_base(SubSubtest):
                 wait_duration = max(wait_duration, cont['sleep_time'])
             else:
                 subargs.append(cont[1:])
-                msg = "Error response from daemon: wait: no such container: %s" % cont[1:]
+                msg = ("Error response from daemon: wait: no such container: "
+                       "%s" % cont[1:])
                 wait_stderr.append(msg)
                 end = True
         self.sub_stuff['wait_stdout'] = '\n'.join(wait_stdout)
@@ -176,11 +177,11 @@ class wait_base(SubSubtest):
         self.failif(self.sub_stuff['wait_stdout'] not in result.stdout,
                     "Expected: \n%s\n"
                     "in stdout:\n%s" % (self.sub_stuff['wait_stdout'],
-                                     result.stdout))
+                                        result.stdout))
         self.failif(self.sub_stuff['wait_stderr'] not in result.stderr,
                     "Expected: \n%s\n"
                     "in stderr:\n%s" % (self.sub_stuff['wait_stderr'],
-                                     result.stderr))
+                                        result.stderr))
         if self.sub_stuff['wait_should_fail']:
             try:
                 OutputGood(result)
