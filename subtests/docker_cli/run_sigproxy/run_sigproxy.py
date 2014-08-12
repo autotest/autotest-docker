@@ -108,9 +108,7 @@ class sigproxy_base(SubSubtest):
         for signal in self.sub_stuff['kill_signals']:
             if wait_between_kill:
                 time.sleep(wait_between_kill)
-            # Special case, no need to put this in FW; pylint: disable=W0212
-            container_cmd._async_job.sp.send_signal(signal)
-            # pylint: enable=W0212
+            utils.safe_kill(container_cmd.process_id, signal)
 
     def _check_results(self):
         """
