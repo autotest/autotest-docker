@@ -131,6 +131,7 @@ class rmi_base(SubSubtest):
         di = DockerImages(self.parent_subtest)
         return di.list_imgs_with_full_name(full_name)
 
+    # FIXME: Clobber this method when 'commit_run_params' goes away (below)
     def run_is_deprecated(self):
         dv = DockerVersion(NoFailDockerCmd(self, "version").execute().stdout)
         client_version = LooseVersion(dv.client)
@@ -212,6 +213,7 @@ class with_blocking_container_by_tag(rmi_base):
     def complete_commit_command_line(self):
         c_author = self.config["commit_author"]
         c_msg = self.config["commit_message"]
+        # FIXME: Remove commit_run_params entirely in future version
         run_params = self.config.get("commit_run_params")
         repo_addr = self.sub_stuff["image_name"]
 
