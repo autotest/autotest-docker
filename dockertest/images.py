@@ -139,7 +139,7 @@ class DockerImage(object):  # pylint: disable=R0902
                 user = user[:-1]
             if tag:
                 tag = tag[1:]
-        except:
+        except TypeError:  # no match
             raise DockerFullNameFormatError(full_name)
         return repo, tag, repo_addr, user
 
