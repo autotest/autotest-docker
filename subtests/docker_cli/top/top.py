@@ -19,12 +19,15 @@ import time
 
 from dockertest import config, subtest, xceptions
 from dockertest.containers import DockerContainers
-from dockertest.dockercmd import (AsyncDockerCmd, NoFailDockerCmd,
-                                  MustFailDockerCmd)
+from dockertest.dockercmd import AsyncDockerCmd
+from dockertest.dockercmd import DockerCmd
+from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.dockercmd import MustFailDockerCmd
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
-from dockertest.xceptions import (DockerCommandError, DockerExecError,
-                                  DockerTestNAError)
+from dockertest.xceptions import DockerCommandError
+from dockertest.xceptions import DockerExecError
+from dockertest.xceptions import DockerTestNAError
 
 
 class top(subtest.Subtest):
