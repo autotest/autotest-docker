@@ -47,9 +47,11 @@ class dockerhelp(subtest.Subtest):
             self.loginfo("command: '%s'" % cmdresult.command)
             self.failif(cmdresult.exit_status != 0,
                         "Docker command returned non-zero exit status")
-            self.failif(cmdresult.stderr.count('Usage:') < 1,
+            self.failif(cmdresult.stderr.count('Usage:') < 1 and
+                        cmdresult.stdout.count('Usage:') < 1,
                         "Docker command did not return usage info on stderr")
-            self.failif(cmdresult.stderr.count('Commands:') < 1,
+            self.failif(cmdresult.stderr.count('Commands:') < 1 and
+                        cmdresult.stdout.count('Usage:') < 1,
                         "Docker command did not return command-line help "
                         "on stderr.")
             outputgood = OutputGood(cmdresult, ignore_error=True,

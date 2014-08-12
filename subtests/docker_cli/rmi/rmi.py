@@ -7,6 +7,8 @@ Test output of docker Rim command
 """
 
 import time
+# FIXME: distutils.version is incorrectly missing in Travis CI, disable warning
+from distutils.version import LooseVersion  # pylint: disable=E0611
 from autotest.client import utils
 from dockertest import subtest
 from dockertest import config
@@ -14,6 +16,7 @@ from dockertest import images
 from dockertest.subtest import SubSubtest
 from dockertest.images import DockerImages
 from dockertest.output import OutputGood
+from dockertest.output import DockerVersion
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.dockercmd import DockerCmd
 from dockertest.dockercmd import NoFailDockerCmd
@@ -31,6 +34,9 @@ class rmi(subtest.SubSubtestCaller):
 
 
 class rmi_base(SubSubtest):
+
+    #: The --run option marked for deprecation in this version and later
+    commit_run_deprecated_version = "1.1.1"
 
     def initialize(self):
         super(rmi_base, self).initialize()
@@ -125,6 +131,16 @@ class rmi_base(SubSubtest):
         di = DockerImages(self.parent_subtest)
         return di.list_imgs_with_full_name(full_name)
 
+    # FIXME: Clobber this method when 'commit_run_params' goes away (below)
+    def run_is_deprecated(self):
+        dv = DockerVersion(NoFailDockerCmd(self, "version").execute().stdout)
+        client_version = LooseVersion(dv.client)
+        dep_version = LooseVersion(self.commit_run_deprecated_version)
+        if client_version < dep_version:
+            return False
+        else:
+            return True
+
 
 class with_blocking_container_by_tag(rmi_base):
 
@@ -140,6 +156,7 @@ class with_blocking_container_by_tag(rmi_base):
     5. Check if full_name not exits in images.
     6. Remove blocking container and created image.
     """
+
     config_section = 'docker_cli/rmi/with_blocking_container_by_tag'
 
     def initialize(self):
@@ -160,22 +177,22 @@ class with_blocking_container_by_tag(rmi_base):
                                   cmd_with_rand],
                                  self.config['docker_commit_timeout'])
 
-        results = prep_changes.execute()
         dnamsg = ("Problems during initialization of"
-                  " test: %s", results)
-        if results.exit_status:
-            raise DockerTestNAError(dnamsg)
+                      " test: %s")
+        prep_changes.execute()
+        if prep_changes.cmdresult.exit_status:
+            raise DockerTestNAError(dnamsg % prep_changes.cmdresult)
         else:
-            self.sub_stuff["container"] = results.stdout.strip()
+            self.sub_stuff["container"] = prep_changes.cmdresult.stdout.strip()
             self.sub_stuff["containers"].append(self.sub_stuff["container"])
         # Private to this instance, outside of __init__
 
         dkrcmd = DockerCmd(self, 'commit',
                            self.complete_commit_command_line(),
                            self.config['docker_commit_timeout'])
-        results = dkrcmd.execute()
-        if results.exit_status:
-            raise DockerTestNAError(dnamsg)
+        dkrcmd.execute()
+        if dkrcmd.cmdresult.exit_status:
+            raise DockerTestNAError(dnamsg % dkrcmd.cmdresult)
 
         prep_changes = DockerCmd(self, "run",
                                  ["-d",
@@ -183,11 +200,12 @@ class with_blocking_container_by_tag(rmi_base):
                                   cmd_with_rand],
                                  self.config['docker_commit_timeout'])
 
-        results = prep_changes.execute()
-        if results.exit_status:
-            raise DockerTestNAError(dnamsg)
+        prep_changes.execute()
+        if prep_changes.cmdresult.exit_status:
+            raise DockerTestNAError(dnamsg % dkrcmd.cmdresult)
         else:
-            self.sub_stuff["containers"].append(results.stdout.strip())
+            prep_stdout = prep_changes.cmdresult.stdout.strip()
+            self.sub_stuff["containers"].append(prep_stdout)
 
         im = self.check_image_exists(self.sub_stuff["image_name"])
         self.sub_stuff['image_list'] = im
@@ -195,7 +213,8 @@ class with_blocking_container_by_tag(rmi_base):
     def complete_commit_command_line(self):
         c_author = self.config["commit_author"]
         c_msg = self.config["commit_message"]
-        run_params = self.config["commit_run_params"]
+        # FIXME: Remove commit_run_params entirely in future version
+        run_params = self.config.get("commit_run_params")
         repo_addr = self.sub_stuff["image_name"]
 
         cmds = []
@@ -203,7 +222,7 @@ class with_blocking_container_by_tag(rmi_base):
             cmds.append("-a %s" % c_author)
         if c_msg:
             cmds.append("-m %s" % c_msg)
-        if run_params:
+        if run_params and not self.run_is_deprecated():
             cmds.append("--run=%s" % run_params)
 
         cmds.append(self.sub_stuff["container"])

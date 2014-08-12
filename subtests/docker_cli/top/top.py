@@ -19,12 +19,15 @@ import time
 
 from dockertest import config, subtest, xceptions
 from dockertest.containers import DockerContainers
-from dockertest.dockercmd import (AsyncDockerCmd, NoFailDockerCmd,
-                                  MustFailDockerCmd)
+from dockertest.dockercmd import AsyncDockerCmd
+from dockertest.dockercmd import DockerCmd
+from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.dockercmd import MustFailDockerCmd
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
-from dockertest.xceptions import (DockerCommandError, DockerExecError,
-                                  DockerTestNAError)
+from dockertest.xceptions import DockerCommandError
+from dockertest.xceptions import DockerExecError
+from dockertest.xceptions import DockerTestNAError
 
 
 class top(subtest.Subtest):
@@ -50,6 +53,12 @@ class top(subtest.Subtest):
 
     def _init_container(self):
         """ Create, store in self.stuff and execute container """
+        try:
+            fin = DockerImage.full_name_from_defaults(self.config)
+        except ValueError:
+            raise DockerTestNAError("Empty test image name configured,"
+                                    "did you set one for this test?")
+
         docker_containers = DockerContainers(self)
         prefix = self.config["container_name_prefix"]
         name = docker_containers.get_unique_name(prefix, length=4)
@@ -60,11 +69,7 @@ class top(subtest.Subtest):
         else:
             subargs = []
         subargs.append("--name %s" % name)
-        try:
-            fin = DockerImage.full_name_from_defaults(self.config)
-        except ValueError:
-            raise DockerTestNAError("Empty test image name configured,"
-                                    "did you set one for this test?")
+
         subargs.append(fin)
         subargs.append("bash")
         container = NoFailDockerCmd(self, 'run', subargs)
@@ -202,20 +207,11 @@ class top(subtest.Subtest):
 
     def cleanup(self):
         super(top, self).cleanup()
-        cleanup_log = []
-        if self.stuff.get('stop_cmd'):
-            try:
+        try:
+            if self.stuff.get('stop_cmd'):
                 self.stuff['stop_cmd']()    # stop stressers
-            except self.stuff['stop_xcpt'], details:
-                cleanup_log.append("Stop_cmd execution failed: %s" % details)
-        name = self.stuff.get('container_name')
-        if name and self.config.get('remove_after_test'):
-            try:
-                NoFailDockerCmd(self, 'rm', ['--force', '--volumes',
-                                             name]).execute()
-            except (DockerCommandError, DockerExecError), details:
-                cleanup_log.append("docker rm failed: %s" % details)
-        if cleanup_log:
-            msg = "Cleanup failed:\n%s" % "\n".join(cleanup_log)
-            self.logerror(msg)  # message is not logged nicely in exc
-            raise xceptions.DockerTestError(msg)
+        finally:
+            name = self.stuff.get('container_name')
+            if name and self.config.get('remove_after_test'):
+                    DockerCmd(self, 'rm', ['--force', '--volumes',
+                                           name]).execute()

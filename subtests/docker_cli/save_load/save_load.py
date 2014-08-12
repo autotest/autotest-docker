@@ -12,9 +12,6 @@ postprocess:
   6) Check if image again exits in docker.
 """
 
-
-import os
-
 from autotest.client import utils
 from autotest.client.shared import error
 from dockertest.subtest import SubSubtest
@@ -40,16 +37,15 @@ class save_load_base(SubSubtest):
         self.sub_stuff['subargs'].append(self.config['docker_data_prep_cmd'])
         self.sub_stuff["containers"] = []
         self.sub_stuff["images"] = []
-        self.sub_stuff["cont"] = DockerContainers(self.parent_subtest)
-        self.sub_stuff["img"] = DockerImages(self.parent_subtest)
+        self.sub_stuff["cont"] = DockerContainers(self)
+        self.sub_stuff["img"] = DockerImages(self)
 
     def cleanup(self):
         super(save_load_base, self).cleanup()
         # Auto-converts "yes/no" to a boolean
         if self.config['remove_after_test']:
             for cont in self.sub_stuff["containers"]:
-                dkrcmd = DockerCmd(self.parent_subtest, "rm",
-                                   ['--volumes', '--force', cont])
+                dkrcmd = DockerCmd(self, "rm", ['--volumes', '--force', cont])
                 cmdresult = dkrcmd.execute()
                 msg = (" removed test container: %s" % cont)
                 if cmdresult.exit_status == 0:
@@ -77,9 +73,7 @@ class simple(save_load_base):
         self.sub_stuff["rand_name"] = rand_name
         self.sub_stuff["subargs"].insert(0, "--name=\"%s\"" % rand_name)
 
-        dkrcmd = DockerCmd(self.parent_subtest, 'run',
-                           self.sub_stuff['subargs'],
-                           verbose=True)
+        dkrcmd = DockerCmd(self, 'run', self.sub_stuff['subargs'])
 
         cmdresult = dkrcmd.execute()
         if cmdresult.exit_status != 0:
@@ -87,6 +81,7 @@ class simple(save_load_base):
                               (cmdresult))
 
         c_name = self.sub_stuff["rand_name"]
+        self.sub_stuff['containers'].append(c_name)
         self.sub_stuff["images"].append(c_name)
         cid = self.sub_stuff["cont"].list_containers_with_name(c_name)
 
@@ -94,15 +89,13 @@ class simple(save_load_base):
                     "Unable to search container with name %s: details :%s" %
                     (c_name, cmdresult))
 
-        dkrcmd = DockerCmd(self.parent_subtest, 'commit',
-                           [c_name, c_name], verbose=True)
-        dkrcmd.verbose = True
+        dkrcmd = DockerCmd(self, 'commit', [c_name, c_name])
 
         cmdresult = dkrcmd.execute()
         if cmdresult.exit_status != 0:
             error.TestNAError("Unable to prepare env for test: %s" %
                               (cmdresult))
-        dkrcmd = DockerCmd(self.parent_subtest, 'rm', [c_name], verbose=True)
+        dkrcmd = DockerCmd(self, 'rm', [c_name])
         cmdresult = dkrcmd.execute()
         if cmdresult.exit_status != 0:
             error.TestNAError("Failed to cleanup env for test: %s" %
@@ -116,9 +109,10 @@ class simple(save_load_base):
         # Save image
         save_cmd = self.config['save_cmd']
         self.sub_stuff['save_ar'] = (save_cmd %
-                                     {"image": self.sub_stuff["rand_name"]})
+                                     {"image": self.sub_stuff["rand_name"],
+                                      "tmpdir": self.tmpdir})
 
-        dkrcmd = DockerCmd(self.parent_subtest, 'save',
+        dkrcmd = DockerCmd(self, 'save',
                            [self.sub_stuff['save_ar']],
                            verbose=True)
         dkrcmd.verbose = True
@@ -130,19 +124,19 @@ class simple(save_load_base):
             return
 
         # Delete image
-        dkrcmd = DockerCmd(self.parent_subtest, 'rmi',
+        dkrcmd = DockerCmd(self, 'rmi',
                            [self.sub_stuff["rand_name"]],
                            verbose=True)
-        dkrcmd.verbose = True
         # Runs in background
         self.sub_stuff['cmdresult_del'] = dkrcmd.execute()
 
         # Load image
         load_cmd = self.config['load_cmd']
         self.sub_stuff['load_ar'] = (load_cmd %
-                                     {"image": self.sub_stuff["rand_name"]})
+                                     {"image": self.sub_stuff["rand_name"],
+                                      "tmpdir": self.tmpdir})
 
-        dkrcmd = DockerCmd(self.parent_subtest, 'load',
+        dkrcmd = DockerCmd(self, 'load',
                            [self.sub_stuff['load_ar']],
                            verbose=True)
         dkrcmd.verbose = True
@@ -175,10 +169,3 @@ class simple(save_load_base):
         img_name = self.sub_stuff["rand_name"]
         images = self.sub_stuff["img"].list_imgs_with_full_name(img_name)
         self.failif(images == [], "Unable to find loaded image.")
-
-    def cleanup(self):
-        super(simple, self).cleanup()
-        # Auto-converts "yes/no" to a boolean
-        image_path = os.path.join("/tmp/", self.sub_stuff["rand_name"])
-        self.logdebug("Removing image file %s", image_path)
-        os.remove(image_path)

@@ -106,7 +106,7 @@ class tag_base(SubSubtest):
 
             im = self.check_image_exists(self.sub_stuff["new_image_name"])
             # Needed for cleanup
-            self.sub_stuff['image_list'] = im
+            self.sub_stuff['image_list'] += im
             self.failif(len(im) < 1,
                         "Failed to look up tagted image ")
 
@@ -121,12 +121,13 @@ class tag_base(SubSubtest):
         super(tag_base, self).cleanup()
         # Auto-converts "yes/no" to a boolean
         if (self.config['remove_after_test'] and
-                'image_list' in self.sub_stuff):
+           'image_list' in self.sub_stuff):
+
             for image in self.sub_stuff["image_list"]:
                 di = DockerImages(self.parent_subtest)
                 self.logdebug("Removing image %s", image.full_name)
                 try:
-                    di.remove_image_by_image_obj(image)
+                    di.remove_image_by_full_name(image.full_name)
                 except error.CmdError, e:
                     err = e.result_obj.stderr
                     if "tagged in multiple repositories" not in err:

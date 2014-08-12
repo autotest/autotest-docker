@@ -118,7 +118,10 @@ class SubBase(object):
         newline = '\n' + ' ' * cls.n_spaces + '\t' * cls.n_tabs
         newline += " " * (len(cls.__name__) + 2)    # cls name + ': '
         try:
-            msg = (str(msg) % args).replace('\n', newline)
+            if args != ():
+                msg = (str(msg) % args).replace('\n', newline)
+            else:
+                msg = str(msg).replace('\n', newline)
         except TypeError:
             raise TypeError("Not all arguments converted during formatting: "
                             "msg='%s', args=%s" % (msg, args))

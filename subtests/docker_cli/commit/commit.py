@@ -135,7 +135,7 @@ class commit_base(SubSubtest):
                 try:
                     di = DockerImages(self.parent_subtest)
                     self.logdebug("Removing image %s", image.full_name)
-                    di.remove_image_by_image_obj(image)
+                    di.remove_image_by_full_name(image.full_name)
                     self.loginfo("Successfully removed test image: %s",
                                  image.full_name)
                 except error.CmdError, e:

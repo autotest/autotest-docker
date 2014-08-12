@@ -19,6 +19,7 @@ from dockertest.containers import DockerContainers
 from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtest
 from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.dockercmd import DockerCmd
 
 
 class restart(subtest.SubSubtestCaller):
@@ -155,13 +156,13 @@ class restart_base(SubSubtest):
         cont_id = self.sub_stuff['container_id']
         conts = containers.list_containers_with_cid(cont_id)
         if conts == []:
-            return  # Docker was created, but apparently doesn't exist, clean
+            return  # Container created, but doesn't exist.  Desired end-state.
         elif len(conts) > 1:
             msg = ("Multiple containers matches id %s, not removing any of "
                    "them...", cont_id)
             raise xceptions.DockerTestError(msg)
-        NoFailDockerCmd(self.parent_subtest, 'rm', ['--force', '--volumes',
-                                                    cont_id]).execute()
+        DockerCmd(self.parent_subtest, 'rm',
+                  ['--force', '--volumes', cont_id]).execute()
 
 
 class nice(restart_base):
