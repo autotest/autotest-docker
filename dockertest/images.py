@@ -128,7 +128,8 @@ class DockerImage(object):  # pylint: disable=R0902
         :param full_name: FQIN, Fully Qualified Image Name
         :return: Iterable of repo, tag, repo_addr, user strings
         """
-
+        if full_name is None:
+            return None, None, None, None
         try:
             (repo_addr, _, user,
              repo, tag) = DockerImage.repo_split_p.match(full_name).groups()
