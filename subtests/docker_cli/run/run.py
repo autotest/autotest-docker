@@ -36,8 +36,7 @@ class run_base(SubSubtest):
 
     def run_once(self):
         super(run_base, self).run_once()    # Prints out basic info
-        dkrcmd = DockerCmd(self.parent_subtest, 'run',
-                           self.sub_stuff['subargs'])
+        dkrcmd = DockerCmd(self, 'run', self.sub_stuff['subargs'])
         dkrcmd.verbose = True
         self.sub_stuff['dkrcmd'] = dkrcmd
         dkrcmd.execute()
@@ -58,8 +57,7 @@ class run_base(SubSubtest):
         # Auto-converts "yes/no" to a boolean
         if self.config['remove_after_test']:
             for cont in self.sub_stuff.get("containers", []):
-                dkrcmd = DockerCmd(self.parent_subtest, "rm",
-                                   ['--volumes', '--force', cont])
+                dkrcmd = DockerCmd(self, "rm", ['--volumes', '--force', cont])
                 cmdresult = dkrcmd.execute()
                 msg = (" removed test container: %s" % cont)
                 if cmdresult.exit_status == 0:

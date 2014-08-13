@@ -14,8 +14,7 @@ class run_signal(run_base):
 
     def run_once(self):
         sig = getattr(signal, self.config['listen_signal'])
-        dkrcmd = AsyncDockerCmd(self.parent_subtest, 'run',
-                                self.sub_stuff['subargs'],
+        dkrcmd = AsyncDockerCmd(self, 'run', self.sub_stuff['subargs'],
                                 timeout=self.config['docker_timeout'])
         self.logdebug("Starting background docker command, timeout %s seconds: "
                       "%s", self.config['docker_timeout'], dkrcmd.command)

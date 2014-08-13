@@ -34,7 +34,7 @@ class pull_base(SubSubtest):
         super(pull_base, self).run_once()
         # 1. Run with no options
 
-        dkrcmd = AsyncDockerCmd(self.parent_subtest, 'pull',
+        dkrcmd = AsyncDockerCmd(self, 'pull',
                                 self.complete_docker_command_line(),
                                 self.config['docker_pull_timeout'])
         self.loginfo("Executing background command: %s" % dkrcmd)

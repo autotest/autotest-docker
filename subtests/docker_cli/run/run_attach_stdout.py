@@ -35,8 +35,7 @@ class run_attach_stdout(run_base):
     def run_once(self):
         self.logdebug("Starting background docker commands")
 
-        runcmd = AsyncDockerCmd(self.parent_subtest, 'run',
-                                self.sub_stuff['subargs'],
+        runcmd = AsyncDockerCmd(self, 'run', self.sub_stuff['subargs'],
                                 timeout=self.config['docker_timeout'])
         self.logdebug("Run Command: %s", runcmd.command)
 
@@ -54,7 +53,7 @@ class run_attach_stdout(run_base):
         os.close(self.sub_stuff["rpipe"])
 
         self.logdebug("Starting attach command")
-        attachcmd = AsyncDockerCmd(self.parent_subtest, 'attach',
+        attachcmd = AsyncDockerCmd(self, 'attach',
                                    self.sub_stuff['attach_options'],
                                    timeout=self.config['docker_timeout'])
         self.logdebug("Attach Command: %s", runcmd.command)

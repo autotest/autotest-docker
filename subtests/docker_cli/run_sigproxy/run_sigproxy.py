@@ -43,7 +43,7 @@ class sigproxy_base(SubSubtest):
         subargs.append("bash")
         subargs.append("-c")
         subargs.append(self.config['exec_cmd'])
-        container = AsyncDockerCmd(self.parent_subtest, 'run', subargs)
+        container = AsyncDockerCmd(self, 'run', subargs)
         self.sub_stuff['container_cmd'] = container
         container.execute()
 
@@ -59,7 +59,7 @@ class sigproxy_base(SubSubtest):
         subargs.append("bash")
         subargs.append("-c")
         subargs.append(self.config['exec_cmd'])
-        container = NoFailDockerCmd(self.parent_subtest, 'run', subargs)
+        container = NoFailDockerCmd(self, 'run', subargs)
         self.sub_stuff['container_cmd'] = container
         container.execute()
 
@@ -69,7 +69,7 @@ class sigproxy_base(SubSubtest):
         else:
             subargs = []
         subargs.append(name)
-        container = AsyncDockerCmd(self.parent_subtest, 'attach', subargs)
+        container = AsyncDockerCmd(self, 'attach', subargs)
         self.sub_stuff['container_cmd'] = container  # overwrites finished cmd
         container.execute()
 
@@ -140,8 +140,7 @@ class sigproxy_base(SubSubtest):
 
         # stop the container
         container_name = self.sub_stuff['container_name']
-        NoFailDockerCmd(self.parent_subtest, "kill",
-                        [container_name]).execute()
+        NoFailDockerCmd(self, "kill", [container_name]).execute()
         container = self.sub_stuff['container_cmd']
         if not utils.wait_for(lambda: container.done, 5, step=0.1):
             raise DockerTestFail("Unable to kill container after test...")
@@ -160,7 +159,7 @@ class sigproxy_base(SubSubtest):
         if self.sub_stuff.get('container_name'):
             args = ['--force', '--volumes', self.sub_stuff['container_name']]
             try:
-                NoFailDockerCmd(self.parent_subtest, 'rm', args).execute()
+                NoFailDockerCmd(self, 'rm', args).execute()
             except DockerExecError, details:
                 failures.append("Remove after test failed: %s" % details)
         self.failif(failures, "\n".join(failures))

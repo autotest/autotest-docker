@@ -34,16 +34,12 @@ class diff_base(SubSubtest):
         fin = DockerImage.full_name_from_defaults(self.config)
         subargs = ['--name=%s' % (name), fin]
         subargs = subargs + self.config['command'].split(',')
-        nfdc = NoFailDockerCmd(self.parent_subtest,
-                               'run',
-                               subargs)
+        nfdc = NoFailDockerCmd(self, 'run', subargs)
         nfdc.execute()
 
     def run_once(self):
         super(diff_base, self).run_once()
-        nfdc = NoFailDockerCmd(self.parent_subtest,
-                               'diff',
-                               [self.sub_stuff['name']])
+        nfdc = NoFailDockerCmd(self, 'diff', [self.sub_stuff['name']])
         self.sub_stuff['cmdresult'] = nfdc.execute()
 
     def postprocess(self):
@@ -63,9 +59,7 @@ class diff_base(SubSubtest):
     def cleanup(self):
         super(diff_base, self).cleanup()
         if self.config['remove_after_test']:
-            dkrcmd = DockerCmd(self.parent_subtest,
-                               'rm',
-                               [self.sub_stuff['name']])
+            dkrcmd = DockerCmd(self, 'rm', [self.sub_stuff['name']])
             dkrcmd.execute()
 
 

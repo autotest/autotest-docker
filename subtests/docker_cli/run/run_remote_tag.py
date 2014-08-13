@@ -40,7 +40,7 @@ class run_remote_tag(run_base):
         self.sub_stuff["subargs"].insert(0, "--name=%s " % rand_name)
 
     def run_command(self, cmd, subargs, cmd_name):
-        dkrcmd = DockerCmd(self.parent_subtest, cmd, subargs,
+        dkrcmd = DockerCmd(self, cmd, subargs,
                            timeout=self.config['docker_timeout'])
         self.loginfo(dkrcmd.command)
         dkrcmd.execute()

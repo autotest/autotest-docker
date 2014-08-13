@@ -36,8 +36,7 @@ class check_default_cmd(commit_base):
                     "Failed to look up committed image ")
         self.check_file_in_image()
         # Check if is possible start image with default command.
-        dc = DockerCmd(self.parent_subtest, "run",
-                       [self.sub_stuff['image_list'][0].long_id],
+        dc = DockerCmd(self, "run", [self.sub_stuff['image_list'][0].long_id],
                        timeout=self.config['docker_timeout'])
         results = dc.execute()
 
@@ -49,7 +48,7 @@ class check_default_cmd(commit_base):
                     dct.kill_container_by_long_id(cont.long_id)
                 except ValueError:
                     pass
-                dc = DockerCmd(self.parent_subtest, "rm", ["-f", cont.long_id])
+                dc = DockerCmd(self, "rm", ["-f", cont.long_id])
                 rm_results = dc.execute()
                 self.failif(rm_results.exit_status != 0,
                             "Non-zero commit exit status: %s"

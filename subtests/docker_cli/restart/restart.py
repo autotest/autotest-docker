@@ -54,7 +54,7 @@ class restart_base(SubSubtest):
         subargs.append("bash")
         subargs.append("-c")
         subargs.append(self.config['exec_cmd'])
-        container = NoFailDockerCmd(self.parent_subtest, 'run', subargs)
+        container = NoFailDockerCmd(self, 'run', subargs)
         cont_id = container.execute().stdout.strip()
         self.sub_stuff['container_id'] = cont_id
         container = containers.list_containers_with_cid(cont_id)
@@ -69,8 +69,8 @@ class restart_base(SubSubtest):
         else:
             subargs = []
         subargs.append(cont_id)
-        self.sub_stuff['restart_cmd'] = NoFailDockerCmd(self.parent_subtest,
-                                                        'restart', subargs)
+        self.sub_stuff['restart_cmd'] = NoFailDockerCmd(self, 'restart',
+                                                        subargs)
 
         # Prepare the "stop" command
         if self.config.get('stop_options_csv'):
@@ -79,8 +79,7 @@ class restart_base(SubSubtest):
         else:
             subargs = []
         subargs.append(cont_id)
-        self.sub_stuff['stop_cmd'] = NoFailDockerCmd(self.parent_subtest,
-                                                     'stop', subargs)
+        self.sub_stuff['stop_cmd'] = NoFailDockerCmd(self, 'stop', subargs)
 
     def check_output(self, lines, bad_lines, timeout=5):
         """
@@ -95,7 +94,7 @@ class restart_base(SubSubtest):
         endtime = time.time() + timeout
         container_id = self.sub_stuff['container_id']
         while time.time() < endtime:
-            log = NoFailDockerCmd(self.parent_subtest, 'logs',
+            log = NoFailDockerCmd(self, 'logs',
                                   [container_id]).execute().stdout.splitlines()
             i = 0   # (good) lines idx
             exp = lines[i]
@@ -161,8 +160,7 @@ class restart_base(SubSubtest):
             msg = ("Multiple containers matches id %s, not removing any of "
                    "them...", cont_id)
             raise xceptions.DockerTestError(msg)
-        DockerCmd(self.parent_subtest, 'rm',
-                  ['--force', '--volumes', cont_id]).execute()
+        DockerCmd(self, 'rm', ['--force', '--volumes', cont_id]).execute()
 
 
 class nice(restart_base):

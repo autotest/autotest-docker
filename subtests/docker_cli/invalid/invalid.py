@@ -82,7 +82,7 @@ class invalid_base(subtest.SubSubtest):
                                    [arg],
                                    ['--name'] + container_name,
                                    arg1)
-            nfdc = DockerCmd(self.parent_subtest, "run", args)
+            nfdc = DockerCmd(self, "run", args)
             cmdresult = nfdc.execute()
 
             cmdresults.append(cmdresult)
@@ -155,5 +155,5 @@ class invalid_base(subtest.SubSubtest):
     def cleanup(self):
         super(invalid_base, self).cleanup()
         for container in self.sub_stuff['container_names']:
-            cm = DockerCmd(self.parent_subtest, "rm", container)
+            cm = DockerCmd(self, "rm", container)
             cm.execute()

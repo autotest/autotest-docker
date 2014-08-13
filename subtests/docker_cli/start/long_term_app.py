@@ -21,7 +21,7 @@ class long_term_app(short_term_app):
 
     def initialize(self):
         super(long_term_app, self).initialize()
-        kill_cmd = DockerCmd(self.parent_subtest, "kill",
+        kill_cmd = DockerCmd(self, "kill",
                              [self.sub_stuff["container"].long_id],
                              self.config['docker_run_timeout'])
 

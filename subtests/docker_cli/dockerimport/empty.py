@@ -59,8 +59,7 @@ class empty(SubSubtest):
     def cleanup(self):
         super(empty, self).cleanup()
         if self.parent_subtest.config['try_remove_after_test']:
-            dkrcmd = DockerCmd(self, 'rmi',
-                               [self.sub_stuff['image_name_tag']])
+            dkrcmd = DockerCmd(self, 'rmi', [self.sub_stuff['image_name_tag']])
             cmdresult = dkrcmd.execute()
             if cmdresult.exit_status != 0:
                 self.logwarning("Cleanup command failed: %s" % cmdresult)

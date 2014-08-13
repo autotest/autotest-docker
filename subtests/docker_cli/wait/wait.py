@@ -71,8 +71,7 @@ class wait_base(SubSubtest):
         image = DockerImage.full_name_from_defaults(self.config)
         subargs.append(image)
         subargs.append("bash")
-        cont = {'result': DockerCmd(self.parent_subtest, 'run', subargs,
-                                    10)}
+        cont = {'result': DockerCmd(self, 'run', subargs, 10)}
         self.sub_stuff['containers'].append(cont)
         cont_id = cont['result'].execute().stdout.strip()
         cont['id'] = cont_id
@@ -86,8 +85,7 @@ class wait_base(SubSubtest):
             cont['sleep_time'] = sleep
         else:
             cont['sleep_time'] = 0
-        cont['test_cmd'] = AsyncDockerCmd(self.parent_subtest, "attach",
-                                          [cont_id])
+        cont['test_cmd'] = AsyncDockerCmd(self, "attach", [cont_id])
         cont['test_cmd_stdin'] = cmd
 
     def init_use_names(self, use_names=False):
@@ -130,8 +128,8 @@ class wait_base(SubSubtest):
         self.sub_stuff['wait_stderr'] = '\n'.join(wait_stderr)
         self.sub_stuff['wait_should_fail'] = end
         self.sub_stuff['wait_duration'] = wait_duration
-        self.sub_stuff['wait_cmd'] = DockerCmd(self.parent_subtest, 'wait',
-                                               subargs, wait_duration + 20)
+        self.sub_stuff['wait_cmd'] = DockerCmd(self, 'wait', subargs,
+                                               wait_duration + 20)
         max_duration = max(conts, key=lambda x: x['sleep_time'])['sleep_time']
         self.sub_stuff['sleep_after'] = max(0, max_duration - wait_duration)
 
@@ -228,7 +226,7 @@ class wait_base(SubSubtest):
         for cont in containers:
             if cont.long_id in cont_ids or cont.container_name in cont_ids:
                 try:
-                    NoFailDockerCmd(self.parent_subtest, 'rm',
+                    NoFailDockerCmd(self, 'rm',
                                     ['--force', '--volumes', cont.long_id]
                                     ).execute()
                 except Exception, details:

@@ -21,8 +21,7 @@ class import_export_base(SubSubtest):
 
     def init_test_container(self, name):
         self.sub_stuff["subargs"].insert(0, "--name=\"%s\"" % name)
-        dkrcmd = DockerCmd(self.parent_subtest, 'run',
-                           self.sub_stuff['subargs'],
+        dkrcmd = DockerCmd(self, 'run', self.sub_stuff['subargs'],
                            timeout=self.config['docker_timeout'])
         dkrcmd.verbose = True
         cmdresult = dkrcmd.execute()
@@ -36,13 +35,11 @@ class import_export_base(SubSubtest):
 
     def init_ei_dockercmd(self, export_arg_csv, import_arg_csv):
         # Never execute()'d, just used for command property
-        import_dkrcmd = DockerCmd(self.parent_subtest,
-                                  "import", import_arg_csv.split(','))
+        import_dkrcmd = DockerCmd(self, "import", import_arg_csv.split(','))
         # Actually executed command
         export_args = export_arg_csv.split(',')
         export_args.append(import_dkrcmd.command)
-        export_import_dkrcmd = NoFailDockerCmd(self.parent_subtest,
-                                               "export", export_args)
+        export_import_dkrcmd = NoFailDockerCmd(self, "export", export_args)
         export_import_dkrcmd.verbose = True
         self.sub_stuff['export_import_dkrcmd'] = export_import_dkrcmd
 
@@ -61,8 +58,7 @@ class import_export_base(SubSubtest):
         # Auto-converts "yes/no" to a boolean
         if self.config['remove_after_test']:
             for cont in self.sub_stuff["containers"]:
-                dkrcmd = DockerCmd(self.parent_subtest, "rm",
-                                   ['--volumes', '--force', cont])
+                dkrcmd = DockerCmd(self, "rm", ['--volumes', '--force', cont])
                 cmdresult = dkrcmd.execute()
                 msg = (" removed test container: %s" % cont)
                 if cmdresult.exit_status == 0:

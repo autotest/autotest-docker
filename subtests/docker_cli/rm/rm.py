@@ -57,7 +57,7 @@ class rm_sub_base(SubSubtest):
         # Can't use containers module b/c "rm" is the test-subject
         subargs = self.config['rm_options_csv'].strip().split(',')
         subargs.append(what)
-        rm_cmd = DockerCmd(self.parent_subtest, 'rm', subargs, verbose=True)
+        rm_cmd = DockerCmd(self, 'rm', subargs, verbose=True)
         self.sub_stuff['rm_cmdresult'] = rm_cmd.execute()
         wait_rm = self.config['wait_rm']
         self.loginfo("Sleeping %d seconds after rm",
@@ -135,8 +135,7 @@ class rm_sub_base(SubSubtest):
 
     def init_dkrcmd(self):
         subargs = self.sub_stuff['subargs']
-        subtest = self.parent_subtest
-        self.sub_stuff['dkrcmd'] = AsyncDockerCmd(subtest, 'run', subargs)
+        self.sub_stuff['dkrcmd'] = AsyncDockerCmd(self, 'run', subargs)
         self.logdebug("Initialized command: %s", self.sub_stuff['dkrcmd'])
 
     def cidfile_has_cid(self):
