@@ -194,10 +194,8 @@ class with_blocking_container_by_tag(rmi_base):
         if dkrcmd.cmdresult.exit_status:
             raise DockerTestNAError(dnamsg % dkrcmd.cmdresult)
 
-        prep_changes = DockerCmd(self, "run",
-                                 ["-d",
-                                  self.sub_stuff["image_name"],
-                                  cmd_with_rand],
+        args = ["-d", self.sub_stuff["image_name"], cmd_with_rand]
+        prep_changes = DockerCmd(self, "run", args,
                                  self.config['docker_commit_timeout'])
 
         prep_changes.execute()

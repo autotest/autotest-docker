@@ -120,9 +120,7 @@ class tag_base(SubSubtest):
     def cleanup(self):
         super(tag_base, self).cleanup()
         # Auto-converts "yes/no" to a boolean
-        if (self.config['remove_after_test'] and
-                'image_list' in self.sub_stuff):
-
+        if self.config['remove_after_test'] and 'image_list' in self.sub_stuff:
             for image in self.sub_stuff["image_list"]:
                 di = DockerImages(self.parent_subtest)
                 self.logdebug("Removing image %s", image.full_name)
