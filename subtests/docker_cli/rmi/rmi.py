@@ -178,7 +178,7 @@ class with_blocking_container_by_tag(rmi_base):
                                  self.config['docker_commit_timeout'])
 
         dnamsg = ("Problems during initialization of"
-                      " test: %s")
+                  " test: %s")
         prep_changes.execute()
         if prep_changes.cmdresult.exit_status:
             raise DockerTestNAError(dnamsg % prep_changes.cmdresult)
