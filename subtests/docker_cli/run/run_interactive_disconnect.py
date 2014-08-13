@@ -29,8 +29,7 @@ class run_interactive_disconnect(run_base):
                      self.config['docker_timeout'])
 
         in_pipe_r, in_pipe_w = os.pipe()
-        dkrcmd = DockerCmd(self.parent_subtest, 'run',
-                           self.sub_stuff['subargs'],
+        dkrcmd = DockerCmd(self, 'run', self.sub_stuff['subargs'],
                            timeout=self.config['docker_timeout'])
         dkrcmd.verbose = True
         # Runs in background
@@ -54,8 +53,7 @@ class run_interactive_disconnect(run_base):
 
         self.sub_stuff['subargs_a'].append(c_name)
 
-        dkrcmd = AsyncDockerCmd(self.parent_subtest, 'attach',
-                                self.sub_stuff['subargs_a'],
+        dkrcmd = AsyncDockerCmd(self, 'attach', self.sub_stuff['subargs_a'],
                                 timeout=self.config['docker_timeout'])
         dkrcmd.verbose = True
         # Runs in background

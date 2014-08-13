@@ -37,8 +37,7 @@ class bad(kill_check_base):
         for signal in signals_sequence:
             subargs = (["%s%s" % (random.choice(('-s ', '--signal=')), signal)]
                        + extra_subargs)
-            cmd = DockerCmd(self.parent_subtest, 'kill', subargs,
-                            verbose=False)
+            cmd = DockerCmd(self, 'kill', subargs, verbose=False)
             kill_cmds.append(cmd)
 
         # Change signals_sequence into results-like numbers

@@ -24,7 +24,7 @@ class inspect_keys(inspect_base):
         self.sub_stuff['image'] = image
 
     def inspect_and_parse(self, subargs):
-        nfdc = NoFailDockerCmd(self.parent_subtest, "inspect", subargs)
+        nfdc = NoFailDockerCmd(self, "inspect", subargs)
         cmdresult = nfdc.execute()
         return self.parse_cli_output(cmdresult.stdout)
 

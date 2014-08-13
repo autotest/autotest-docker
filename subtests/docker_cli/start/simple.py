@@ -52,7 +52,7 @@ class simple(subtest.SubSubtest):
         subargs.append("bash")
         subargs.append("-c")
         subargs.append("'echo STARTED: $(date); while :; do sleep 0.1; done'")
-        container = AsyncDockerCmd(self.parent_subtest, 'run', subargs)
+        container = AsyncDockerCmd(self, 'run', subargs)
         container.execute()
         utils.wait_for(lambda: container.stdout.startswith("STARTED"), 5,
                        step=0.1)
@@ -64,32 +64,29 @@ class simple(subtest.SubSubtest):
         err_msg = ("Start of the %s container failed, but '%s' message is not "
                    "in the output:\n%s")
         # Nonexisting container
-        result = MustFailDockerCmd(self.parent_subtest, "start",
-                                   [name]).execute()
+        result = MustFailDockerCmd(self, "start", [name]).execute()
         self.failif("No such container" not in str(result), err_msg
                     % ("non-existing", 'No such container', result))
 
         # Running container
         self._start_container(name)
-        result = NoFailDockerCmd(self.parent_subtest, "start",
-                                 [name]).execute()
+        result = NoFailDockerCmd(self, "start", [name]).execute()
 
         # Stopped container
-        NoFailDockerCmd(self.parent_subtest, "kill", [name]).execute()
-        result = NoFailDockerCmd(self.parent_subtest, "start",
-                                 [name]).execute()
+        NoFailDockerCmd(self, "kill", [name]).execute()
+        result = NoFailDockerCmd(self, "start", [name]).execute()
 
     def postprocess(self):
         super(simple, self).postprocess()
         name = self.sub_stuff['container_name']
-        logs = AsyncDockerCmd(self.parent_subtest, "logs", ['-f', name])
+        logs = AsyncDockerCmd(self, "logs", ['-f', name])
         logs.execute()
         utils.wait_for(lambda: logs.stdout.count("\n") == 2, 5, step=0.1)
         out = logs.stdout
         self.failif(out.count("\n") != 2, "The container was executed twice, "
                     "there should be 2 lines with start dates, but is "
                     "%s.\nContainer output:\n%s" % (out.count("\n"), out))
-        NoFailDockerCmd(self.parent_subtest, "kill", [name]).execute()
+        NoFailDockerCmd(self, "kill", [name]).execute()
 
     def cleanup(self):
         super(simple, self).cleanup()
@@ -97,7 +94,7 @@ class simple(subtest.SubSubtest):
         name = self.sub_stuff.get('container_name')
         if name and self.config.get('remove_after_test'):
             try:
-                NoFailDockerCmd(self.parent_subtest, 'rm',
+                NoFailDockerCmd(self, 'rm',
                                 ['--force', '--volumes', name]).execute()
             except (DockerCommandError, DockerExecError), details:
                 cleanup_log.append("docker rm failed: %s" % details)

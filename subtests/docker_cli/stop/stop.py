@@ -46,7 +46,7 @@ class stop_base(SubSubtest):
         subargs.append("bash")
         subargs.append("-c")
         subargs.append(self.config['exec_cmd'])
-        container = AsyncDockerCmd(self.parent_subtest, 'run', subargs)
+        container = AsyncDockerCmd(self, 'run', subargs)
         self.sub_stuff['container_cmd'] = container
         container.execute()
         time.sleep(self.config['wait_start'])
@@ -55,8 +55,7 @@ class stop_base(SubSubtest):
             subargs = [arg for arg in
                        self.config['stop_options_csv'].split(',')]
         subargs.append(name)
-        self.sub_stuff['stop_cmd'] = DockerCmd(self.parent_subtest, 'stop',
-                                               subargs)
+        self.sub_stuff['stop_cmd'] = DockerCmd(self, 'stop', subargs)
 
     def run_once(self):
         # Execute the stop command
@@ -133,7 +132,7 @@ class stop_base(SubSubtest):
         if (self.config.get('remove_after_test')
                 and self.sub_stuff.get('container_name')):
             args = ['--force', '--volumes', self.sub_stuff['container_name']]
-            OutputGood(DockerCmd(self.parent_subtest, 'rm', args).execute())
+            OutputGood(DockerCmd(self, 'rm', args).execute())
 
 
 class nice(stop_base):

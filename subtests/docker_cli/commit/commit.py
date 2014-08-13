@@ -49,10 +49,8 @@ class commit_base(SubSubtest):
                          % self.sub_stuff['rand_data'])
 
         fqin = DockerImage.full_name_from_defaults(self.config)
-        prep_changes = DockerCmd(self.parent_subtest, "run",
-                                 ["--detach",
-                                  fqin,
-                                  cmd_with_rand],
+        prep_changes = DockerCmd(self, "run",
+                                 ["--detach", fqin, cmd_with_rand],
                                  self.config['docker_commit_timeout'])
 
         results = prep_changes.execute()
@@ -84,7 +82,7 @@ class commit_base(SubSubtest):
 
     def run_once(self):
         super(commit_base, self).run_once()
-        dkrcmd = AsyncDockerCmd(self.parent_subtest, 'commit',
+        dkrcmd = AsyncDockerCmd(self, 'commit',
                                 self.complete_docker_command_line(),
                                 self.config['docker_commit_timeout'])
         self.loginfo("Executing background command: %s" % dkrcmd)
@@ -122,9 +120,8 @@ class commit_base(SubSubtest):
         # Auto-converts "yes/no" to a boolean
         if (self.config['remove_after_test'] and
                 'image_list' in self.sub_stuff):
-            dkrcmd = DockerCmd(self.parent_subtest, "rm",
-                               ['--volumes', '--force',
-                                self.sub_stuff["container"]])
+            dkrcmd = DockerCmd(self, "rm", ['--volumes', '--force',
+                                            self.sub_stuff["container"]])
             cmdresult = dkrcmd.execute()
             msg = (" removed test container: %s" % self.sub_stuff["container"])
             if cmdresult.exit_status == 0:
@@ -149,8 +146,7 @@ class commit_base(SubSubtest):
         for f_name in commit_changed_files.split(";"):
             f_read_cmd = self.config['docker_read_file_cmd'] % f_name
 
-            cm = DockerCmd(self.parent_subtest, "run",
-                           ["--rm", repo_addr, f_read_cmd],
+            cm = DockerCmd(self, "run", ["--rm", repo_addr, f_read_cmd],
                            self.config['docker_commit_timeout'])
             results = cm.execute()
             if results.exit_status == 0:

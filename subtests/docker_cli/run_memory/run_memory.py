@@ -295,9 +295,7 @@ class run_memory_base(SubSubtest):
         if self.config['remove_after_test']:
             for name in self.sub_stuff.get('name', []):
                 self.logdebug("Cleaning up %s", name)
-                dcmd = DockerCmd(self.parent_subtest,
-                                 'rm',
-                                 ['--force', name])
+                dcmd = DockerCmd(self, 'rm', ['--force', name])
                 dcmd.execute()
 
 

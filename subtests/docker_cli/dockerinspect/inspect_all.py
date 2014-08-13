@@ -21,7 +21,7 @@ class inspect_all(inspect_base):
         super(inspect_all, self).run_once()
         # find inputs to this
         subargs = [self.sub_stuff['name']]
-        nfdc = NoFailDockerCmd(self.parent_subtest, "inspect", subargs)
+        nfdc = NoFailDockerCmd(self, "inspect", subargs)
         self.sub_stuff['cmdresult'] = nfdc.execute()
 
     def postprocess(self):

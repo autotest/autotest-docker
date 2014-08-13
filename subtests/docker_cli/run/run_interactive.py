@@ -17,8 +17,7 @@ class run_interactive(run_base):
                      self.config['docker_timeout'])
 
         in_pipe_r, in_pipe_w = os.pipe()
-        dkrcmd = AsyncDockerCmd(self.parent_subtest, 'run',
-                                self.sub_stuff['subargs'],
+        dkrcmd = AsyncDockerCmd(self, 'run', self.sub_stuff['subargs'],
                                 timeout=self.config['docker_timeout'])
         dkrcmd.verbose = True
         dkrcmd.timeout = 10

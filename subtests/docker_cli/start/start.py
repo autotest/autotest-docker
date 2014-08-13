@@ -70,7 +70,7 @@ class start_base(SubSubtest):
     def run_once(self):
         super(start_base, self).run_once()
         # 1. Run with no options
-        dkrcmd = AsyncDockerCmd(self.parent_subtest, 'start',
+        dkrcmd = AsyncDockerCmd(self, 'start',
                                 self.complete_docker_command_line(),
                                 self.config['docker_start_timeout'])
         self.loginfo("Starting container...")
@@ -125,8 +125,7 @@ class start_base(SubSubtest):
 
     def wait_for_container_death(self, container_obj):
         cont_id = container_obj.long_id
-        prep_changes = DockerCmd(self.parent_subtest, "wait",
-                                 [cont_id],
+        prep_changes = DockerCmd(self, "wait", [cont_id],
                                  self.config['docker_run_timeout'])
 
         results = prep_changes.execute()
@@ -144,10 +143,8 @@ class short_term_app(start_base):
             self.config["docker_repo_name"],
             self.config["docker_repo_tag"])
         # Private to this instance, outside of __init__
-        prep_changes = DockerCmd(self.parent_subtest, "run",
-                                 ["-d",
-                                  docker_name,
-                                  self.config["run_cmd"]],
+        prep_changes = DockerCmd(self, "run",
+                                 ["-d", docker_name, self.config["run_cmd"]],
                                  self.config['docker_run_timeout'])
 
         results = prep_changes.execute()

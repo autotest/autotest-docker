@@ -90,9 +90,7 @@ class iptable_base(SubSubtest):
     def run_once(self):
         super(iptable_base, self).run_once()
         subargs = self.sub_stuff['subargs']
-        NoFailDockerCmd(self.parent_subtest,
-                        'run -d -t',
-                        subargs, verbose=True).execute()
+        NoFailDockerCmd(self, 'run -d -t', subargs, verbose=True).execute()
 
     def postprocess(self):
         super(iptable_base, self).postprocess()
@@ -100,11 +98,8 @@ class iptable_base(SubSubtest):
     def cleanup(self):
         super(iptable_base, self).cleanup()
         if self.config['remove_after_test']:
-            dcmd = DockerCmd(self.parent_subtest,
-                             'rm',
-                             ['--force',
-                              '--volumes',
-                                 self.sub_stuff['name']])
+            dcmd = DockerCmd(self, 'rm',
+                             ['--force', '--volumes', self.sub_stuff['name']])
             dcmd.execute()
 
 
@@ -134,8 +129,7 @@ class iptable_remove(iptable_base):
         self.loginfo("Container %s\niptable rule list %s:" %
                      (self.sub_stuff['name'], added_rules))
 
-        NoFailDockerCmd(self.parent_subtest,
-                        'stop',
+        NoFailDockerCmd(self, 'stop',
                         ["-t 0", self.sub_stuff['name']]).execute()
 
         container_rules = lambda: not self.read_iptable_rules(net_device)

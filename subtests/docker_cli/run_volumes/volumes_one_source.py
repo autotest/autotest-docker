@@ -37,9 +37,7 @@ class volumes_one_source(volumes_base):
             self.sub_stuff['names'] += [name]
             cmd = [exec_command % template_keys]
             subargs = ['--name=%s' % (name)] + vols + fqin + cmd
-            commands.append(AsyncDockerCmd(self.parent_subtest,
-                                           'run',
-                                           subargs))
+            commands.append(AsyncDockerCmd(self, 'run', subargs))
         self.sub_stuff['commands'] = commands
 
     def run_once(self):
@@ -75,5 +73,5 @@ class volumes_one_source(volumes_base):
         super(volumes_one_source, self).cleanup()
         if self.config['remove_after_test']:
             for name in self.sub_stuff['names']:
-                dkrcmd = DockerCmd(self.parent_subtest, 'rm', [name])
+                dkrcmd = DockerCmd(self, 'rm', [name])
                 dkrcmd.execute()

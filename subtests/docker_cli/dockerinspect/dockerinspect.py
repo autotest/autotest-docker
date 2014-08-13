@@ -109,7 +109,7 @@ class inspect_base(SubSubtest):
                    "/bin/bash",
                    "-c",
                    "'/bin/true'"]
-        nfdc = NoFailDockerCmd(subtest.parent_subtest, 'run', subargs)
+        nfdc = NoFailDockerCmd(subtest, 'run', subargs)
         nfdc.execute()
         if not subtest.sub_stuff or not subtest.sub_stuff['containers']:
             subtest.sub_stuff['containers'] = [name]
@@ -120,9 +120,7 @@ class inspect_base(SubSubtest):
     def cleanup(self):
         super(inspect_base, self).cleanup()
         if self.config['remove_after_test'] and self.sub_stuff['containers']:
-            dkrcmd = DockerCmd(self.parent_subtest,
-                               'rm',
-                               self.sub_stuff['containers'])
+            dkrcmd = DockerCmd(self, 'rm', self.sub_stuff['containers'])
             dkrcmd.execute()
 
 
@@ -135,7 +133,7 @@ class inspect_container_simple(inspect_base):
     def run_once(self):
         super(inspect_container_simple, self).run_once()
         subargs = [self.sub_stuff['name']]
-        nfdc = NoFailDockerCmd(self.parent_subtest, "inspect", subargs)
+        nfdc = NoFailDockerCmd(self, "inspect", subargs)
         self.sub_stuff['cmdresult'] = nfdc.execute()
 
     def postprocess(self):

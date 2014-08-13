@@ -55,8 +55,7 @@ class history_base(SubSubtest):
 
     def run_once(self):
         super(history_base, self).run_once()
-        dkrcmd = AsyncDockerCmd(self.parent_subtest, 'history',
-                                self.complete_history_cmd(),
+        dkrcmd = AsyncDockerCmd(self, 'history', self.complete_history_cmd(),
                                 self.config['docker_history_timeout'])
         self.loginfo("Executing background command: %s" % dkrcmd)
         dkrcmd.execute()
@@ -106,8 +105,7 @@ class history_base(SubSubtest):
         # Auto-converts "yes/no" to a boolean
         if self.config['remove_after_test']:
             for cont in self.sub_stuff["containers"]:
-                dkrcmd = DockerCmd(self.parent_subtest, "rm",
-                                   ['--volumes', '--force', cont])
+                dkrcmd = DockerCmd(self, "rm", ['--volumes', '--force', cont])
                 cmdresult = dkrcmd.execute()
                 msg = (" removed test container: %s" % cont)
                 if cmdresult.exit_status == 0:
@@ -127,10 +125,8 @@ class history_base(SubSubtest):
                         raise
 
     def create_image(self, old_name, new_name, cmd):
-        prep_changes = DockerCmd(self.parent_subtest, "run",
-                                 ["--name=%s" % new_name,
-                                  old_name,
-                                  cmd],
+        prep_changes = DockerCmd(self, "run",
+                                 ["--name=%s" % new_name, old_name, cmd],
                                  self.config['docker_history_timeout'])
 
         results = prep_changes.execute()
@@ -141,9 +137,7 @@ class history_base(SubSubtest):
         else:
             self.sub_stuff["containers"].append(new_name)
 
-        prep_changes = DockerCmd(self.parent_subtest, "commit",
-                                 [new_name,
-                                  new_name],
+        prep_changes = DockerCmd(self, "commit", [new_name, new_name],
                                  self.config['docker_history_timeout'])
 
         results = prep_changes.execute()

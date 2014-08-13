@@ -44,8 +44,7 @@ class attach_base(SubSubtest):
         # Auto-converts "yes/no" to a boolean
         if self.config['remove_after_test']:
             for cont in self.sub_stuff["containers"]:
-                dkrcmd = DockerCmd(self.parent_subtest, "rm",
-                                   ['--volumes', '--force', cont])
+                dkrcmd = DockerCmd(self, "rm", ['--volumes', '--force', cont])
                 cmdresult = dkrcmd.execute()
                 msg = (" removed test container: %s" % cont)
                 if cmdresult.exit_status == 0:
@@ -77,8 +76,7 @@ class simple_base(attach_base):
         self.sub_stuff['file_desc'].append(run_in_pipe_r)
         self.sub_stuff['file_desc'].append(run_in_pipe_w)
         self.sub_stuff["run_in_pipe_w"] = run_in_pipe_w
-        dkrcmd = AsyncDockerCmd(self.parent_subtest, 'run',
-                                self.sub_stuff['subargs'],
+        dkrcmd = AsyncDockerCmd(self, 'run', self.sub_stuff['subargs'],
                                 verbose=True)
 
         # Runs in background
@@ -108,8 +106,7 @@ class simple_base(attach_base):
 
         self.sub_stuff['subargs_a'].append(self.sub_stuff["rand_name"])
 
-        dkrcmd = AsyncDockerCmd(self.parent_subtest, 'attach',
-                                self.sub_stuff['subargs_a'],
+        dkrcmd = AsyncDockerCmd(self, 'attach', self.sub_stuff['subargs_a'],
                                 verbose=True)
         # Runs in background
         self.sub_stuff['cmd_attach'] = dkrcmd
@@ -186,8 +183,7 @@ class sig_proxy_off_base(attach_base):
         self.sub_stuff['file_desc'].append(run_in_pipe_r)
         self.sub_stuff['file_desc'].append(run_in_pipe_w)
         self.sub_stuff["run_in_pipe_w"] = run_in_pipe_w
-        dkrcmd = AsyncDockerCmd(self.parent_subtest, 'run',
-                                self.sub_stuff['subargs'],
+        dkrcmd = AsyncDockerCmd(self, 'run', self.sub_stuff['subargs'],
                                 verbose=True)
 
         # Runs in background
@@ -213,8 +209,7 @@ class sig_proxy_off_base(attach_base):
 
         self.sub_stuff['subargs_a'].append(self.sub_stuff["rand_name"])
 
-        dkrcmd = AsyncDockerCmd(self.parent_subtest, 'attach',
-                                self.sub_stuff['subargs_a'],
+        dkrcmd = AsyncDockerCmd(self, 'attach', self.sub_stuff['subargs_a'],
                                 verbose=True)
         # Runs in background
         self.sub_stuff['cmd_attach'] = dkrcmd
