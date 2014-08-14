@@ -18,12 +18,10 @@ before_script:
     - sudo apt-get -y --force-yes install autotest python-sphinx
 
 install:
-    - pip install pylint autopep8
-    - pip install inspektor
+    - pip install pylint pep8
 
 script:
-    - inspekt lint
-    - inspekt style
+    - ./run_pylint.sh
     - ./run_unittests.sh
     - make
 
