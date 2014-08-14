@@ -1,5 +1,6 @@
 #!/bin/bash
 
+PEP8=`which pep8`
 MSGFMT='{msg_id}:{line:3d},{column}: {obj}: {msg}'
 DISABLEMSG="I0011,R0801,R0904,R0921,R0922"
 INIT_HOOK="
@@ -42,6 +43,10 @@ check_dockertest() {
     then
         echo
     fi
+    if [ -n "$PEP8" ]
+    then
+        $PEP8 "$WHAT"
+    fi
 }
 
 check_dockertests() {
@@ -66,6 +71,10 @@ check_subtest() {
     if [ "$?" -ne "0" ]
     then
         echo
+    fi
+    if [ -n "$PEP8" ]
+    then
+        $PEP8 "$WHAT"
     fi
 }
 
