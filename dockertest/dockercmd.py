@@ -237,7 +237,7 @@ class DockerCmdBase(object):
         else:
             return self.cmdresult.duration
 
-    # Treat result CmdResult as immutable for uniform behavior across subclasses
+    # Treat result CmdResult as immutable for uniform behavior across subclass
 
     @property
     def cmdresult(self):
@@ -399,7 +399,7 @@ class AsyncDockerCmd(DockerCmdBase):
 
         :return: Up to date cmdresult value or None if not executed()
         """
-        self.subtest.logwarning("AsyncDockerCmd.update_result() is deprecated, "
+        self.subtest.logwarning("AsyncDockerCmd.update_result() deprecated, "
                                 "use cmdresult property instead.")
 
     @property

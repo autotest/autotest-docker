@@ -207,7 +207,7 @@ class ConfigSection(object):
 class ConfigDict(MutableMapping):
 
     r"""
-    Wraps ConfigSection instance in a dict-like, hides SafeConfigParser details.
+    Wraps ConfigSection instance in dict-like, hides SafeConfigParser details.
 
     :param section: Section name string to represent
     :param defaults: dict-like of default parameters (lower-case keys)
@@ -323,8 +323,7 @@ class Config(dict):
         """
         for filename in filenames:
             fullpath = os.path.join(dirpath, filename)
-            if (filename.startswith('.') or
-                    not filename.endswith('.ini')):
+            if filename.startswith('.') or not filename.endswith('.ini'):
                 continue
             config_file = open(fullpath, 'r')
             # Temp use sections variable for reading sections list
@@ -382,7 +381,7 @@ def get_as_list(value, sep=","):
 
 def none_if_empty(dict_like, key_name=None):
     """
-    Set (stripped) empty strings in dict-like to None, if not specific key_name.
+    Set empty strings in dict-like to None, if not specific key_name.
 
     :param dict_like: Instance with dict-like interface to examine
     :param key_name: Optional single key to check, doesn't need to exist.
