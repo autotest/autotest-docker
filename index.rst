@@ -929,6 +929,18 @@ it was inserted successfully.
 
 Verify that could not run a container which is already running.
 
+``docker_cli/run_user`` Sub-test
+=================================
+
+This test checks correctness of docker run -u ...
+
+#.  get container's /etc/passwd
+#.  generate uid which suits the test needs (nonexisting, existing name, uid..)
+#.  execute docker run -u ... echo $UID:$GID; whoami
+#.  check results (pass/fail/details)
+
+subsubtests = default,named_user,bad_user,bad_number,too_high_number
+
 ``docker_cli/diff`` Sub-test
 ============================
 
