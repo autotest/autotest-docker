@@ -897,14 +897,26 @@ None
 ``docker_cli/cp`` Sub-test
 =================================
 
-Simple test that checks the success of the ``docker cp`` command.
-It copies a file to a temporary directory and verifies that it was
-copied successfully.
+Simple tests that check the the ``docker cp`` command.  The ``simple``
+subtest verifies content creation and exact match after cp.  The
+``every_last`` verifies copying many hundreds of files from a
+stopped container to the host.
 
 ``docker_cli/cp`` Prerequisites
 -------------------------------------
 
 *  Docker daemon is running and accessible by it's unix socket.
+*  Docker image with fairly complex, deeply nested directory
+   structure.
+
+``docker_cli/cp`` Configuration
+---------------------------------
+
+*  The ``name_prefix`` option is used for naming test containers
+*  Directory/file prefixes to skip are listed as **quoted** CSV
+   to the ``exclude_paths`` option
+*  The ``exclude_symlinks`` yes/no option will skip trying to
+   copy any files which are symlinks in the container.
 
 ``docker_cli/insert`` Sub-test
 =================================
