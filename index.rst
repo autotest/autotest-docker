@@ -566,6 +566,22 @@ Ultra-simple test to confirm output table-format of docker CLI
    inside the mounted volume.  This command should also take time to allow for
    taking place while the other containers are also writing IO.
 
+
+``docker_cli/save_load`` Sub-test
+=================================
+
+Tests the ``docker save`` and ``docker load`` commands.
+
+#.  prepare image
+#.  save image
+#.  remove image
+#.  load image
+#.  check results
+#.  (some subsubtests) check content of the image
+
+subsubtests = simple,stressed_load
+
+
 ``docker_cli/rm`` Sub-test
 =======================================
 
