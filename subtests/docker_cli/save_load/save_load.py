@@ -14,27 +14,46 @@ postprocess:
 
 from autotest.client import utils
 from autotest.client.shared import error
-from dockertest.subtest import SubSubtest
-from dockertest.containers import DockerContainers
-from dockertest.images import DockerImages
-from dockertest.images import DockerImage
-from dockertest.output import OutputGood
-from dockertest.dockercmd import DockerCmd
 from dockertest import subtest
+from dockertest.containers import DockerContainers
+from dockertest.dockercmd import DockerCmd
+from dockertest.images import DockerImage, DockerImages
+from dockertest.output import OutputGood
+from dockertest.subtest import SubSubtest
 
 
 class save_load(subtest.SubSubtestCaller):
-    config_section = 'docker_cli/save_load'
+
+    """ Subtest caller """
 
 
 class save_load_base(SubSubtest):
 
+    """ Initialize couple of variables and removes all containters/images """
+
+    def _init_container(self, name, cmd):
+        """
+        :return: tuple(container_cmd, container_name)
+        """
+        if self.config.get('run_options_csv'):
+            subargs = [arg for arg in
+                       self.config['run_options_csv'].split(',')]
+        else:
+            subargs = []
+        if name is True:
+            name = self.sub_stuff['cont'].get_unique_name("test", length=4)
+        elif name:
+            name = name
+        if name:
+            subargs.append("--name %s" % name)
+        fin = DockerImage.full_name_from_defaults(self.config)
+        subargs.append(fin)
+        subargs.append(cmd)
+        container = DockerCmd(self, 'run', subargs, verbose=False)
+        return container, name
+
     def initialize(self):
         super(save_load_base, self).initialize()
-        self.sub_stuff['subargs'] = self.config['run_options_csv'].split(',')
-        fin = DockerImage.full_name_from_defaults(self.config)
-        self.sub_stuff['subargs'].append(fin)
-        self.sub_stuff['subargs'].append(self.config['docker_data_prep_cmd'])
         self.sub_stuff["containers"] = []
         self.sub_stuff["images"] = []
         self.sub_stuff["cont"] = DockerContainers(self)
@@ -54,48 +73,51 @@ class save_load_base(SubSubtest):
                     self.logwarning("Failed" + msg)
             for image in self.sub_stuff["images"]:
                 try:
-                    di = DockerImages(self.parent_subtest)
+                    dkrimg = self.sub_stuff['img']
                     self.logdebug("Removing image %s", image)
-                    di.remove_image_by_full_name(image)
+                    dkrimg.remove_image_by_full_name(image)
                     self.logdebug("Successfully removed test image: %s",
                                   image)
-                except error.CmdError, e:
+                except error.CmdError, exc:
                     error_text = "tagged in multiple repositories"
-                    if error_text not in e.result_obj.stderr:
+                    if error_text not in exc.result_obj.stderr:
                         raise
 
 
 class simple(save_load_base):
 
+    """ Basic test, executes container, saves it and loads it again. """
+
     def initialize(self):
         super(simple, self).initialize()
         rand_name = utils.generate_random_string(8).lower()
         self.sub_stuff["rand_name"] = rand_name
-        self.sub_stuff["subargs"].insert(0, "--name=\"%s\"" % rand_name)
 
-        dkrcmd = DockerCmd(self, 'run', self.sub_stuff['subargs'])
+        self.sub_stuff['containers'].append(rand_name)
+        self.sub_stuff["images"].append(rand_name)
+
+        dkrcmd = self._init_container(rand_name,
+                                      self.config['docker_data_prep_cmd'])[0]
 
         cmdresult = dkrcmd.execute()
         if cmdresult.exit_status != 0:
             error.TestNAError("Unable to prepare env for test: %s" %
                               (cmdresult))
 
-        c_name = self.sub_stuff["rand_name"]
-        self.sub_stuff['containers'].append(c_name)
-        self.sub_stuff["images"].append(c_name)
-        cid = self.sub_stuff["cont"].list_containers_with_name(c_name)
+        rand_name = self.sub_stuff["rand_name"]
+        cid = self.sub_stuff["cont"].list_containers_with_name(rand_name)
 
         self.failif(cid == [],
                     "Unable to search container with name %s: details :%s" %
-                    (c_name, cmdresult))
+                    (rand_name, cmdresult))
 
-        dkrcmd = DockerCmd(self, 'commit', [c_name, c_name])
+        dkrcmd = DockerCmd(self, 'commit', [rand_name, rand_name])
 
         cmdresult = dkrcmd.execute()
         if cmdresult.exit_status != 0:
             error.TestNAError("Unable to prepare env for test: %s" %
                               (cmdresult))
-        dkrcmd = DockerCmd(self, 'rm', [c_name])
+        dkrcmd = DockerCmd(self, 'rm', [rand_name])
         cmdresult = dkrcmd.execute()
         if cmdresult.exit_status != 0:
             error.TestNAError("Failed to cleanup env for test: %s" %
