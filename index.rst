@@ -672,6 +672,26 @@ Several variations of running the rmi command.
 *  ``docker_expected_result`` should be "PASS" or "FAIL" to indicate result
    handling behavior of sub-subtests.
 
+
+``docker_cli/run_env`` Sub-test
+=================================
+
+Tests the ``docker run -e xx=yy`` and other env-related features
+
+*  subsubtests = port
+
+``docker_cli/run_env/port`` Sub-subtest
+-------------------------------------
+
+#.  Starts server with custom -e ENV_VARIABLE=$RANDOM_STRING and opened port
+#.  Starts client linked to server with another ENV_VARIABLE
+#.  Booth prints the env as {}
+#.  Client sends data to server (addr from env SERVER_PORT_$PORT_TCP_ADDR)
+#.  Server prints data with prefix and resends them back with another one.
+#.  Client prints the received data and finishes.
+#.  Checks if env and all data were printed correctly.
+
+
 ``docker_cli/pull`` Sub-test
 =======================================
 
