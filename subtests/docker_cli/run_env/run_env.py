@@ -1,18 +1,18 @@
 """
 This test checks function of `docker run -e VARIABLE=VALUE ...`
 """
+import ast
 import os
 import random
+import re
+import time
 
 from autotest.client import utils
-from dockertest import config, xceptions, subtest
+from dockertest import config, xceptions
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd, AsyncDockerCmd
 from dockertest.images import DockerImage
-from dockertest.output import OutputGood
 from dockertest.subtest import SubSubtestCaller, SubSubtest
-import time
-import ast
 
 
 # requires: container, port, data
@@ -177,11 +177,11 @@ class port(run_env_base):
                    '-e ENV_VARIABLE=%s' % self.sub_stuff['server_env']]
 
         servercmd, server = self._init_container('server', subargs, 'python')
+        servercmd.execute(PYTHON_SERVER % params)
+
         # FIXME: Need to use ID instead of name, because docker-autotest can't
         # handle linked containers as the names are also listed, eg:
         # server_cuP0 => client_qYjF/server,server_cuP0
-
-        servercmd.execute(PYTHON_SERVER % params)
         for _ in xrange(100):
             cont = self.sub_stuff['dc'].list_containers_with_name(server)
             if len(cont) == 1:
@@ -196,6 +196,7 @@ class port(run_env_base):
         subargs = ['-i', '-t', '--link %s:server' % server,
                    '-e ENV_VARIABLE=%s' % self.sub_stuff['client_env']]
         clientcmd, client = self._init_container('client', subargs, 'python')
+        self.sub_stuff['client_name'] = client
         clientcmd.execute(PYTHON_CLIENT % params)
 
         # We can't wait for the process to finish, because currently it waits
@@ -215,37 +216,57 @@ class port(run_env_base):
         self.sub_stuff['client_result'] = clientcmd.wait(1)
         self.sub_stuff['server_result'] = servercmd.wait(1)
 
+    def check_env(self, exp, variable, env, container, appendix):
+        """
+        Check that variable's value matches the exp regexp. Fails the test
+        when it's not.
+        :param exp: Expected value (string)
+        :param variable: Name of the env variable (string)
+        :param env: Environment (dictionary)
+        :param container: Name of the container (string)
+        :param appendix: Rest of the error string
+        """
+        self.failif(not re.match(exp, env.get(variable)), "%s=%s not found in"
+                    " %s env:\n%s%s" % (variable, exp, container, env,
+                                        appendix))
+
     def postprocess(self):
         def get_env(output):
             for line in output.splitlines():
                 if line.startswith('ENVIRON = {'):
                     return ast.literal_eval(line[10:])
             self.failif(True, "Fail to get env from output\n%s" % output)
+
         super(port, self).postprocess()
         client_res = self.sub_stuff['client_result']
         server_res = self.sub_stuff['server_result']
         err_str = "\n\nServer\n%s\n\nClient\n%s" % (server_res, client_res)
         # server env
-        exp = self.sub_stuff['server_env']
         server_env = get_env(server_res.stdout)
-        self.failif(server_env.get('ENV_VARIABLE') != exp, "String added by "
-                    "'-e ENV_VARIABLE=%s' is not in the server env:\n%s\n%s"
-                    % (exp, server_env, err_str))
+        self.check_env(self.sub_stuff['server_env'], 'ENV_VARIABLE',
+                       server_env, 'server', err_str)
 
         # client env
-        exp = self.sub_stuff['client_env']
         client_env = get_env(client_res.stdout)
-        self.failif(client_env.get('ENV_VARIABLE') != exp, "String added by "
-                    "'-e ENV_VARIABLE=%s' is not in the client env:\n%s\n%s"
-                    % (exp, client_env, err_str))
-
+        self.check_env(self.sub_stuff['client_env'], 'ENV_VARIABLE',
+                       client_env, 'client', err_str)
         # linked client env
-        exp = self.sub_stuff['server_env']
-        self.failif(client_env.get('SERVER_ENV_ENV_VARIABLE') != exp,
-                    "String added in server by '-e' is not in linked client "
-                    "container (SERVER_ENV_ENV_VARIABLE=%s): \n%s\n%s"
-                    % (exp, client_env, err_str))
-
+        self.check_env("/%s/server" % self.sub_stuff['client_name'],
+                       'SERVER_NAME', client_env, 'client', err_str)
+        self.check_env(self.sub_stuff['server_env'], 'SERVER_ENV_ENV_VARIABLE',
+                       client_env, 'client', err_str)
+        addr = r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'
+        serv_port = str(self.sub_stuff['client_params']['port'])
+        self.check_env("tcp://%s:%s" % (addr, serv_port), 'SERVER_PORT',
+                       client_env, 'client', err_str)
+        self.check_env("tcp://%s:%s" % (addr, serv_port), 'SERVER_PORT_%s_TCP'
+                       % serv_port, client_env, 'client', err_str)
+        self.check_env(addr, 'SERVER_PORT_%s_TCP_ADDR' % serv_port,
+                       client_env, 'client', err_str)
+        self.check_env(serv_port, 'SERVER_PORT_%s_TCP_PORT' % serv_port,
+                       client_env, 'client', err_str)
+        self.check_env('tcp', 'SERVER_PORT_%s_TCP_PROTO' % serv_port,
+                       client_env, 'client', err_str)
         # data on server
         data = self.sub_stuff['client_params']['data']
         exp = "RECEIVED: %s" % data
