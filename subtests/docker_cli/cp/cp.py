@@ -94,7 +94,9 @@ class simple(CpBase):
         self.loginfo("Copied file matches docker file.")
 
 
-# Code to run in, must be top-level (inspect respects indentation)
+# Turned into code string by every_last.container_files()
+# Must re-import needed modules and be top-level because
+# inspect.getsource() preserves indentation)
 def all_files(exclude_paths, exclude_symlinks=False):
     from os import walk
     from os.path import islink
@@ -136,13 +138,7 @@ class every_last(CpBase):
         nfdc = NoFailDockerCmd(self, "run", subargs, verbose=False)
         nfdc.quiet = True
         self.logdebug("Executing %s", nfdc.command)
-        try:
-            nfdc.execute()
-        except:
-            self.loginfo("Exit: %d", nfdc.exit_status)
-            self.loginfo("Stdout: %s", nfdc.stdout)
-            self.loginfo("Stderr: %s", nfdc.stderr)
-            raise
+        nfdc.execute()
         return pickle.load(StringIO(nfdc.stdout))
 
     def initialize(self):
@@ -170,14 +166,6 @@ class every_last(CpBase):
             host_path = self.tmpdir
             host_fullpath = os.path.join(host_path, os.path.basename(srcfile))
             nfdc.subargs = [cont_path, host_path]
-            try:
-                nfdc.execute()
-                self.failif(not os.path.isfile(host_fullpath),
-                            "Not a file: '%s'" % host_fullpath)
-            except:
-                self.loginfo("Error at file %d", index)
-                self.loginfo("Command: %s", nfdc.command)
-                self.loginfo("Stdout: %s", nfdc.stdout)
-                self.loginfo("Stderr: %s", nfdc.stderr)
-                self.loginfo("Exit: %s", nfdc.exit_status)
-                raise
+            nfdc.execute()
+            self.failif(not os.path.isfile(host_fullpath),
+                        "Not a file: '%s'" % host_fullpath)
