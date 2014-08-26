@@ -149,7 +149,9 @@ class DockerCmdTestBase(unittest.TestCase):
         class FakeSubtestException(Exception):
 
             def __init__(fake_self, *_args, **_dargs):  # pylint: disable=E0213
+                # Unittest magic pylint: disable=E1003
                 super(FakeSubtestException, self).__init__()
+                # Unittest magic pylint: enable=E1003
 
         class FakeSubtest(self.subtest.Subtest):
             version = "1.2.3"
