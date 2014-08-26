@@ -159,6 +159,7 @@ class every_last(CpBase):
         # Avoid excessive logging
         nfdc = NoFailDockerCmd(self, 'cp', verbose=False)
         nfdc.quiet = True
+        nfiles = 0
         for index, srcfile in enumerate(self.sub_stuff['lastfiles']):
             if index % 100 == 0:
                 self.loginfo("Copied %d of %d", index, total)
@@ -169,3 +170,6 @@ class every_last(CpBase):
             nfdc.execute()
             self.failif(not os.path.isfile(host_fullpath),
                         "Not a file: '%s'" % host_fullpath)
+            nfiles += 1
+            if nfiles >= self.config['max_files']:
+                break

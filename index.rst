@@ -917,6 +917,8 @@ stopped container to the host.
    to the ``exclude_paths`` option
 *  The ``exclude_symlinks`` yes/no option will skip trying to
    copy any files which are symlinks in the container.
+*  The ``max_files`` option will stop copying after this many
+   files.
 
 ``docker_cli/insert`` Sub-test
 =================================
