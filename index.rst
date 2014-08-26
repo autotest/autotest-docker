@@ -687,6 +687,21 @@ appear after container finishes and is removed.
    lines with parse errors to allow.
 *  The ``remove_after_test`` option controls cleanup after test
 
+
+``docker_cli/ps_size`` Sub-test
+=================================
+
+Verifies the ``docker ps --size` shows correct sizes
+``subsubtests`` = simple
+
+``docker_cli/ps_size/simple`` Subsub-test
+-----------------------------------------------------
+Simple `docker ps -a --size` test.
+#.  Create couple of containers, each creates file of given size
+#.  Execute docker ps -a --size
+#.  Check the sizes are in given limit ($size; 1mb + $limit_per_mb * $size)
+
+
 ``docker_cli/psa`` Sub-test
 =======================================
 
