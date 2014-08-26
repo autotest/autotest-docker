@@ -29,6 +29,7 @@ from autotest.client.shared import error
 from images import DockerImages
 from output import OutputGood
 from output import TextTable
+from config import get_as_list
 
 
 # Many attributes simply required here
@@ -39,8 +40,15 @@ class DockerContainer(object):  # pylint: disable=R0902
     """
 
     #: There will likely be many instances, limit memory consumption.
+    #: Most items are strings with some exceptions/restrictions:
+    #: *  image_name could be None if image was not tagged.
+    #: *  command will have all special-characters escaped with a '\'
+    #: *  ports must be parsable by ``networking.ContainerPort``
+    #: *  size could be None if data was not requested
+    #: *  links is either None, or a list of tuple((child,alias))
+    #:    strings.
     __slots__ = ["image_name", "command", "ports", "container_name",
-                 "long_id", "created", "status", "size"]
+                 "long_id", "created", "status", "size", "links"]
 
     def __init__(self, image_name, command, ports=None, container_name=None):
         """
@@ -50,6 +58,8 @@ class DockerContainer(object):  # pylint: disable=R0902
         :param command: String of command container is/was running
         :param ports: String of comma-separated port mappings
         :param container_name: String representing name of container
+                               optionally prefixed by CSV
+                               <child>/<alias> format link strings
         """
         self.image_name = image_name
         self.command = command
@@ -57,7 +67,25 @@ class DockerContainer(object):  # pylint: disable=R0902
             self.ports = ''
         else:
             self.ports = ports
-        self.container_name = str(container_name)
+        container_name = str(container_name).strip()
+        # Name may additionally contain CSV child/alias links
+        if container_name.find(',') > 0:
+            link_names = get_as_list(container_name)
+            # Any item w/o a '/' is the real container name
+            self.links = []
+            for link_name in link_names:
+                if link_name.find('/') > 0:
+                    child, alias = get_as_list(link_name, sep='/')
+                    self.links.append((child, alias))
+                else:
+                    self.container_name = link_name
+            if getattr(self, 'container_name') is None:
+                raise ValueError("container_name(%s) unrecognized format"
+                                 % container_name)
+        else:
+            self.container_name = container_name
+            self.links = None
+
         #: These are typically all generated at runtime
         self.long_id = None
         self.created = None
