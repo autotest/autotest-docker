@@ -38,7 +38,7 @@ class Output(object):   # only containment pylint: disable=R0903
     def __init__(self, stuff, idx=None):
         self.stuff = stuff
         if idx is None:
-            self.idx = len(stuff.stdout)
+            self.idx = len(stuff.stdout.splitlines())
         else:
             self.idx = idx
 
