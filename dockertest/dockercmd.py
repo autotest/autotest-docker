@@ -302,6 +302,11 @@ class NoFailDockerCmd(DockerCmd):
     Execute docker subcommand with arguments and a timeout.
     """
 
+    #: Exception message to use
+    exception_msg = "Unexpected non-zero exit code, details: %s"
+    #: If ``None`` use ``str(self.details)``, otherwise custom sub. value.
+    exception_msg_args = None
+
     def execute(self, stdin=None):
         """
         Execute docker command, raising DockerCommandError if non-zero exit
@@ -309,7 +314,10 @@ class NoFailDockerCmd(DockerCmd):
 
         super(NoFailDockerCmd, self).execute(stdin)
         if self.exit_status != 0:
-            raise DockerExecError("Unexpected non-zero exit code")
+            if self.exception_msg_args is None:
+                self.exception_msg_args = (self.details, )
+            raise DockerExecError(self.exception_msg
+                                  % self.exception_msg_args)
         return self.cmdresult
 
 
@@ -320,6 +328,11 @@ class MustFailDockerCmd(DockerCmd):
     Execute docker subcommand with arguments and a timeout.
     """
 
+    #: Exception message to use
+    exception_msg = "Unexpected zero exit code, details: %s"
+    #: If ``None`` use ``str(self.details)``, otherwise custom sub. value.
+    exception_msg_args = None
+
     def execute(self, stdin=None):
         """
         Execute docker command, raise DockerExecError if **zero** exit code
@@ -327,7 +340,10 @@ class MustFailDockerCmd(DockerCmd):
 
         cmdresult = super(MustFailDockerCmd, self).execute(stdin)
         if cmdresult.exit_status == 0:
-            raise DockerExecError("Unexpected zero exit code")
+            if self.exception_msg_args is None:
+                self.exception_msg_args = (self.details, )
+            raise DockerExecError(self.exception_msg
+                                  % self.exception_msg_args)
         return cmdresult
 
 
