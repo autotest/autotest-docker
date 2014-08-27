@@ -369,6 +369,7 @@ class AsyncDockerCmd(DockerCmdBase):
                                     "processes!!")
         if not self.quiet:
             self.subtest.logdebug("Async-execute: %s", str(self))
+        self.executed += 1
         self._async_job = utils.AsyncJob(self.command, verbose=False,
                                          stdin=stdin, close_fds=True)
         return self.cmdresult
@@ -390,7 +391,6 @@ class AsyncDockerCmd(DockerCmdBase):
             self.subtest.logdebug("Waiting %s for async-command to finish",
                                   timeout)
         self._async_job.wait_for(timeout)
-        self.executed += 1  # complete start->finish cycles
         return self.cmdresult
 
     def update_result(self):
