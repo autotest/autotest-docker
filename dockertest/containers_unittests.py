@@ -122,14 +122,15 @@ def run(command, *_args, **_dargs):
                              duration=1.21)
     return FakeCmdResult(command=command.strip(),
                          stdout=r"""
-CONTAINER ID                                                       IMAGE                             COMMAND                                            CREATED             STATUS              PORTS                                            NAMES               SIZE
-ac8c9fa367f96e10cbfc7927dd4048d7db3e6d240d201019c5d4359795e3bcbe   busybox:latest                    "/bin/sh -c echo -ne "hello world\n"; sleep 10m"   5 minutes ago       Up 79 seconds                                                        cocky_albattani     77 B
-ef0fe72271778aefcb5cf6015f30067fbe01f05996a123037f65db0b82795915   busybox:latest                    "/bin/sh -c echo -ne "world hello\n"; sleep 10m"   82 seconds ago      Up 61 seconds       4.3.2.1:4321->1234/bar, 1.2.3.4:1234->4321/foo   berserk_bohr        55 B
-849915d551d80edce7698de91852c06bbbb7a67fe0968a3c0c246e6f25f81017   busybox:latest                    "/bin/sh -c echo -ne "hello world\n"; sleep 10m"   28 seconds ago      Up 16 seconds       1.2.3.4:1234->4321/foo, 0.0.0.0:5678->8765/tcp   berserk_bohr        77 B
-c0c35064e4d2bdcf86e6fd83e0de2e599473c12a6599415a9a021bdf382a3589   busybox:latest                    "/bin/sh -c echo -ne "hello world\n""              5 minutes ago       Exit 0                                                               lonely_poincare     77 B
-3723b1b0abd7be84316ce7824e68cb7af090416296c539a28d169495f44a6319   busybox:latest                    "/bin/bash -c echo -ne "hello world\n""            6 minutes ago       Exit 1                                                               clever_brattain     77 B
-abf8c40b19e353ff1f67e3a26a967c14944b07b8f5aceb752f781ffca285a2a9   10.16.71.105:5000/fedora:latest   /bin/bash                                          22 hours ago        Exit 0                                                               suspicious_pare     77 B
-e1820ef428b51a95c963353cc4ce6b57ea0a20c44537a8336792510713dfe524   10.16.71.105:5000/fedora:latest   /bin/bash                                          22 hours ago        Exit 0                                                               thirsty_mccarthy    77 B
+CONTAINER ID                                                       IMAGE                             COMMAND                                            CREATED             STATUS              PORTS                                            NAMES                                                       SIZE
+ac8c9fa367f96e10cbfc7927dd4048d7db3e6d240d201019c5d4359795e3bcbe   busybox:latest                    "/bin/sh -c echo -ne "hello world\n"; sleep 10m"   5 minutes ago       Up 79 seconds                                                        cocky_albattani                                             77 B
+ef0fe72271778aefcb5cf6015f30067fbe01f05996a123037f65db0b82795915   busybox:latest                    "/bin/sh -c echo -ne "world hello\n"; sleep 10m"   82 seconds ago      Up 61 seconds       4.3.2.1:4321->1234/bar, 1.2.3.4:1234->4321/foo   berserk_bohr                                                55 B
+849915d551d80edce7698de91852c06bbbb7a67fe0968a3c0c246e6f25f81017   busybox:latest                    "/bin/sh -c echo -ne "hello world\n"; sleep 10m"   28 seconds ago      Up 16 seconds       1.2.3.4:1234->4321/foo, 0.0.0.0:5678->8765/tcp   berserk_bohr                                                77 B
+c0c35064e4d2bdcf86e6fd83e0de2e599473c12a6599415a9a021bdf382a3589   busybox:latest                    "/bin/sh -c echo -ne "hello world\n""              5 minutes ago       Exit 0                                                               lonely_poincare                                             77 B
+3723b1b0abd7be84316ce7824e68cb7af090416296c539a28d169495f44a6319   busybox:latest                    "/bin/bash -c echo -ne "hello world\n""            6 minutes ago       Exit 1                                                               clever_brattain                                             77 B
+abf8c40b19e353ff1f67e3a26a967c14944b07b8f5aceb752f781ffca285a2a9   10.16.71.105:5000/fedora:latest   /bin/bash                                          22 hours ago        Exit 0                                                               child0/alias0,child1/alias1,child2/alias2,suspicious_pare   77 B
+gfjggkkg9049iewm430oitjg09fd09094jte0re8g5gcgbg5ge7e15f6a2gtgggg   foobar                            /bin/bash                                          1 decade ago        Exit 99                                                              child0/alias0,infernal_github,child1/alias1,child2/alias2   77 B
+e1820ef428b51a95c963353cc4ce6b57ea0a20c44537a8336792510713dfe524   10.16.71.105:5000/fedora:latest   /bin/bash                                          22 hours ago        Exit 0                                                               thirsty_mccarthy                                            77 B
 """,
                          stderr='',
                          exit_status=0,
@@ -239,7 +240,7 @@ class DockerContainersTest(DockerContainersTestBase):
     def test_defaults(self):
         dcc = self.containers.DockerContainersCLI(self.fake_subtest)
         cl = dcc.list_containers()
-        self.assertEqual(len(cl), 7)
+        self.assertEqual(len(cl), 8)
 
         metadata = dcc.json_by_long_id("ac8c9fa367f96e10cbfc7927dd4048d7db3"
                                        "e6d240d201019c5d4359795e3bcbe")
@@ -270,6 +271,26 @@ class DockerContainersTest(DockerContainersTestBase):
         self.assertEqual(p0.protocol, 'bar')
         self.assertEqual(p1.host_port, 1234)
 
+    def test_links1(self):
+        dcc = self.containers.DockerContainersCLI(self.fake_subtest)
+        long_id = ("abf8c40b19e353ff1f67e3a26a967"
+                   "c14944b07b8f5aceb752f781ffca285a2a9")
+        cnt = dcc.list_containers_with_cid(long_id)[0]
+        self.assertEqual(cnt.container_name, "suspicious_pare")
+        for i in range(3):
+            t = ("child%d" % i, "alias%d" % i)
+            self.assertEqual(cnt.links[i], t)
+
+    def test_links2(self):
+        dcc = self.containers.DockerContainersCLI(self.fake_subtest)
+        long_id = ("gfjggkkg9049iewm430oitjg09f"
+                   "d09094jte0re8g5gcgbg5ge7e15f6a2gtgggg")
+        cnt = dcc.list_containers_with_cid(long_id)[0]
+        self.assertEqual(cnt.container_name, "infernal_github")
+        for i in range(3):
+            t = ("child%d" % i, "alias%d" % i)
+            self.assertEqual(cnt.links[i], t)
+
     def test_longids(self):
         dcntr = self.containers.DockerContainers(self.fake_subtest)
         expected = ("ac8c9fa367f96e10cbfc7927dd4048d7"
@@ -293,7 +314,7 @@ class DockerContainersTest(DockerContainersTestBase):
                     "e1820ef428b51a95c963353cc4ce6b57"
                     "ea0a20c44537a8336792510713dfe524")
 
-        self.assertEqual(len(dcntr.list_container_ids()), 7)
+        self.assertEqual(len(dcntr.list_container_ids()), 8)
         for exp in expected:
             self.assertTrue(exp in dcntr.list_container_ids())
 
