@@ -59,27 +59,31 @@ class run_memory_base(SubSubtest):
 
         if container_memory == 0:
             if cgroup_memory == 0:
-                result = {'PASS': "container_memory is %s, "
-                          "unit %s, cgroup_memory is %s"
-                          % (container_memory, unit, cgroup_memory)}
+                msg = ("container_memory is %s, "
+                       "unit %s, cgroup_memory is %s"
+                       % (container_memory, unit, cgroup_memory))
+                result = {'PASS': msg}
 
                 return result
             else:
-                result = {'FAIL': "container_memory is %s, "
-                          "unit %s, cgroup_memory is %s, status Unknown"
-                          % (container_memory, unit, cgroup_memory)}
+                msg = ("container_memory is %s, "
+                       "unit %s, cgroup_memory is %s, status Unknown"
+                       % (container_memory, unit, cgroup_memory))
+                result = {'FAIL': msg}
 
                 return result
 
         if container_memory != cgroup_memory:
-            result = {'FAIL': "container_memory is %s "
-                      ",unit %s, cgroup_memory is %s"
-                      % (container_memory, unit, cgroup_memory)}
+            msg = ("container_memory is %s "
+                   ",unit %s, cgroup_memory is %s"
+                   % (container_memory, unit, cgroup_memory))
+            result = {'FAIL': msg}
             return result
         else:
-            result = {'PASS': "container_memory is %s, "
-                      "unit %s, cgroup_memory is %s"
-                      % (container_memory, unit, cgroup_memory)}
+            msg = ("container_memory is %s, "
+                   "unit %s, cgroup_memory is %s"
+                   % (container_memory, unit, cgroup_memory))
+            result = {'PASS': msg}
             return result
 
     @staticmethod
