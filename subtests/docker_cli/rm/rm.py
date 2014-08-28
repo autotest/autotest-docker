@@ -192,8 +192,8 @@ class rm_sub_base(SubSubtest):
     def verify_output(self):
         cmdresult = self.sub_stuff['cmdresult']
         rm_cmdresult = self.sub_stuff['rm_cmdresult']
-        self.failif(cmdresult.exit_status != 0, "Expected zero exit: %s"
-                                                % cmdresult)
+        self.failif(cmdresult.exit_status != 0, ("Expected zero exit: %s"
+                                                 % cmdresult))
         self.failif(rm_cmdresult.exit_status != 0, "Expected zero exit: %s"
                     % rm_cmdresult)
         OutputGood(cmdresult)
@@ -262,8 +262,8 @@ class forced(rm_sub_base):
     def verify_output(self):
         cmdresult = self.sub_stuff['cmdresult']
         rm_cmdresult = self.sub_stuff['rm_cmdresult']
-        self.failif(cmdresult.exit_status == 0, "Expected non-zero exit: %s"
-                                                % cmdresult)
+        self.failif(cmdresult.exit_status == 0, ("Expected non-zero exit: %s"
+                                                 % cmdresult))
         self.failif(rm_cmdresult.exit_status != 0, "Expected zero exit: %s"
                     % rm_cmdresult)
         OutputGood(cmdresult)
