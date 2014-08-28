@@ -25,11 +25,12 @@ class change_registry(change_tag):
         img = self.sub_stuff['image_list'][0]
         tag = img.tag
         repo = img.repo
-        registry = "%s.%s.%s.%s:%s" % ("".join(random.sample(string.digits, 2)),
-                                       "".join(random.sample(string.digits, 2)),
-                                       "".join(random.sample(string.digits, 2)),
-                                       "".join(random.sample(string.digits, 2)),
-                                       "".join(random.sample(string.digits, 4)))
+        fmt = "%s.%s.%s.%s:%s"
+        registry = fmt % ("".join(random.sample(string.digits, 2)),
+                          "".join(random.sample(string.digits, 2)),
+                          "".join(random.sample(string.digits, 2)),
+                          "".join(random.sample(string.digits, 2)),
+                          "".join(random.sample(string.digits, 4)))
         registry_user = img.user
         new_img_name = DockerImage.full_name_from_component(repo, tag,
                                                             registry,
