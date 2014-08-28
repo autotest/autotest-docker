@@ -187,7 +187,8 @@ class network_base(SubSubtest):
 
         bind_addr = self.config["docker_daemon_bind"]
 
-        conts = self.sub_stuff['conts'] = DockerContainersE(self.parent_subtest)
+        conts = DockerContainersE(self.parent_subtest)
+        self.sub_stuff['conts'] = conts
         conts.interface.docker_daemon_bind = bind_addr
         self.dkr_cmd = DkrcmdFactory(self.parent_subtest,
                                      dkrcmd_class=AsyncDockerCmdSpec)
@@ -232,14 +233,14 @@ class network_base(SubSubtest):
             return None  # container not up yet
 
     def get_container_ip(self, cont_name):
-
         # Wait untils container is ready.
         got_json = lambda: self.get_jason(cont_name)
         utils.wait_for(got_json,
                        120,
                        text='Waiting on container %s start' % cont_name)
         json = self.get_jason(cont_name)
-        try:
-            return json[0]["NetworkSettings"]["IPAddress"]
-        except:
-            return None
+        if len(json) == 1:
+            netset = json[0].get("NetworkSettings")
+            if netset is not None:
+                return netset.get("IPAddress")  # Could return None
+        return None

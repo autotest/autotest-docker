@@ -1,5 +1,5 @@
 """
-Test docker network driver. Test if inter-container communication work properly.
+Test if inter-container communication work properly.
 
 1) restart daemon with icc=false (forbid communication)
    in network_base.initialize
