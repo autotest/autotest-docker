@@ -38,7 +38,7 @@ class empty(SubSubtest):
 
     def postprocess(self):
         super(empty, self).postprocess()
-        # name parameter cannot contain tag, don't assume prefix/postfix content
+        # name parameter cannot contain tag, don't assume prefix/postfix
         self.check_output()
         self.check_status()
         image_id = self.lookup_image_id(self.sub_stuff['image_name'],
@@ -79,8 +79,8 @@ class empty(SubSubtest):
 
     def check_status(self):
         condition = self.sub_stuff['cmdresult'].exit_status == 0
-        self.failif(not condition, "Non-zero exit status: %s"
-                                   % self.sub_stuff['cmdresult'])
+        self.failif(not condition, ("Non-zero exit status: %s"
+                                    % self.sub_stuff['cmdresult']))
 
     def lookup_image_id(self, image_name, image_tag):
         di = DockerImages(self.parent_subtest)
