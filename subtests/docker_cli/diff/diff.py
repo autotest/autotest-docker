@@ -50,7 +50,7 @@ class diff_base(SubSubtest):
         even = files_changed[::2]
         expected = zip(odds, even)
         for key, value in expected:
-            self.failif(not diffmap.has_key(key),
+            self.failif(key not in diffmap,
                         "Change to file: %s not detected." % (key))
             self.failif(value != diffmap[key],
                         "Change type detection error for "
