@@ -72,8 +72,7 @@ class info(subtest.Subtest):
                      meta_file, meta_used, meta_total):
         # read sizes of the data and meta files
         read_size = lambda x: float(
-            utils.run("du %s | cut -f1" % x
-                      ).stdout.strip())
+            utils.run("du %s | cut -f1" % x).stdout.strip())
         read_data_size = read_size(data_file)
         read_meta_size = read_size(meta_file)
         # read apparent sizes of data and meta files
@@ -86,7 +85,8 @@ class info(subtest.Subtest):
         read_meta_asize_mb = self._sizeof_fmt_mb(meta_asize)
 
         # compare actual file sizes
-        self.logdebug("Read metadata file size total: %s, Docker metadata file "
+        self.logdebug("Read metadata file size total: %s, "
+                      "Docker metadata file "
                       "total size: %s", read_meta_asize_mb, meta_total)
         self.failif(meta_total != read_meta_asize_mb,
                     "Docker reported metadata file size total does not match "
@@ -102,7 +102,8 @@ class info(subtest.Subtest):
                       "size total.")
 
         # compare real used file sizes
-        self.logdebug("Read metadata file size: %s, Docker metadata file size: "
+        self.logdebug("Read metadata file size: %s, "
+                      "Docker metadata file size: "
                       "%s", read_meta_size_mb, meta_used)
         self.failif(meta_used != read_meta_size_mb,
                     "Docker reported metadata file size does not match read "
