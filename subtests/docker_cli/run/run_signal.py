@@ -16,7 +16,8 @@ class run_signal(run_base):
         sig = getattr(signal, self.config['listen_signal'])
         dkrcmd = AsyncDockerCmd(self, 'run', self.sub_stuff['subargs'],
                                 timeout=self.config['docker_timeout'])
-        self.logdebug("Starting background docker command, timeout %s seconds: "
+        self.logdebug("Starting background docker command, "
+                      "timeout %s seconds: "
                       "%s", self.config['docker_timeout'], dkrcmd.command)
         dkrcmd.verbose = True
         # Runs in background
