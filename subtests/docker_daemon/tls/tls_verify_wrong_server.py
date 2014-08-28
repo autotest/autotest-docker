@@ -3,7 +3,8 @@ Test docker tls. Try to connect to server which uses wrong certificates with
 client good certificates. Client should return exitstatus different from 0 and
 should contain "certificate signed by unknown authority" in stderr.
 daemon --tlsverify,--tlscacert=ca.crt,--tlscert=server.crt,--tlskey=server.key
-client --tlsverify,--tlscacert=ca.crt,--tlscert=wrongclient.crt,--tlskey=wrongclient.key
+client --tlsverify,--tlscacert=ca.crt,--tlscert=wrongclient.crt,\
+    --tlskey=wrongclient.key
 
 1) restart daemon with tls configuration
 2) Try to start docker client with wrong certs.
