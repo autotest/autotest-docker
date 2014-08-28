@@ -2,7 +2,8 @@
 Test docker tls connection test check only server identity using ca.crt server
 do not check wrong certificate from passed from client.
 daemon --tls,--tlscert=server.crt,--tlskey=server.key
-client --tlsverify,--tlscacert=ca.crt,--tlscert=wrongclient.crt,--tlskey=wrongclient.key
+client --tlsverify,--tlscacert=ca.crt,--tlscert=wrongclient.crt,\
+    --tlskey=wrongclient.key
 
 1) restart daemon with tls configuration
 2) Check client connection

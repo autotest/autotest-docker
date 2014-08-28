@@ -25,8 +25,6 @@ from dockertest.dockercmd import NoFailDockerCmd
 from dockertest.dockercmd import MustFailDockerCmd
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
-from dockertest.xceptions import DockerCommandError
-from dockertest.xceptions import DockerExecError
 from dockertest.xceptions import DockerTestNAError
 
 
@@ -213,5 +211,5 @@ class top(subtest.Subtest):
         finally:
             name = self.stuff.get('container_name')
             if name and self.config.get('remove_after_test'):
-                    DockerCmd(self, 'rm', ['--force', '--volumes',
-                                           name]).execute()
+                DockerCmd(self, 'rm', ['--force', '--volumes',
+                                       name]).execute()

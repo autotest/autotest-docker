@@ -16,14 +16,18 @@ import random
 import re
 import time
 
-from dockertest import config, subtest
+from dockertest import config
+from dockertest import subtest
 from dockertest.containers import DockerContainers
-from dockertest.dockercmd import AsyncDockerCmd, DockerCmd, NoFailDockerCmd
+from dockertest.dockercmd import AsyncDockerCmd
+from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
 from dockertest.subtest import SubSubtest
-from dockertest.xceptions import (DockerTestFail, DockerOutputError,
-                                  DockerTestError, DockerTestNAError)
+from dockertest.xceptions import DockerTestFail
+from dockertest.xceptions import DockerOutputError
+from dockertest.xceptions import DockerTestError
+from dockertest.xceptions import DockerTestNAError
 
 
 class wait(subtest.SubSubtestCaller):
@@ -217,21 +221,18 @@ class wait_base(SubSubtest):
                                 % cont['result'])
             if 'test_cmd' in cont:
                 if not cont['test_cmd'].done:
-                    try:
-                        cont['test_cmd'].wait(0)
-                    except Exception, details:
-                        failures.append("Test cmd %s had to be killed: %s"
-                                        % (cont['test_cmd'], details))
+                    # Actual killing happens below
+                    failures.append("Test cmd %s had to be killed."
+                                    % (cont['test_cmd']))
         cont_ids = [cont['id'] for cont in test_conts]
         for cont in containers:
             if cont.long_id in cont_ids or cont.container_name in cont_ids:
-                try:
-                    NoFailDockerCmd(self, 'rm',
-                                    ['--force', '--volumes', cont.long_id]
-                                    ).execute()
-                except Exception, details:
+                cmdresult = DockerCmd(self, 'rm',
+                                      ['--force', '--volumes',
+                                       cont.long_id]).execute()
+                if cmdresult.exit_status != 0:
                     failures.append("Fail to remove container %s: %s"
-                                    % (cont.long_id, details))
+                                    % (cont.long_id, cmdresult))
         if failures:
             raise DockerTestError("Cleanup failed:\n%s" % failures)
 

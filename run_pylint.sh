@@ -1,7 +1,11 @@
 #!/bin/bash
 
+TMPFILENAME="/tmp/run_pylint_$RANDOM"
+PEP8=`which pep8`
 MSGFMT='{msg_id}:{line:3d},{column}: {obj}: {msg}'
-DISABLEMSG="I0011,R0801,R0904,R0921,R0922"
+# Disable 'line too long' - will be picked up by pep8
+# Check "note" (W0511) separetly
+DISABLEMSG="I0011,R0801,R0904,R0921,R0922,C0301,W0511"
 INIT_HOOK="
 AP = os.environ.get('AUTOTEST_PATH', '/usr/local/autotest')
 sys.path.append(os.path.abspath(AP + '/..'))
@@ -9,7 +13,7 @@ sys.path.append(os.path.abspath('.'))
 import autotest
 import autotest.common
 "
-SUBTESTDISABLEMSG="I0011,R0801,R0904,E1101,E1002,R0903,F0401,C0103,C0111,W0232,W0142"
+SUBTESTDISABLEMSG="I0011,R0801,R0904,E1101,E1002,R0903,F0401,C0103,C0111,W0232,W0142,C0301,W0511"
 SUBTESTINIT_HOOK="
 AP = os.environ.get('AUTOTEST_PATH', '/usr/local/autotest')
 sys.path.append(os.path.abspath(AP + '/..'))
@@ -26,11 +30,28 @@ then
     cd "$MYDIR"
 fi
 
-trap "exit" INT
+cleanup() {
+    rm -f "$TMPFILENAME"
+}
+
+trap "cleanup" EXIT
+
+echo "0" > "$TMPFILENAME"
+
+record_return() {
+    VALUE=$(head -1 "$TMPFILENAME")
+    if [ "$1" -gt "0" ]
+    then
+        echo "          ^^^^^Problem(s) need fixing^^^^^" > /dev/stderr
+        echo
+        let "VALUE++"
+        echo "$VALUE" > "$TMPFILENAME"
+    fi
+}
 
 check_dockertest() {
     WHAT="$1"
-    echo -e "Dockertest module: ${WHAT} "
+    echo -e "Checking: ${WHAT} "
     pylint -rn --init-hook="$INIT_HOOK" \
            --disable="$DISABLEMSG" \
            --max-args=6 \
@@ -38,9 +59,23 @@ check_dockertest() {
            --output-format="colorized" \
            --rcfile=/dev/null \
            --msg-template="$MSGFMT" "${WHAT}"
-    if [ "$?" -ne "0" ]
+    RET="$?"
+    if [ "$RET" -ne "0" ]
     then
-        echo
+        record_return 1
+    else
+        # Just print FIXME/TODO warnings, don't fail on them.
+        pylint -rn --init-hook="$INIT_HOOK" \
+               --disable=all \
+               --enable=W0511 \
+               --output-format="colorized" \
+               --rcfile=/dev/null \
+               --msg-template="$MSGFMT" "${WHAT}"
+    fi
+    if [ -n "$PEP8" ]
+    then
+        $PEP8 "$WHAT"
+        record_return $?
     fi
 }
 
@@ -55,7 +90,7 @@ check_dockertests() {
 
 check_subtest() {
     WHAT="$1"
-    echo -e "Subtest module: ${WHAT} "
+    echo -e "Checking: ${WHAT} "
     pylint -rn --init-hook="$SUBTESTINIT_HOOK" \
            --disable="$SUBTESTDISABLEMSG" \
            --max-args=8 \
@@ -63,9 +98,23 @@ check_subtest() {
            --output-format="colorized" \
            --rcfile=/dev/null \
            --msg-template="$MSGFMT" "${WHAT}"
-    if [ "$?" -ne "0" ]
+    RET="$?"
+    if [ "$RET" -ne "0" ]
     then
-        echo
+        record_return 1
+    else
+        # Just print FIXME/TODO warnings, don't fail on them.
+        pylint -rn --init-hook="$SUBTESTINIT_HOOK" \
+               --disable=all \
+               --enable=W0511 \
+               --output-format="colorized" \
+               --rcfile=/dev/null \
+               --msg-template="$MSGFMT" "${WHAT}"
+    fi
+    if [ -n "$PEP8" ]
+    then
+        $PEP8 "$WHAT"
+        record_return $?
     fi
 }
 
@@ -94,4 +143,14 @@ else
             echo "Ignoring $THING"
         fi
     done
+fi
+
+FAULTS=$(head -1 "$TMPFILENAME")
+
+if [ "$FAULTS" -gt "0" ]
+then
+    echo "Total Faults: $FAULTS"
+    exit $FAULTS
+else
+    exit 0
 fi

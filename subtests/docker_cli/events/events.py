@@ -87,7 +87,7 @@ def is_dupe_event(needle, haystack):
     for event in haystack:
         # Fastest comparison order
         if (needle['datetime'] == event['datetime'] and
-            needle['source'] == event['source'] and
+                needle['source'] == event['source'] and
                 needle['operation'] == event['operation']):
             return True
     return False

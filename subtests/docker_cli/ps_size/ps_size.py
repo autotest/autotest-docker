@@ -114,7 +114,7 @@ class simple(run_env_base):
                 if (size > exp + limit) or (size < exp):
                     err.append("Size of %s:%s not in range %s - %s"
                                % (created_containers[i], size, exp,
-                                   exp + limit))
+                                  exp + limit))
 
             self.failif(err, "Following containers reported incorrect sizes:"
                         "\n%s" % "\n".join(err))

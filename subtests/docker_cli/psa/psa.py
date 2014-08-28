@@ -101,10 +101,11 @@ class psa(subtest.Subtest):
         cnt = cnts[0]
         estat1 = str(cnt.status).startswith("Exit 0")  # pre docker 0.9.1
         estat2 = str(cnt.status).startswith("Exited (0)")  # docker 0.9.1+
-        self.failif(not (estat1 or estat2), "Exit status mismatch: %s does not"
-                                            "start with %s or %s"
-                                            % (str(cnt), "Exit 0",
-                                               "Exited (0)"))
+        msg = ("Exit status mismatch: %s does not"
+               "start with %s or %s"
+               % (str(cnt), "Exit 0",
+                  "Exited (0)"))
+        self.failif(not (estat1 or estat2), msg)
         cid = self.stuff['container_id']
         cl0_ids = [cnt.long_id for cnt in self.stuff['cl0']]
         cl1_ids = [cnt.long_id for cnt in self.stuff['cl1']]

@@ -2,23 +2,33 @@
 Test docker tls connection.
 
 1) Create CA certificate
-    openssl req -nodes -new -x509 -keyout ca.key -out ca.crt -days 3650 -config cacrt.conf
+    openssl req -nodes -new -x509 -keyout ca.key -out ca.crt -days 3650\
+        -config cacrt.conf
     echo 01 > ca.srl
 2) Create certificate for daemon
-    openssl req -newkey rsa -keyout server.key -out server.req -config servercrt.conf
-    openssl x509 -req -days 365 -in server.req -CA ca.crt -CAkey ca.key -out server.crt
+    openssl req -newkey rsa -keyout server.key -out server.req -config \
+        servercrt.conf
+    openssl x509 -req -days 365 -in server.req -CA ca.crt -CAkey ca.key \
+        -out server.crt
 3) Create certificate for client
-    openssl req -newkey rsa -keyout client.key -out client.req -config clientcrt.conf
-    openssl x509 -req -days 365 -in client.req -CA ca.crt -CAkey ca.key -out client.crt -extfile extfile.cnf
+    openssl req -newkey rsa -keyout client.key -out client.req -config \
+        clientcrt.conf
+    openssl x509 -req -days 365 -in client.req -CA ca.crt -CAkey ca.key \
+        -out client.crt -extfile extfile.cnf
 4) Create wrongCA certificate
-    openssl req -nodes -new -x509 -keyout ca.key -out wrongca.crt -days 3650 -config cacrt.conf
+    openssl req -nodes -new -x509 -keyout ca.key -out wrongca.crt -days \
+        3650 -config cacrt.conf
     echo 01 > ca.srl
 5) Create wrong certificate for daemon
-    openssl req -newkey rsa -keyout wrongserver.key -out wrongserver.req -config wrongservercrt.conf
-    openssl x509 -req -days 365 -in server.req -CA wrongca.crt -CAkey wrongca.key -out wrongserver.crt
+    openssl req -newkey rsa -keyout wrongserver.key -out wrongserver.req \
+        -config wrongservercrt.conf
+    openssl x509 -req -days 365 -in server.req -CA wrongca.crt -CAkey \
+        wrongca.key -out wrongserver.crt
 6) Create wrong certificate for client
-    openssl req -newkey rsa -keyout wrongclient.key -out wrongclient.req -config wrongclientcrt.conf
-    openssl x509 -req -days 365 -in wrongclient.req -CA wrongca.crt -CAkey wrongca.key -out wrongclient.crt -extfile extfile.cnf
+    openssl req -newkey rsa -keyout wrongclient.key -out wrongclient.req \
+        -config wrongclientcrt.conf
+    openssl x509 -req -days 365 -in wrongclient.req -CA wrongca.crt -CAkey \
+        wrongca.key -out wrongclient.crt -extfile extfile.cnf
 7) Call subsubtests.
 8) cleanup all containers and images.
 """
@@ -29,11 +39,12 @@ import socket
 from autotest.client.shared import utils
 from dockertest.subtest import SubSubtest
 from dockertest.containers import DockerContainers, DockerContainersCLI
+from dockertest.dockercmd import DockerCmd
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.images import DockerImage
 from dockertest.config import none_if_empty, get_as_list
 from dockertest.xceptions import DockerTestNAError
-from dockertest import subtest
+from dockertest.subtest import SubSubtestCaller
 from dockertest import docker_daemon
 
 # Okay to be less-strict for these cautions/warnings in subtests
@@ -190,7 +201,7 @@ class DockerContainersE(DockerContainers):
     interfaces = {"cli_spec": DockerContainersCLISpec}
 
 
-class tls(subtest.SubSubtestCaller):
+class tls(SubSubtestCaller):
 
     def initialize(self):
         # generate certificate
@@ -216,14 +227,14 @@ class tls(subtest.SubSubtestCaller):
                     "wrongservercrt.conf",
                     "extfile.cnf",
                     "ca.srl",
-                    "wrongca.srl"
-                    ]
+                    "wrongca.srl"]
         for fn in filelist:
             sfpath = os.path.join(self.bindir, fn)
             dfpath = os.path.join(self.tmpdir, fn)
             shutil.copyfile(sfpath, dfpath)
 
-    def create_CA(self, prefix=None):
+    @staticmethod
+    def create_CA(prefix=None):
         if prefix is None:
             prefix = ""
         ca = {"ca_key": "%sca.key" % prefix,
@@ -240,7 +251,8 @@ class tls(subtest.SubSubtestCaller):
                                      results.get_stderr()))
         return results
 
-    def create_Cert(self, cert_name, extfile=None, ca_prefix=None):
+    @staticmethod
+    def create_Cert(cert_name, extfile=None, ca_prefix=None):
         if ca_prefix is None:
             ca_prefix = ""
 
@@ -318,21 +330,17 @@ class tls_base(SubSubtest):
     def cleanup(self):
         super(tls_base, self).cleanup()
 
-        if (self.config['remove_after_test'] and
-                'containers' in self.sub_stuff):
-            for cont in self.sub_stuff["containers"]:
-                try:
-                    self.conts.remove_args = "--force --volumes"
-                    self.conts.remove_by_name(cont)
-                except Exception, e:
-                    self.logwarning(e)
-
-        # Kill docker_daemon process
-        if self.sub_stuff["docker_daemon"] is not None:
-            try:
+        try:
+            if (self.config['remove_after_test'] and
+                    'containers' in self.sub_stuff):
+                for cont in self.sub_stuff["containers"]:
+                    subargs = ["--force", "--volumes",
+                               cont.container_name]
+                    DockerCmd(self, 'rm', subargs).execute()
+        finally:
+            # Kill docker_daemon process
+            if self.sub_stuff["docker_daemon"] is not None:
                 docker_daemon.restart_service(self.sub_stuff["docker_daemon"])
-            except:
-                self.failif(True, "Unable to restart docker daemon.")
 
 
 class tls_verify_all_base(tls_base):
@@ -390,7 +398,8 @@ class tls_verify_all_base_bad(tls_verify_all_base):
 
     def cleanup(self):
         if "docker_options_spec_good" in self.config:
-            dos = " ".join(get_as_list(self.config['docker_options_spec_good']))
+            dos = " ".join(get_as_list(
+                self.config['docker_options_spec_good']))
             self.conts.interface.docker_options_spec = dos
         # Avoid warning about not exist container.
         c1 = self.conts.list_containers_with_name(self.sub_stuff["cont1_name"])

@@ -73,7 +73,7 @@ class ContainerPort(object):
         return ("Container (private) port: %d, Host (public) port: %d, "
                 "Host (interface) IP: %s, Protocol: %s"
                 % (self.container_port, self.host_port, self.host_ip,
-                    self.protocol))
+                   self.protocol))
 
     def __repr__(self):
         """

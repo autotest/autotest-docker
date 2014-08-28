@@ -100,9 +100,9 @@ class rmi_base(SubSubtest):
                         "Zero rmi exit status: Command should fail due to"
                         " wrong command arguments.")
         else:
-            self.failif(True, "Config. option 'docker_expected_result' "
-                              "must be 'PASS' or 'FAIL', not %s"
-                              % self.config["docker_expected_result"])
+            self.failif(True, ("Config. option 'docker_expected_result' "
+                               "must be 'PASS' or 'FAIL', not %s"
+                               % self.config["docker_expected_result"]))
 
     def cleanup(self):
         super(rmi_base, self).cleanup()

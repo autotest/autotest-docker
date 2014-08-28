@@ -41,10 +41,8 @@ class tag_base(SubSubtest):
             raise xceptions.DockerTestNAError("Problem pulling"
                                               "base image %s for test"
                                               % base_image)
-
-        tag_results = DockerCmd(self, "tag",
-                                [base_image, self.sub_stuff["image"]]
-                                ).execute()
+        subargs = [base_image, self.sub_stuff["image"]]
+        tag_results = DockerCmd(self, "tag", subargs).execute()
         if tag_results.exit_status:
             raise xceptions.DockerTestNAError("Problems during "
                                               "initialization of"

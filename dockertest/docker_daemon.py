@@ -96,8 +96,7 @@ class SocketClient(ClientBase):
     def value_to_json(value):
         if value.status != 200:
             raise ValueError("Bad response status %s (%s)\nRaw data: %s"
-                             % (value.status, value.reason, value.read())
-                             )
+                             % (value.status, value.reason, value.read()))
         return json.loads(value.read())
 
     def version(self):

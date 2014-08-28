@@ -605,7 +605,7 @@ class DockerImagesCLI(DockerImagesBase):
 class DockerImages(object):
 
     """
-    Encapsulates ``DockerImage`` interfaces for manipulation with docker images.
+    Encapsulates ``DockerImage`` interfaces for manipulation of docker images.
     """
 
     #: Mapping of interface short-name string to DockerImagesBase subclass.
