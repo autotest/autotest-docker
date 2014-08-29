@@ -13,7 +13,7 @@ class ps_size(SubSubtestCaller):
     """ Subtest caller """
 
 
-class run_env_base(SubSubtest):
+class ps_size_base(SubSubtest):
 
     """ Base class """
 
@@ -32,7 +32,7 @@ class run_env_base(SubSubtest):
         return dkrcmd
 
     def initialize(self):
-        super(run_env_base, self).initialize()
+        super(ps_size_base, self).initialize()
         # Prepare a container
         config.none_if_empty(self.config)
         self.sub_stuff['dc'] = DockerContainers(self.parent_subtest)
@@ -56,11 +56,11 @@ class run_env_base(SubSubtest):
                       verbose=False).execute()
 
     def cleanup(self):
-        super(run_env_base, self).cleanup()
+        super(ps_size_base, self).cleanup()
         self._cleanup_containers()
 
 
-class simple(run_env_base):
+class simple(ps_size_base):
 
     """
     Simple `docker ps -a --size` test.
