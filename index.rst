@@ -1188,6 +1188,38 @@ This a set of test that check the container's iptable rules on host.
 *  The option ``name`` sets the container's prefix name.
 *  The option ``bash_cmd`` sets the command that the container will execute.
 
+``docker_cli/import_url`` Sub-test
+====================================
+
+This a set of tests to verify docker import from a URL
+
+``docker_cli/import_url`` Prerequisites
+-------------------------------------------
+
+The configured URL points to a tarball in an accepted format
+by docker (plain, bzip, gzip, etc.).
+
+``docker_cli/import_url`` Configuration
+-----------------------------------------
+
+*  ``tar_url`` specifies the URL of a tarball to test
+
+``docker_cli/import_url/md5sum`` Sub-test
+-------------------------------------------
+
+Simple subtest that copy's a file from imported image and
+compares it's md5sum against a known value
+
+``docker_cli/import_url/md5sum`` Configuration
+------------------------------------------------
+
+*  The ``name_prefix`` and ``repo_prefix`` are used
+   to help identify containers and images outside the test.
+*  ``in_tar_file`` specifies the full path to a test file
+   contained within the tarball
+*  ``md5sum`` specifies the md5sum hash value for the file
+   referenced by ``in_tar_file`` option.
+
 ----------------------------------
 Dockertest API Reference
 ----------------------------------
