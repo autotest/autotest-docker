@@ -1108,27 +1108,30 @@ This is a set of subsubtests that test the inspect command.
 * ``container_keys`` specifies which fields to check for in a container inspect
 * ``key_regex`` asserts that each key matches this regex
 
-``docker_cli/run_memory`` Sub-test
-==================================
+``docker_cli/run_cgroups`` Sub-test
+======================================
 
-Simple test that checks the output of the ``docker run -m`` command.
-It verifies that if the container's cgroup resource ``memory.limit_in_bytes``
-equals the value passed or if the container can handle invalid value
+Simple tests that check output/behavior of ``docker run`` wuth ``-m`` and
+``-c`` parameters.  It verifies that the container's cgroup resources
+match value passed and if the container can handle invalid values
 properly.
 
-``docker_cli/run_memory`` Prerequisites
----------------------------------------
+``docker_cli/run_cgroups`` Prerequisites
+------------------------------------------
 
 *  Docker daemon is running and accessible by it's unix socket.
+*  cgroups subsystem enabled, working, and mounted under standard /sys location
 
-``docker_cli/run_memory`` Configuration
----------------------------------------
-*  The option ``remove_after_test`` specifies whether to remove the
-   container created during the test.
+``docker_cli/run_cgroups`` Configuration
+------------------------------------------
 *  The option ``expect_success``, sets the pass/fail logic for results processing.
 *  The option ``memory_value``, sets a quantity of memory to check
+*  The ``cpushares_value`` option sets the additional CPU priority
+   given to the contained process.
 *  Invalid range testing uses the options ``memory_min_invalid`` and
    ``memory_max_invalid``.
+*  ``cgroup_path`` will have the container's CID appended, and the value
+   from the file specified in option ``cgroup_key_value`` will be checked.
 
 
 ``docker_cli/syslog`` Sub-test
