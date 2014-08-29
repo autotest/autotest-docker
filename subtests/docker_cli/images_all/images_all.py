@@ -124,8 +124,9 @@ class images_all_base(SubSubtest):
                                           verbose=False).execute().stdout
                 for parent in image[4]:
                     self.failif(parent not in history, "Parent image '%s' of "
-                    "image '%s' was not found in `docker history`:\n%s\n%s"
-                    % (parent, image[0], history, err_str()))
+                                "image '%s' was not found in `docker history`:"
+                                "\n%s\n%s" % (parent, image[0], history,
+                                              err_str()))
 
     def _cleanup_containers(self):
         """
@@ -219,3 +220,17 @@ class two_images_with_parents(images_all_base):
         NoFailDockerCmd(self, 'rmi', [test_b[0]], verbose=False).execute()
         test_b[2:4] = [False, False]    # doesn't exist, not tagged
         self.verify_images((test_a, test_a1, test_b, test_b1))
+
+
+class with_unused_containers(two_images_with_parents):
+
+    """
+    The same as `two_images_with_parents` only executes couple of containers
+    first. (existing containers with no relation to removed images sometimes
+    cause failure)
+    """
+
+    def initialize(self):
+        super(with_unused_containers, self).initialize()
+        for _ in xrange(10):
+            self._init_container("background", None, [], "sh -c exit")
