@@ -522,6 +522,27 @@ for each sub-sub-test are also used.
    to use before sending the content into the docker import command.
 
 
+``docker_cli/images_all`` Sub-test
+=================================
+
+Checks the difference between ``docker images`` and ``docker images --all``.
+
+``subsubtests`` = two_images_with_parents
+
+``docker_cli/images_all/two_images_with_parents`` Subsub-test
+-----------------------------------------------------
+
+#.  Create image test_a
+#.  Create image test_a1 with parent test_a
+#.  Create image test_b
+#.  Create image test_b1 with parent test_b
+#.  Untag test_a
+#.  Untag test_a1 (verify intermediary images were removed too)
+#.  Untag test_b1 (verify test_b was preserved)
+
+*  Between steps 4-7 verify `docker images` and `docker history`
+
+
 ``docker_cli/images`` Sub-test
 =======================================
 
