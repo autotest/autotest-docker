@@ -1,0 +1,25 @@
+"""
+Test autorestart of docker container after docker daemon restart.
+
+1. Stop system docker daemon
+2. Start test docker daemon with special work dir (graph) path.
+3. Start infinite docker container.
+4. Restart docker daemon.
+5. Check if docker container is auto restarted after docker restart.
+"""
+# pylint: disable=E0611
+from restart import restart_container_autorestart_base
+
+
+class restart_container_autorestart_int(restart_container_autorestart_base):
+
+    def postprocess(self):
+        super(restart_container_autorestart_int, self).postprocess()
+
+        i = self.conts.get_container_metadata(self.sub_stuff["cont1_name"])
+        self.failif(i is None,
+                    "Container was probably not created.")
+
+        self.failif(not i[0]["State"]["Running"],
+                    "Container was not autorestarted after docker "
+                    "daemon restart.")
