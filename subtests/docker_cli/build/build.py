@@ -205,3 +205,15 @@ class local_path(build_base):
     Path to a local directory within the Dockerfile and other files are present
     """
     pass
+
+
+class https_file(build_base):
+
+    """ https path to a Dockerfile """
+    pass
+
+
+class git_path(build_base):
+
+    """ path to a git reporistory which contains Dokerfile and othe files """
+    pass
