@@ -911,6 +911,29 @@ Several variations of running the kill command
    *  `true`` -> ``os.kill $docker_cmd.pid``
 
 
+``docker_cli/logs_follow`` Sub-test
+=================================
+
+This test checks correctness of docker logs --follow
+
+subsubtests = simple*
+
+``docker_cli/logs_follow/simple*``
+--------------------------------------------
+
+#.  Start container
+#.  Start `docker logs --follow` process
+#.  Execute couple of cmds
+#.  Start `docker logs` (without --follow) process
+#.  Execute couple of cmds (output to stderr)
+#.  Stop container
+#.  Start `docker logs` (without --follow) process
+#.  Check correctness o 2, then compare 2 and 7 (match) and 4 (partial
+    match). Also check all exit statuses/errors/...
+
+differences between the variants are different container cmd (tty, attach)
+
+
 ``docker_cli/top`` Sub-test
 =======================================
 
