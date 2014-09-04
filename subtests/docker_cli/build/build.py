@@ -40,7 +40,6 @@ class build(subtest.SubSubtestCaller):
                           os.O_WRONLY | os.O_CREAT, 0755)
         os.write(busybox, data)
         os.close(busybox)
-        #shutil.copy('/usr/sbin/busybox', self.srcdir + '/busybox')
 
         for filename in self.config['source_dirs'].split(','):
             # bindir is location of this module
@@ -72,6 +71,7 @@ class build_base(subtest.SubSubtest):
     2. Run docker build ... $dockerfile_path (by default self.srcdir)
     3. Verify the image was built successfully
     """
+
     def dockerfile_path(self, path):
         if path[0] == '/':
             srcdir = self.parent_subtest.srcdir
