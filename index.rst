@@ -643,6 +643,31 @@ Three simple subsubtests that verify exit status and signal pass-through capabil
 *  Container image with a ``/bin/date`` executable
 *  Accurate (relative to host) timekeeping in container
 
+
+``docker_cli/run_attach`` Sub-test
+=================================
+
+This test checks different ``docker run -a xxx`` variants.
+
+#. Starts `docker run` with defined combination of `-a ...`
+   6 variants are executed per each test:
+      variants:
+        - tty
+        - nontty
+      variants:
+        - stdin (execute bash, put 'ls /\n exit\n' on stdin)
+        - stdout (execute ls /)
+        - stderr (execute ls /nonexisting/directory/...)
+#. Analyze results
+
+subsubtests = none,stdin,stdout,stderr,in_out,in_err,in_out_err,
+random_variant,i_none,i_stdin,i_stdout,i_stderr,i_in_out,i_in_err,
+i_in_out_err,i_random_variant
+
+subtests with name ``i_*`` are the same test without this prefix only executed
+with ``--interactive`` enabled.
+
+
 ``docker_cli/run_sigproxy`` Sub-test
 =======================================
 
