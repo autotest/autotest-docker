@@ -70,6 +70,38 @@ class DockerContainerTest(ContainersTestBase):
         self.assertNotEqual(len(str(dc)), 0)
         self.assertNotEqual(len(repr(dc)), 0)
 
+    def test_parse_empty(self):
+        pcn = self.DC.parse_container_name
+        self.assertRaises(ValueError, pcn, '')
+        self.assertRaises(ValueError, pcn, ' ')
+        self.assertRaises(ValueError, pcn, '\t    ')
+        self.assertRaises(ValueError, pcn, '\r')
+
+    def test_parse_invalid(self):
+        pcn = self.DC.parse_container_name
+        self.assertRaises(ValueError, pcn, ',')
+        self.assertRaises(ValueError, pcn, '/')
+        self.assertRaises(ValueError, pcn, ',/')
+        self.assertRaises(ValueError, pcn, ',/,')
+        self.assertRaises(ValueError, pcn, '/,/')
+        self.assertRaises(ValueError, pcn, 'a/a,b/b,c/c')
+        self.assertRaises(ValueError, pcn, 'a,b,c')
+        self.assertRaises(ValueError, pcn, ',b/c')
+        self.assertRaises(ValueError, pcn, 'a/b,,c/d')
+        self.assertRaises(ValueError, pcn, 'a / b , , c/d')
+
+    def test_parse_short(self):
+        pcn = self.DC.parse_container_name
+        self.assertRaises(ValueError, pcn, 'a,a')
+        self.assertRaises(ValueError, pcn, 'a/a')
+
+    def test_parse_valid(self):
+        pcn = self.DC.parse_container_name
+        self.assertEqual(pcn('a'), ('a', None))
+        self.assertEqual(pcn('a,b/c'), ('a', [('b', 'c')]))
+        self.assertEqual(pcn('b/c,a'), ('a', [('b', 'c')]))
+        self.assertEqual(pcn('a/b,c,d/e'), ('c', [('a', 'b'), ('d', 'e')]))
+
 
 # DO NOT allow this function to get loose in the wild!
 def mock(mod_path):
