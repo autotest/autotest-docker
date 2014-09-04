@@ -19,6 +19,7 @@ from dockertest.output import OutputGood
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.dockercmd import DockerCmd
 from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.xceptions import DockerTestNAError
 
 
 class NotSeenString(object):
@@ -141,6 +142,10 @@ class build_base(subtest.SubSubtest):
         srcdir = self.parent_subtest.srcdir
         self.sub_stuff['dockerfile_path'] = self.config.get('dockerfile_path',
                                                             srcdir)
+        dockerfile_path = self.sub_stuff['dockerfile_path']
+        if len(dockerfile_path) < 3:
+            raise DockerTestNAError('Invalid dockerfile_path "%s"'
+                                    % dockerfile_path)
         # Must build from a base-image, import an empty one
         tarball = open(os.path.join(self.parent_subtest.bindir,
                                     'empty_base_image.tar'), 'rb')
