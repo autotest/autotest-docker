@@ -8,7 +8,6 @@ Test run of docker build command
 5. Optionally remove built image
 """
 
-import os
 import os.path
 import shutil
 import time
@@ -20,6 +19,7 @@ from dockertest.output import OutputGood
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.dockercmd import DockerCmd
 from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.xceptions import DockerTestNAError
 
 
 class NotSeenString(object):
@@ -95,8 +95,9 @@ class NotSeenString(object):
             return False  # skip blank line
 
 
-class build(subtest.Subtest):
-    config_section = 'docker_cli/build'
+class build(subtest.SubSubtestCaller):
+
+    """ Subtest caller """
 
     def setup(self):
         super(build, self).setup()
@@ -116,28 +117,46 @@ class build(subtest.Subtest):
         os.write(busybox, data)
         os.close(busybox)
 
+
+class build_base(subtest.SubSubtest):
+
+    """
+    Base of build test
+    1. Import empty_base_image (widely used in this test)
+    2. Run docker build ... $dockerfile_path (by default self.srcdir)
+    3. Verify the image was built successfully
+    """
+
     def initialize(self):
-        super(build, self).initialize()
+        super(build_base, self).initialize()
         condition = self.config['build_timeout_seconds'] >= 10
         self.failif(not condition, "Config option build_timeout_seconds "
                                    "is probably too short")
-        di = DockerImages(self)
-        image_name_tag = di.get_unique_name(self.config['image_name_prefix'],
+        self.sub_stuff['di'] = dimg = DockerImages(self)
+        img_name_tag = dimg.get_unique_name(self.config['image_name_prefix'],
                                             self.config['image_name_postfix'])
-        image_name, image_tag = image_name_tag.split(':', 1)
-        self.stuff['image_name_tag'] = image_name_tag
-        self.stuff['image_name'] = image_name
-        self.stuff['image_tag'] = image_tag
+        image_name, image_tag = img_name_tag.split(':', 1)
+        self.sub_stuff['image_name_tag'] = img_name_tag
+        self.sub_stuff['image_name'] = image_name
+        self.sub_stuff['image_tag'] = image_tag
+        srcdir = self.parent_subtest.srcdir
+        self.sub_stuff['dockerfile_path'] = self.config.get('dockerfile_path',
+                                                            srcdir)
+        dockerfile_path = self.sub_stuff['dockerfile_path']
+        if len(dockerfile_path) < 3:
+            raise DockerTestNAError('Invalid dockerfile_path "%s"'
+                                    % dockerfile_path)
         # Must build from a base-image, import an empty one
-        tarball = open(os.path.join(self.bindir, 'empty_base_image.tar'), 'rb')
-        dc = NoFailDockerCmd(self, 'import', ["-", "empty_base_image"])
-        dc.execute(stdin=tarball)
+        tarball = open(os.path.join(self.parent_subtest.bindir,
+                                    'empty_base_image.tar'), 'rb')
+        dkrcmd = NoFailDockerCmd(self, 'import', ["-", "empty_base_image"])
+        dkrcmd.execute(stdin=tarball)
 
     def run_once(self):
-        super(build, self).run_once()
+        super(build_base, self).run_once()
         subargs = [self.config['docker_build_options'],
-                   "-t", self.stuff['image_name_tag'],
-                   self.srcdir]
+                   "-t", self.sub_stuff['image_name_tag'],
+                   self.sub_stuff['dockerfile_path']]
         # Don't really need async here, just exercizing class
         dkrcmd = AsyncDockerCmd(self, 'build', subargs,
                                 self.config['build_timeout_seconds'],
@@ -149,38 +168,57 @@ class build(subtest.Subtest):
                 self.loginfo("Building: %s" % nss)
             else:
                 time.sleep(3)
-        self.stuff["cmdresult"] = dkrcmd.wait()
+        self.sub_stuff["cmdresult"] = dkrcmd.wait()
 
     def postprocess(self):
-        super(build, self).postprocess()
+        super(build_base, self).postprocess()
         # Raise exception if problems found
-        OutputGood(self.stuff['cmdresult'])
-        self.failif(self.stuff['cmdresult'].exit_status != 0,
+        OutputGood(self.sub_stuff['cmdresult'])
+        self.failif(self.sub_stuff['cmdresult'].exit_status != 0,
                     "Non-zero build exit status: %s"
-                    % self.stuff['cmdresult'])
-        image_name = self.stuff['image_name']
-        image_tag = self.stuff['image_tag']
-        di = DockerImages(self)
-        imgs = di.list_imgs_with_full_name_components(repo=image_name,
-                                                      tag=image_tag)
+                    % self.sub_stuff['cmdresult'])
+        image_name = self.sub_stuff['image_name']
+        image_tag = self.sub_stuff['image_tag']
+        dimg = self.sub_stuff['di']
+        imgs = dimg.list_imgs_with_full_name_components(repo=image_name,
+                                                        tag=image_tag)
         self.failif(len(imgs) < 1, "Test image build result was not found")
-        self.stuff['image_id'] = imgs[0].long_id  # assume first one is match
-        self.failif(self.stuff['image_id'] is None,
+        self.sub_stuff['image_id'] = imgs[0].long_id  # use the first one
+        self.failif(self.sub_stuff['image_id'] is None,
                     "Failed to look up image ID from build")
         self.loginfo("Found image: %s", imgs[0].full_name)
 
     def cleanup(self):
-        super(build, self).cleanup()
+        super(build_base, self).cleanup()
         # Auto-converts "yes/no" to a boolean
         if self.config['try_remove_after_test']:
-            dc = DockerContainers(self)
-            for cid in dc.list_container_ids():
+            for cid in DockerContainers(self).list_container_ids():
                 dcmd = DockerCmd(self, 'rm', ['--force', '--volumes', cid])
                 dcmd.execute()
-            di = DockerImages(self)
-            if self.stuff.get('image_id') is not None:
-                di.remove_image_by_id(self.stuff['image_id'])
-            di.remove_image_by_full_name("empty_base_image")
+            dimg = self.sub_stuff['di']
+            if self.sub_stuff.get('image_id') is not None:
+                dimg.remove_image_by_id(self.sub_stuff['image_id'])
+            dimg.remove_image_by_full_name("empty_base_image")
             self.loginfo("Successfully removed test images")
         else:
             self.loginfo("NOT removing image")
+
+
+class local_path(build_base):
+
+    """
+    Path to a local directory within the Dockerfile and other files are present
+    """
+    pass
+
+
+class https_file(build_base):
+
+    """ https path to a Dockerfile """
+    pass
+
+
+class git_path(build_base):
+
+    """ path to a git reporistory which contains Dokerfile and othe files """
+    pass

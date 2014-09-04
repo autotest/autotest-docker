@@ -430,6 +430,11 @@ Simple test that checks the output of the ``docker version`` command.
 Tests the ``docker build`` command operation with a set of options
 and pre-defined build-content.
 
+``subsubtests = local_path,https_file,git_path``
+
+(``*_path`` means directory, which contains Dockerfile and required files,
+ ``*_file`` means direct path to the Dockerfile without other dependencies)
+
 ``docker_cli/build`` Prerequisites
 ------------------------------------------
 
@@ -450,6 +455,8 @@ and pre-defined build-content.
    exactly like the `docker_cli/dockerimport sub-test`_ test.
 *  The location of the statically linked ``busybox`` executable
    is specified by the ``busybox_url`` option.
+*  Source path of Dockerfile or directory containing Dockerfile is defined
+   by ``dockerfile_path``
 
 ``docker_cli/build_paths`` Sub-test
 ======================================
