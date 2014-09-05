@@ -32,14 +32,18 @@ class build(subtest.SubSubtestCaller):
     def setup(self):
         super(build, self).setup()
         # Must exist w/in directory holding Dockerfile
-        urlstr = self.config['busybox_url'].strip()
-        self.logdebug("Downloading busybox from %s", urlstr)
-        resp = urlopen(urlstr, timeout=30)
-        data = resp.read()
-        busybox = os.open(os.path.join(self.srcdir, 'busybox'),
-                          os.O_WRONLY | os.O_CREAT, 0755)
-        os.write(busybox, data)
-        os.close(busybox)
+        # Use local if possible
+        if os.path.exists('/usr/sbin/busybox'):
+            shutil.copy('/usr/sbin/busybox', self.srcdir + '/busybox')
+        else:
+            urlstr = self.config['busybox_url'].strip()
+            self.logdebug("Downloading busybox from %s", urlstr)
+            resp = urlopen(urlstr, timeout=30)
+            data = resp.read()
+            busybox = os.open(os.path.join(self.srcdir, 'busybox'),
+                              os.O_WRONLY | os.O_CREAT, 0755)
+            os.write(busybox, data)
+            os.close(busybox)
 
         for filename in self.config['source_dirs'].split(','):
             # bindir is location of this module
