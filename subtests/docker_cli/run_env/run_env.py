@@ -11,6 +11,7 @@ from dockertest import config, xceptions
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd
 from dockertest.dockercmd import AsyncDockerCmd
+from dockertest.dockercmd import NoFailDockerCmd
 from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtestCaller, SubSubtest
 
@@ -236,6 +237,12 @@ class port(run_env_base):
         clientcmd.execute()
         return clientcmd
 
+    def remove_link(self, client_name, alias):
+        return NoFailDockerCmd(self,
+                               'rm',
+                               ['--link=true',
+                                '%s/%s' % (client_name, alias)]).execute()
+
     def wait_for(self, dkrcmd, what, fail_msg, negative=False):
         result = utils.wait_for(lambda: dkrcmd.stdout.find(what) > -1,
                                 5, step=0.1)
@@ -306,3 +313,41 @@ class port(run_env_base):
         exp = "RESENDING: %s" % data
         self.failif(exp not in client_res.stdout, "Data '%s' sent from server "
                     "were not received on client:\n%s" % (exp, err_str))
+
+
+class rm_link(port):
+
+    """
+    1. Starts server with custom -e ENV_VARIABLE=$RANDOM_STRING and opened port
+    2. Starts client linked to server with another ENV_VARIABLE
+    3. Booth prints the env as {}
+    4. Remove link from server -> client
+    5. Client times out connecting to server.
+    5. Server times out waiting for client
+    7. Checks if env and no data printed correctly.
+    """
+
+    def run_once(self):
+        params = self.sub_stuff['params']
+        # Server needs to be listening before client tries to connect
+        servercmd = self.start_server()
+        # Container running properly when python prompt appears
+        self.wait_for(servercmd, '>>> ', "No python prompt from server")
+        servercmd.stdin = str(self.python_server % params)  # str() for clarity
+        # Executed python prints this on stdout
+        utils.wait_for(lambda: servercmd.stdout.find("Server Listening") > -1,
+                       5, step=0.1)
+        clientcmd = self.start_client()
+        self.wait_for(clientcmd, '>>> ', "No python prompt from client")
+
+        self.remove_link(self.sub_stuff['client_name'], 'server')
+        clientcmd.stdin = str(self.python_client % params)
+        # Executed python includes printing this on stdout
+        self.wait_for(clientcmd, "Client Connecting", "No client connect")
+        msg = ("Negative test, but reply received: '%s'" % clientcmd.stdout)
+        self.wait_for(clientcmd, 'RESENDING: Testing data', msg, negative=True)
+        self.sub_stuff['client_result'] = clientcmd.wait(5)
+        self.sub_stuff['server_result'] = servercmd.wait(5)
+        # Order shouldn't matter here
+        clientcmd.close()
+        servercmd.close()
