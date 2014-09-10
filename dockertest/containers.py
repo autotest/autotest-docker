@@ -67,24 +67,8 @@ class DockerContainer(object):  # pylint: disable=R0902
             self.ports = ''
         else:
             self.ports = ports
-        container_name = str(container_name).strip()
-        # Name may additionally contain CSV child/alias links
-        if container_name.find(',') > 0:
-            link_names = get_as_list(container_name)
-            # Any item w/o a '/' is the real container name
-            self.links = []
-            for link_name in link_names:
-                if link_name.find('/') > 0:
-                    child, alias = get_as_list(link_name, sep='/')
-                    self.links.append((child, alias))
-                else:
-                    self.container_name = link_name
-            if getattr(self, 'container_name') is None:
-                raise ValueError("container_name(%s) unrecognized format"
-                                 % container_name)
-        else:
-            self.container_name = container_name
-            self.links = None
+        pcn = self.parse_container_name
+        self.container_name, self.links = pcn(container_name)
 
         #: These are typically all generated at runtime
         self.long_id = None
@@ -120,6 +104,45 @@ class DockerContainer(object):  # pylint: disable=R0902
         Return python-standard representation of instance
         """
         return "DockerContainer(%s)" % str(self)
+
+    @staticmethod
+    def parse_container_name(container_name):
+        """
+        Parse names optionally also encoding ICC links
+
+        :param container_name: Stripped string of container name
+        :return: tuple of container_name, [(child, alias), ...] or None
+        :rais ValueError: On invalid/unparsable container_name
+        """
+        # Don't assume already stripped or string-like
+        container_name = str(container_name).strip()
+        links = None
+        parsed_name = None
+        if len(container_name) < 4:
+            if ((container_name.find(',') > -1) or
+                    (container_name.find('/') > -1)):
+                raise ValueError("Linked container name '%s' invalid"
+                                 % container_name)
+        if container_name == '':
+            raise ValueError("Container name is empty string")
+        # Name may additionally contain CSV child/alias links
+        if container_name.find(',') > -1:
+            link_names = get_as_list(container_name)
+            # Any item w/o a '/' is the real container name
+            links = []
+            for link_name in link_names:
+                if link_name.find('/') > -1:
+                    child, alias = get_as_list(link_name, sep='/')
+                    links.append((child, alias))
+                else:
+                    parsed_name = link_name
+        else:
+            parsed_name = container_name
+        # Could be a ',' or '/' w/o expected content or short list
+        if parsed_name is None or parsed_name == '' or links == []:
+            raise ValueError("container_name(%s) unrecognized format"
+                             % container_name)
+        return (parsed_name, links)
 
     def cmp_id(self, container_id):
         """
