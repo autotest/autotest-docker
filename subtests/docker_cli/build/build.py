@@ -36,7 +36,11 @@ class build(subtest.SubSubtestCaller):
         if os.path.exists('/usr/sbin/busybox'):
             shutil.copy('/usr/sbin/busybox', self.srcdir + '/busybox')
         else:
-            urlstr = self.config['busybox_url'].strip()
+            urlstr = self.config.get('busybox_url', None)
+            if urlstr is None:
+                raise DockerTestNAError("Missing parameter \"busybox_url\" in"
+                                        " config.")
+            urlstr = urlstr.strip()
             self.logdebug("Downloading busybox from %s", urlstr)
             resp = urlopen(urlstr, timeout=30)
             data = resp.read()
