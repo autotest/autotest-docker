@@ -278,7 +278,15 @@ class DockerCmd(DockerCmdBase):
         """
 
         if not self.quiet:
-            self.subtest.logdebug("Execute %s", self.command)
+            if isinstance(stdin, basestring):   # stringg
+                str_stdin = "  <<< %r" % stdin
+            elif isinstance(stdin, int):        # pipe
+                str_stdin = "  <<< PIPE: %s" % stdin
+            elif stdin:                         # file-like object
+                str_stdin = "  <<< %s" % stdin
+            else:                               # Nothing
+                str_stdin = ""
+            self.subtest.logdebug("Execute %s%s", self.command, str_stdin)
         self.cmdresult = utils.run(self.command, timeout=self.timeout,
                                    stdin=stdin, verbose=False,
                                    ignore_status=True)
@@ -368,7 +376,15 @@ class AsyncDockerCmd(DockerCmdBase):
                                     "is very likely going to leak "
                                     "processes!!")
         if not self.quiet:
-            self.subtest.logdebug("Async-execute: %s", str(self))
+            if isinstance(stdin, basestring):
+                str_stdin = "  <<< %r" % stdin
+            elif isinstance(stdin, int):
+                str_stdin = "  <<< PIPE: %s" % stdin
+            elif stdin:
+                str_stdin = "  <<< %s" % stdin
+            else:
+                str_stdin = ""
+            self.subtest.logdebug("Async-execute: %s%s", str(self), str_stdin)
         self.executed += 1
         self._async_job = utils.AsyncJob(self.command, verbose=False,
                                          stdin=stdin, close_fds=True)
