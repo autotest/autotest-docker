@@ -1295,6 +1295,140 @@ compares it's md5sum against a known value
 *  ``md5sum`` specifies the md5sum hash value for the file
    referenced by ``in_tar_file`` option.
 
+``docker_daemon/network`` Sub-test
+===============================
+
+This a set of test that check the container's network security.
+
+``docker_daemon/network`` Prerequisites
+------------------------------------
+
+*  Docker is installed in host system.
+*  Container os has installed python package.
+*  Command iptable and brctl are working well.
+
+``docker_daemon/network`` Configuration
+-------------------------------------
+
+*  The option ``docker_daemon_args`` sets the special network args.
+*  The option ``docker_daemon_bind`` sets special bind address.
+
+``docker_daemon/network/icc`` Subsub-test
+-----------------------------------------
+
+Test if inter-container communication works properly.
+
+1. restart daemon with icc=false (forbid communication)
+   in network_base.initialize
+2. start container1 and get their ip addr
+3. Try to connect containers with python
+  * Start script for listening
+
+  ::
+
+            python -c 'import socket; s = socket.socket();
+                       s.bind(("0.0.0.0", 8081)); w = s.listen(10);
+                       w,_ = s.accept(); w.sendall("works");
+                       w.close(); s.close()'
+  * start container2 and try to connect and recv from container1
+
+  ::
+
+            python -c 'import socket; s = socket.socket();
+                       s.connect(("192.168.100.1", 8081)); print s.recv(100);
+                       s.close();
+4. If python is not found fall back to ping
+5. fail if communication pass from container2 to container1
+
+``docker_daemon/network/icc`` Configuration
+-----------------------------------------
+
+*  The option ``docker_cmd1_args`` sets args for server container commands.
+*  The option ``docker_cmd2_args`` sets args for client container commands.
+
+``docker_daemon/tls`` Sub-test
+===============================
+
+This a set of test that check the container's network security.
+
+``docker_daemon/tls`` Prerequisites
+------------------------------------
+
+*  Docker is installed in host system.
+
+``docker_daemon/tls`` Configuration
+-------------------------------------
+
+*  The option ``docker_daemon_bind`` sets special bind address.
+*  The option ``docker_client_bind`` sets special client args.
+*  The option ``docker_options_spec`` sets additional docker options.
+
+``docker_daemon/tls/tls_verify_all`` Subsub-test
+-----------------------------------------
+
+Test docker tls verification.
+
+#. Create CA certificate
+#. Create certificate for daemon
+#. Create certificate for client
+#. Verify if docker tls verification works properly.
+
+``docker_daemon/tls/tls_verify_only_server`` Subsub-test
+-----------------------------------------
+
+Test docker tls connection test check only server identity using ca.crt
+
+*  daemon -d,--selinux-enabled,--tls,--tlscert=server.crt,--tlskey=server.key
+*  client %(docker_options)s,--tlsverify,--tlscacert=ca.crt
+
+#. restart daemon with tls configuration
+#. Check client connection
+#. cleanup all containers and images.
+
+``docker_daemon/tls/tls_verify_server_no_client`` Subsub-test
+-----------------------------------------
+
+Test docker tls connection test check only server identity using ca.crt server
+do not check wrong certificate from passed from client.
+
+*  daemon --tls,--tlscert=server.crt,--tlskey=server.key
+*  client --tlsverify,--tlscacert=ca.crt,--tlscert=wrongclient.crt,--tlskey=wrongclient.key
+
+#. restart daemon with tls configuration
+#. Check client connection
+#. cleanup all containers and images.
+
+``docker_daemon/tls/tls_verify_wrong_client`` Subsub-test
+
+Test docker tls. Try to connect to server with wrong client certificates.
+Client should return exitstatus different from 0 and should contain
+"bad certificate" in stderr.
+
+*  daemon --tlsverify,--tlscacert=ca.crt,--tlscert=server.crt,--tlskey=server.key
+*  client --tlsverify,--tlscacert=ca.crt,--tlscert=wrongclient.crt,--tlskey=wrongclient.key
+
+#) restart daemon with tls configuration
+#) Try to start docker client with wrong certs.
+#) Check if client fail.
+#) cleanup all containers and images.
+
+-----------------------------------------
+
+``docker_daemon/tls/tls_verify_wrong_server`` Subsub-test
+-----------------------------------------
+
+Test docker tls. Try to connect to server which uses wrong certificates with
+client good certificates. Client should return exitstatus different from 0 and
+should contain "certificate signed by unknown authority" in stderr.
+
+*  daemon --tlsverify,--tlscacert=ca.crt,--tlscert=server.crt,--tlskey=server.key
+*  client --tlsverify,--tlscacert=ca.crt,--tlscert=wrongclient.crt,--tlskey=wrongclient.key
+
+#. restart daemon with tls configuration
+#. Try to start docker client with wrong certs.
+#. Check if client fail.
+#. cleanup all containers and images.
+
 ----------------------------------
 Dockertest API Reference
 ----------------------------------
