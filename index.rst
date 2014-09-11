@@ -430,7 +430,7 @@ Simple test that checks the output of the ``docker version`` command.
 Tests the ``docker build`` command operation with a set of options
 and pre-defined build-content.
 
-``subsubtests = local_path,https_file,git_path``
+``subsubtests = local_path,https_file,git_path,rm_false,rm_false_nocache,bad,bad_quiet,bad_force_rm``
 
 (``*_path`` means directory, which contains Dockerfile and required files,
  ``*_file`` means direct path to the Dockerfile without other dependencies)
@@ -534,7 +534,7 @@ for each sub-sub-test are also used.
 
 Checks the difference between ``docker images`` and ``docker images --all``.
 
-``subsubtests`` = two_images_with_parents
+``subsubtests`` = two_images_with_parents,with_unused_containers
 
 ``docker_cli/images_all/two_images_with_parents`` Subsub-test
 -----------------------------------------------------
@@ -710,7 +710,7 @@ Several variations of running the rmi command.
 
 Tests the ``docker run -e xx=yy`` and other env-related features
 
-*  subsubtests = port
+*  subsubtests = port,rm_link
 
 ``docker_cli/run_env/port`` Sub-subtest
 -------------------------------------
@@ -1081,11 +1081,24 @@ Verify that could not run a container which is already running.
 ``docker_cli/run_user`` Sub-test
 =================================
 
-This test checks correctness of docker run -u ...
+This test checks correctness of docker run --attach=xxx ... It executes
+following commands for each `--attach=...` setup using booth --tty=True and
+--tty=False (=> 6 steps for each variant)
+
+#.  execute bash, put 'ls /\n exit\n' on stdin
+#.  execute ls /
+#.  execute ls /nonexisting/directory/$RANDOM
+
+subsubtests = none,stdin,stdout,stderr,in_out,in_err,in_out_err,random_variant,i_none,i_stdin,i_stdout,i_stderr,i_in_out,i_in_err,i_in_out_err,i_random_variant
+
+``docker_cli/run_user`` Sub-test
+=================================
+
+This test checks correctness of docker run --user ...
 
 #.  get container's /etc/passwd
 #.  generate uid which suits the test needs (nonexisting, existing name, uid..)
-#.  execute docker run -u ... echo $UID:$GID; whoami
+#.  execute docker run --user ... echo $UID:$GID; whoami
 #.  check results (pass/fail/details)
 
 subsubtests = default,named_user,bad_user,bad_number,too_high_number

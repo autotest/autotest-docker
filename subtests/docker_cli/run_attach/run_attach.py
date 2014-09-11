@@ -1,5 +1,5 @@
 """
-This test checks correctness of docker run -u ...
+This test checks correctness of docker run --attach=...
 1) Starts `docker run` with defined combination of `-a ...`
    6 variants are executed per each test:
       variants:
