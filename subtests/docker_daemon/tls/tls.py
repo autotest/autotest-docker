@@ -334,8 +334,7 @@ class tls_base(SubSubtest):
             if (self.config['remove_after_test'] and
                     'containers' in self.sub_stuff):
                 for cont in self.sub_stuff["containers"]:
-                    subargs = ["--force", "--volumes",
-                               cont.container_name]
+                    subargs = ["--force", "--volumes", cont]
                     DockerCmd(self, 'rm', subargs).execute()
         finally:
             # Kill docker_daemon process
