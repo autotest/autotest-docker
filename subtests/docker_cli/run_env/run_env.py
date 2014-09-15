@@ -1,5 +1,45 @@
-"""
-This test checks function of `docker run -e VARIABLE=VALUE ...`
+r"""
+Summary
+---------
+
+This test checks function of `docker run -e VARIABLE=VALUE ...`.
+Also verifies the rm --link operation with ICC.
+
+Operational Summary
+----------------------
+
+#. Setup client & server containers w/ exposed port and env. vars.
+#. Run code in containers to verify communication and env. vars
+#. Check results match expectations
+
+Operational Detail
+----------------------
+
+The port test
+~~~~~~~~~~~~~~~
+#.  Starts server with custom -e ENV_VARIABLE=$RANDOM_STRING and opened port
+#.  Starts client linked to server with another ENV_VARIABLE
+#.  Booth prints the env as {}
+#.  Client sends data to server (addr from env SERVER_PORT_$PORT_TCP_ADDR)
+#.  Server prints data with prefix and resends them back with another one.
+#.  Client prints the received data and finishes.
+#.  Checks if env and all data were printed correctly.
+
+The rm_link test
+~~~~~~~~~~~~~~~~~
+#.  Same as port (above), however after container is started, the
+    rm --link command is issued to remove the connecting link.
+#.  Verify communication between containers was prevented
+#.  Also conclude with same checks as in port (above)
+
+Prerequisites
+---------------
+
+Docker daemon and host-networking setup to allow ICC between containers.
+
+Configuration
+---------------
+None
 """
 import ast
 import os

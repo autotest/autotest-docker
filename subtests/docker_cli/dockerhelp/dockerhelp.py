@@ -1,9 +1,28 @@
-"""
+r"""
+Summary
+---------
+
 Test various odd-ball options/arguments produce usage info / helpful output
 
-1. Suck in two csv lists of options to pass
-2. Run docker commnd with those options one-by-one
-3. Check results
+Operational Summary
+--------------------
+
+#. Suck in two csv lists of options to pass
+#. Run docker commnd with those options one-by-one
+#. Check results
+
+Prerequesites
+----------------
+
+*  Running docker daemon
+
+Configuration
+-------------------------------------------
+
+*  The ``success_option_list`` is a CSV list of docker options
+   where a zero-exit code is expected (though a usage message
+   may appear)
+*  The ``failure_option_list`` is the opposite.
 """
 
 from dockertest import subtest

@@ -1,12 +1,38 @@
-"""
-Test the option "workdir" of the command "docker run"
+r"""
+Summary
+---------
 
-1. Run a container with an existing workdir
-2. Run a container with an non-existing workdir
+Test that checks the ``docker run --workdir`` command could set workdir
+successfully if the dir is a valid path, and fails if it's not absolute path or
+not a path, like a file.
 
-Negative testing:
-1. Run a container with an invalid workdir which is not absolute path
-2. Run a container with the workdir which is not a path, but a file
+Operational Summary
+----------------------
+
+#. Run container w/ valid & invalid workdir
+#. Verify access or failure is as expected
+
+Operational Detail
+-------------------
+
+Positive test
+~~~~~~~~~~~~~~~
+#. Run a container with an existing workdir
+#. Run a container with an non-existing workdir
+
+Negative testing
+~~~~~~~~~~~~~~~~~~
+#. Run a container with an invalid workdir which is not absolute path
+#. Run a container with the workdir which is not a path, but a file
+
+Prerequisites
+-------------------------------------
+*  Docker daemon is running and accessible by it's unix socket.
+
+Configuration
+--------------------------------------
+*  The ``remove_after_test`` specifies whether to remove the
+   container created during the test.
 """
 
 from autotest.client import utils

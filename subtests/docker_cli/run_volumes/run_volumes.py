@@ -1,9 +1,57 @@
-"""
+r"""
+Summary
+----------
+
 Test read & write to various host-paths as container volumes
 
-1. Write unique value to file on host path
-2. Start container, hash file, store has in second file
-3. Check second file on host, verify hash matches.
+Operational Summary
+----------------------
+
+1. Setup volumes for testing, use known locations / data.
+2. Start container(2), attempt access / read files
+3. Verify tested output/results match expected values.
+
+Operational Detail
+------------------
+
+*  volumes_rw: Attempt to read, then write a file from a host path
+   volume inside a container.  Intended to test NFS, SMB, and other
+   'remote' filesystem mounts.
+*  volumes_one_source: Have multiple containers mount a directory
+   and then write to files in that directory simultaneously.
+
+
+Prerequisites
+-------------------
+
+*  Remote filesystems are mounted and accessible on host system.
+*  Containers have access to read & write files w/in mountpoints
+
+Configuration
+------------------
+
+volumes_rw
+~~~~~~~~~~~~~
+*  The ``host_paths`` and corresponding ``cntr_paths`` are most important.
+   They are the host paths and container paths comma-separated values to
+   test.  There must be 1:1 correspondence between CSVs of both options.
+   The lists must also be the same length.
+*  ``run_template`` allows fine-tuning the options to the run command.
+*  The ``cmd_template`` allows fine-tuning the command to run inside
+   the container.  It makes use of shell-like value substitution from
+   the contents of ``host_paths`` and ``cntr_paths``.
+*  The ``wait_stop`` option specifies the time in seconds to wait after all
+   docker run processes exit.
+
+volumes_one_source
+~~~~~~~~~~~~~~~~~~~
+*  The ``num_containers`` is the number of containers to run concurrently.
+*  The ``cmd_timeout`` is the timeout for each container's IO command.
+*  The ``cntr_path`` is where to mount the volume inside the container.
+*  The ``exec_command`` is the command each container should run.  This
+   should be an IO command that writes to a file at ${write_path} which will
+   be inside the mounted volume.  This command should also take time to
+   allow for taking place while the other containers are also writing IO.
 """
 
 import time

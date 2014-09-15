@@ -1,5 +1,17 @@
 """
+Summary
+----------
+
 Test output of docker history command
+
+Operational Summary
+----------------------
+
+Prerequisites
+---------------
+
+Configuration
+---------------
 """
 
 import time

@@ -1,4 +1,7 @@
 r"""
+Summary
+---------
+
 Textual description of *what* this subtest and/or sub-subtests
 will exercize in general terms.  The next section describes the
 general operations that will be performed (i.e. **how** they
@@ -10,6 +13,11 @@ Operational Summary
 #. Summary of step one
 #. Summary of step two
 #. Summary of step three
+
+Operational Detail
+--------------------
+
+Example test, nothing detailed about it.
 
 Prerequisites
 ---------------

@@ -1,9 +1,33 @@
-"""
-Test output of the docker cp command
+r"""
+Summary
+----------
 
-1. Look for an image or container
-2. Run the docker cp command on it
-3. Make sure the file was successfully copied
+Simple tests that check the the ``docker cp`` command.  The ``simple``
+subtest verifies content creation and exact match after cp.  The
+``every_last`` verifies copying many hundreds of files from a
+stopped container to the host.
+
+Operational Summary
+--------------------
+#. Look for an image or container
+#. Run the docker cp command on it
+#. Make sure the file was successfully copied
+
+Prerequisites
+-------------------------------------
+*  Docker daemon is running and accessible by it's unix socket.
+*  Docker image with fairly complex, deeply nested directory
+   structure.
+
+Configuration
+---------------------------------
+*  The ``name_prefix`` option is used for naming test containers
+*  Directory/file prefixes to skip are listed as **quoted** CSV
+   to the ``exclude_paths`` option
+*  The ``exclude_symlinks`` yes/no option will skip trying to
+   copy any files which are symlinks in the container.
+*  The ``max_files`` option will stop copying after this many
+   files.
 """
 
 from StringIO import StringIO

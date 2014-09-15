@@ -1,4 +1,7 @@
 r"""
+Summary
+---------
+
 Textual description of *what* this subtest and/or sub-subtests
 will exercize in general terms.  The next section describes the
 general operations that will be performed (i.e. **how** they
@@ -7,12 +10,20 @@ will be tested).
 Operational Summary
 ----------------------
 
-Test One:
+#. Run several nested tests that print basic information
+#. Exit cleanly, nothing actually tested.
+
+Operational Detail
+----------------------
+
+Test One
+~~~~~~~~~~~
 #. Summary of step one
 #. Summary of step two
 #. Summary of step three
 
-Test Two:
+Test Two
+~~~~~~~~~~
 #. Summary of step one
 #. Summary of step two
 
@@ -25,15 +36,18 @@ Prerequisites
 Configuration
 ---------------
 
-General:
+General
+~~~~~~~~~~
 *  The optional ``iterations`` option specifies how many times
    this test will run.  The current iteration number is available
    in the ``iteration`` attribute.
 
-Test Two:
+Test Two
+~~~~~~~~~
 *  Doesn't do anything differently, so configuration is the same.
 
-Test Three:
+Test Three
+~~~~~~~~~~~~
 *  No additional configuation
 """
 

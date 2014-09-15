@@ -1,19 +1,24 @@
-"""
-This test checks correctness of docker run --attach=...
-1) Starts `docker run` with defined combination of `-a ...`
-   6 variants are executed per each test:
-      variants:
-        - tty
-        - nontty
-      variants:
-        - stdin (execute bash, put 'ls /\n exit\n' on stdin)
-        - stdout (execute ls /)
-        - stderr (execute ls /nonexisting/directory/...)
-2) Analyze results
-:note: subsubtests starting with `i_*` use `--interactive`
-"""
-from autotest.client import utils
+r"""
+Summary
+----------
 
+This test checks different ``docker run -a xxx`` variants.
+
+Operational Summary
+----------------------
+
+#. Starts `docker run` with defined combination of `-a ...`
+   across 6 variants of tty/non-tty vs stdin/out/err.
+#. Analyze results
+
+Prerequisites
+---------------
+
+Configuration
+---------------
+"""
+
+from autotest.client import utils
 from dockertest import config, xceptions, subtest
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd

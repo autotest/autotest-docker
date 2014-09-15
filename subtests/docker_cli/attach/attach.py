@@ -1,5 +1,17 @@
 """
+Summary
+---------
+
 Test output of docker attach command
+
+Operational Summary
+----------------------
+
+Prerequisites
+---------------
+
+Configuration
+---------------
 """
 
 import time

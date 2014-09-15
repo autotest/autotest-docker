@@ -1,9 +1,26 @@
-"""
-Test output of docker info command
+r"""
+Summary
+---------
 
-1. Run docker info command
-2. Check output
-3. Compare output with values obtained in userspace
+Test output of docker info command and verifies it against
+values obtained from userspace tools.
+
+Operational Summary
+----------------------
+
+#. Run docker info command
+#. Check output
+#. Compare output with values obtained in userspace
+
+Prerequisites
+-------------------------------------
+
+*  Docker daemon is running and accessible by it's unix socket.
+*  ``dmsetup`` and ``du`` commands are available.
+
+Configuration
+-----------------
+None
 """
 
 from autotest.client import utils

@@ -1,11 +1,25 @@
-"""
+r"""
+Summary
+---------
+
 Test output of docker Pull command
 
-1. Try to download repository from registry
-2a. if docker_expected_result == PASS: fail when command exitcode != 0
-  2a.1. Check if image is in local repository.
-  2a.1. Remote image from local repository
-2b. if docker_expected_result == FAIL: fail when command exitcode == 0
+Operational Summary
+----------------------
+
+#. Try to download repository from registry
+#. if docker_expected_result == PASS: fail when command exitcode != 0
+    #. Check if image is in local repository.
+    #. Remote image from local repository
+#. If docker_expected_result == FAIL: fail when command exitcode == 0
+
+Prerequisites
+---------------------------------------------
+*  A *remote* registry server
+*  Image on remote registry with 'latest' and some other tag
+
+Configuration
+---------------
 """
 
 import time
