@@ -1,5 +1,28 @@
-"""
-Call superclass during each stage
+r"""
+Textual description of *what* this subtest and/or sub-subtests
+will exercize in general terms.  The next section describes the
+general operations that will be performed (i.e. **how** they
+will be tested).
+
+Operational Summary
+----------------------
+
+#. Summary of step one
+#. Summary of step two
+#. Summary of step three
+
+Prerequisites
+---------------
+
+This example test does not require anything other than
+Autotest, Docker autotest, and this file.
+
+Configuration
+---------------
+
+The optional ``iterations`` option specifies how many times
+this test will run.  The current iteration number is available
+in the ``iteration`` attribute.
 """
 
 from dockertest import subtest

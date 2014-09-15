@@ -1,5 +1,40 @@
-"""
-Call sub-subtest during each stage
+r"""
+Textual description of *what* this subtest and/or sub-subtests
+will exercize in general terms.  The next section describes the
+general operations that will be performed (i.e. **how** they
+will be tested).
+
+Operational Summary
+----------------------
+
+Test One:
+#. Summary of step one
+#. Summary of step two
+#. Summary of step three
+
+Test Two:
+#. Summary of step one
+#. Summary of step two
+
+Prerequisites
+---------------
+
+*  This example test does not require anything other than
+   Autotest, Docker autotest, and this file.
+
+Configuration
+---------------
+
+General:
+*  The optional ``iterations`` option specifies how many times
+   this test will run.  The current iteration number is available
+   in the ``iteration`` attribute.
+
+Test Two:
+*  Doesn't do anything differently, so configuration is the same.
+
+Test Three:
+*  No additional configuation
 """
 
 import logging
@@ -9,13 +44,10 @@ from dockertest.subtest import SubSubtestCaller
 
 class subexample(SubSubtestCaller):
 
-    """
-    Executor of each stage of each module/class defined in 'sunsubtests'
-    configuration option.
-    """
-    config_section = 'subexample'
-
     def initialize(self):
+        """
+        Called before ``setup()`` method
+        """
         super(subexample, self).initialize()
         self.stuff = "Store whatever subtest private stuff here"
 
@@ -27,10 +59,6 @@ class subexample(SubSubtestCaller):
 
 
 class one(SubSubtest):
-
-    """
-    Minimal Subtest-like class, doesn't define all test.test methods
-    """
 
     def initialize(self):
         """
