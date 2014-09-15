@@ -1,5 +1,5 @@
 """
-This test checks correctness of docker run -u ...
+This test checks correctness of docker run --attach=...
 1) Starts `docker run` with defined combination of `-a ...`
    6 variants are executed per each test:
       variants:
@@ -146,7 +146,7 @@ class run_attach_base(subtest.SubSubtest):
         for tty in (True, False):   # generate matrix of tested variants
             # interactive container
             cont = self._init_container("test", tty,
-                                        'bash', 'ls /')
+                                        'bash', 'ls /\nexit\n')
             self.sub_stuff['res_stdin_%s' % tty] = cont
             # stdout container
             cont = self._init_container("test", tty,
@@ -154,8 +154,7 @@ class run_attach_base(subtest.SubSubtest):
             self.sub_stuff['res_stdout_%s' % tty] = cont
             # stderr container
             cont = self._init_container("test", tty,
-                                        'ls /I/hope/this/does/not/exist/%s\n'
-                                        'exit\n'
+                                        'ls /I/hope/this/does/not/exist/%s'
                                         % utils.generate_random_string(6))
             self.sub_stuff['res_stderr_%s' % tty] = cont
 

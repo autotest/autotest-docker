@@ -430,7 +430,7 @@ Simple test that checks the output of the ``docker version`` command.
 Tests the ``docker build`` command operation with a set of options
 and pre-defined build-content.
 
-``subsubtests = local_path,https_file,git_path``
+``subsubtests = local_path,https_file,git_path,rm_false,rm_false_nocache,bad,bad_quiet,bad_force_rm``
 
 (``*_path`` means directory, which contains Dockerfile and required files,
  ``*_file`` means direct path to the Dockerfile without other dependencies)
@@ -457,32 +457,6 @@ and pre-defined build-content.
    is specified by the ``busybox_url`` option.
 *  Source path of Dockerfile or directory containing Dockerfile is defined
    by ``dockerfile_path``
-
-``docker_cli/build_paths`` Sub-test
-======================================
-
-Tests the ``docker build`` against a list of docker build paths or git
-locations.
-
-``docker_cli/build_paths`` Prerequisites
-------------------------------------------
-
-*  Valid docker build paths or git locations with a Dockerfile
-
-``docker_cli/build_paths`` Configuration
--------------------------------------------
-
-*  ``build_paths`` is a csv list of docker build paths or
-   git locations.  Paths may be relative to the subtest's directory
-   or absolute.  They will copied, and the base image (``FROM`` line) updated
-   based on the standard ``docker_repo_name``, ``docker_repo_tag``
-   ``docker_registry_host``, and ``docker_registry_user`` options.
-*  ``build_args`` are args passed directly to ``docker build``.
-*  ``image_repo_name`` lets you name the ``REPOSITORY`` of the images built.
-   Only applies if ``--tag`` is not used in ``build_args``
-*  ``image_tag_postfix`` lets you add a postfix to the randomly generated
-   ``TAG`` of the images built. Only applies if ``--tag`` is not
-   used in ``build_args``.
 
 ``docker_cli/dockerimport`` Sub-test
 =======================================
@@ -534,7 +508,7 @@ for each sub-sub-test are also used.
 
 Checks the difference between ``docker images`` and ``docker images --all``.
 
-``subsubtests`` = two_images_with_parents
+``subsubtests`` = two_images_with_parents,with_unused_containers
 
 ``docker_cli/images_all/two_images_with_parents`` Subsub-test
 -----------------------------------------------------
@@ -710,7 +684,7 @@ Several variations of running the rmi command.
 
 Tests the ``docker run -e xx=yy`` and other env-related features
 
-*  subsubtests = port
+*  subsubtests = port,rm_link
 
 ``docker_cli/run_env/port`` Sub-subtest
 -------------------------------------
@@ -1081,11 +1055,24 @@ Verify that could not run a container which is already running.
 ``docker_cli/run_user`` Sub-test
 =================================
 
-This test checks correctness of docker run -u ...
+This test checks correctness of docker run --attach=xxx ... It executes
+following commands for each `--attach=...` setup using booth --tty=True and
+--tty=False (=> 6 steps for each variant)
+
+#.  execute bash, put 'ls /\n exit\n' on stdin
+#.  execute ls /
+#.  execute ls /nonexisting/directory/$RANDOM
+
+subsubtests = none,stdin,stdout,stderr,in_out,in_err,in_out_err,random_variant,i_none,i_stdin,i_stdout,i_stderr,i_in_out,i_in_err,i_in_out_err,i_random_variant
+
+``docker_cli/run_user`` Sub-test
+=================================
+
+This test checks correctness of docker run --user ...
 
 #.  get container's /etc/passwd
 #.  generate uid which suits the test needs (nonexisting, existing name, uid..)
-#.  execute docker run -u ... echo $UID:$GID; whoami
+#.  execute docker run --user ... echo $UID:$GID; whoami
 #.  check results (pass/fail/details)
 
 subsubtests = default,named_user,bad_user,bad_number,too_high_number
