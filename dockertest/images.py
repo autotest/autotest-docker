@@ -30,7 +30,8 @@ from config import none_if_empty
 from autotest.client import utils
 from output import OutputGood
 from output import TextTable
-from subtest import SubBase
+from subtestbase import SubBase
+from xceptions import DockerTestError
 from xceptions import DockerFullNameFormatError
 from xceptions import DockerCommandError
 
@@ -304,7 +305,7 @@ class DockerImagesBase(object):
     #: Workaround docker problem of only accepting lower-case image names
     gen_lower_only = True
 
-    def __init__(self, subtest, timeout, verbose):
+    def __init__(self, subtest, timeout=None, verbose=False):
         """
         Initialize subclass operational instance.
 
@@ -323,7 +324,11 @@ class DockerImagesBase(object):
         if verbose:
             self.verbose = verbose
 
-        self.subtest = subtest
+        if not isinstance(subtest, SubBase):
+            raise DockerTestError("%s is not a SubBase instance."
+                                  % subtest.__class__.__name__)
+        else:
+            self.subtest = subtest
 
     def get_unique_name(self, prefix="", suffix="", length=4):
         """
@@ -528,7 +533,7 @@ class DockerImagesBase(object):
         return self.remove_image_by_full_name(image_obj.full_name)
 
 
-class DockerImagesCLI(DockerImagesBase):
+class DockerImages(DockerImagesBase):
 
     """
     Docker command supported DockerImage-like instance collection and helpers.
@@ -541,9 +546,7 @@ class DockerImagesCLI(DockerImagesBase):
     images_args = "--no-trunc"
 
     def __init__(self, subtest, timeout=None, verbose=False):
-        super(DockerImagesCLI, self).__init__(subtest,
-                                              timeout,
-                                              verbose)
+        super(DockerImages, self).__init__(subtest, timeout, verbose)
 
     @staticmethod
     def _di_from_row(row):
@@ -621,82 +624,3 @@ class DockerImagesCLI(DockerImagesBase):
         else:
             dkrcmd = self.docker_cmd
         return dkrcmd("rmi %s" % full_name, self.timeout)
-
-
-class DockerImages(object):
-
-    """
-    Encapsulates ``DockerImage`` interfaces for manipulation of docker images.
-    """
-
-    #: Mapping of interface short-name string to DockerImagesBase subclass.
-    #: (shortens line-length when instantiating)
-    interfaces = {"cli": DockerImagesCLI}
-
-    def __init__(self, subtest, interface_name="cli",
-                 timeout=None, verbose=False):
-        """
-        Execute docker subcommand with arguments and a timeout.
-
-        :param subtest: A subtest.SubBase subclass instance
-        :param interface_name: Class-defined string representing a
-                               DockerImagesBase subclass
-        :param timeout: Operational timeout override specific to interface
-        :param verbose: Operational verbose override specific to interface
-        """
-        # Prevent accidental test.test instance passing
-        if not isinstance(subtest, SubBase):
-            raise TypeError("Instance %s is not a SubBase or "
-                            "subclass instance." % str(subtest))
-        _dic = self.interfaces[interface_name]
-        super(DockerImages, self).__setattr__('_interface',
-                                              _dic(subtest, timeout, verbose))
-
-    def __getattr__(self, name):
-        """
-        Hide interface choice while allowing attribute/method access.
-
-        :return: attribute/method provided by interface implementation.
-        """
-
-        return getattr(self._interface, name)
-
-    def __setattr__(self, name, value):
-        """
-        Hide interface choice while allowing attribute/method access.
-
-        :return: attribute/method provided by interface implementation.
-        """
-        if hasattr(self._interface, name):
-            return setattr(self._interface, name, value)
-        else:
-            super(DockerImages, self).__setattr__(name, value)
-
-    @property
-    def interface(self):
-        """
-        Interface class being encapsulated (read-only property)
-        """
-
-        return self._interface.__class__
-
-    @property
-    def interface_name(self):
-        """
-        Class name of interface being encapsulated (read-only property)
-        """
-
-        return self.interface.__name__
-
-    @property
-    def interface_shortname(self):
-        """
-        Short-name used to create this instance (read-only property)
-        """
-
-        keys = self.interfaces.keys()
-        values = self.interfaces.values()
-        try:
-            return keys[values.index(self.interface)]
-        except ValueError, detail:
-            raise KeyError(detail)

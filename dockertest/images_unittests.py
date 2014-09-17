@@ -308,7 +308,7 @@ class DockerImageTestBasic(ImageTestBase):
         self.assertEqual(di.full_name, test)
 
     def test_remove_cli(self):
-        d = self.images.DockerImages(self.fake_subtest, 'cli', 1.0, True)
+        d = self.images.DockerImages(self.fake_subtest, 1.0, True)
         self.assertEqual(d.remove_image_by_id('123456789012').command,
                          "/foo/bar rmi 123456789012")
         self.assertEqual(d.remove_image_by_id('123456789012').command,
@@ -326,11 +326,8 @@ class DockerImageTestBasic(ImageTestBase):
                          "/foo/bar rmi user_user/fedora_repo:last_tag")
 
     def test_docker_images_lowlevel(self):
-        self.assertRaises(KeyError, self.images.DockerImages,
-                          self.fake_subtest, 'missing')
-        images = self.images.DockerImages(self.fake_subtest, "cli")
+        images = self.images.DockerImages(self.fake_subtest)
         self.assertEqual(images.interface_name, "DockerImagesCLI")
-        self.assertEqual(images.interface_shortname, "cli")
 
         self.assertEqual(images.docker_cmd("command_pass").command,
                          '/foo/bar command_pass')

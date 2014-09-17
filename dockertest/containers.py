@@ -26,10 +26,11 @@ Where/when ***possible***, both parameters and return values follow this order:
 import json
 from autotest.client import utils
 from autotest.client.shared import error
-from images import DockerImages
 from output import OutputGood
 from output import TextTable
 from config import get_as_list
+from subtestbase import SubBase
+from xceptions import DockerTestError
 
 
 # Many attributes simply required here
@@ -191,7 +192,7 @@ class DockerContainersBase(object):
     # abstract methods need not worry about methods that could be functions
     # pylint: disable=R0201
 
-    def __init__(self, subtest, timeout, verbose):
+    def __init__(self, subtest, timeout=None, verbose=False):
         """
         Initialize subclass operational instance.
 
@@ -211,7 +212,11 @@ class DockerContainersBase(object):
         if verbose:
             self.verbose = verbose
 
-        self.subtest = subtest
+        if not isinstance(subtest, SubBase):
+            raise DockerTestError("%s is not a SubBase instance."
+                                  % subtest.__class__.__name__)
+        else:
+            self.subtest = subtest
 
     def get_container_list(self):
         """
@@ -452,7 +457,7 @@ class DockerContainersBase(object):
             raise ValueError("Multiple containers found with name: %s" % cnts)
 
 
-class DockerContainersCLI(DockerContainersBase):
+class DockerContainers(DockerContainersBase):
 
     """
     Docker command supported DockerContainer-like instance collection and
@@ -469,9 +474,7 @@ class DockerContainersCLI(DockerContainersBase):
     remove_args = None
 
     def __init__(self, subtest, timeout=120, verbose=False):
-        super(DockerContainersCLI, self).__init__(subtest,
-                                                  timeout,
-                                                  verbose)
+        super(DockerContainers, self).__init__(subtest, timeout, verbose)
 
     def get_container_list(self):
         """
@@ -627,7 +630,7 @@ class DockerContainersCLI(DockerContainersBase):
         """
         # Validate parameters
         try:
-            super(DockerContainersCLI, self).wait_by_long_id(long_id)
+            super(DockerContainers, self).wait_by_long_id(long_id)
         except RuntimeError:
             pass  # expected
         _json = self.json_by_long_id(long_id)[0]
@@ -638,13 +641,3 @@ class DockerContainersCLI(DockerContainersBase):
         else:
             dkrcmd = self.docker_cmd
         return dkrcmd("wait %s" % (long_id), self.timeout)
-
-
-class DockerContainers(DockerImages):
-
-    """
-    Exact same interface-encapsulator as images.DockerImages but for containers
-    """
-
-    #: Mapping of interface short-name string to DockerContainersBase subclass.
-    interfaces = {'cli': DockerContainersCLI}
