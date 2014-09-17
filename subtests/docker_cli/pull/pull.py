@@ -72,7 +72,7 @@ class pull_base(SubSubtest):
                         "Non-zero pull exit status: %s"
                         % self.sub_stuff['cmdresult'])
 
-            di = DockerImages(self.parent_subtest)
+            di = DockerImages(self)
             image_list = di.list_imgs_with_full_name(self.sub_stuff["img_fn"])
             self.sub_stuff['image_list'] = image_list
             self.failif(self.sub_stuff['image_list'] == [],
@@ -90,7 +90,7 @@ class pull_base(SubSubtest):
                 'image_list' in self.sub_stuff):
             for image in self.sub_stuff["image_list"]:
                 try:
-                    di = DockerImages(self.parent_subtest)
+                    di = DockerImages(self)
                     di.remove_image_by_image_obj(image)
                     self.loginfo("Successfully removed test image")
                 except error.CmdError:

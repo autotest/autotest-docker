@@ -44,7 +44,7 @@ class restart_base(SubSubtest):
         self.sub_stuff['restart_result'] = None
         self.sub_stuff['stop_result'] = None
 
-        containers = DockerContainers(self.parent_subtest)
+        containers = DockerContainers(self)
 
         # Container
         if self.config.get('run_options_csv'):
@@ -154,7 +154,7 @@ class restart_base(SubSubtest):
         super(restart_base, self).cleanup()
         if self.sub_stuff.get('container_id') is None:
             return  # Docker was not created, we are clean
-        containers = DockerContainers(self.parent_subtest)
+        containers = DockerContainers(self)
         cont_id = self.sub_stuff['container_id']
         conts = containers.list_containers_with_cid(cont_id)
         if conts == []:

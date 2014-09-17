@@ -40,7 +40,7 @@ class check_default_cmd(commit_base):
                        timeout=self.config['docker_timeout'])
         results = dc.execute()
 
-        dct = DockerContainers(self.parent_subtest)
+        dct = DockerContainers(self)
         cnts = dct.list_containers()
         for cont in cnts:
             if cont.image_name == self.sub_stuff['image_list'][0].full_name:

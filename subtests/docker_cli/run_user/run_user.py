@@ -101,7 +101,7 @@ class run_user_base(subtest.SubSubtest):
         super(run_user_base, self).initialize()
         # Prepare a container
         config.none_if_empty(self.config)
-        self.sub_stuff['dc'] = DockerContainers(self.parent_subtest)
+        self.sub_stuff['dc'] = DockerContainers(self)
         self._init_test_depenent()
         self._init_container(self.sub_stuff['subargs'],
                              self.config['exec_cmd'])

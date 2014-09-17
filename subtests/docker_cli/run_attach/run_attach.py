@@ -138,7 +138,7 @@ class run_attach_base(subtest.SubSubtest):
         super(run_attach_base, self).initialize()
         # Prepare a container
         config.none_if_empty(self.config)
-        self.sub_stuff['dc'] = DockerContainers(self.parent_subtest)
+        self.sub_stuff['dc'] = DockerContainers(self)
         self.sub_stuff['containers'] = []
         self._init_test_depenent()
         for tty in (True, False):   # generate matrix of tested variants

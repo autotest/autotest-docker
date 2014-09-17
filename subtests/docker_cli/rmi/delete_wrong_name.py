@@ -21,7 +21,7 @@ class delete_wrong_name(rmi_base):
 
         rand_data = utils.generate_random_string(5).lower()
         self.sub_stuff["rand_data"] = rand_data
-        im_name = DockerImages(self.parent_subtest).get_unique_name()
+        im_name = DockerImages(self).get_unique_name()
 
         self.sub_stuff["image_name"] = im_name
         # Private to this instance, outside of __init__

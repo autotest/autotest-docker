@@ -38,7 +38,7 @@ class long_term_app(short_term_app):
                     "Non-zero start exit status: %s"
                     % cmdresult)
 
-        dc = DockerContainersCLIRunOnly(self.parent_subtest)
+        dc = DockerContainersCLIRunOnly(self)
         running_c = dc.list_containers_with_cid(
             self.sub_stuff["container"].long_id)
         self.failif(running_c == [],

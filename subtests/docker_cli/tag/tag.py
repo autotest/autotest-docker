@@ -36,7 +36,7 @@ class tag_base(SubSubtest):
 
     def __init__(self, *args, **kwargs):
         super(tag_base, self).__init__(*args, **kwargs)
-        self.dkrimg = DockerImages(self.parent_subtest)
+        self.dkrimg = DockerImages(self)
         self.sub_stuff['tmp_image_list'] = set()
 
     def get_images_by_name(self, full_name):

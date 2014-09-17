@@ -35,14 +35,15 @@ class commit(subtest.SubSubtestCaller):
 class commit_base(SubSubtest):
 
     def check_image_exists(self, full_name):
-        di = DockerImages(self.parent_subtest)
+        di = DockerImages(self)
         return di.list_imgs_with_full_name(full_name)
 
     def initialize(self):
         super(commit_base, self).initialize()
         config.none_if_empty(self.config)
-        di = DockerImages(self.parent_subtest)
-        new_img_name = di.get_unique_name()
+        di = DockerImages(self)
+        name_prefix = self.config["commit_repo_name_prefix"]
+        new_img_name = di.get_unique_name(name_prefix)
         self.sub_stuff["new_image_name"] = new_img_name
 
         self.sub_stuff['rand_data'] = utils.generate_random_string(8)
@@ -131,7 +132,7 @@ class commit_base(SubSubtest):
                 self.logwarning("Failed" + msg)
             for image in self.sub_stuff["image_list"]:
                 try:
-                    di = DockerImages(self.parent_subtest)
+                    di = DockerImages(self)
                     self.logdebug("Removing image %s", image.full_name)
                     di.remove_image_by_full_name(image.full_name)
                     self.loginfo("Successfully removed test image: %s",

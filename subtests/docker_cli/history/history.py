@@ -33,13 +33,13 @@ class history(subtest.SubSubtestCaller):
 class history_base(SubSubtest):
 
     def check_image_exists(self, full_name):
-        di = DockerImages(self.parent_subtest)
+        di = DockerImages(self)
         return di.list_imgs_with_full_name(full_name)
 
     def initialize(self):
         super(history_base, self).initialize()
         config.none_if_empty(self.config)
-        dimgs = DockerImages(self.parent_subtest)
+        dimgs = DockerImages(self)
 
         self.sub_stuff["containers"] = []
         self.sub_stuff["images"] = []
@@ -123,7 +123,7 @@ class history_base(SubSubtest):
                     self.logwarning("Failed" + msg)
             for image in self.sub_stuff["images"]:
                 try:
-                    di = DockerImages(self.parent_subtest)
+                    di = DockerImages(self)
                     self.logdebug("Removing image %s", image)
                     di.remove_image_by_full_name(image)
                     self.logdebug("Successfully removed test image: %s",

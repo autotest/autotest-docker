@@ -23,7 +23,7 @@ class run_attach_stdout(run_base):
 
     def initialize(self):
         super(run_attach_stdout, self).initialize()
-        dc = DockerContainers(self.parent_subtest)
+        dc = DockerContainers(self)
         self.sub_stuff["rand_name"] = rand_name = dc.get_unique_name()
         self.sub_stuff["rand_data"] = utils.generate_random_string(8)
         self.sub_stuff["subargs"].insert(0, "--name=\"%s\"" % rand_name)
@@ -83,7 +83,7 @@ class run_attach_stdout(run_base):
 
     def cleanup(self):
         super(run_attach_stdout, self).cleanup()
-        dc = DockerContainers(self.parent_subtest)
+        dc = DockerContainers(self)
         name = self.sub_stuff["rand_name"]
         try:
             dc.kill_container_by_name(name)

@@ -137,7 +137,7 @@ class logs_follow_base(SubSubtest):
     def initialize(self):
         super(logs_follow_base, self).initialize()
         config.none_if_empty(self.config)
-        self.sub_stuff['dc'] = DockerContainers(self.parent_subtest)
+        self.sub_stuff['dc'] = DockerContainers(self)
         self.sub_stuff['containers'] = []
         self.sub_stuff['async_processes'] = []
 

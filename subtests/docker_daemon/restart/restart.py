@@ -209,7 +209,7 @@ class restart_base(SubSubtest):
 
         bind_addr = self.config["docker_daemon_bind"]
 
-        self.conts = DockerContainersE(self.parent_subtest)
+        self.conts = DockerContainersE(self)
         self.conts.interface.docker_daemon_bind = bind_addr
 
         self.dkr_cmd = DkrcmdFactory(self, dkrcmd_class=AsyncDockerCmdSpec)

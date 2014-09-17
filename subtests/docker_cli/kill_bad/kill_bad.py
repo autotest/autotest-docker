@@ -51,7 +51,7 @@ class kill_bad_base(subtest.SubSubtest):
         """
         super(kill_bad_base, self).initialize()
         # Prepare a container
-        docker_containers = DockerContainers(self.parent_subtest)
+        docker_containers = DockerContainers(self)
         name = docker_containers.get_unique_name()
         self.sub_stuff['container_name'] = name
         config.none_if_empty(self.config)
@@ -72,7 +72,7 @@ class kill_bad_base(subtest.SubSubtest):
                               verbose=False).execute()
             self.failif(self.sub_stuff['container_cmd'].done, "Testing "
                         "container died after using signal %s." % signal)
-        dkrcnt = DockerContainers(self.parent_subtest)
+        dkrcnt = DockerContainers(self)
         nonexisting_name = dkrcnt.get_unique_name()
         self.logdebug("Killing nonexisting containe.")
         MustFailDockerCmd(self, 'kill', [nonexisting_name],
@@ -90,7 +90,7 @@ class kill_bad_base(subtest.SubSubtest):
         """
         if self.sub_stuff.get('container_name') is None:
             return  # Docker was not created, we are clean
-        containers = DockerContainers(self.parent_subtest)
+        containers = DockerContainers(self)
         name = self.sub_stuff['container_name']
         conts = containers.list_containers_with_name(name)
         if conts == []:

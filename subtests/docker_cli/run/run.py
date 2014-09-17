@@ -45,8 +45,8 @@ class run_base(SubSubtest):
         self.init_subargs()
         self.sub_stuff["containers"] = []
         self.sub_stuff["images"] = []
-        self.sub_stuff["cont"] = DockerContainers(self.parent_subtest)
-        self.sub_stuff["img"] = DockerImages(self.parent_subtest)
+        self.sub_stuff["cont"] = DockerContainers(self)
+        self.sub_stuff["img"] = DockerImages(self)
 
     def run_once(self):
         super(run_base, self).run_once()    # Prints out basic info
@@ -80,7 +80,7 @@ class run_base(SubSubtest):
                     self.logwarning("Failed" + msg)
             for image in self.sub_stuff.get("images", []):
                 try:
-                    di = DockerImages(self.parent_subtest)
+                    di = DockerImages(self)
                     self.logdebug("Removing image %s", image)
                     di.remove_image_by_full_name(image)
                     self.logdebug("Successfully removed test image: %s",

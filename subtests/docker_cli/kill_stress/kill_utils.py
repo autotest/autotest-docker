@@ -116,7 +116,7 @@ class kill_base(subtest.SubSubtest):
     def initialize(self):
         super(kill_base, self).initialize()
         # Prepare a container
-        docker_containers = DockerContainers(self.parent_subtest)
+        docker_containers = DockerContainers(self)
         name = docker_containers.get_unique_name("test", length=4)
         self.sub_stuff['container_name'] = name
         config.none_if_empty(self.config)
@@ -259,7 +259,7 @@ class kill_base(subtest.SubSubtest):
         """
         if self.sub_stuff.get('container_name') is None:
             return  # Docker was not created, we are clean
-        containers = DockerContainers(self.parent_subtest)
+        containers = DockerContainers(self)
         name = self.sub_stuff['container_name']
         conts = containers.list_containers_with_name(name)
         if conts == []:

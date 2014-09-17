@@ -210,7 +210,7 @@ class run_env_base(SubSubtest):
         super(run_env_base, self).initialize()
         # Prepare a container
         config.none_if_empty(self.config)
-        self.sub_stuff['dc'] = DockerContainers(self.parent_subtest)
+        self.sub_stuff['dc'] = DockerContainers(self)
         self.sub_stuff['containers'] = []
 
     def cleanup(self):

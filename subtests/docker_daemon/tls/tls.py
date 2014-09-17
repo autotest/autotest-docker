@@ -120,9 +120,6 @@ class AsyncDockerCmdStdIn(AsyncDockerCmd):
     def __init__(self, subtest, subcmd, subargs=None, timeout=None,
                  verbose=True, stdin_r=None, stdin=None):
         self.parent = subtest
-        if isinstance(subtest, SubSubtest):
-            subtest = subtest.parent_subtest
-
         super(AsyncDockerCmdStdIn, self).__init__(subtest, subcmd, subargs,
                                                   timeout, verbose)
 

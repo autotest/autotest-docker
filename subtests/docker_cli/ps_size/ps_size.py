@@ -45,7 +45,7 @@ class ps_size_base(SubSubtest):
         super(ps_size_base, self).initialize()
         # Prepare a container
         config.none_if_empty(self.config)
-        self.sub_stuff['dc'] = DockerContainers(self.parent_subtest)
+        self.sub_stuff['dc'] = DockerContainers(self)
         self.sub_stuff['containers'] = []
 
     def _cleanup_containers(self):
