@@ -1,20 +1,26 @@
 #!/usr/bin/env python
 """
-Verifies that index.rst contains all required data
+Verifies that subtests.rst contains all required data
 """
 import os
 import re
 import sys
+from dockertest.environment import SubtestDocs
 
 
+# TODO: Subclass environment.AllGoodBase to seperate behavior from results
 class SubtestsDocumented(object):
     """
     Checker object
     """
     def __init__(self, path='.'):
-        """ Location of the index.rst directory """
+        """ Location of the subtests.rst directory """
         self.path = os.path.join(path, 'subtests')
-        self.doc = open(os.path.join(path, 'index.rst')).read()
+        try:
+            self.doc = open(os.path.join(path, 'subtests.rst')).read()
+        except IOError:
+            print "No subtests.rst file found, perhaps you need to run make"
+            sys.exit(-1)
 
     def check(self):
         """ Check the subtests tree """
@@ -24,30 +30,21 @@ class SubtestsDocumented(object):
 
     def walk_directories(self):
         """ Checks whether all existing tests are documented """
-        def test_name(dir_item):
-            """ return test_name if dir is test, otherwise return None """
-            path, _, files = dir_item
-            # directory and main test share the same name
-            if os.path.basename(path) + '.py' not in files:
-                return None
-            return os.path.relpath(path, self.path)
-
-        dir_tests = []
+        dir_tests = SubtestDocs.filenames()
         err = False
-        for dir_item in os.walk(self.path):
-            name = test_name(dir_item)
+        for dir_item in dir_tests:
+            name = SubtestDocs.name(dir_item)
             if name:
-                dir_tests.append(name)
                 # Require at least the same number of `=` as chapter name
-                chapter = "``%s`` Sub-test\n" % name
+                chapter = "``%s`` Subtest\n" % name
                 chapter += "=" * (len(chapter) - 1)
                 if chapter not in self.doc:
                     err = True
                     if name in self.doc:
-                        print ("%s present in index.rst, but not as \n%s."
+                        print ("%s present in subtests.rst, but not as \n%s."
                                % (name, chapter))
                     else:
-                        print "%s not present in index.rst" % name
+                        print "%s not present in subtests.rst" % name
         return err, dir_tests
 
     def check_missing_tests(self, dir_tests):
