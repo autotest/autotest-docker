@@ -17,6 +17,7 @@ Operational Summary
 
 Prerequisites
 -----------------
+
 *  Enough disk space to construct and import several base images
    at the same time.
 *  The ``tar``, and ``cat`` commands exist in ``$PATH``
@@ -28,8 +29,6 @@ Configuration
    values used to automatically generate a unique image name.
    The unique part will be sandwiched in-between these options
    values.
-*  ``try_remove_after_test`` is exactly like the same option in
-   the `docker_cli/build sub-test`_ subtest.
 *  The ``test_subsubtest_postfixes`` contains a CSV listing of the
    sub-sub-test modules (and class) names to run (in order).
 """

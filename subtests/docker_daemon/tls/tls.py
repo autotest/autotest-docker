@@ -28,6 +28,7 @@ Test server identity
 
 *  daemon -d,--selinux-enabled,--tls,--tlscert=server.crt,--tlskey=server.key
 *  client %(docker_options)s,--tlsverify,--tlscacert=ca.crt
+
 #. restart daemon with tls configuration
 #. Check client connection
 #. cleanup all containers and images.
@@ -38,6 +39,7 @@ Test check exclusive server identity
 *  daemon --tls,--tlscert=server.crt,--tlskey=server.key
 *  client --tlsverify,--tlscacert=ca.crt,--tlscert=wrongclient.crt,\
    --tlskey=wrongclient.key
+
 #. restart daemon with tls configuration
 #. Check client connection
 #. cleanup all containers and images.
@@ -49,6 +51,7 @@ Negative test server with wrong client identity
    --tlskey=server.key
 *  client --tlsverify,--tlscacert=ca.crt,--tlscert=wrongclient.crt,\
    --tlskey=wrongclient.key
+
 #. restart daemon with tls configuration
 #. Try to start docker client with wrong certs.
 #. Check if client fail.
@@ -60,6 +63,7 @@ Negative test client with wrong server identity
    --tlskey=server.key
 *  client --tlsverify,--tlscacert=ca.crt,--tlscert=wrongclient.crt,\
    --tlskey=wrongclient.key
+
 #. restart daemon with tls configuration
 #. Try to start docker client with wrong certs.
 #. Check if client fail.

@@ -15,6 +15,7 @@ Operational Summary
 #.  Untag test_a
 #.  Untag test_a1 (verify intermediary images were removed too)
 #.  Untag test_b1 (verify test_b was preserved)
+
 *  Between steps 4-7 verify `docker images` and `docker history`
 
 Prerequisites

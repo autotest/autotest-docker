@@ -16,7 +16,7 @@ Prerequisites
 ---------------
 
 *  Docker daemon is running and accessible by it's unix socket.
-``docker_cli/diff`` Configuration
+   ``docker_cli/diff`` Configuration
 
 Configuration
 ---------------------------------
