@@ -12,11 +12,17 @@
    http://sphinx-doc.org/ext/autodoc.html
 
 
-================
-Docker Autotest
-================
+=====================================
+Docker Autotest |version|
+=====================================
 
 .. sectnum::
+
+.. toctree::
+   :hidden:
+   :numbered:
+
+   subtests
 
 ----------------
 Introduction
@@ -46,6 +52,8 @@ a host-kernel panic or userspace become unresponsive.
 .. _python-docker-py: http://github.com/dotcloud/docker-py#readme
 
 .. _Autotest Client Tests: http://github.com/autotest/autotest-client-tests
+
+.. _docker_autotest_prereq:
 
 ----------------
 Prerequisites
@@ -85,7 +93,7 @@ Prerequisites
 Quickstart
 ----------------
 
-1)  Double-check you meet all the requirements in `prerequisites`_.
+1)  Double-check you meet all the requirements in `docker_autotest_prereq`_.
 2)  Clone autotest into ``/usr/local/autotest``
 
 ::
@@ -351,6 +359,10 @@ Subtest Modules
 The following sections detail specific sub-tests, their configuration
 and any prerequisites or setup requirements.
 
+.. contents::
+   :depth: 1
+   :local:
+
 Default configuration options
 ================================
 
@@ -398,24 +410,13 @@ file is loaded *either* from ``config_defaults`` *or* ``config_custom``.
    and contains a comma-separated-list of subtest or sub-subtest
    names to skip.
 
-``example`` Sub-test
-=======================
-
-A boiler-plate example subtest intended as a starting place for new
-sub-tests.  Not all methods are required, those not overridden will
-simply inherit default behavior.
-
-``subexample`` Sub-test
-=======================
-
-A boiler-plate example subtest with subsubtests, intended as a
-starting place for a collection of related tests that benefit
-from sharing some code.  Not all methods are required,
-those not overridden will simply inherit default behavior.
+.. include:: subtests.rst
 
 ----------------------------------
-Dockertest API Reference
+Dockertest |release| API Reference
 ----------------------------------
+
+Covers |release| and all revisions.
 
 .. contents::
    :depth: 4
