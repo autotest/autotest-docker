@@ -72,5 +72,12 @@ class TestSubtestDocs(EnvironmentTestBase):
         self.assertEqual(doc.strip(), self.subtest_docstring)
         self.assertEqual(doc.find('pass'), -1)
 
+    def test_html(self):
+        self.sd.header_fmt = ''
+        self.sd.footer_fmt = ''
+        doc = self.sd(self.subtest_fullpath)
+        self.assertEqual(doc.html().strip(),
+                         '<p>%s</p>' % self.subtest_docstring)
+
 if __name__ == '__main__':
     unittest.main()

@@ -283,6 +283,27 @@ class SubtestDocs(str):
         return cls.join('', [cls(subtest_path)
                              for subtest_path in cls.filenames(path)])
 
+    def html(self):
+        """
+        Return rendered documentation for subtest as an html fragment
+
+        :param subtest_name: Standarized docker autotest subtest name
+        :param path: Relative/Absolute path where 'subtests' directory can
+                         be found
+        :returns: String, HTML fragment of rendered documentation
+        """
+        # Requited as this module may not have outside dependencies
+        # FIXME: Better place for this code to live?
+        try:
+            from docutils import core
+        except ImportError:
+            return ("<p><em><strong>Error:</strong></em>"
+                    "docutils not installed</p>")
+        # Ref: https://wiki.python.org/moin/ReStructuredText
+        # Available formats: html, pseudoxml, rlpdf, docutils_xml, s5_html
+        parts = core.publish_parts(source=self, writer_name='html')
+        return parts['body_pre_docinfo']+parts['fragment']
+
 
 def set_selinux_context(pwd, context=None, recursive=True):
     """
