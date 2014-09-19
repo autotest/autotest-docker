@@ -1,15 +1,24 @@
-"""
-Test output of docker save/load command
+r"""
+Summary
+---------
 
-initialize:
-  1) preapare new image
-run_once:
-  2) save image to disk
-  3) remove image from docker
-  4) load image from file
-postprocess:
-  5) Check all results of docker commands.
-  6) Check if image again exits in docker.
+Tests the ``docker save`` and ``docker load`` commands.
+
+Operational Summary
+----------------------
+
+#.  prepare image
+#.  save image
+#.  remove image
+#.  load image
+#.  check results
+#.  (some subsubtests) check content of the image
+
+Prerequisites
+---------------
+
+Configuration
+---------------
 """
 
 import os

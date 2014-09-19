@@ -1,18 +1,49 @@
-"""
-Test run of docker build command
+r"""
+Summary
+----------
 
-1. Copy source files + static busybox to srcdir if necessary
-2. Verify timeout isn't too short
-3. Start build in srcdir
-4. Check build exit code, make sure image exists
-5. Optionally remove built image
+Tests the ``docker build`` command operation with a set of options
+and pre-defined build-content.  Sub-subtests ending in ``path``
+test from a build context directory containing a Dockerfile.  The
+entire contents will be sent to the docker daemon.  Sub-subtests
+ending in ``file`` test from only a specific Dockerfile.  In this
+case, the build context is sub-subtest dependent
+
+Operational Summary
+--------------------
+
+#. Copy source files
+#. Verify timeout isn't too short
+#. Start build
+#. Check build exit code, make sure image exists
+#. Optionally remove built image
+
+Prerequisites
+----------------
+
+*  Tarballs bundled with the subtest
+*  Statically linked 'busybox' executable available on path or over HTTP
+
+Configuration
+--------------
+
+*  The ``build_timeout_seconds`` option specifies a fixed time (in
+   seconds) the build must complete within)
+*  ``try_remove_after_test`` is a boolean option, selecting whether
+   or not the built-image should be removed when the test is complete.
+   (Any removal errors will be ignored)
+*  ``image_name_prefix`` and ``image_name_postfix`` adjust
+   strings prepended/appended to a random non-conflicting name.
+*  The location of the statically linked ``busybox`` executable
+   is specified by the ``busybox_url`` option.
+*  Source path of Dockerfile or directory containing Dockerfile is defined
+   by ``dockerfile_path``
 """
 
 import os.path
 import re
 import shutil
 from urllib2 import urlopen
-
 from dockertest import subtest
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd, NoFailDockerCmd
@@ -26,8 +57,6 @@ RE_CONTAINERS = re.compile(r' ---> Running in (\w{64}|\w{12})')
 
 
 class build(subtest.SubSubtestCaller):
-
-    """ Subtest caller """
 
     def setup(self):
         super(build, self).setup()
@@ -72,13 +101,6 @@ class build(subtest.SubSubtestCaller):
 
 
 class build_base(subtest.SubSubtest):
-
-    """
-    Base of build test
-    1. Import empty_base_image (widely used in this test)
-    2. Run docker build ... $dockerfile_path (by default self.srcdir)
-    3. Verify the image was built successfully
-    """
 
     def dockerfile_path(self, path):
         if path[0] == '/':
@@ -284,35 +306,24 @@ class build_base(subtest.SubSubtest):
 
 
 class local_path(build_base):
-
-    """
-    Path to a local directory within the Dockerfile and other files are present
-    """
+    pass
 
 
 class https_file(build_base):
-
-    """ https path to a Dockerfile """
+    pass
 
 
 class git_path(build_base):
-
-    """ path to a git reporistory which contains Dokerfile and othe files """
+    pass
 
 
 class bad(build_base):
-
-    """
-    Dockerfile with incorrect command (using --rm - last container should
-    be preserved because of the failure
-    """
+    pass
 
 
 class bad_quiet(build_base):
-
-    """ Dockerfile with incorrect command (using --quiet) """
+    pass
 
 
 class bad_force_rm(build_base):
-
-    """ Dockerfile with incorrect command + using --force-rm """
+    pass

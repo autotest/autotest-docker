@@ -1,36 +1,81 @@
-"""
-Test docker tls connection.
+r"""
+Summary
+----------
 
-1) Create CA certificate
-    openssl req -nodes -new -x509 -keyout ca.key -out ca.crt -days 3650\
-        -config cacrt.conf
-    echo 01 > ca.srl
-2) Create certificate for daemon
-    openssl req -newkey rsa -keyout server.key -out server.req -config \
-        servercrt.conf
-    openssl x509 -req -days 365 -in server.req -CA ca.crt -CAkey ca.key \
-        -out server.crt
-3) Create certificate for client
-    openssl req -newkey rsa -keyout client.key -out client.req -config \
-        clientcrt.conf
-    openssl x509 -req -days 365 -in client.req -CA ca.crt -CAkey ca.key \
-        -out client.crt -extfile extfile.cnf
-4) Create wrongCA certificate
-    openssl req -nodes -new -x509 -keyout ca.key -out wrongca.crt -days \
-        3650 -config cacrt.conf
-    echo 01 > ca.srl
-5) Create wrong certificate for daemon
-    openssl req -newkey rsa -keyout wrongserver.key -out wrongserver.req \
-        -config wrongservercrt.conf
-    openssl x509 -req -days 365 -in server.req -CA wrongca.crt -CAkey \
-        wrongca.key -out wrongserver.crt
-6) Create wrong certificate for client
-    openssl req -newkey rsa -keyout wrongclient.key -out wrongclient.req \
-        -config wrongclientcrt.conf
-    openssl x509 -req -days 365 -in wrongclient.req -CA wrongca.crt -CAkey \
-        wrongca.key -out wrongclient.crt -extfile extfile.cnf
-7) Call subsubtests.
-8) cleanup all containers and images.
+Set of test that check the container's network security.
+
+Operational Summary
+----------------------
+
+#. Test docker tls verification.
+#. Test server identity
+#. Test check exclusive server identity
+#. Negative test server with wrong client identity
+#. Negative test client with wrong server identity
+
+Operational Detail
+----------------------
+
+Test docker tls verification
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#. Create CA certificate
+#. Create certificate for daemon
+#. Create certificate for client
+#. Verify if docker tls verification works properly.
+
+Test server identity
+~~~~~~~~~~~~~~~~~~~~~
+
+*  daemon -d,--selinux-enabled,--tls,--tlscert=server.crt,--tlskey=server.key
+*  client %(docker_options)s,--tlsverify,--tlscacert=ca.crt
+#. restart daemon with tls configuration
+#. Check client connection
+#. cleanup all containers and images.
+
+Test check exclusive server identity
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*  daemon --tls,--tlscert=server.crt,--tlskey=server.key
+*  client --tlsverify,--tlscacert=ca.crt,--tlscert=wrongclient.crt,\
+   --tlskey=wrongclient.key
+#. restart daemon with tls configuration
+#. Check client connection
+#. cleanup all containers and images.
+
+Negative test server with wrong client identity
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*  daemon --tlsverify,--tlscacert=ca.crt,--tlscert=server.crt,\
+   --tlskey=server.key
+*  client --tlsverify,--tlscacert=ca.crt,--tlscert=wrongclient.crt,\
+   --tlskey=wrongclient.key
+#. restart daemon with tls configuration
+#. Try to start docker client with wrong certs.
+#. Check if client fail.
+#. cleanup all containers and images.
+
+Negative test client with wrong server identity
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*  daemon --tlsverify,--tlscacert=ca.crt,--tlscert=server.crt,\
+   --tlskey=server.key
+*  client --tlsverify,--tlscacert=ca.crt,--tlscert=wrongclient.crt,\
+   --tlskey=wrongclient.key
+#. restart daemon with tls configuration
+#. Try to start docker client with wrong certs.
+#. Check if client fail.
+#. cleanup all containers and images.
+
+Prerequisites
+------------------------------------
+
+Openssl is installed and forward/reverse DNS is functioning for host.
+
+Configuration
+-------------------------------------
+
+*  The option ``docker_daemon_bind`` sets special bind address.
+*  The option ``docker_client_bind`` sets special client args.
+*  The option ``docker_options_spec`` sets additional docker options.
 """
 
 import os

@@ -1,16 +1,34 @@
-"""
+r"""
+Summary
+---------
+
 Test usage of docker 'top' command
 
-initialize:
-1) start container with bash
-run_once:
-2) execute docker top and container ps
-3) in container execute couple of processes
-4) execute docker top and container ps
-5) stop container
-6) execute docker top
-postprocess:
-7) analyze results
+Operational Summary
+----------------------
+
+#. start container with bash
+#. execute docker top and container ps
+#. in container execute couple of processes
+#. execute docker top and container ps
+#. stop container
+#. execute docker top
+#. analyze results
+
+Prerequisites
+---------------------------------------------
+
+*  A remote registry server
+*  A docker image capable of executing the ``ps`` command
+
+Configuration
+--------------------------------------
+
+*  Customized configuration for ``docker_repo_name``, ``docker_repo_tag``,
+   and optionally ``docker_registry_host`` and/or ``docker_registry_user``.
+*  The ``container_name_prefix`` is prefix of the tested container followed by
+   random characters to make it unique.
+*  The ``run_options_csv`` modifies the running container options.
 """
 
 import os

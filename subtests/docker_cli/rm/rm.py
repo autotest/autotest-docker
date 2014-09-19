@@ -1,11 +1,23 @@
-"""
+r"""
+Summary
+----------
+
 Test for docker rm subcommand
 
-0. Remember subtest start time
-1. Write subtest start time into sub-subtest tmpdir file
-2. Share sub-subtest tmpdir to container as volume
-3. Container waits for signal to update file in volume
-4. Run sub-subtests to exercize 'rm' on container and verify volume file
+Operational Summary
+----------------------
+
+#. Remember subtest start time
+#. Write subtest start time into sub-subtest tmpdir file
+#. Share sub-subtest tmpdir to container as volume
+#. Container waits for signal to update file in volume
+#. Run sub-subtests to exercize 'rm' on container and verify volume file
+
+Prerequisites
+---------------
+
+Configuration
+---------------
 """
 
 import os.path

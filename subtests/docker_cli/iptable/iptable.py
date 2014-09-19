@@ -1,7 +1,28 @@
-"""
-Test output of the host iptable rules of container
-1. Run container and parse/gather it's iptable rules on host.
-2. Check if rules are affected as expected/are handled properly.
+r"""
+Summary
+----------
+
+This a set of test that check the container's iptable rules on host.
+
+Operational Summary
+----------------------
+
+#. Run container and parse/gather it's iptable rules on host.
+#. Check if rules are affected as expected/are handled properly.
+
+Prerequisites
+------------------------------------
+*  Docker daemon is running and accessible by it's unix socket.
+*  iptables service is **not** running, nor other services which
+   change iptables (like libvirtd).
+*  Firewalld daemon is running and does not show any errors about
+   fail to add rules (https://bugzilla.redhat.com/show_bug.cgi?id=1101484).
+*  Command iptable and brctl are working well.
+
+Configuration
+-------------------------------------
+*  The option ``name_prefix`` sets the container's prefix name.
+*  The option ``bash_cmd`` sets the command that the container will execute.
 """
 
 from dockertest.dockercmd import NoFailDockerCmd

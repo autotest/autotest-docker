@@ -12,11 +12,17 @@
    http://sphinx-doc.org/ext/autodoc.html
 
 
-================
-Docker Autotest
-================
+=====================================
+Docker Autotest |version|
+=====================================
 
 .. sectnum::
+
+.. toctree::
+   :hidden:
+   :numbered:
+
+   subtests
 
 ----------------
 Introduction
@@ -46,6 +52,8 @@ a host-kernel panic or userspace become unresponsive.
 .. _python-docker-py: http://github.com/dotcloud/docker-py#readme
 
 .. _Autotest Client Tests: http://github.com/autotest/autotest-client-tests
+
+.. _docker_autotest_prereq:
 
 ----------------
 Prerequisites
@@ -85,7 +93,7 @@ Prerequisites
 Quickstart
 ----------------
 
-1)  Double-check you meet all the requirements in `prerequisites`_.
+1)  Double-check you meet all the requirements in `docker_autotest_prereq`_.
 2)  Clone autotest into ``/usr/local/autotest``
 
 ::
@@ -185,27 +193,47 @@ All `subtest modules`_ reside beneath the ``subtest`` directory.  A subtest
 module must have the same name as the directory it is in (minus the ``.py``
 extension).  Other files/directories may exist at that level, but they
 will not be recognized as subtest modules by the Docker client test.  This
-ensures each subtest's code is kept separate from all others.
+ensures each subtest's code is kept separate from all others.  Finally,
+every subtest is run in it's own process and context.  It does not have
+visibility into any other subtest code, configuration, or runtime.
 
-The structure/layout of the ``subtest`` directory tree is not important
-for locating/executing subtests.  However it is relevant for the finding/loading
-of each subtests configuration_.  The configuration **section name** for any sub-tests
-is formed by the subtest name relative to the ``subtest`` directory.  For example,
-the subtest module ``subtests/docker_cli/version/version.py`` matches with
-the ``[docker_cli/version]`` *configuration section*.  The relative location
-of the configuration file does not matter, only the section name.
+Organization and Naming
+=========================
 
-Additionally, subtests may source their own static content.  If this content
-is further test components, please see the `Subtest Module`_ section regarding the
-``dockertest.subtest.SubSubtest`` class.  If static content needs to be built,
-or in some  way made environment-specific, this must happen by overriding
-the ``setup() method``.  Within this method, content it should be copied from
-from the path referenced in the ``bindir`` attribute, to the path referenced
-by the ``srcdir`` attribute.  The ``setup()`` method will ***only*** be called
-once per version number (including revisions).  State may be reset by clearing
-the autotest client ``tmp`` directory.
+The structure/layout of the ``subtest`` directory tree is relevant for
+reference and configuration.  The reference and configuration section names
+for subtests are formed by it's relative location under the ``subtest``
+directory.  For example, the subtest module ``subtests/docker_cli/version/version.py``
+matches with the ``[docker_cli/version]`` configuration section and
+``docker_cli/version`` subtest name.
 
-:Note: setup() runs **after** initialize()
+Static Content Setup
+===========================
+
+Subtests may source their own static content from within their directory and below.
+When content needs to be built, or is in some way test-environment specific, the
+``setup() method`` should be overridden.  Content may be referenced from the subtest's
+directpory by using it's ``bindir`` attribute.  A version-specific directory to
+contain build/setup output is available as the ``srcdir`` attribute.  The ``setup()``
+method will ***only*** be called once per version number (including revisions).
+State may be reset by clearing the autotest client ``tmp`` directory.
+
+:Note: The ``setup()`` method runs **after** the ``initialize()`` method
+       only once.  If the configuration version has not changed, the method
+       will not be called in subsequent Docker Autotest runs.
+
+Sub-subtests
+==============
+
+There are provisions for tests that contain, or are composed of multiple child
+tests or dependant operations.  They may share content and code between eachother,
+so long as it lives within the subtest directory or below.  Optionally, they may
+use their own configuration sections, named by appending their class name onto
+the parent subtest's name.  Sub-subtest configuration inherits undefined values
+from the parent subtest configuraion.  Additionally, there are multiple methods
+of executing sub-subtests depending on needs.  Please see the `Subtest Module`_
+API reference regarding the ``dockertest.subtest.SubSubtest`` class and "caller"
+methods.
 
 --------------------
 Images
@@ -385,8 +413,10 @@ file is loaded *either* from ``config_defaults`` *or* ``config_custom``.
 .. include:: subtests.rst
 
 ----------------------------------
-Dockertest API Reference
+Dockertest |release| API Reference
 ----------------------------------
+
+Covers |release| and all revisions.
 
 .. contents::
    :depth: 4

@@ -1,5 +1,28 @@
-"""
-This test checks function of `docker ps --size`
+r"""
+Summary
+----------
+
+This test checks function of `docker ps --size` shows correct sizes
+
+Operational Summary
+----------------------
+
+#.  Create couple of containers, each creates file of given size
+#.  Execute docker ps -a --size
+#.  Check the sizes are in given limit ($size; 1mb + $limit_per_mb * $size)
+
+Prerequisites
+---------------
+None
+
+Configuration
+----------------
+*  ``dd_sizes`` is space-separated size increase to test in MB
+*  ``dd_cmd`` is the full command to use for increasing the image
+   size.  The ``dd_sizes`` values will be broken down as the two
+   string subs. for block-size and count.
+*  ``limit_per_mb`` Floating point error-factor per megabyte of
+   ``dd_sizes`` value to allow.
 """
 from dockertest import config, xceptions
 from dockertest.containers import DockerContainers

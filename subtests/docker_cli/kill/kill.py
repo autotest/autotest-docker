@@ -1,18 +1,57 @@
-"""
-Test usage of docker 'kill' command
+r"""
+Summary
+----------
 
-initialize:
-1) start VM with test command
-run_once:
-2) execute docker kill
-postprocess:
-3) analyze results
+Several variations of running the kill command.
+
+*  random_* - series of random signals
+*  sigstop - worst case of stopped container scenario
+*  bad - bad input
+*  stress - lots of signals without waiting
+*  stress_parallel - all signals simultaneously
+*  run_sigproxy* - instead of ``docker kill`` uses ``kill`` on
+   ``docker run``
+*  attach_sigproxy* - instead of ``docker kill`` uses ``kill`` on
+    ``docker attach``
+
+Operational Summary
+----------------------
+
+#. start VM with test command
+#. execute docker kill
+#. analyze results
+
+Prerequisites
+---------------------------------------------
+*  A remote registry server
+
+Configuration
+--------------------------------------
+*  The ``run_container_attached`` - When ``True``, creates detached container
+   and uses docker attach process in test.
+*  The ``run_options_csv`` modifies the ``docker run`` options.
+*  The ``attach_options_csv`` modifies the ``docker attach`` options.
+*  The ``exec_cmd`` modifies the container command.
+*  ``stress_cmd_timeout`` - maximal acceptable delay caused by stress command
+*  The ``wait_start`` is duration of container initialization
+*  The ``no_iterations`` is number of signals (in some subsubtests)
+*  The ``kill_map_signals`` chooses between numerical and named signals (USR1)
+   *  ``true`` - all signals are mapped
+   *  ``false`` - all signals are numbers
+   *  ``none`` - randomize for each signal
+*  The ``signals_sequence`` allows you to force given sequence of signals.
+   When none, new one is generated and logged for possible reuse.
+*  The ``kill_signals`` specifies used signals ``[range(*args)]``
+*  The ``skip_signals`` specifies which signals should be omitted
+*  The ``kill_sigproxy`` changes the kill command:
+   *  ``false`` -> ``docker kill $name``
+   *  `true`` -> ``os.kill $docker_cmd.pid``
 """
+
 import itertools
 import os
 import random
 import time
-
 from autotest.client.shared.utils import wait_for
 from dockertest import config, subtest, xceptions
 from dockertest.containers import DockerContainers

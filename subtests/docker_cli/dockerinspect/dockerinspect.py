@@ -1,9 +1,44 @@
-"""
+r"""
+Summary
+---------
+
 Test output of docker inspect command
 
-1. Create some docker containers
-2. Run docker inspect command on them
-3. Check output
+Operational Summary
+----------------------
+
+#. Create some docker containers
+#. Run docker inspect command on them
+#. Check output
+
+Prerequisites
+------------------------------------------
+
+None
+
+Configuration
+------------------------------------------
+
+inspect_container_simple
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*  ``check_fields`` specifies which fields to check the existence of when
+   running "docker inspect" on a container.
+
+inspect_all
+~~~~~~~~~~~~
+
+*  ``ignore_fields`` specifies which fields to ignore when checking
+   all fields when running "docker inspect" on a container.
+
+inspect_keys
+~~~~~~~~~~~~~~
+
+*  Optional, ``image_keys`` specifies which fields to check for in an image
+   inspect.
+*  Optional ``container_keys`` specifies which fields to check for in a
+   container inspect.
+*  Optional, ``key_regex`` asserts that each key matches this regex.
 """
 
 from autotest.client import utils

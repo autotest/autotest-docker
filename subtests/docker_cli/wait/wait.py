@@ -1,16 +1,38 @@
-"""
+r"""
+Summary
+---------
+
 Test usage of docker 'wait' command
 
-initialize:
-1) starts all containers defined in containers
-2) prepares the wait command
-3) prepares the expected results
-run_once:
-4) executes the test command in all containers
-5) executes the wait command
-6) waits until all containers should be finished
-postprocess:
-7) analyze results
+Operational Summary
+----------------------
+
+#. starts all containers defined in containers
+#. prepares the wait command
+#. prepares the expected results
+#. executes the test command in all containers
+#. executes the wait command
+#. waits until all containers should be finished
+#. analyze results
+
+Prerequisites
+------------------
+
+None
+
+Configuration
+--------------------
+
+*  The ``run_options_csv`` modifies the running container options.
+*  The ``wait_options_csv`` modifies the wait command options.
+*  The ``exec_cmd`` modifies the container command. Note that in this tests
+   you can specify per-container-exec_cmd using exec_cmd_$container.
+   This command has to contain ``exit $NUM``, which is used as docker exit
+   status and could contain ``sleep $NUM`` which signals the duration after
+   which the container finishes.
+*  The ``wait_for`` specifies the containers the wait command should wait for.
+   Use index of ``containers`` or ``_$your_string``. In the second
+   case the leading character ``_`` will be removed.
 """
 import random
 import re

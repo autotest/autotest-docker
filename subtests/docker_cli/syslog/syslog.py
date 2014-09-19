@@ -1,9 +1,25 @@
-"""
-Test containers can send log to host
+r"""
+Summary
+---------
 
-1. Mount the /dev/log/ directory to container.
-2. Use `logger` send a message.
-3. Verify that could see the message on host.
+Test monitoring containers logs from host via bind-mount
+/dev/log to containers.  Test containers can send log to host
+
+Operational Summary
+----------------------
+
+#. Mount the /dev/log/ directory to container.
+#. Use `logger` send a message.
+#. Verify that could see the message on host.
+
+Prerequisites
+----------------
+*  Docker daemon is running and accessible by it's unix socket.
+*  /dev/log is existing and could be mounted to containers.
+
+Configuration
+----------------
+None
 """
 
 import os

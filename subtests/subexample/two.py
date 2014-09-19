@@ -1,15 +1,7 @@
-"""
-Sub-subtests can appear in separate modules also
-"""
-
 from dockertest.subtest import SubSubtest
 
 
 class two(SubSubtest):
-
-    """
-    Minimal Subtest-like class, doesn't define all test.test methods
-    """
 
     def run_once(self):
         """
