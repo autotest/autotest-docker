@@ -7,18 +7,31 @@ Tests the ``docker save`` and ``docker load`` commands.
 Operational Summary
 ----------------------
 
-#.  prepare image
-#.  save image
-#.  remove image
-#.  load image
-#.  check results
-#.  (some subsubtests) check content of the image
-
-Prerequisites
----------------
+#.  Prepare image, save it, remove it, load it back again.
+#.  Test simultaneous loading of multiple images in parallel.
+#.  Check results
 
 Configuration
 ---------------
+
+General
+~~~~~~~~
+*  ``docker_save_load_timeout`` specifies timeout specific to these
+   docker commands
+*  ``run_options_csv``  defines any additional run options to use.
+*  ``docker_data_prep_cmd`` defines command to run inside container
+   that alters it's image in some way`
+*  The ``save_cmd`` and ``load_cmd`` options specify the redirect
+   options that will be completed with run-time values.
+
+stressed_load
+~~~~~~~~~~~~~~
+*  ``image_count`` is the number of different images to create for loading.
+*  The ``repeat_count`` defines how many times total to docker load an
+   image.
+*  ``thread_count`` defines the number of threads to use for
+   running docker load on ``repeat_count`` images.
+
 """
 
 import os
@@ -179,7 +192,6 @@ class simple(save_load_base):
                            [self.sub_stuff['save_ar']],
                            verbose=True)
         dkrcmd.verbose = True
-        # Runs in background
         self.sub_stuff['cmdresult_save'] = dkrcmd.execute()
 
         if self.sub_stuff['cmdresult_save'].exit_status != 0:
@@ -203,7 +215,6 @@ class simple(save_load_base):
                            [self.sub_stuff['load_ar']],
                            verbose=True)
         dkrcmd.verbose = True
-        # Runs in background
         self.sub_stuff['cmdresult_load'] = dkrcmd.execute()
 
     def postprocess(self):
