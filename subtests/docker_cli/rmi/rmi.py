@@ -2,7 +2,7 @@ r"""
 Summary
 ----------
 
-Test output of docker rmi command
+Test behavior and output of docker rmi command
 
 Operational Summary
 ----------------------
@@ -11,15 +11,23 @@ Operational Summary
 #. Try to delete image.
 #. Check if image was deleted.
 
-Prerequisites
-----------------------
-*  Image on remote registry with 'latest' and some other tag
-
 Configuration
 --------------------------------------
-*  The ``docker_rmi_force`` option causes sub-subtests to force remove images
+
 *  ``docker_expected_result`` should be "PASS" or "FAIL" to indicate result
    handling behavior of sub-subtests.
+*  The ``docker_rmi_timeout`` option specifies the command timeout
+   for any ``rmi`` commands, similar to the global ``docker_timeout`` option.
+*  ``rmi_repo_tag_name_prefix`` specifies any image-name prefix to
+   be used when producing an image / tag for testing.
+*  The ``docker_rmi_force`` option causes sub-subtests to force remove images
+*  ``docker_data_prepare_cmd`` is run in a container to produce
+   an image used to test dependencies.
+*  The ``commit_repo_tag_name_prefix`` is used to name the result
+   commit container from ``data_prepare_cmd``.
+*  ``docker_commit_timeout`` specifies timeout for commit operation.
+*  The ``commit_author`` and ``commit_message`` options are values
+   for options with the same name in docker commit.
 """
 
 import time
