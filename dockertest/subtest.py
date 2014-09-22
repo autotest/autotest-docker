@@ -51,6 +51,8 @@ class SubBase(object):
 
     #: Number of additional space/tab characters to prefix when logging
     n_spaces = 16  # date/timestamp length
+
+    #: Number of additional space/tab characters to prefix when logging
     n_tabs = 1     # one-level
 
     def initialize(self):
@@ -84,7 +86,8 @@ class SubBase(object):
     @staticmethod
     def failif(condition, reason=None):
         """
-        Convenience method for subtests to avoid importing TestFail exception
+        Convenience method for subtests to avoid importing ``TestFail``
+        exception
 
         :param condition: Boolean condition, fail test if True.
         :param reason: Helpful text describing why the test failed
@@ -99,7 +102,8 @@ class SubBase(object):
     @classmethod
     def log_x(cls, lvl, msg, *args):
         """
-        Send msg & args through to logging module function with name lvl
+        Send ``msg`` & ``args`` through to logging module function with
+        name ``lvl``
         """
 
         meth = getattr(logging, lvl)
@@ -111,7 +115,7 @@ class SubBase(object):
         """
         Multiline-split and send msg & args through to logging module
 
-        :param lvl: logging method name ('debug', 'info', etc.)
+        :param lvl: logging method name (``'debug'``, ``'info'``, etc.)
         :param msg: Message format-string
         """
         # date, loglevel, this module offset
@@ -134,8 +138,8 @@ class SubBase(object):
         r"""
         Log a DEBUG level message to the controlling terminal **only**
 
-        :param message: Same as logging.debug()
-        :\*args: Same as logging.debug()
+        :param message: Same as ``logging.debug()``
+        :param \*args: Same as ``logging.debug()``
         """
         # Never split over multiple lines
         cls.log_x('debug', message, *args)
@@ -145,8 +149,8 @@ class SubBase(object):
         r"""
         Log a INFO level message to the controlling terminal **only**
 
-        :param message: Same as logging.info()
-        :\*args: Same as logging.info()
+        :param message: Same as ``logging.info()``
+        :param \*args: Same as ``logging.info()``
         """
         cls.log_xn('info', message, *args)
 
@@ -155,8 +159,8 @@ class SubBase(object):
         r"""
         Log a WARNING level message to the controlling terminal **only**
 
-        :param message: Same as logging.warning()
-        :\*args: Same as logging.warning()
+        :param message: Same as ``logging.warning()``
+        :param \*args: Same as ``logging.warning()``
         """
         cls.log_xn('warn', message, *args)
 
@@ -165,8 +169,8 @@ class SubBase(object):
         r"""
         Log a ERROR level message to the controlling terminal **only**
 
-        :param message: Same as logging.error()
-        :\*args: Same as logging.error()
+        :param message: Same as ``logging.error()``
+        :param \*args: Same as ``logging.error()``
         """
         cls.log_xn('error', message, *args)
 
@@ -195,11 +199,12 @@ class Subtest(SubBase, test.test):
     :param \*args: Ignored and blindly passed through to super-class.
     :param \*\*dargs: Ignored and blindly passed through to super-class.
     """
-    #: Version number from configuration, read-only / setup inside __init__
-    #: affects one-time building of bundled content in 'self.srcdir' by
-    #: controlling the call to setup() method only when it changes.  Compared
-    #: to dockertest API, when specified in configuration.  Test will not
-    #: execute if there is a MAJOR/MINOR mismatch (revision is okay).
+    #: Version number from configuration, read-only / setup inside ``__init__``
+    #: affects one-time building of bundled content in ``self.srcdir`` by
+    #: controlling the call to ``setup()`` method only when it changes.
+    #: Compared to ``dockertest`` API, when specified in configuration.
+    #: Test will not execute if there is a MAJOR/MINOR mismatch
+    #: (revision is okay).
     version = None
 
     #: The current iteration being run, read-only / set by the harness.
@@ -209,10 +214,10 @@ class Subtest(SubBase, test.test):
     iterations = 1
 
     #: Private dictionary for use by subclasses **ONLY**.  This attribute
-    #: is completely ignored everywhere inside the dockertest API.  Subtests
-    #: are encouraged to use it for temporarily storing results/info. It is
-    #: initialized to an empty dictionary, but subtests can reassign it to any
-    #: type needed.
+    #: is completely ignored everywhere inside the ``dockertest`` API.
+    #: Subtests are encouraged to use it for temporarily storing
+    #: results/info. It is initialized to an empty dictionary, but subtests
+    #: can reassign it to any type needed.
     stuff = None
 
     def __init__(self, *args, **dargs):
@@ -315,18 +320,20 @@ class SubSubtest(SubBase):
     :param parent_subtest: The Subtest instance calling this instance
     """
 
-    #: Reference to outer, parent test.  Read-only / set in __init__
+    #: Reference to outer, parent test.  Read-only / set in ``__init__``
     parent_subtest = None
 
     #: Private dictionary for use by subclasses **ONLY**.  This attribute
-    #: is completely ignored everywhere inside the dockertest API.  Subtests
-    #: are encouraged to use it for temporarily storing results/info.  It
-    #: is initialized to an empty dictionary, however subsubtests may
-    #: re-assign it to any other type as needed.
+    #: is completely ignored everywhere inside the ``dockertest`` API.
+    #: Subtests are encouraged to use it for temporarily storing
+    #: results/info.  It is initialized to an empty dictionary, however
+    #: subsubtests may re-assign it to any other type as needed.
     sub_stuff = None
 
     #: Number of additional space/tab characters to prefix when logging
     n_spaces = 16  # date/timestamp length
+
+    #: Number of additional space/tab characters to prefix when logging
     n_tabs = 2     # two-levels
 
     def __init__(self, parent_subtest):
@@ -413,7 +420,7 @@ class SubSubtestCaller(Subtest):
     subsubtest_names = None
 
     #: A dictionary of subsubtest names to instances loaded (read-only), used
-    #: for comparison during ``postprocess()`` against final_subtests to
+    #: for comparison during ``postprocess()`` against ``final_subtests`` to
     #: determine overall subtest success or failure.
     start_subsubtests = None
 
@@ -448,10 +455,10 @@ class SubSubtestCaller(Subtest):
 
     def try_all_stages(self, name, subsubtest):
         """
-        Attempt to execute each subsubtest stage (initialize, run_once,
-        and postprocess).  For those that don't raise any exceptions,
+        Attempt to execute each subsubtest stage (``initialize``, ``run_once``,
+        and ``postprocess``).  For those that don't raise any exceptions,
         record subsubtest name in ``final_subsubtests`` set instance
-        attribute. Hides _all_ AutotestError subclasses but logs traceback.
+        attribute. Hides _all_ ``AutotestError`` subclasses but logs traceback.
 
         :param name:  String, name of subsubtest class (and possibly module)
         :param subsubtest:  Instance of subsubtest or subclass
@@ -524,7 +531,7 @@ class SubSubtestCaller(Subtest):
         Compare set of subsubtest name (keys) from ``start_subsubtests``
         to ``final_subsubtests`` set.
 
-        :raise DockerTestFail: if start_subsubtests != final_subsubtests
+        :raise DockerTestFail: if ``start_subsubtests != final_subsubtests``
         """
         super(SubSubtestCaller, self).postprocess()
         # Dictionary is overkill for pass/fail determination
@@ -566,7 +573,7 @@ class SubSubtestCaller(Subtest):
         module name.
 
         :param name: Class name, optionally external module-file name.
-        :return: SubSubtest subclass instance or None if failed to load
+        :return: ``SubSubtest`` instance or ``None`` if failed to load
         """
         # Try in external module-file named 'name' also
         mydir = self.bindir

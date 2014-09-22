@@ -432,32 +432,9 @@ Dockertest Package
 Subtest Module
 ================
 
-.. Have to list out contents one-by-one for this module
-   otherwise the Mock'd inherited test.test prevents
-   Subtest class from containing any detail
-
-.. py:module:: dockertest.subtest
-
-Adapt/extend autotest.client.test.test for Docker test sub-framework
-
-This module provides two helper classes intended to make writing
-subtests easier.  They hide some of the autotest ``test.test``
-complexity, while providing some helper methods for logging
-output to the controlling terminal (only) and automatically
-loading the specified configuration section (see `configuration module`_)
-
-.. autoclass:: dockertest.subtest.SubBase
+.. automodule:: dockertest.subtest
    :members:
-
-.. autoclass:: dockertest.subtest.Subtest
-   :members:
-   :no-inherited-members:
-
-.. autoclass:: dockertest.subtest.SubSubtest
-   :members:
-
-.. autoclass:: dockertest.subtest.SubSubtestCaller
-   :members:
+   :no-undoc-members:
 
 Images Module
 ===============
