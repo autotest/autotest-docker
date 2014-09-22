@@ -1,5 +1,37 @@
-"""
-Tests on tarball contents imported from a URL
+r"""
+Summary
+----------
+
+Tests on tarball contents imported from a URL.  The "md5sum"
+test compares imported image md5sum against a known value.
+
+Operational Summary
+----------------------
+#. Import image
+#. Verify if result is expected
+
+Prerequisites
+-------------------------------------------
+The configured URL points to a tarball in an accepted format
+by docker (plain, bzip, gzip, etc.).
+
+Configuration
+-----------------------------------------
+
+general
+~~~~~~~~
+
+*  ``tar_url`` specifies the URL of a tarball to test
+
+md5sum
+~~~~~~~~
+
+*  The ``name_prefix`` and ``repo_prefix`` are used
+   to help identify containers and images outside the test.
+*  ``in_tar_file`` specifies the full path to a test file
+   contained within the tarball.
+*  ``md5sum`` specifies the md5sum hash value for the file
+   referenced by ``in_tar_file`` option.
 """
 
 from os.path import basename

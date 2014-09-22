@@ -1,10 +1,26 @@
-"""
-Test should not accepts all/most of the flags which don't raise any
-exception, don't log any message and are silently ignored.
+r"""
+Summary
+----------
 
-1. Run a container with flags which doesn't make sense
-2. Check the error/usage in docker run ouput
-3. Test will FAIL if the container could be run.
+Simple test that checks the flag of the ``docker`` command.
+It will run container using the flag character, and then verify that
+it was not allowed. Test should not accepts all/most of the flags which
+don't raise any exception, don't log any message and are
+silently ignored.
+
+Operational Summary
+----------------------
+
+#. Run a container with flags which doesn't make sense
+#. Check the error/usage in docker run ouput
+#. Test will FAIL if the container could be run.
+
+Prerequisites
+-------------------------------------
+*  Docker daemon is running and accessible by it's unix socket.
+
+Configuration
+--------------------------------------
 """
 
 from dockertest import subtest

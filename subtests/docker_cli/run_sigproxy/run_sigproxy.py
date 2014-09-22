@@ -1,15 +1,28 @@
-"""
-Test usage of docker run/attach with/without '--sig-proxy'
+r"""
+Summary
+----------
 
-initialize:
-1) start VM with test command
-run_once:
-2) kill $SIGNAL $test_process
-postprocess:
-3) analyze results
+Test usage of docker run/attach with/without '--sig-proxy'.
+
+Operational Summary
+----------------------
+
+#. start VM with test command
+#. kill $SIGNAL $test_process
+#. analyze results
+
+Prerequisites
+------------------
+*  A remote registry server
+
+Configuration
+-------------------------------------------
+*  The ``exec_cmd`` modifies the container command
+*  The ``wait_start`` is duration of container init
+*  The ``kill_signals`` space separated list of signals used in test
 """
+
 import time
-
 from autotest.client import utils
 from dockertest import config, subtest
 from dockertest.containers import DockerContainers

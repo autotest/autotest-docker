@@ -1,9 +1,30 @@
-"""
+r"""
+Summary
+----------
+
 This test checks function of `docker logs --follow`
+
+Operational Summary
+---------------------
+#.  Start container
+#.  Start `docker logs --follow` process
+#.  Execute couple of cmds
+#.  Start `docker logs` (without --follow) process
+#.  Execute couple of cmds (output to stderr)
+#.  Stop container
+#.  Start `docker logs` (without --follow) process
+#.  Check correctness o 2, then compare 2 and 7 (match) and 4 (partial
+    match). Also check all exit statuses/errors/...
+
+Prerequisites
+---------------
+
+Configuration
+---------------
 """
+
 import os
 import time
-
 from autotest.client import utils
 from dockertest import config, xceptions
 from dockertest.containers import DockerContainers

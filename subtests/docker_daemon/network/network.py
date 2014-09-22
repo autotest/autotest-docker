@@ -1,9 +1,36 @@
-"""
-Test docker network driver.
+r"""
+Summary
+----------
 
-1) restart daemon with icc=false (forbid communication)
+This a set of test that check the container's network security.
+
+Operational Summary
+----------------------
+
+#. restart daemon with icc=false (forbid communication)
    in network_base.initialize
-2) cleanup all containers and images.
+#. start container1 and get their ip addr
+#. Try to connect containers with python
+#. fail if communication pass from container2 to container1
+
+Prerequisites
+------------------------------------------
+*  Docker is installed in host system.
+*  Container os has installed python package.
+*  Command iptable and brctl are working well.
+
+Configuration
+------------------------------------------
+
+General
+~~~~~~~~~
+*  The option ``docker_daemon_args`` sets the special network args.
+*  The option ``docker_daemon_bind`` sets special bind address.
+
+ICC
+~~~~~
+*  The option ``docker_cmd1_args`` sets args for server container commands.
+*  The option ``docker_cmd2_args`` sets args for client container commands.
 """
 
 import os

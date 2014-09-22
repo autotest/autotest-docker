@@ -1,16 +1,21 @@
-"""
-Test output of docker Commit command
+r"""
+Summary
+---------
 
-Initialize
-1. Make new image name.
-2. Make changes in image by docker run [dockerand_data_prepare_cmd].
-run_once
-3. commit changes.
-postprocess
-4. check if committed image exists.
-5. check if values in changed files for image are correct.
-clean
-6. remote committed image from local repo.
+Several variations of running the commit command
+
+Operational Summary
+--------------------
+
+#. Make new image name.
+#. Make changes in image by docker run [dockerand_data_prepare_cmd].
+#. commit changes.
+#. check if committed image exists.
+#. check if values in changed files for image are correct.
+#. remote committed image from local repo.
+
+Configuration
+--------------
 """
 
 import time

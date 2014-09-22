@@ -23,7 +23,8 @@ install:
 script:
     - ./run_pylint.sh
     - ./run_unittests.sh
-    - make
+    - SPHINXOPTS="-W" make
+    - ./run_checkdocs.py
 
 # TODO: Do we need notifications?
 #notifications:

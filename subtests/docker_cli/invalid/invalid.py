@@ -1,13 +1,27 @@
-"""
-Test output of docker run command with invalid charactors
+r"""
+Summary
+---------
 
-A. Run a container using invalid charactor in
+Test output of docker run command with invalid characters
+
+Operational Summary
+----------------------
+
+#. Run a container using invalid charactor in
    "docker run [OPTIONS] IMAGE [COMMAND] [ARG...]"
-B. Execute docker run command, different subtest has different subargs and
+#. Execute docker run command, different subtest has different subargs and
    subargs order.
-C. Check test result: What we expected is the all of the test results are
+#. Check test result: What we expected is the all of the test results are
    failed.
-D. Clean the test environment and remove the container generated in testing.
+#. Clean the test environment and remove the container generated in testing.
+
+Prerequisites
+-------------------------------------
+*  Docker daemon is running and accessible by it's unix socket.
+
+Configuration
+--------------------------------------
+*  The ``section`` specifies which section to test.
 """
 
 from dockertest import subtest

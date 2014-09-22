@@ -1,8 +1,21 @@
-"""
-Test output of docker Images command
+r"""
+Summary
+---------
 
-1. Attempt to parse 'docker images' table output
-2. Fail if table-format changes or is not parseable
+Test to confirm output table-format of docker CLI
+'images' command.
+
+Operational Summary
+----------------------
+
+#. Attempt to parse 'docker images' table output
+#. Fail if table-format changes or is not parseable
+
+Prerequisites
+---------------
+
+Configuration
+---------------
 """
 
 from dockertest import subtest

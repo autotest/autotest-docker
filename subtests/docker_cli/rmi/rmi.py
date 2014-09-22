@@ -1,9 +1,25 @@
-"""
-Test output of docker Rim command
+r"""
+Summary
+----------
 
-1. Create new Image
-2. Try to delete image.
-3. Check if image was deleted.
+Test output of docker rmi command
+
+Operational Summary
+----------------------
+
+#. Create new Image
+#. Try to delete image.
+#. Check if image was deleted.
+
+Prerequisites
+----------------------
+*  Image on remote registry with 'latest' and some other tag
+
+Configuration
+--------------------------------------
+*  The ``docker_rmi_force`` option causes sub-subtests to force remove images
+*  ``docker_expected_result`` should be "PASS" or "FAIL" to indicate result
+   handling behavior of sub-subtests.
 """
 
 import time

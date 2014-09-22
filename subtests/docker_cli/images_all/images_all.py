@@ -1,6 +1,30 @@
+r"""
+Summary
+----------
+
+This test is focused on `docker images --all` specific behavior. It
+checks the difference between ``docker images`` and ``docker images --all``.
+
+Operational Summary
+----------------------
+
+#.  Create image test_a
+#.  Create image test_a1 with parent test_a
+#.  Create image test_b
+#.  Create image test_b1 with parent test_b
+#.  Untag test_a
+#.  Untag test_a1 (verify intermediary images were removed too)
+#.  Untag test_b1 (verify test_b was preserved)
+
+*  Between steps 4-7 verify `docker images` and `docker history`
+
+Prerequisites
+---------------
+
+Configuration
+---------------
 """
-This test is focused on `docker images --all` specific behavior
-"""
+
 from dockertest import config, xceptions
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd, NoFailDockerCmd
@@ -10,13 +34,10 @@ from autotest.client.shared import error
 
 
 class images_all(SubSubtestCaller):
-
-    """ Subtest caller """
+    pass
 
 
 class images_all_base(SubSubtest):
-
-    """ Base class """
 
     def _init_container(self, prefix, fin, subargs, cmd):
         """

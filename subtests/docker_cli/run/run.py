@@ -1,6 +1,24 @@
-"""
+r"""
+Summary
+----------
+
 Test docker run by executing basic commands inside container and checking the
 results.
+
+Operational Summary
+----------------------
+
+
+Prerequisites
+-----------------------------------------
+*  Container image with a ``/bin/bash`` shell executable
+*  Container image with a ``/bin/true`` executable returning zero
+*  Container image with a ``/bin/false`` executable returning non-zero
+*  Container image with a ``/bin/date`` executable
+*  Accurate (relative to host) timekeeping in container
+
+Configuration
+---------------
 """
 
 from dockertest.subtest import SubSubtest, SubSubtestCaller

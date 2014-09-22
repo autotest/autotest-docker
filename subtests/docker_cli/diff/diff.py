@@ -1,9 +1,31 @@
-"""
-Test output of docker diff command
+r"""
+Summary
+---------
 
-1. Modify a file in a docker image
-2. Run docker diff on resultant container
-3. Check output against expected changes
+Set of tests that modifies files within an image and then
+asserts the changes are picked up correctly by ``docker diff``
+
+Operational Summary
+--------------------
+
+#. Modify a file in a docker image
+#. Run docker diff on resultant container
+#. Check output against expected changes
+
+Prerequisites
+---------------
+
+*  Docker daemon is running and accessible by it's unix socket.
+   ``docker_cli/diff`` Configuration
+
+Configuration
+---------------------------------
+
+*  ``command`` is a csv arg list to ``docker run`` that specifies
+   how a test will modify a file for the test
+*  ``files_changed`` is a csv list of expected change types and the
+   files/directories that are changed.  It is in the form of:
+   <change type 1>,<path 1>,<change type 2>,<path 2> and so on.
 """
 
 from dockertest.dockercmd import DockerCmd

@@ -1,8 +1,24 @@
-"""
-Test output of docker ps -a command
+r"""
+Summary
+----------
 
-1. Attempt to parse 'docker ps -a --no-trunc --size' table output
-2. Fail if table-format changes or is not parseable
+Verify the table output and formatting of the ``docker ps -a``
+command.
+
+Operational Summary
+----------------------
+
+#. Attempt to parse 'docker ps -a --no-trunc --size' table output
+#. Fail if table-format changes or is not parseable
+
+Prerequsites
+----------------
+None
+
+Configuration
+--------------------------------------
+*  The ``wait_stop`` and ``wait_start`` options specify time in seconds to wait
+   before/after starting the test container.
 """
 
 import time

@@ -1,19 +1,38 @@
-"""
+r"""
+Summary
+----------
+
 Test usage of docker 'restart' command
 
-initialize:
-1) start container with test command
-run_once:
-2) check container output for start message
-3) execute docker restart
-4) check container output for restart message
-5) execute docker stop
-6) check container output for stop message
-postprocess:
-7) analyze results
-"""
-import time
+Operational Summary
+----------------------
 
+#. start container with test command
+#. check container output for start message
+#. execute docker restart
+#. check container output for restart message
+#. execute docker stop
+#. check container output for stop message
+#. analyze results
+
+
+Prerequisites
+---------------------------------------------
+*  A remote registry server
+
+Configuration
+--------------------------------------
+*  The ``run_options_csv`` modifies the running container options.
+*  The ``restart_options_csv`` modifies the restart command options.
+*  The ``stop_options_csv`` specifies the stop command options.
+*  The ``exec_cmd`` modifies the container command
+*  The ``start_check``, ``restart_check`` and ``stop_check`` are '\n'
+   separated lines which should be present in specific test stage.
+*  The ``restart_duration`` and ``stop_duration`` are expected command
+   execution durations (+-3s)
+"""
+
+import time
 from dockertest import config, subtest, xceptions
 from dockertest.containers import DockerContainers
 from dockertest.images import DockerImage

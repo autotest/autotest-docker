@@ -1,9 +1,21 @@
-"""
+r"""
+Summary
+---------
+
 Test could not run a container which is already running
 
-1. Run a container with a certain name
-2. Run a container with a certain name again
-3. Fail to run a container again
+Operational Summary
+----------------------
+
+#. Run a container with a certain name
+#. Run a container with a certain name again
+#. Fail to run a container again
+
+Prerequisites
+---------------
+
+Configuration
+---------------
 """
 
 from autotest.client import utils

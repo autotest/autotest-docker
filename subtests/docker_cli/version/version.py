@@ -1,9 +1,25 @@
-"""
+r"""
+Summary
+---------
+
 Test output of docker version command
 
-1. Run docker version command
-2. Check output
-3. compare to daemon API version
+Operational Summary
+----------------------
+
+#. Run docker version command
+#. Check output
+#. compare to daemon API version
+
+Prerequisites
+---------------
+
+None
+
+Configuration
+---------------
+
+None
 """
 
 from dockertest import subtest
