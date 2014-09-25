@@ -515,6 +515,13 @@ Configuration Module
    :members:
    :no-undoc-members:
 
+Documentation Module
+====================
+
+.. automodule:: dockertest.documentation
+   :members:
+   :no-undoc-members:
+
 ----------------
 Further Reading
 ----------------

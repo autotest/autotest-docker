@@ -12,8 +12,8 @@ PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 # the i18n builder cannot share the environment and doctrees with the others
 I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
-GET_SUBTESTS_PY = from dockertest.environment import SubtestDocs; print ' '.join(SubtestDocs.filenames())
-BUILD_SUBTEST_DOCS_PY = from dockertest.environment import SubtestDocs; print SubtestDocs.combined()
+GET_SUBTESTS_PY = from dockertest.documentation import RSTDoc; print ' '.join(RSTDoc.module_filenames())
+BUILD_SUBTEST_DOCS_PY = from dockertest.documentation import SubtestDocs, RSTDoc; print SubtestDocs(subtestdocclass=RSTDoc)
 
 SUBTESTS = $(shell python -c "${GET_SUBTESTS_PY}")
 
