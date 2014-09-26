@@ -179,6 +179,7 @@ class EnvCheck(AllGoodBase):
 
 
 class SubtestDocs(str):
+
     """
     A pre-defined rst-format multi-line string documenting a subtest
 
@@ -190,13 +191,13 @@ class SubtestDocs(str):
     header_fmt = ("``%(subtest_name)s`` Subtest\n"
                   "=============================="
                   "=============================="
-                  "========\n\n")
-    footer_fmt = ("\n")
+                  "========\n")
+    footer_fmt = ("%(configs)s\n\n")
 
-    def __new__(cls, subtest_path):
+    def __new__(cls, subtest_path, config=""):
         parts = [cls.header(subtest_path),
                  cls.docstring(subtest_path),
-                 cls.footer(subtest_path)]
+                 cls.footer(config)]
         documentation = '\n'.join(parts)
         return super(SubtestDocs, cls).__new__(cls, documentation)
 
@@ -262,14 +263,14 @@ class SubtestDocs(str):
         return cls.header_fmt % {'subtest_name': cls.name(subtest_path)}
 
     @classmethod
-    def footer(cls, subtest_path):
+    def footer(cls, configs):
         """
         Return RST-format footer to follow a subtest's documentation
 
         :param subtest_path: Full or absolute path, including filename of a
                              subtest module
         """
-        return cls.footer_fmt % {'subtest_name': cls.name(subtest_path)}
+        return cls.footer_fmt % {'configs': configs}
 
     @classmethod
     def combined(cls, path='.'):
@@ -280,8 +281,12 @@ class SubtestDocs(str):
                      be found
         :return: String containing RST formated documentation for all subtests
         """
-        return cls.join('', [cls(subtest_path)
-                             for subtest_path in cls.filenames(path)])
+        default_section, configs = ConfigINIParser(path).parse()
+        get_config = lambda path: configs.get(cls.name(path), "")
+        return (default_section +
+                cls.join('',
+                         [cls(subtest_path, get_config(subtest_path))
+                          for subtest_path in cls.filenames(path)]))
 
     def html(self):
         """
@@ -302,7 +307,257 @@ class SubtestDocs(str):
         # Ref: https://wiki.python.org/moin/ReStructuredText
         # Available formats: html, pseudoxml, rlpdf, docutils_xml, s5_html
         parts = core.publish_parts(source=self, writer_name='html')
-        return parts['body_pre_docinfo']+parts['fragment']
+        return parts['body_pre_docinfo'] + parts['fragment']
+
+
+class NoOverwriteDict(dict):
+
+    """
+    Dictionary which allows to set each key only once
+    :warning: Currently this feature is disabled and it behaves as normal dict
+    """
+
+    def __init__(self, name):
+        super(NoOverwriteDict, self).__init__()
+        self._name = name
+
+    def __setitem__(self, key, value):
+        if key in self:
+            raise KeyError("Key %s already exists\nexisting:%s\nnew:%s\n"
+                           "file:%s" % (key, self[key], value, self._name))
+        super(NoOverwriteDict, self).__setitem__(key, value)
+
+
+class BaseConfigDocs(object):
+
+    """
+    Abstract class for parsing configuration description from ini files
+    """
+
+    def __init__(self, name):
+        self.name = name
+        self.configs = []
+        self.undocumented = []
+        self.defaults = []
+
+    def populate_configs(self, keys, config, default_configs):
+        """ populates self.{defaults,configs,undocumented} values """
+        for key in keys:
+            conf = config[key]
+            if key in default_configs:
+                self.defaults.append("%s_" % key)
+                continue
+            if conf[1]:
+                self.configs.append((key, conf[1], conf[0]))
+            else:
+                self.undocumented.append("``%s``" % key)
+
+    @staticmethod
+    def render_line(config):
+        """ render config record as bullet item in defined format """
+        return "*  ``%s`` - %s ``[%s]``" % (config[0], config[1], config[2])
+
+    def render(self):
+        """ render this class's content """
+        raise NotImplementedError()
+
+    def __str__(self):
+        """ return rst rendered content when there is anything to print """
+        if bool(self):
+            return "\n".join(self.render())
+        else:
+            return ""
+
+    def __nonzero__(self):
+        """ is there any non-default content? """
+        if self.configs or self.undocumented or self.defaults:
+            return True
+        else:
+            return False
+
+
+class SubtestConfigDocs(BaseConfigDocs):
+
+    """ Subtest INI config parser """
+
+    def __init__(self, name, config, configs, default_configs):
+        super(SubtestConfigDocs, self).__init__(name)
+        self.missing = []
+        self.subsubtests = []
+
+        if "subsubtests" in config:
+            subsubtests = config.pop('subsubtests')[0]
+            self.populate_subsubtests(subsubtests, config, configs,
+                                      default_configs)
+
+        self.populate_configs(config.iterkeys(), config, default_configs)
+
+    def populate_subsubtests(self, subsubtests, config, configs,
+                             default_configs):
+        """ Populate subsubtests with subsubtests config """
+        self.subsubtests = []
+        for subsubtest in subsubtests.split(','):
+            subsubtest = "%s/%s" % (self.name, subsubtest)
+            if subsubtest in configs:
+                _ = SubSubtestConfigDocs(subsubtest, configs[subsubtest],
+                                         config, default_configs)
+                self.subsubtests.append(_)
+            else:
+                self.missing.append(subsubtest)
+
+    def render(self):
+        out = ['']
+        # underline = '=' * (len(self.name) + 9)
+        # out.append("%s Subtest\n%s\n" % (self.name, underline))
+        out.append("Configuration\n--------------\n")
+        if self.subsubtests:
+            subsubtests = ", ".join((_.name for _ in self.subsubtests))
+            out.append("*  ``subsubtests`` - ``%s``" % subsubtests)
+        for config in self.configs:
+            out.append(self.render_line(config))
+
+        if self.undocumented:
+            out.append("*  undocumented configs - %s"
+                       % ", ".join(self.undocumented))
+
+        if self.defaults:
+            out.append("*  overridden defaults - %s"
+                       % ", ".join(self.defaults))
+
+        out.extend((str(_) for _ in self.subsubtests))
+        return out
+
+    def __nonzero__(self):
+        if super(SubtestConfigDocs, self).__nonzero__() or self.subsubtests:
+            return True
+        else:
+            return False
+
+
+class SubSubtestConfigDocs(BaseConfigDocs):
+
+    """ SubSubtest INI config parser """
+
+    def __init__(self, name, config, subtest_conf, default_configs):
+        super(SubSubtestConfigDocs, self).__init__(name)
+
+        keys = [_ for _ in config if _ not in subtest_conf]
+        if not keys:
+            return
+        self.populate_configs(keys, config, default_configs)
+
+    def render(self):
+        out = []
+        underline = "~" * (len(self.name) + 11)
+        out.append("\n%s Subsubtest\n%s\n" % (self.name, underline))
+        out.extend((self.render_line(_) for _ in self.configs))
+
+        if self.undocumented:
+            out.append("*  undocumented configs - %s"
+                       % ", ".join(self.undocumented))
+
+        if self.defaults:
+            out.append("*  overridden defaults - %s"
+                       % ", ".join(self.defaults))
+        return out
+
+
+class ConfigINIParser(object):
+
+    """ parse ./config_defaults .ini files for test configuration """
+
+    def __init__(self, root_path='.', filenames=None):
+        self.root_path = root_path
+        if filenames is None:
+            filenames = SubtestDocs.filenames(root_path)
+        self.filenames = filenames
+
+    def parse(self):
+        """ Return tuple (default_configs, dict_of_test_configs) """
+        paths = os.walk(os.path.join(self.root_path, 'config_defaults'))
+        default_configs, rendered_defaults = self.parse_default_config(paths)
+        configs = self.parse_configs(paths)
+
+        missing = []
+        docs = {}
+        for path in self.filenames:
+            name = os.path.relpath(os.path.dirname(path),
+                                   os.path.join(self.root_path, 'subtests'))
+            if name not in configs:
+                missing.append(name)
+                continue
+            doc = SubtestConfigDocs(name, configs[name], configs,
+                                    default_configs)
+            if doc:
+                docs[name] = str(doc)
+            # No need to configure subsubtests
+            # missing.extend(doc.missing)
+
+        if missing:
+            missing = ", ".join(("``%s``" % _ for _ in missing))
+            rendered_defaults.append('Missing ini files for tests: %s\n\n\n'
+                                     % missing)
+
+        return "\n".join(rendered_defaults), docs
+
+    @staticmethod
+    def render_default_config(config):
+        """ render default_config records with labels """
+        return (".. _%s:\n\n*  ``%s`` - %s ``[%s]``\n"
+                % (config[0], config[0], config[2], config[1]))
+
+    def parse_default_config(self, paths):
+        """ get defaults from the config_defaults/defaults.ini """
+        default_configs = []
+        desc = []
+        if 'defaults.ini' in paths.next()[2]:
+            ini = open(os.path.join('.', 'config_defaults', 'defaults.ini'),
+                       'r')
+            for line in ini:
+                if not line:
+                    continue
+                elif line[0] == '#':
+                    if line.startswith('#: '):
+                        desc.append(line[3:].strip())
+                elif '=' in line:
+                    key, value = tuple(_.strip() for _ in line.split('=', 1))
+                    default_configs.append((key, value, " ".join(desc)))
+                    desc = []
+
+        rendered = []
+        rendered.append("Default configs\n===============\n")
+        for config in default_configs:
+            rendered.append(self.render_default_config(config))
+        default_configs = [_[0] for _ in default_configs]
+        return default_configs, rendered
+
+    @staticmethod
+    def parse_configs(paths):
+        """ Go through all .ini files in all directories and grab configs """
+        configs = {}
+        desc = []
+        for path in paths:
+            for ini in path[2]:
+                if not ini.endswith('.ini'):
+                    continue
+                ini = os.path.join(path[0], ini)
+                ini = open(ini, 'r')
+                for line in ini:
+                    line = line.strip()    # FIXME: Remove when all files fixed
+                    if line.startswith('#'):
+                        if line.startswith('#: '):  # ignore simple comments
+                            desc.append(line[3:].strip())
+                    elif line.startswith('[') and line.endswith(']'):
+                        test_name = line[1:-1]
+                        if test_name not in configs:
+                            configs[test_name] = NoOverwriteDict(ini.name)
+                        desc = []
+                    elif '=' in line:
+                        key, value = tuple(_.strip()
+                                           for _ in line.split('=', 1))
+                        configs[test_name][key] = (value, " ".join(desc))
+                        desc = []
+        return configs
 
 
 def set_selinux_context(pwd, context=None, recursive=True):
