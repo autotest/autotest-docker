@@ -79,13 +79,14 @@ import os
 import shutil
 import socket
 from autotest.client.shared import utils
-from dockertest.subtest import SubSubtest
-from dockertest.containers import DockerContainers, DockerContainersCLI
-from dockertest.dockercmd import DockerCmd
+from autotest.client.shared import error
+from dockertest.containers import DockerContainers
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.images import DockerImage
 from dockertest.config import none_if_empty, get_as_list
 from dockertest.xceptions import DockerTestNAError
+from dockertest.xceptions import DockerOutputError
+from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
 from dockertest import docker_daemon
 
@@ -213,7 +214,7 @@ class DkrcmdFactory(object):
         return cmd
 
 
-class DockerContainersCLISpec(DockerContainersCLI):
+class DockerContainersSpec(DockerContainers):
     docker_client_bind = None
     docker_options_spec = None
 
@@ -351,9 +352,9 @@ class tls_base(SubSubtest):
         bind_addr = self.config["docker_client_bind"]
         dos = " ".join(get_as_list(self.config['docker_options_spec']))
 
-        self.conts = DockerContainersCLISpec(self)
-        self.conts.interface.docker_client_bind = bind_addr
-        self.conts.interface.docker_options_spec = dos
+        self.conts = DockerContainersSpec(self)
+        self.conts.docker_client_bind = bind_addr
+        self.conts.docker_options_spec = dos
 
         self.dkr_cmd = DkrcmdFactory(self, dkrcmd_class=AsyncDockerCmdSpec)
         self.sub_stuff["image_name"] = None
@@ -368,8 +369,15 @@ class tls_base(SubSubtest):
             if (self.config['remove_after_test'] and
                     'containers' in self.sub_stuff):
                 for cont in self.sub_stuff["containers"]:
-                    subargs = ["--force", "--volumes", cont]
-                    DockerCmd(self, 'rm', subargs).execute()
+                    self.conts.remove_args = "--force --volumes"
+                    for _ in xrange(3):
+                        try:
+                            self.conts.remove_by_name(cont)
+                            break
+                        except (ValueError, TypeError, IndexError,
+                                error.CmdError, DockerOutputError), e:
+                            self.logwarning(e)
+
         finally:
             # Kill docker_daemon process
             if self.sub_stuff["docker_daemon"] is not None:
@@ -433,7 +441,7 @@ class tls_verify_all_base_bad(tls_verify_all_base):
         if "docker_options_spec_good" in self.config:
             dos = " ".join(get_as_list(
                 self.config['docker_options_spec_good']))
-            self.conts.interface.docker_options_spec = dos
+            self.conts.docker_options_spec = dos
         # Avoid warning about not exist container.
 
         c1 = self.conts.list_containers_with_name(self.sub_stuff["cont1_name"])

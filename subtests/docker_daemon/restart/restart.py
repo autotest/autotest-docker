@@ -17,7 +17,7 @@ import re
 import time
 from autotest.client.shared import utils
 from dockertest.subtest import SubSubtest
-from dockertest.containers import DockerContainers, DockerContainersCLI
+from dockertest.containers import DockerContainers
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.images import DockerImage
 from dockertest import docker_daemon
@@ -165,7 +165,7 @@ class DkrcmdFactory(object):
         return cmd
 
 
-class DockerContainersCLISpec(DockerContainersCLI):
+class DockerContainersSpec(DockerContainers):
     docker_daemon_bind = None
 
     def docker_cmd(self, cmd, timeout=None):
@@ -184,10 +184,6 @@ class DockerContainersCLISpec(DockerContainersCLI):
         return utils.run(docker_cmd,
                          verbose=self.verbose,
                          timeout=timeout)
-
-
-class DockerContainersE(DockerContainers):
-    interfaces = {"cli": DockerContainersCLISpec}
 
 
 class restart(subtest.SubSubtestCaller):
@@ -209,8 +205,8 @@ class restart_base(SubSubtest):
 
         bind_addr = self.config["docker_daemon_bind"]
 
-        self.conts = DockerContainersE(self)
-        self.conts.interface.docker_daemon_bind = bind_addr
+        self.conts = DockerContainersSpec(self)
+        self.conts.docker_daemon_bind = bind_addr
 
         self.dkr_cmd = DkrcmdFactory(self, dkrcmd_class=AsyncDockerCmdSpec)
         self.sub_stuff["image_name"] = None

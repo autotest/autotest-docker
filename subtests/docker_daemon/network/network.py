@@ -24,7 +24,7 @@ import os
 from autotest.client import utils
 from autotest.client.shared import error
 from dockertest.subtest import SubSubtest, SubSubtestCaller
-from dockertest.containers import DockerContainers, DockerContainersCLI
+from dockertest.containers import DockerContainers
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest import docker_daemon
 from dockertest.config import none_if_empty, get_as_list
@@ -162,7 +162,7 @@ class DkrcmdFactory(object):
                                  verbose, **kargs)
 
 
-class DockerContainersCLISpec(DockerContainersCLI):
+class DockerContainersSpec(DockerContainers):
     docker_daemon_bind = None
 
     def docker_cmd(self, cmd, timeout=None):
@@ -197,9 +197,9 @@ class network_base(SubSubtest):
 
         bind_addr = self.config["docker_daemon_bind"]
 
-        conts = DockerContainersCLISpec(self)
+        conts = DockerContainersSpec(self)
         self.sub_stuff['conts'] = conts
-        conts.interface.docker_daemon_bind = bind_addr
+        conts.docker_daemon_bind = bind_addr
         self.dkr_cmd = DkrcmdFactory(self, dkrcmd_class=AsyncDockerCmdSpec)
         self.sub_stuff["image_name"] = None
         self.sub_stuff["container"] = None
