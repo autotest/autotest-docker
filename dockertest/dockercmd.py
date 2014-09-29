@@ -8,7 +8,7 @@ Frequently used docker CLI operations/data
 
 import time
 from autotest.client import utils
-from subtest import SubBase
+from subtestbase import SubBase
 from xceptions import (DockerNotImplementedError,
                        DockerRuntimeError, DockerTestError)
 
