@@ -35,6 +35,8 @@ class rm(SubSubtestCaller):
         # Fail if any containers are running
         dc = self.stuff['dc'] = DockerContainers(self, 'cli')
         for cntr in dc.list_containers():
+            if cntr.status is None:
+                cntr.status = "None"
             self.failif('exit' not in cntr.status.lower(),
                         "Container %s found running before test!"
                         % cntr.container_name)
