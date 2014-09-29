@@ -29,7 +29,7 @@ from dockertest.subtest import Subtest
 from dockertest.containers import DockerContainers
 from dockertest.images import DockerImage
 from dockertest.dockercmd import DockerCmd
-from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.output import mustpass
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.xceptions import DockerValueError
 
@@ -195,7 +195,7 @@ class events(Subtest):
             # Ignores placeholders not in mapping
             subargs.append(tmpl.safe_substitute(mapping))
         # test container executed later
-        self.stuff['nfdc'] = NoFailDockerCmd(self, 'run', subargs)
+        self.stuff['nfdc'] = DockerCmd(self, 'run', subargs)
         self.stuff['nfdc_cid'] = None
         # docker events command executed later
         events_cmd = AsyncDockerCmd(self, 'events', ['--since=0'])
@@ -213,7 +213,7 @@ class events(Subtest):
         # Start listening
         self.stuff['events_cmd'].execute()
         # Do something to make new events
-        cmdresult = self.stuff['nfdc'].execute()
+        cmdresult = mustpass(self.stuff['nfdc'].execute())
         cid = self.stuff['nfdc_cid'] = cmdresult.stdout.strip()
         while True:
             _json = dc.json_by_long_id(cid)
@@ -228,8 +228,8 @@ class events(Subtest):
                 dc.kill_container_by_long_id(cid)
             except ValueError:
                 pass  # container isn't running, this is fine.
-            dcmd = NoFailDockerCmd(self, 'rm', ['--force', '--volumes', cid])
-            dcmd.execute()
+            dcmd = DockerCmd(self, 'rm', ['--force', '--volumes', cid])
+            mustpass(dcmd.execute())
         # No way to know how long async events take to pass through :S
         self.loginfo("Sleeping %s seconds for events to catch up",
                      self.config['wait_stop'])

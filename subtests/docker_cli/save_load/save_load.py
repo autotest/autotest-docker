@@ -20,7 +20,8 @@ from autotest.client import utils
 from autotest.client.shared import error
 from dockertest import subtest, xceptions
 from dockertest.containers import DockerContainers
-from dockertest.dockercmd import DockerCmd, NoFailDockerCmd
+from dockertest.dockercmd import DockerCmd
+from dockertest.output import mustpass
 from dockertest.images import DockerImage, DockerImages
 from dockertest.output import OutputGood
 from dockertest.subtest import SubSubtest
@@ -101,8 +102,8 @@ class save_load_base(SubSubtest):
                     msg = ("Multiple containers matches name %s, not "
                            "removing any of them...", cont)
                     raise xceptions.DockerTestError(msg)
-                NoFailDockerCmd(self, 'rm', ['--force', '--volumes', cont],
-                                verbose=False).execute()
+                mustpass(DockerCmd(self, 'rm', ['--force', '--volumes', cont],
+                                   verbose=False).execute())
             for image in self.sub_stuff["images"]:
                 try:
                     dkrimg = self.sub_stuff['img']

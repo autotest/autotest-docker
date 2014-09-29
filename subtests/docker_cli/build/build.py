@@ -31,7 +31,8 @@ import shutil
 from urllib2 import urlopen
 from dockertest import subtest
 from dockertest.containers import DockerContainers
-from dockertest.dockercmd import DockerCmd, NoFailDockerCmd
+from dockertest.dockercmd import DockerCmd
+from dockertest.output import mustpass
 from dockertest.images import DockerImages
 from dockertest.output import OutputGood
 from dockertest.xceptions import DockerTestNAError
@@ -77,8 +78,8 @@ class build(subtest.SubSubtestCaller):
         super(build, self).initialize()
         # Most tests use 'empty_base_image'. Add it only here
         tarball = open(os.path.join(self.bindir, 'empty_base_image.tar'), 'rb')
-        dkrcmd = NoFailDockerCmd(self, 'import', ["-", "empty_base_image"])
-        dkrcmd.execute(stdin=tarball)
+        dkrcmd = DockerCmd(self, 'import', ["-", "empty_base_image"])
+        mustpass(dkrcmd.execute(stdin=tarball))
 
     def cleanup(self):
         super(build, self).cleanup()

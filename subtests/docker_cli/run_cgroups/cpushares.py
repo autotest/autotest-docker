@@ -6,7 +6,8 @@ properly.
 """
 
 from dockertest import xceptions
-from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.output import mustpass
+from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
 from cgroups_base import cgroups_base
 
@@ -61,7 +62,7 @@ class cpu_base(cgroups_base):
         super(cpu_base, self).run_once()
         subargs = self.sub_stuff['subargs']
         dc = self.sub_stuff['docker_containers']
-        NoFailDockerCmd(self, 'run', subargs).execute()
+        mustpass(DockerCmd(self, 'run', subargs).execute())
         cobjs = dc.list_containers_with_name(self.sub_stuff['name'])
         long_id = cobjs[0].long_id
         json_cpushares = dc.json_by_long_id(long_id)[0]["Config"]["CpuShares"]

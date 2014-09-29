@@ -15,8 +15,8 @@ postprocess:
 
 from dockertest import config, subtest, xceptions
 from dockertest.containers import DockerContainers
-from dockertest.dockercmd import (AsyncDockerCmd, NoFailDockerCmd,
-                                  MustFailDockerCmd)
+from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
+from dockertest.output import mustpass, mustfail
 from dockertest.images import DockerImage
 from dockertest.xceptions import (DockerCommandError, DockerExecError)
 from autotest.client.shared import utils
@@ -63,17 +63,17 @@ class simple(subtest.SubSubtest):
         err_msg = ("Start of the %s container failed, but '%s' message is not "
                    "in the output:\n%s")
         # Nonexisting container
-        result = MustFailDockerCmd(self, "start", [name]).execute()
+        result = mustfail(DockerCmd(self, "start", [name]).execute())
         self.failif("No such container" not in str(result), err_msg
                     % ("non-existing", 'No such container', result))
 
         # Running container
         self._start_container(name)
-        result = NoFailDockerCmd(self, "start", [name]).execute()
+        result = mustpass(DockerCmd(self, "start", [name]).execute())
 
         # Stopped container
-        NoFailDockerCmd(self, "kill", [name]).execute()
-        result = NoFailDockerCmd(self, "start", [name]).execute()
+        mustpass(DockerCmd(self, "kill", [name]).execute())
+        result = mustpass(DockerCmd(self, "start", [name]).execute())
 
     def postprocess(self):
         super(simple, self).postprocess()
@@ -85,7 +85,7 @@ class simple(subtest.SubSubtest):
         self.failif(out.count("\n") != 2, "The container was executed twice, "
                     "there should be 2 lines with start dates, but is "
                     "%s.\nContainer output:\n%s" % (out.count("\n"), out))
-        NoFailDockerCmd(self, "kill", [name]).execute()
+        mustpass(DockerCmd(self, "kill", [name]).execute())
 
     def cleanup(self):
         super(simple, self).cleanup()
@@ -93,8 +93,8 @@ class simple(subtest.SubSubtest):
         name = self.sub_stuff.get('container_name')
         if name and self.config.get('remove_after_test'):
             try:
-                NoFailDockerCmd(self, 'rm',
-                                ['--force', '--volumes', name]).execute()
+                mustpass(DockerCmd(self, 'rm',
+                                   ['--force', '--volumes', name]).execute())
             except (DockerCommandError, DockerExecError), details:
                 cleanup_log.append("docker rm failed: %s" % details)
         if cleanup_log:

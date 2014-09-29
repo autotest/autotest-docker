@@ -14,9 +14,10 @@ import tempfile
 from autotest.client.shared import utils
 from dockertest import xceptions
 from dockertest.containers import DockerContainers
-from dockertest.dockercmd import NoFailDockerCmd, DockerCmdBase, DockerCmd
+from dockertest.dockercmd import DockerCmdBase, DockerCmd
 from dockertest.images import DockerImage, DockerImages
 from dockertest.subtest import SubSubtest
+from dockertest.output import mustpass
 
 
 class with_env(SubSubtest):
@@ -27,7 +28,7 @@ class with_env(SubSubtest):
     _re_match_env = re.compile(r'\n?TEST_([^=]+)=(.+)')
 
     def _init_container(self, subargs, cmd, image=None):
-        """ Prepare and start NoFailDockerCmd container """
+        """ Prepare and start DockerCmd container """
         if not image:
             image = DockerImage.full_name_from_defaults(self.config)
         subargs = subargs[:]
@@ -36,16 +37,16 @@ class with_env(SubSubtest):
         subargs.append("--name %s" % name)
         subargs.append(image)
         subargs.append(cmd)
-        dkrcmd = NoFailDockerCmd(self, 'run', subargs, verbose=False)
-        dkrcmd.execute()
+        dkrcmd = DockerCmd(self, 'run', subargs, verbose=False)
+        mustpass(dkrcmd.execute())
         return dkrcmd, name
 
     def _export_container(self, container):
         """ Export contianer into a new file """
         pwd = tempfile.mktemp('.tar', 'exported_container-', self.tmpdir)
         self.sub_stuff['files'].add(pwd)
-        NoFailDockerCmd(self, 'export',
-                        ["%s > %s" % (container[1], pwd)]).execute()
+        mustpass(DockerCmd(self, 'export',
+                           ["%s > %s" % (container[1], pwd)]).execute())
         return pwd
 
     def _import_container(self, subargs, pwd):

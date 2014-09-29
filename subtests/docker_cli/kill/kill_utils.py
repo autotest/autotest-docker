@@ -12,9 +12,10 @@ import time
 from autotest.client.shared.utils import wait_for
 from dockertest import config, subtest, xceptions
 from dockertest.containers import DockerContainers
-from dockertest.dockercmd import AsyncDockerCmd, DockerCmd, NoFailDockerCmd
+from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
 from dockertest.images import DockerImage
-from dockertest.output import OutputGood
+from dockertest.output import OutputGood, mustpass
+from dockertest.xceptions import DockerExecError
 
 
 SIGNAL_MAP = {1: 'HUP', 2: 'INT', 3: 'QUIT', 4: 'ILL', 5: 'TRAP', 6: 'ABRT',
@@ -99,9 +100,9 @@ class kill_base(subtest.SubSubtest):
         subargs.append("bash")
         subargs.append("-c")
         subargs.append(self.config['exec_cmd'])
-        container = NoFailDockerCmd(self, 'run', subargs, verbose=False)
+        container = DockerCmd(self, 'run', subargs, verbose=False)
         self.sub_stuff['container_cmd'] = container
-        container.execute()
+        mustpass(container.execute())
 
         if self.config.get('attach_options_csv'):
             subargs = [arg for arg in
@@ -268,8 +269,14 @@ class kill_base(subtest.SubSubtest):
             msg = ("Multiple containers matches name %s, not removing any of "
                    "them...", name)
             raise xceptions.DockerTestError(msg)
-        NoFailDockerCmd(self, 'rm', ['--force', '--volumes', name],
-                        verbose=False).execute()
+        args = ['--force', '--volumes', name]
+        for _ in xrange(3):
+            try:
+                mustpass(DockerCmd(self, 'rm', args).execute())
+                break
+            except DockerExecError, details:
+                self.logwarning("Unable to remove docker container: %s " %
+                                details)
 
     def cleanup(self):
         super(kill_base, self).cleanup()

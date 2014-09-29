@@ -11,7 +11,8 @@ docker pull --tag=xxx full_name
 from distutils.version import LooseVersion  # pylint: disable=E0611
 from pull import pull_base, check_registry
 from dockertest.images import DockerImage
-from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.output import mustpass
+from dockertest.dockercmd import DockerCmd
 from dockertest.output import DockerVersion
 from dockertest.xceptions import DockerTestNAError
 
@@ -26,7 +27,8 @@ class good_extra_tag(pull_base):
 
     def initialize(self):
         super(good_extra_tag, self).initialize()
-        dv = DockerVersion(NoFailDockerCmd(self, "version").execute().stdout)
+        ver_stdout = mustpass(DockerCmd(self, "version").execute()).stdout
+        dv = DockerVersion(ver_stdout)
         client_version = LooseVersion(dv.client)
         max_version = LooseVersion(self.max_version)
         if client_version > max_version:

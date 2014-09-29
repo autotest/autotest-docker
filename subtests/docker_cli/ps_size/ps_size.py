@@ -13,7 +13,8 @@ Operational Summary
 """
 from dockertest import config, xceptions
 from dockertest.containers import DockerContainers
-from dockertest.dockercmd import DockerCmd, NoFailDockerCmd
+from dockertest.dockercmd import DockerCmd
+from dockertest.output import mustpass
 from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtestCaller, SubSubtest
 
@@ -38,7 +39,7 @@ class ps_size_base(SubSubtest):
         fin = DockerImage.full_name_from_defaults(self.config)
         subargs.append(fin)
         subargs.append(cmd)
-        dkrcmd = NoFailDockerCmd(self, 'run', subargs, verbose=False)
+        dkrcmd = DockerCmd(self, 'run', subargs, verbose=False)
         return dkrcmd
 
     def initialize(self):
@@ -95,7 +96,7 @@ class simple(ps_size_base):
                 segment = "1M"
                 self.sub_stuff['sizes'].append(size)
             dkrcmd = self._init_container([], dd_cmd % (segment, size))
-            dkrcmd.execute()
+            mustpass(dkrcmd.execute())
 
     def postprocess(self):
         def convert_size(size):

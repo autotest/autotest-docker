@@ -25,7 +25,7 @@ from dockertest.output import OutputGood
 from dockertest.output import DockerVersion
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.dockercmd import DockerCmd
-from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.output import mustpass
 from dockertest.xceptions import DockerCommandError
 from dockertest.xceptions import DockerTestNAError
 
@@ -117,10 +117,9 @@ class rmi_base(SubSubtest):
         if (self.config['remove_after_test'] and
                 'image_list' in self.sub_stuff):
             for cont in self.sub_stuff["containers"]:
-                clean_cont = NoFailDockerCmd(self, "rm",
-                                             ['--force', cont],
-                                             self.config['docker_rmi_timeout'])
-                clean_cont.execute()
+                clean_cont = DockerCmd(self, "rm", ['--force', cont],
+                                       self.config['docker_rmi_timeout'])
+                mustpass(clean_cont.execute())
             for image in self.sub_stuff["image_list"]:
                 # If removal by name fails, try id
                 try:
@@ -139,7 +138,8 @@ class rmi_base(SubSubtest):
 
     # FIXME: Clobber this method when 'commit_run_params' goes away (below)
     def run_is_deprecated(self):
-        dv = DockerVersion(NoFailDockerCmd(self, "version").execute().stdout)
+        ver_stdout = mustpass(DockerCmd(self, "version").execute()).stdout
+        dv = DockerVersion(ver_stdout)
         client_version = LooseVersion(dv.client)
         dep_version = LooseVersion(self.commit_run_deprecated_version)
         if client_version < dep_version:

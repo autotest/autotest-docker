@@ -13,7 +13,8 @@ import os
 import os.path
 import shutil
 from empty import empty
-from dockertest.dockercmd import MustFailDockerCmd
+from dockertest.dockercmd import DockerCmd
+from dockertest.output import mustfail
 from dockertest import output
 
 
@@ -25,8 +26,8 @@ class truncated(empty):
         # Fail test if **successful**
         image_name = self.sub_stuff['image_name']  # assume id lookup failed
         if self.parent_subtest.config['try_remove_after_test']:
-            dkrcmd = MustFailDockerCmd(self, 'rmi', [image_name])
-            dkrcmd.execute()
+            dkrcmd = DockerCmd(self, 'rmi', [image_name])
+            mustfail(dkrcmd.execute())
 
     def run_tar(self, tar_command, dkr_command):
         self.copy_includes()

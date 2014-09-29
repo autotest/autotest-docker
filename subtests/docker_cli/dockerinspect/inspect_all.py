@@ -11,7 +11,8 @@ Test output of docker inspect command
 import re
 
 from dockerinspect import inspect_base
-from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.output import mustpass
+from dockertest.dockercmd import DockerCmd
 
 
 class inspect_all(inspect_base):
@@ -26,8 +27,8 @@ class inspect_all(inspect_base):
         super(inspect_all, self).run_once()
         # find inputs to this
         subargs = [self.sub_stuff['name']]
-        nfdc = NoFailDockerCmd(self, "inspect", subargs)
-        self.sub_stuff['cmdresult'] = nfdc.execute()
+        nfdc = DockerCmd(self, "inspect", subargs)
+        self.sub_stuff['cmdresult'] = mustpass(nfdc.execute())
 
     def postprocess(self):
         super(inspect_all, self).postprocess()

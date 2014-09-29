@@ -39,6 +39,7 @@ from dockertest import images
 from dockertest import config
 from dockertest import output
 from dockertest import xceptions
+from dockertest.output import mustpass
 
 
 class NoisyCmd(dockercmd.DockerCmd):
@@ -112,10 +113,10 @@ class Base(subtest.SubSubtest):
             raise xceptions.DockerTestNAError("Failed to initialize %s"
                                               % self.config_section)
         # Throw away cntr, all we need is the CID
-        cntr = dockercmd.NoFailDockerCmd(self, 'run',
-                                         ['--detach',
-                                          self.sub_stuff['FQIN'], 'true'],
-                                         verbose=False).execute()
+        cntr = mustpass(dockercmd.DockerCmd(self, 'run',
+                                            ['--detach',
+                                             self.sub_stuff['FQIN'], 'true'],
+                                            verbose=False).execute())
         # Only the CID is needed
         self.sub_stuff['STPCNTR'] = cntr.stdout.splitlines()[-1].strip()
 

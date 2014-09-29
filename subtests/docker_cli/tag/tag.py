@@ -19,7 +19,8 @@ from dockertest.subtest import SubSubtest
 from dockertest.images import DockerImages
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
-from dockertest.dockercmd import DockerCmd, NoFailDockerCmd
+from dockertest.output import mustpass
+from dockertest.dockercmd import DockerCmd
 from dockertest import subtest
 from dockertest import config
 from dockertest import xceptions
@@ -45,7 +46,8 @@ class tag_base(SubSubtest):
 
     def prep_image(self, base_image):
         """ Tag the dockertest image to this test name """
-        NoFailDockerCmd(self, "pull", [base_image], verbose=False).execute()
+        mustpass(DockerCmd(self, "pull", [base_image],
+                           verbose=False).execute())
         subargs = [base_image, self.sub_stuff["image"]]
         tag_results = DockerCmd(self, "tag", subargs, verbose=False).execute()
         if tag_results.exit_status:
@@ -178,8 +180,8 @@ class double_tag(change_tag):
         super(double_tag, self).initialize()
         # Tag it for the first time
         self.sub_stuff['tmp_image_list'].add(self.sub_stuff["new_image_name"])
-        NoFailDockerCmd(self, 'tag', self.complete_docker_command_line(),
-                        verbose=False).execute()
+        mustpass(DockerCmd(self, 'tag', self.complete_docker_command_line(),
+                           verbose=False).execute())
 
 
 class double_tag_force(double_tag):

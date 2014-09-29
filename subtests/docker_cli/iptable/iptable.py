@@ -20,8 +20,8 @@ Prerequisites
 *  Command iptable and brctl are working well.
 """
 
-from dockertest.dockercmd import NoFailDockerCmd
 from dockertest.dockercmd import DockerCmd
+from dockertest.output import mustpass
 from dockertest.containers import DockerContainers
 from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtest
@@ -105,7 +105,7 @@ class iptable_base(SubSubtest):
     def run_once(self):
         super(iptable_base, self).run_once()
         subargs = self.sub_stuff['subargs']
-        NoFailDockerCmd(self, 'run -d -t', subargs, verbose=True).execute()
+        mustpass(DockerCmd(self, 'run -d -t', subargs, verbose=True).execute())
 
     def postprocess(self):
         super(iptable_base, self).postprocess()
@@ -144,8 +144,8 @@ class iptable_remove(iptable_base):
         self.loginfo("Container %s\niptable rule list %s:" %
                      (self.sub_stuff['name'], added_rules))
 
-        NoFailDockerCmd(self, 'stop',
-                        ["-t 0", self.sub_stuff['name']]).execute()
+        mustpass(DockerCmd(self, 'stop',
+                           ["-t 0", self.sub_stuff['name']]).execute())
 
         container_rules = lambda: not self.read_iptable_rules(net_device)
         removed_rules = utils.wait_for(container_rules, 10, step=0.1)

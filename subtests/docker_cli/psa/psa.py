@@ -21,7 +21,8 @@ from dockertest import subtest
 from dockertest import images
 from dockertest.output import OutputGood
 from dockertest.dockercmd import AsyncDockerCmd
-from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.dockercmd import DockerCmd
+from dockertest.output import mustpass
 from dockertest.containers import DockerContainers
 from dockertest.xceptions import DockerTestFail
 
@@ -139,6 +140,5 @@ class psa(subtest.Subtest):
         if self.config['remove_after_test'] and cid is not None:
             self.logdebug("Cleaning container %s", cid)
             # We need to know about this breaking anyway, let it raise!
-            nfdc = NoFailDockerCmd(self, "rm", ['--force',
-                                                '--volumes', cid])
-            nfdc.execute()
+            nfdc = DockerCmd(self, "rm", ['--force', '--volumes', cid])
+            mustpass(nfdc.execute())

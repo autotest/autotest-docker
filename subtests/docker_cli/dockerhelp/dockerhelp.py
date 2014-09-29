@@ -13,7 +13,7 @@ Operational Summary
 
 from dockertest.config import Config
 from dockertest.dockercmd import DockerCmd
-from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.output import mustpass
 from dockertest.output import OutputGood
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
@@ -57,8 +57,9 @@ class help_base(SubSubtest):
         super(help_base, self).run_once()  # Prints out basic info
         for option in self.sub_stuff['success_option_list']:
             # No successful command should throw an exception
-            dkrcmd = NoFailDockerCmd(self, option)
-            self.sub_stuff["success_cmdresults"].append(dkrcmd.execute())
+            dkrcmd_results = mustpass(DockerCmd(self,
+                                                option).execute())
+            self.sub_stuff["success_cmdresults"].append(dkrcmd_results)
         for option in self.sub_stuff['failure_option_list']:
             # These are likely to return non-zero
             dkrcmd = DockerCmd(self, option)

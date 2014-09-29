@@ -15,7 +15,7 @@ Operational Summary
 from autotest.client import utils
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd
-from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.output import mustpass
 from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
@@ -114,8 +114,8 @@ class inspect_base(SubSubtest):
                    "/bin/bash",
                    "-c",
                    "'/bin/true'"]
-        nfdc = NoFailDockerCmd(subtest, 'run', subargs)
-        nfdc.execute()
+        nfdc = DockerCmd(subtest, 'run', subargs)
+        mustpass(nfdc.execute())
         if not subtest.sub_stuff or not subtest.sub_stuff['containers']:
             subtest.sub_stuff['containers'] = [name]
         else:
@@ -138,8 +138,8 @@ class inspect_container_simple(inspect_base):
     def run_once(self):
         super(inspect_container_simple, self).run_once()
         subargs = [self.sub_stuff['name']]
-        nfdc = NoFailDockerCmd(self, "inspect", subargs)
-        self.sub_stuff['cmdresult'] = nfdc.execute()
+        nfdc = DockerCmd(self, "inspect", subargs)
+        self.sub_stuff['cmdresult'] = mustpass(nfdc.execute())
 
     def postprocess(self):
         super(inspect_container_simple, self).postprocess()

@@ -14,7 +14,7 @@ Operational Summary
 
 from autotest.client import utils
 from dockertest import subtest
-from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.output import mustpass
 from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
@@ -39,8 +39,8 @@ class run_twice(subtest.Subtest):
 
     def run_once(self):
         super(run_twice, self).run_once()
-        nfdc = NoFailDockerCmd(self, 'run', self.stuff['subargs'])
-        self.stuff['cmdresults'].append(nfdc.execute())
+        nfdc = DockerCmd(self, 'run', self.stuff['subargs'])
+        self.stuff['cmdresults'].append(mustpass(nfdc.execute()))
         dc = DockerCmd(self, 'run', self.stuff['subargs'])
         self.stuff['2nd_cmdresults'].append(dc.execute())
 

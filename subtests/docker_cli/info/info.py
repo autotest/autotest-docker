@@ -22,7 +22,8 @@ Prerequisites
 from autotest.client import utils
 from dockertest import subtest
 from dockertest.output import OutputGood
-from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.dockercmd import DockerCmd
+from dockertest.output import mustpass
 import os
 
 
@@ -31,8 +32,8 @@ class info(subtest.Subtest):
     def run_once(self):
         super(info, self).run_once()
         # 1. Run with no options
-        nfdc = NoFailDockerCmd(self, "info")
-        self.stuff['cmdresult'] = nfdc.execute()
+        nfdc = DockerCmd(self, "info")
+        self.stuff['cmdresult'] = mustpass(nfdc.execute())
 
     @staticmethod
     def _build_table(cli_output):

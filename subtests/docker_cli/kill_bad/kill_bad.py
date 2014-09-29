@@ -10,11 +10,14 @@ Operation Summary
    verify it wasn't killed
 3. try to kill nonexisting container
 """
+import time
 from dockertest import config, xceptions, subtest
 from dockertest.containers import DockerContainers
-from dockertest.dockercmd import DockerCmd, MustFailDockerCmd, AsyncDockerCmd
+from dockertest.dockercmd import DockerCmd, AsyncDockerCmd
+from dockertest.output import mustfail
+from dockertest.output import mustpass
 from dockertest.images import DockerImage
-import time
+from dockertest.xceptions import DockerExecError
 
 
 class kill_bad(subtest.SubSubtestCaller):
@@ -50,11 +53,11 @@ class kill_bad_base(subtest.SubSubtest):
         Runs one container
         """
         super(kill_bad_base, self).initialize()
+        config.none_if_empty(self.config)
         # Prepare a container
         docker_containers = DockerContainers(self)
         name = docker_containers.get_unique_name()
         self.sub_stuff['container_name'] = name
-        config.none_if_empty(self.config)
         self._init_container(name)
         time.sleep(self.config.get('wait_start', 3))
 
@@ -67,20 +70,21 @@ class kill_bad_base(subtest.SubSubtest):
         self.failif(self.sub_stuff['container_cmd'].done, "Testing container "
                     "died unexpectadly.")
         for signal in self.config['bad_signals'].split(','):
-            MustFailDockerCmd(self, 'kill',
-                              ['-s', signal, self.sub_stuff['container_name']],
-                              verbose=False).execute()
+            mustfail(DockerCmd(self, 'kill',
+                               ['-s', signal,
+                                self.sub_stuff['container_name']],
+                               verbose=False).execute())
             self.failif(self.sub_stuff['container_cmd'].done, "Testing "
                         "container died after using signal %s." % signal)
         dkrcnt = DockerContainers(self)
         nonexisting_name = dkrcnt.get_unique_name()
         self.logdebug("Killing nonexisting containe.")
-        MustFailDockerCmd(self, 'kill', [nonexisting_name],
-                          verbose=False).execute()
+        mustfail(DockerCmd(self, 'kill', [nonexisting_name],
+                           verbose=False).execute())
 
     def postprocess(self):
         """
-        No postprocess required (using MustFailDockerCmd in run_once
+        No postprocess required.
         """
         super(kill_bad_base, self).postprocess()
 
@@ -99,8 +103,14 @@ class kill_bad_base(subtest.SubSubtest):
             msg = ("Multiple containers matches name %s, not removing any of "
                    "them...", name)
             raise xceptions.DockerTestError(msg)
-        DockerCmd(self, 'rm', ['--force', '--volumes', name],
-                  verbose=False).execute()
+        args = ['--force', '--volumes', name]
+        for _ in xrange(3):
+            try:
+                mustpass(DockerCmd(self, 'rm', args).execute())
+                break
+            except DockerExecError, details:
+                self.logwarning("Unable to remove docker container: %s " %
+                                details)
 
     def cleanup(self):
         super(kill_bad_base, self).cleanup()

@@ -18,7 +18,7 @@ Operational Summary
 
 from dockertest import subtest
 from dockertest.dockercmd import DockerCmd
-from dockertest.dockercmd import MustFailDockerCmd
+from dockertest.output import mustfail
 from dockertest.images import DockerImage
 from dockertest.containers import DockerContainers
 
@@ -45,8 +45,8 @@ class flag(subtest.Subtest):
         args.append("/bin/bash")
         args.append("-c")
         args.append("\"echo negative test for docker flags\"")
-        dc = MustFailDockerCmd(self, self.config["flag_args"], args)
-        self.stuff["cmdresult"] = dc.execute()
+        dc = DockerCmd(self, self.config["flag_args"], args)
+        self.stuff["cmdresult"] = mustfail(dc.execute())
 
     def postprocess(self):
         super(flag, self).postprocess()

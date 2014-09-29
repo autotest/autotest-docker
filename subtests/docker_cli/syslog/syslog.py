@@ -21,7 +21,8 @@ Prerequisites
 import os
 import datetime
 from dockertest.subtest import Subtest
-from dockertest.dockercmd import NoFailDockerCmd, DockerCmd
+from dockertest.output import mustpass
+from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
 from dockertest.containers import DockerContainers
 
@@ -47,8 +48,8 @@ class syslog(Subtest):
                    self.stuff['fin'],
                    self.stuff['testcmds']]
 
-        nfdc = NoFailDockerCmd(self, "run", subargs)
-        self.stuff['cmdresults'] = nfdc.execute()
+        nfdc = DockerCmd(self, "run", subargs)
+        self.stuff['cmdresults'] = mustpass(nfdc.execute())
 
     def postprocess(self):
         super(syslog, self).postprocess()

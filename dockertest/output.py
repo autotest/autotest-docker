@@ -489,3 +489,41 @@ def wait_for_output(output_fn, pattern, timeout=60, timestep=0.2):
     if res:
         return True
     return False
+
+
+def mustpass(cmdresult, failmsg=None):
+    """
+    Check docker cmd results for pass. Raise exception when command failed.
+
+    :param cmdresult: results of cmd.
+    :type cmdresult: object convertible to string with variable exit_status
+    :param failmsg: Additional messages for describing problem when cmd fails.
+    """
+    if failmsg is None:
+        details = "%s" % cmdresult
+    else:
+        details = "%s\n%s" % (failmsg, cmdresult)
+
+    if cmdresult.exit_status != 0:
+        raise xceptions.DockerExecError("Unexpected non-zero exit code,"
+                                        " details: %s" % details)
+    return cmdresult
+
+
+def mustfail(cmdresult, failmsg=None):
+    """
+    Check docker cmd results for pass. Raise exception when command passed.
+
+    :param cmdresult: results of cmd.
+    :type cmdresult: object convertible to string with variable exit_status
+    :param failmsg: Additional messages for describing problem when cmd fails.
+    """
+    if failmsg is None:
+        details = "%s" % cmdresult
+    else:
+        details = "%s\n%s" % (failmsg, cmdresult)
+
+    if cmdresult.exit_status == 0:
+        raise xceptions.DockerExecError("Unexpected zero exit code,"
+                                        " details: %s" % details)
+    return cmdresult

@@ -23,12 +23,11 @@ Prerequisites
 from StringIO import StringIO
 import pickle
 import inspect
-import os
 import os.path
 from autotest.client import utils
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
-from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.output import mustpass
 from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
 from dockertest.images import DockerImages
@@ -56,7 +55,9 @@ class CpBase(SubSubtest):
     def cleanup(self):
         super(CpBase, self).cleanup()
         # self.tmpdir will be automatically cleaned
-        if self.config['remove_after_test']:
+        remove_after_test = self.config['remove_after_test']
+        # Due to problem with selinux it is necessary to check container_name.
+        if remove_after_test and 'container_name' in self.sub_stuff:
             DockerCmd(self, 'rm',
                       ["--force", self.sub_stuff['container_name']]).execute()
 
@@ -76,8 +77,8 @@ class simple(CpBase):
         self.sub_stuff['cpfile'] = cpfile
         cmd = '\'echo "%s" > %s && md5sum %s\'' % (contents, cpfile, cpfile)
         subargs.append(cmd)
-        nfdc = NoFailDockerCmd(self, 'run', subargs)
-        cmdresult = nfdc.execute()
+        nfdc = DockerCmd(self, 'run', subargs)
+        cmdresult = mustpass(nfdc.execute())
         self.sub_stuff['cpfile_md5'] = cmdresult.stdout.split()[0]
 
     def run_once(self):
@@ -86,9 +87,9 @@ class simple(CpBase):
         subargs = ["%s:%s" % (self.sub_stuff['container_name'],
                               self.sub_stuff['cpfile'])]
         subargs.append(self.tmpdir)
-        nfdc = NoFailDockerCmd(self, "cp", subargs,
-                               timeout=self.config['docker_timeout'])
-        nfdc.execute()
+        nfdc = DockerCmd(self, "cp", subargs,
+                         timeout=self.config['docker_timeout'])
+        mustpass(nfdc.execute())
         copied_path = "%s/%s" % (self.tmpdir,
                                  self.sub_stuff['cpfile'].split('/')[-1])
         self.sub_stuff['copied_path'] = copied_path
@@ -149,10 +150,10 @@ class every_last(CpBase):
                    fqin,
                    "python -c '%s'" % code]
         # Data transfered over stdout, don't log it!
-        nfdc = NoFailDockerCmd(self, "run", subargs, verbose=False)
+        nfdc = DockerCmd(self, "run", subargs, verbose=False)
         nfdc.quiet = True
         self.logdebug("Executing %s", nfdc.command)
-        nfdc.execute()
+        mustpass(nfdc.execute())
         return pickle.load(StringIO(nfdc.stdout))
 
     def initialize(self):
@@ -171,7 +172,7 @@ class every_last(CpBase):
         self.loginfo("Testing copy of %d files from container" % total)
         self.sub_stuff['results'] = {}  # cont_path -> cmdresult
         # Avoid excessive logging
-        nfdc = NoFailDockerCmd(self, 'cp', verbose=False)
+        nfdc = DockerCmd(self, 'cp', verbose=False)
         nfdc.quiet = True
         nfiles = 0
         for index, srcfile in enumerate(self.sub_stuff['lastfiles']):
@@ -181,7 +182,7 @@ class every_last(CpBase):
             host_path = self.tmpdir
             host_fullpath = os.path.join(host_path, os.path.basename(srcfile))
             nfdc.subargs = [cont_path, host_path]
-            nfdc.execute()
+            mustpass(nfdc.execute())
             self.failif(not os.path.isfile(host_fullpath),
                         "Not a file: '%s'" % host_fullpath)
             nfiles += 1
