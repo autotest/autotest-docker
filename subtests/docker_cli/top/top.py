@@ -7,19 +7,18 @@ Test usage of docker 'top' command
 Operational Summary
 ----------------------
 
-#. start container with bash
-#. execute docker top and container ps
-#. in container execute couple of processes
-#. execute docker top and container ps
-#. stop container
-#. execute docker top
-#. analyze results
+1. start container with bash
+2. execute docker top and container ps
+3. in container execute couple of processes
+4. execute docker top and container ps
+5. stop container
+6. execute docker top
+7. analyze results
 
 Prerequisites
 ---------------------------------------------
 
-*  A remote registry server
-*  A docker image capable of executing the ``ps`` command
+*  A docker image capable of executing the ``top`` command
 
 Configuration
 --------------------------------------

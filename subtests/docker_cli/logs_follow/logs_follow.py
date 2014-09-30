@@ -6,21 +6,15 @@ This test checks function of `docker logs --follow`
 
 Operational Summary
 ---------------------
-#.  Start container
-#.  Start `docker logs --follow` process
-#.  Execute couple of cmds
-#.  Start `docker logs` (without --follow) process
-#.  Execute couple of cmds (output to stderr)
-#.  Stop container
-#.  Start `docker logs` (without --follow) process
-#.  Check correctness o 2, then compare 2 and 7 (match) and 4 (partial
+1.  Start container
+2.  Start `docker logs --follow` process
+3.  Execute couple of cmds
+4.  Start `docker logs` (without --follow) process
+5.  Execute couple of cmds (output to stderr)
+6.  Stop container
+7.  Start `docker logs` (without --follow) process
+8.  Check correctness o 2, then compare 2 and 7 (match) and 4 (partial
     match). Also check all exit statuses/errors/...
-
-Prerequisites
----------------
-
-Configuration
----------------
 """
 
 import os

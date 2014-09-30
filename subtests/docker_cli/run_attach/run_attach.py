@@ -7,17 +7,10 @@ This test checks different ``docker run -a xxx`` variants.
 Operational Summary
 ----------------------
 
-#. Starts `docker run` with defined combination of `-a ...`
-   across 6 variants of tty/non-tty vs stdin/out/err.
-#. Analyze results
-
-Prerequisites
----------------
-
-Configuration
----------------
+1. Starts `docker run` with defined combination of `-a ...`
+   each subtest executes 6 variants of tty/non-tty vs stdin/out/err.
+2. Analyze results (exit_code, input_handling, correct_output)
 """
-
 from autotest.client import utils
 from dockertest import config, xceptions, subtest
 from dockertest.containers import DockerContainers
