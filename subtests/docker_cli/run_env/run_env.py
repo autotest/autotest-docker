@@ -43,6 +43,7 @@ None
 """
 import ast
 import os
+import os.path
 import random
 import re
 
@@ -171,6 +172,14 @@ class run_env_base(SubSubtest):
         """\n"""
         """exit()\n"""
     )
+
+    def record_iptables(self, label):
+        name = ('%s_iptables_%s.txt'
+                % (self.__class__.__name__, label))
+        output = open(os.path.join(self.parent_subtest.resultsdir, name), 'w+')
+        output.write(utils.run('iptables -t filter -L -n -v').stdout)
+        output.write('\n\n')
+        output.write(utils.run('iptables -t nat -L -n -v').stdout)
 
     def get_env(self, output):
         """
@@ -367,6 +376,10 @@ class rm_link(port):
     7. Checks if env and no data printed correctly.
     """
 
+    def initialize(self):
+        self.record_iptables('initial')
+        super(rm_link, self).initialize()
+
     def run_once(self):
         params = self.sub_stuff['params']
         # Server needs to be listening before client tries to connect
@@ -380,14 +393,23 @@ class rm_link(port):
         clientcmd = self.start_client()
         self.wait_for(clientcmd, '>>> ', "No python prompt from client")
 
+        self.record_iptables('before_rmlink')
+
         self.remove_link(self.sub_stuff['client_name'], 'server')
+
+        self.record_iptables('after_rmlink')
+
         clientcmd.stdin = str(self.python_client % params)
         # Executed python includes printing this on stdout
         self.wait_for(clientcmd, "Client Connecting", "No client connect")
         msg = ("Negative test, but reply received: '%s'" % clientcmd.stdout)
-        self.wait_for(clientcmd, 'RESENDING: Testing data', msg, negative=True)
+        self.wait_for(clientcmd, 'RESENDING: ', msg, negative=True)
         self.sub_stuff['client_result'] = clientcmd.wait(5)
         self.sub_stuff['server_result'] = servercmd.wait(5)
         # Order shouldn't matter here
         clientcmd.close()
         servercmd.close()
+
+    def cleanup(self):
+        self.record_iptables('final')
+        super(rm_link, self).cleanup()
