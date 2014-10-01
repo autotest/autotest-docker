@@ -7,13 +7,9 @@ Test usage of docker 'stop' command
 Operational Summary
 ----------------------
 
-#. start VM with test command
-#. execute docker stop
-#. analyze results
-
-Prerequisites
----------------------------------------------
-*  A remote registry server
+1. start VM with test command
+2. execute docker stop
+3. analyze results (duration, exit_code)
 
 Configuration
 --------------------------------------

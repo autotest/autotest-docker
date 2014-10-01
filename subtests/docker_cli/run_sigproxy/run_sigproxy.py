@@ -2,18 +2,14 @@ r"""
 Summary
 ----------
 
-Test usage of docker run/attach with/without '--sig-proxy'.
+Test the difference of running docker run/attach with/without '--sig-proxy'.
 
 Operational Summary
 ----------------------
 
-#. start VM with test command
-#. kill $SIGNAL $test_process
-#. analyze results
-
-Prerequisites
-------------------
-*  A remote registry server
+1. start VM with test command
+2. kill $SIGNAL $test_process
+3. analyze results
 
 Configuration
 -------------------------------------------
@@ -21,7 +17,6 @@ Configuration
 *  The ``wait_start`` is duration of container init
 *  The ``kill_signals`` space separated list of signals used in test
 """
-
 import time
 from autotest.client import utils
 from dockertest import config, subtest

@@ -7,16 +7,10 @@ This test checks correctness of docker run -u ...
 Operational Summary
 --------------------
 
-#.  get container's /etc/passwd
-#.  generate uid which suits the test needs (nonexisting, existing name, uid..)
-#.  execute docker run -u ... echo $UID:$GID; whoami
-#.  check results (pass/fail/details)
-
-Prerequisites
----------------
-
-Configuration
----------------
+1.  get container's /etc/passwd
+2.  generate uid which suits the test needs (nonexisting, existing name, uid..)
+3.  execute docker run -u ... echo $UID:$GID; whoami
+4.  check results (pass/fail/details)
 """
 from autotest.client import utils
 from dockertest import config, xceptions, subtest

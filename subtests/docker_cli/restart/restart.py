@@ -7,18 +7,14 @@ Test usage of docker 'restart' command
 Operational Summary
 ----------------------
 
-#. start container with test command
-#. check container output for start message
-#. execute docker restart
-#. check container output for restart message
-#. execute docker stop
-#. check container output for stop message
-#. analyze results
+1. start container with test command
+2. check container output for start message
+3. execute docker restart
+4. check container output for restart message
+5. execute docker stop
+6. check container output for stop message
+7. analyze results
 
-
-Prerequisites
----------------------------------------------
-*  A remote registry server
 
 Configuration
 --------------------------------------
