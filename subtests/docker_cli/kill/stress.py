@@ -88,7 +88,7 @@ class stress(kill_base):
 
     def run_once(self):
         # Execute the kill command
-        super(stress, self).run_once()
+        kill_base.run_once(self)
         container_cmd = self.sub_stuff['container_cmd']
         kill_cmds = self.sub_stuff['kill_cmds']
         signals_set = self.sub_stuff['signals_set']

@@ -1,3 +1,4 @@
+import importlib
 r"""
 Summary
 ----------
@@ -96,12 +97,14 @@ class Output(object):   # only containment pylint: disable=R0903
 class kill(subtest.SubSubtestCaller):
 
     """ Subtest caller """
-    config_section = 'docker_cli/kill'
 
 
 class kill_base(subtest.SubSubtest):
 
     """ Base class """
+
+    # By default use tty. In the end generate the same class without tty
+    tty = True
 
     def _init_container_normal(self, name):
         """
@@ -112,6 +115,10 @@ class kill_base(subtest.SubSubtest):
                        self.config['run_options_csv'].split(',')]
         else:
             subargs = []
+        if self.tty:
+            subargs.append('--tty=true')
+        else:
+            subargs.append('--tty=false')
         subargs.append("--name %s" % name)
         fin = DockerImage.full_name_from_defaults(self.config)
         subargs.append(fin)
@@ -131,6 +138,10 @@ class kill_base(subtest.SubSubtest):
                        self.config['run_options_csv'].split(',')]
         else:
             subargs = []
+        if self.tty:
+            subargs.append('--tty=true')
+        else:
+            subargs.append('--tty=false')
         subargs.append("--name %s" % name)
         fin = DockerImage.full_name_from_defaults(self.config)
         subargs.append(fin)
@@ -500,3 +511,29 @@ class go_lang_bad_signals(kill_check_base):
     3) analyze results
     """
     pass
+
+# Add _ttyoff variant for each SubSubtest in this module
+new_classes = []
+for name, cls in locals().items()[:]:
+    try:
+        if issubclass(cls, subtest.SubSubtest):
+            name = '%s_ttyoff' % name
+            new_cls = type(name, cls.__bases__, dict(cls.__dict__))
+            new_cls.tty = False
+            new_classes.append((name, new_cls))
+    except TypeError:   # Not a class
+        pass
+for name, cls in new_classes:
+    globals()[name] = cls
+
+# Add _ttyoff variant for each submodule containing SubSubtest
+for name in os.walk(os.path.dirname(__file__)).next()[2]:
+    if name.endswith('.py'):
+        name = name[:-3]
+        lib = importlib.import_module(name)
+        if name in dir(lib):
+            cls = getattr(lib, name)
+            name = '%s_ttyoff' % name
+            new_cls = type(name, cls.__bases__, dict(cls.__dict__))
+            new_cls.tty = False
+            globals()[name] = new_cls

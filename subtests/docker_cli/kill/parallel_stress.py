@@ -147,7 +147,7 @@ class parallel_stress(kill_base):
         self.sub_stuff['container_results'] = container_cmd.wait()
 
     def run_once(self):
-        super(parallel_stress, self).run_once()
+        kill_base.run_once(self)
         container_cmd = self.sub_stuff['container_cmd']
         kill_jobs = self.sub_stuff['kill_jobs'] = []
 
