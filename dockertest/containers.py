@@ -195,8 +195,7 @@ class DockerContainersBase(object):
         """
         Initialize subclass operational instance.
 
-        :param subtest: A subtest.Subtest (**NOT** a SubSubtest) subclass
-                        instance
+        :param subtest: A subtest.SubBase subclass instance
         :param timeout: An int or float timeout value that overrides
                         ``docker_timeout`` config. option
         :param verbose: A boolean non-default verbose value to use on instance
