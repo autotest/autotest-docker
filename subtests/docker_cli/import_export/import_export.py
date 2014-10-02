@@ -113,7 +113,7 @@ class simple(import_export_base):
         super(simple, self).initialize()
         # Test container setup
         dc = DockerContainers(self.parent_subtest)
-        c_name = dc.get_unique_name(self.__class__.__name__)
+        c_name = dc.get_unique_name()
         self.sub_stuff["containers"].append(c_name)
         self.init_test_container(c_name)
         # export/import command setup

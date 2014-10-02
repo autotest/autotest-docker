@@ -42,7 +42,7 @@ class psa(subtest.Subtest):
         super(psa, self).initialize()
         dc = self.stuff['dc'] = DockerContainers(self)
         dc.verify_output = True  # test subject, do extra checking
-        name = self.stuff['container_name'] = dc.get_unique_name("psa")
+        name = self.stuff['container_name'] = dc.get_unique_name()
         cidfile = os.path.join(self.tmpdir, 'cidfile')
         self.stuff['cidfile'] = cidfile
         subargs = ['--cidfile', cidfile,

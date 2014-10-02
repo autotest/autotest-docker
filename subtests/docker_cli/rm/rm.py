@@ -114,7 +114,7 @@ class rm_sub_base(SubSubtest):
 
     def init_subargs(self):
         dc = self.sub_stuff['dc']
-        cntr_name = dc.get_unique_name(self.__class__.__name__)
+        cntr_name = dc.get_unique_name()
         self.sub_stuff['cntr_name'] = cntr_name
         subargs = self.config['run_options_csv'].split(',')
         self.sub_stuff['subargs'] = subargs

@@ -155,7 +155,7 @@ class kill_base(subtest.SubSubtest):
         super(kill_base, self).initialize()
         # Prepare a container
         docker_containers = DockerContainers(self.parent_subtest)
-        name = docker_containers.get_unique_name("test", length=4)
+        name = docker_containers.get_unique_name()
         self.sub_stuff['container_name'] = name
         config.none_if_empty(self.config)
         if self.config.get('run_container_attached'):

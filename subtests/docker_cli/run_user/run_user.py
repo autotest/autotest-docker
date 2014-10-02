@@ -70,11 +70,11 @@ class run_user_base(subtest.SubSubtest):
 
     """ Base class """
 
-    def _init_container(self, prefix, subargs, cmd):
+    def _init_container(self, subargs, cmd):
         """
         Starts container
         """
-        name = self.sub_stuff['dc'].get_unique_name(prefix, length=4)
+        name = self.sub_stuff['dc'].get_unique_name()
         self.sub_stuff['container'] = name
         subargs.append("--name %s" % name)
         fin = DockerImage.full_name_from_defaults(self.config)
@@ -103,7 +103,7 @@ class run_user_base(subtest.SubSubtest):
         config.none_if_empty(self.config)
         self.sub_stuff['dc'] = DockerContainers(self.parent_subtest)
         self._init_test_depenent()
-        self._init_container("test", self.sub_stuff['subargs'],
+        self._init_container(self.sub_stuff['subargs'],
                              self.config['exec_cmd'])
 
     def run_once(self):

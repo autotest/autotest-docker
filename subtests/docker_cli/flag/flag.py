@@ -37,7 +37,7 @@ class flag(subtest.Subtest):
         self.stuff["cmdresult"] = []
         docker_containers = DockerContainers(self)
         self.logdebug("Generating ramdom name will take 1 minute")
-        cname = docker_containers.get_unique_name("docker", "test", 4)
+        cname = docker_containers.get_unique_name()
         self.stuff["containter_name"] = cname
 
     def run_once(self):

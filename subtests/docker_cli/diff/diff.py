@@ -51,8 +51,7 @@ class diff_base(SubSubtest):
     def initialize(self):
         super(diff_base, self).initialize()
         dc = DockerContainers(self.parent_subtest)
-        scn = self.__class__.__name__
-        name = self.sub_stuff['name'] = dc.get_unique_name(prefix=scn)
+        name = self.sub_stuff['name'] = dc.get_unique_name()
         fin = DockerImage.full_name_from_defaults(self.config)
         subargs = ['--name=%s' % (name), fin]
         subargs = subargs + self.config['command'].split(',')

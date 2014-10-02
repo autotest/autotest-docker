@@ -190,8 +190,7 @@ class with_blocking_container_by_tag(rmi_base):
         self.sub_stuff["rand_data"] = rand_data
 
         di = DockerImages(self.parent_subtest)
-        name_prefix = self.config["rmi_repo_tag_name_prefix"]
-        self.sub_stuff["image_name"] = di.get_unique_name(name_prefix)
+        self.sub_stuff["image_name"] = di.get_unique_name(":tag")
 
         cmd_with_rand = self.config['docker_data_prepare_cmd'] % (rand_data)
 

@@ -115,8 +115,7 @@ class build_base(subtest.SubSubtest):
         self.sub_stuff['existing_containers'] = dcont.list_container_ids()
         self.sub_stuff['di'] = dimg = DockerImages(self)
         self.sub_stuff['existing_images'] = dimg.list_imgs_ids()
-        img_name = dimg.get_unique_name(self.config['image_name_prefix'],
-                                        self.config['image_name_postfix'])
+        img_name = dimg.get_unique_name()
         # Build definition:
         # build['image_name'] - name
         # build['dockerfile_path'] - path to docker file

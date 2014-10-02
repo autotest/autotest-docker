@@ -111,8 +111,7 @@ class run_names(run_base):
         cont = self.sub_stuff["cont"]
         names = []
         for number in xrange(self.config['names_count']):
-            names.append(cont.get_unique_name(prefix='names',
-                                              suffix=str(number)))
+            names.append(cont.get_unique_name(suffix=str(number)))
         subargs = self.sub_stuff['subargs']
         self.sub_stuff['subargs'] = ["--name %s" % n for n in names] + subargs
         if self.config['last_name_sticks']:

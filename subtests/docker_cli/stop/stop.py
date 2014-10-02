@@ -50,8 +50,7 @@ class stop_base(SubSubtest):
         super(stop_base, self).initialize()
         # Prepare a container
         docker_containers = DockerContainers(self.parent_subtest)
-        prefix = self.config["stop_name_prefix"]
-        name = docker_containers.get_unique_name(prefix, length=4)
+        name = docker_containers.get_unique_name()
         self.sub_stuff['container_name'] = name
         config.none_if_empty(self.config)
         if self.config.get('run_options_csv'):

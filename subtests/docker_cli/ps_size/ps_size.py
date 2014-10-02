@@ -40,12 +40,12 @@ class ps_size_base(SubSubtest):
 
     """ Base class """
 
-    def _init_container(self, prefix, subargs, cmd):
+    def _init_container(self, subargs, cmd):
         """
         Prepares dkrcmd and stores the name in self.sub_stuff['containers']
         :return: dkrcmd
         """
-        name = self.sub_stuff['dc'].get_unique_name(prefix, length=4)
+        name = self.sub_stuff['dc'].get_unique_name()
         subargs.append("--name %s" % name)
         self.sub_stuff['containers'].append(name)
         fin = DockerImage.full_name_from_defaults(self.config)
@@ -107,7 +107,7 @@ class simple(ps_size_base):
             else:
                 segment = "1M"
                 self.sub_stuff['sizes'].append(size)
-            dkrcmd = self._init_container('test', [], dd_cmd % (segment, size))
+            dkrcmd = self._init_container([], dd_cmd % (segment, size))
             dkrcmd.execute()
 
     def postprocess(self):

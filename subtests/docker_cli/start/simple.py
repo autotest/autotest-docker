@@ -33,9 +33,8 @@ class simple(subtest.SubSubtest):
         self._init_stuff()
         config.none_if_empty(self.config)
         # Get free name
-        prefix = self.config["container_name_prefix"]
         docker_containers = DockerContainers(self.parent_subtest)
-        name = docker_containers.get_unique_name(prefix, length=4)
+        name = docker_containers.get_unique_name()
         self.sub_stuff['container_name'] = name
 
     def _start_container(self, name):

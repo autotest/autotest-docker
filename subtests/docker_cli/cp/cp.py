@@ -58,7 +58,7 @@ class CpBase(SubSubtest):
         set_selinux_context(self.tmpdir)
         dc = self.sub_stuff['dc'] = DockerContainers(self, "cli")
         self.sub_stuff['di'] = DockerImages(self, "cli")
-        container_name = dc.get_unique_name(self.config['name_prefix'])
+        container_name = dc.get_unique_name()
         self.sub_stuff['container_name'] = container_name
         fqin = DockerImage.full_name_from_defaults(self.config)
         self.sub_stuff['fqin'] = fqin

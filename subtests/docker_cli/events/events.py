@@ -199,7 +199,7 @@ class events(Subtest):
     def initialize(self):
         super(events, self).initialize()
         dc = self.stuff['dc'] = DockerContainers(self)
-        fullname = dc.get_unique_name(prefix=self.config['name_prefix'])
+        fullname = dc.get_unique_name()
         fqin = DockerImage.full_name_from_defaults(self.config)
         # generic args have spots for some value substitution
         mapping = {'NAME': fullname, 'IMAGE': fqin}

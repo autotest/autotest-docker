@@ -54,17 +54,15 @@ class history_base(SubSubtest):
     def initialize(self):
         super(history_base, self).initialize()
         config.none_if_empty(self.config)
+        dimgs = DockerImages(self.parent_subtest)
 
         self.sub_stuff["containers"] = []
         self.sub_stuff["images"] = []
 
-        name_prefix = self.config["history_repo_name_prefix"]
-        new_img_name = "%s_%s" % (name_prefix,
-                                  utils.generate_random_string(8).lower())
+        new_img_name = dimgs.get_unique_name('1')
         self.sub_stuff["new_image_name"] = new_img_name
 
-        new_img_name2 = "%s_%s" % (name_prefix,
-                                   utils.generate_random_string(8).lower())
+        new_img_name2 = dimgs.get_unique_name('2')
         self.sub_stuff["new_image_name2"] = new_img_name2
 
         self.sub_stuff['rand_data'] = utils.generate_random_string(8)

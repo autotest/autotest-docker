@@ -48,8 +48,7 @@ class cpu_base(cgroups_base):
             subargs = []
         else:
             subargs = ['--cpu-shares=%s' % cpushares_value]
-        name_prefix = self.config['name_prefix']
-        name = self.sub_stuff['name'] = dc.get_unique_name(name_prefix)
+        name = self.sub_stuff['name'] = dc.get_unique_name()
         subargs += ['--name=%s' % name,
                     '--detach',
                     '--tty',
