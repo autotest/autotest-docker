@@ -10,6 +10,8 @@ properly.
 Operational Summary
 ----------------------
 
+#. Start container with non-default cgroup-related option.
+#. Verify docker inspect matches param value matches actual cgroup value
 
 Prerequisites
 ------------------------------------------
