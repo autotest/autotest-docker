@@ -104,6 +104,7 @@ class run_false(run_base):
 
 
 class run_names(run_base):
+    # FIXME: What exactly does this test do?
 
     def initialize(self):
         super(run_names, self).initialize()
