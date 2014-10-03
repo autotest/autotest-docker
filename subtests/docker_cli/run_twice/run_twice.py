@@ -2,7 +2,7 @@ r"""
 Summary
 ---------
 
-Test could not run a container which is already running
+Negative test, verify cannot run second container with same name.
 
 Operational Summary
 ----------------------
@@ -10,12 +10,6 @@ Operational Summary
 #. Run a container with a certain name
 #. Run a container with a certain name again
 #. Fail to run a container again
-
-Prerequisites
----------------
-
-Configuration
----------------
 """
 
 from autotest.client import utils
