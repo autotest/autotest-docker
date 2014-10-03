@@ -2,16 +2,31 @@
 Summary
 ----------
 
-Test output of docker import/export command
+Test output of ``docker`` import/export command
 
 Operational Summary
 ----------------------
 
-Prerequisites
----------------
+#. Prepare container for export
+#. Export image to stdout
+#. Import image from stdin.
+#. Check image.
 
 Configuration
 ---------------
+
+General
+~~~~~~~
+
+* The option ``docker_import_export_timeout`` set timeout for i/e command.
+* The option ``docker_data_prep_cmd`` set i/e preparation command.
+* The option ``run_options_csv`` set special docker client options.
+
+Simple
+~~~~~~
+
+* The option ``export_cmd_args`` set export arguments for docker cmd
+* The option ``import_cmd_args`` set import arguments for docker cmd
 """
 
 from dockertest.subtest import SubSubtest
