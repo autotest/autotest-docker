@@ -18,9 +18,6 @@ Operational Summary
 Prerequisites
 -------------------------------------
 *  Docker daemon is running and accessible by it's unix socket.
-
-Configuration
---------------------------------------
 """
 
 from dockertest import subtest
