@@ -17,9 +17,6 @@ Prerequisites
 ---------------------------------------------
 *  A *remote* registry server
 *  Image on remote registry with 'latest' and some other tag
-
-Configuration
----------------
 """
 
 import time

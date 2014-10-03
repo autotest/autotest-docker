@@ -14,14 +14,6 @@ Operational Summary
 #. Check test result: What we expected is the all of the test results are
    failed.
 #. Clean the test environment and remove the container generated in testing.
-
-Prerequisites
--------------------------------------
-*  Docker daemon is running and accessible by it's unix socket.
-
-Configuration
---------------------------------------
-*  The ``section`` specifies which section to test.
 """
 
 from dockertest import subtest

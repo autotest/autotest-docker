@@ -13,9 +13,6 @@ Operational Summary
 #. check if committed image exists.
 #. check if values in changed files for image are correct.
 #. remote committed image from local repo.
-
-Configuration
---------------
 """
 
 import time

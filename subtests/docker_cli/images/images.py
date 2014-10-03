@@ -10,12 +10,6 @@ Operational Summary
 
 #. Attempt to parse 'docker images' table output
 #. Fail if table-format changes or is not parseable
-
-Prerequisites
----------------
-
-Configuration
----------------
 """
 
 from dockertest import subtest
