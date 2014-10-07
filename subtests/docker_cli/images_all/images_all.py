@@ -40,7 +40,7 @@ class images_all_base(SubSubtest):
         """
         if fin is None:
             fin = DockerImage.full_name_from_defaults(self.config)
-        name = self.sub_stuff['dc'].get_unique_name(prefix, length=4)
+        name = self.sub_stuff['dc'].get_unique_name(prefix)
         subargs.append("--name %s" % name)
         self.sub_stuff['containers'].append(name)
         subargs.append(fin)

@@ -200,7 +200,7 @@ class run_env_base(SubSubtest):
         Prepares dkrcmd and stores the name in self.sub_stuff['containers']
         :return: tuple(dkrcmd, name)
         """
-        name = self.sub_stuff['dc'].get_unique_name(prefix, length=4)
+        name = self.sub_stuff['dc'].get_unique_name(prefix)
         subargs.append("--name %s" % name)
         self.logdebug("Queuing container %s for removal", name)
         self.sub_stuff['containers'].append(name)

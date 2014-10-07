@@ -326,8 +326,13 @@ class DockerImagesBase(object):
         """
 
         assert length > 1
+        if prefix:
+            _name = "%s_%s_%%s" % (self.subtest.__class__.__name__, prefix)
+        else:
+            _name = "%s_%%s" % self.subtest.__class__.__name__
         all_images = self.list_imgs_full_name()
-        _name = "_".join([_ for _ in (prefix, '%s', suffix) if _])
+        if suffix:
+            _name += suffix
         for _ in xrange(1000):
             name = _name % utils.generate_random_string(length)
             if self.gen_lower_only:

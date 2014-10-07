@@ -42,8 +42,7 @@ class commit_base(SubSubtest):
         super(commit_base, self).initialize()
         config.none_if_empty(self.config)
         di = DockerImages(self.parent_subtest)
-        name_prefix = self.config["commit_repo_name_prefix"]
-        new_img_name = di.get_unique_name(name_prefix)
+        new_img_name = di.get_unique_name()
         self.sub_stuff["new_image_name"] = new_img_name
 
         self.sub_stuff['rand_data'] = utils.generate_random_string(8)

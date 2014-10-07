@@ -96,7 +96,7 @@ class sigproxy_base(SubSubtest):
         config.none_if_empty(self.config)
         # Prepare a container
         docker_containers = DockerContainers(self.parent_subtest)
-        name = docker_containers.get_unique_name("test", length=4)
+        name = docker_containers.get_unique_name()
         self.sub_stuff['container_name'] = name
         if self.sub_stuff['attached']:
             self._init_container_attached(name)

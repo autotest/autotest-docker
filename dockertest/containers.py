@@ -316,6 +316,10 @@ class DockerContainersBase(object):
         :return: Container name guaranteed to not be in-use.
         """
         assert length > 1
+        if prefix:
+            prefix = "%s-%s" % (self.subtest.__class__.__name__, prefix)
+        else:
+            prefix = self.subtest.__class__.__name__
         all_containers = [_.container_name for _ in self.list_containers()]
         check = lambda name: name not in all_containers
         return utils.get_unique_name(check, prefix, suffix, length)

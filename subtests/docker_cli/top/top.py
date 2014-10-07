@@ -75,8 +75,7 @@ class top(subtest.Subtest):
                                     "did you set one for this test?")
 
         docker_containers = DockerContainers(self)
-        prefix = self.config["container_name_prefix"]
-        name = docker_containers.get_unique_name(prefix, length=4)
+        name = docker_containers.get_unique_name()
         self.stuff['container_name'] = name
         if self.config.get('run_options_csv'):
             subargs = [arg for arg in

@@ -71,15 +71,12 @@ class tag_base(SubSubtest):
 
         di = DockerImages(self.parent_subtest)
         di.gen_lower_only = self.config['gen_lower_only']
-        name_prefix = self.config["tag_repo_name_prefix"]
-        new_img_name = di.get_unique_name(name_prefix)
-        while self.check_image_exists(new_img_name):
-            new_img_name = "%s_%s" % (name_prefix,
-                                      utils.generate_random_string(8))
-        if self.config['gen_lower_only']:
-            new_img_name = new_img_name.lower()
-        else:
-            new_img_name += '_UP'  # guarantee some upper-case
+        new_img_name = di.get_unique_name()
+        # Make sure there are UPPER chars in the name (not gen_lower_only)
+        if (not self.config['gen_lower_only'] and
+                (new_img_name.lower() == new_img_name)):
+            new_img_name = di.get_unique_name("UPPER")
+
         self.sub_stuff["image"] = new_img_name
         base_image = DockerImage.full_name_from_defaults(self.config)
         self.prep_image(base_image)

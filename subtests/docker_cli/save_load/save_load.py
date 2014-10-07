@@ -92,7 +92,7 @@ class save_load_base(SubSubtest):
         else:
             subargs = []
         if name is True:
-            name = self.sub_stuff['cont'].get_unique_name("test", length=4)
+            name = self.sub_stuff['cont'].get_unique_name()
         elif name:
             name = name
         if name:
@@ -409,7 +409,7 @@ class stressed_load(save_load_base):
                         % str_results)
 
             # Execute the loaded image and check the file...
-            cntr = self.sub_stuff['cont'].get_unique_name("test", length=4)
+            cntr = self.sub_stuff['cont'].get_unique_name()
             dkrcmd = DockerCmd(self, "run", ['--rm', "--name %s" % cntr,
                                              name, "cat /test_file"])
             self.sub_stuff['containers'].append(cntr)

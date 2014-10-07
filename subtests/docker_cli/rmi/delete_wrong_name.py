@@ -8,8 +8,9 @@ docker rmi full_name
 3. Check if rmi command failed
 """
 from autotest.client import utils
-from rmi import rmi_base
+from dockertest.images import DockerImages
 from dockertest.output import OutputGood
+from rmi import rmi_base
 
 
 class delete_wrong_name(rmi_base):
@@ -18,17 +19,9 @@ class delete_wrong_name(rmi_base):
     def initialize(self):
         super(delete_wrong_name, self).initialize()
 
-        name_prefix = self.config["rmi_repo_tag_name_prefix"]
-
         rand_data = utils.generate_random_string(5).lower()
         self.sub_stuff["rand_data"] = rand_data
-        im_name = "%s_%s" % (name_prefix, rand_data)
-        im = self.check_image_exists(im_name)
-        while im != []:
-            rand_data = utils.generate_random_string(5)
-            self.sub_stuff["rand_data"] = rand_data
-            im_name = "%s_%s" % (name_prefix, rand_data)
-            im = self.check_image_exists(im_name)
+        im_name = DockerImages(self.parent_subtest).get_unique_name()
 
         self.sub_stuff["image_name"] = im_name
         # Private to this instance, outside of __init__

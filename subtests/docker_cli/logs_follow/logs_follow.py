@@ -118,13 +118,13 @@ class logs_follow_base(SubSubtest):
 
     """ Base class """
 
-    def _init_container(self, prefix, subargs, cmd):
+    def _init_container(self, subargs, cmd):
         """
         Prepares dkrcmd and stores the name in self.sub_stuff['containers']
         and command in self.sub_stuff['async_processes'].
         :return: tuple(dkrcmd, name)
         """
-        name = self.sub_stuff['dc'].get_unique_name(prefix, length=4)
+        name = self.sub_stuff['dc'].get_unique_name()
         subargs.append("--name %s" % name)
         self.sub_stuff['containers'].append(name)
         fin = DockerImage.full_name_from_defaults(self.config)
@@ -242,8 +242,7 @@ class simple_base(logs_follow_base):
         super(simple_base, self).run_once()
         log_us = {}
         # Create container
-        dkrcmd, name = self._init_container('test', self.sub_stuff['subargs'],
-                                            'bash')
+        dkrcmd, name = self._init_container(self.sub_stuff['subargs'], 'bash')
         log_us['container'] = dkrcmd
         dkrcmd.execute()
         self.wait_exists(name)

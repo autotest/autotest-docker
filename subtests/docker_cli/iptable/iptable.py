@@ -61,8 +61,7 @@ class iptable_base(SubSubtest):
         """
         docker_containers = DockerContainers(self.parent_subtest)
         image = DockerImage.full_name_from_defaults(self.config)
-        prefix = self.config['name_prefix']
-        name = docker_containers.get_unique_name(prefix, length=4)
+        name = docker_containers.get_unique_name()
         self.sub_stuff['name'] = name
         bash_cmd = self.config['bash_cmd']
         args = ["--name=%s" % name,

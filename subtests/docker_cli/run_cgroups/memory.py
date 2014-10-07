@@ -151,8 +151,7 @@ class memory_base(cgroups_base):
             memory_list.append(self.config['memory_invalid'])
 
         for memory in memory_list:
-            name_prefix = self.config['name_prefix']
-            name = docker_containers.get_unique_name(name_prefix)
+            name = docker_containers.get_unique_name()
             if self.config['expect_success'] == "PASS":
                 self.sub_stuff['name'].append(name)
             args.append(self.combine_subargs(name,

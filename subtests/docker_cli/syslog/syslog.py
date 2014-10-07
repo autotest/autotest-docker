@@ -35,8 +35,7 @@ class syslog(Subtest):
     def initialize(self):
         super(syslog, self).initialize()
         dc = DockerContainers(self)
-        scn = self.__class__.__name__
-        name = self.stuff["container_name"] = dc.get_unique_name(prefix=scn)
+        name = self.stuff["container_name"] = dc.get_unique_name()
         self.stuff['name'] = '--name=%s' % name
         self.stuff['fin'] = DockerImage.full_name_from_defaults(self.config)
         self.stuff['params'] = '-v /dev/log:/dev/log'

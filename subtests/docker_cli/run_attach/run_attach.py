@@ -40,11 +40,11 @@ class run_attach_base(subtest.SubSubtest):
     # FIXME: Use stdin=None when BZ1113085 is resolved
     # FIXME: Review the results when BZ1131592 is resolved
 
-    def _init_container(self, prefix, tty, cmd, cmd_input='\n'):
+    def _init_container(self, tty, cmd, cmd_input='\n'):
         """
         Starts container
         """
-        name = self.sub_stuff['dc'].get_unique_name(prefix, length=4)
+        name = self.sub_stuff['dc'].get_unique_name()
         self.sub_stuff['containers'].append(name)
         subargs = self.sub_stuff['subargs'][:]
         if tty:
@@ -143,15 +143,13 @@ class run_attach_base(subtest.SubSubtest):
         self._init_test_depenent()
         for tty in (True, False):   # generate matrix of tested variants
             # interactive container
-            cont = self._init_container("test", tty,
-                                        'bash', 'ls /\nexit\n')
+            cont = self._init_container(tty, 'bash', 'ls /\nexit\n')
             self.sub_stuff['res_stdin_%s' % tty] = cont
             # stdout container
-            cont = self._init_container("test", tty,
-                                        'ls /')
+            cont = self._init_container(tty, 'ls /')
             self.sub_stuff['res_stdout_%s' % tty] = cont
             # stderr container
-            cont = self._init_container("test", tty,
+            cont = self._init_container(tty,
                                         'ls /I/hope/this/does/not/exist/%s'
                                         % utils.generate_random_string(6))
             self.sub_stuff['res_stderr_%s' % tty] = cont

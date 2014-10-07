@@ -19,8 +19,8 @@ class empty(SubSubtest):
     def initialize(self):
         super(empty, self).initialize()
         di = DockerImages(self.parent_subtest)
-        image_name_tag = di.get_unique_name(self.config['image_name_prefix'],
-                                            self.config['image_name_postfix'])
+        suffix = self.config.get('image_name_postfix')
+        image_name_tag = di.get_unique_name(suffix=suffix)
         image_name, image_tag = image_name_tag.split(':', 1)
         self.sub_stuff['image_name_tag'] = image_name_tag
         self.sub_stuff['image_name'] = image_name

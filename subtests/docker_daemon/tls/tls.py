@@ -413,12 +413,12 @@ class tls_verify_all_base(tls_base):
         self.sub_stuff["docker_daemon"] = dd
 
         if self.sub_stuff["check_container_name"]:
-            self.sub_stuff["cont1_name"] = self.conts.get_unique_name("test")
+            self.sub_stuff["cont1_name"] = self.conts.get_unique_name()
             self.sub_stuff["containers"].append(self.sub_stuff["cont1_name"])
         else:
             # Try to generate name without check using docker.
             rand = utils.generate_random_string(30)
-            self.sub_stuff["cont1_name"] = "test" + rand
+            self.sub_stuff["cont1_name"] = self.__class__.__name__ + rand
             self.sub_stuff["containers"].append(self.sub_stuff["cont1_name"])
 
         # start docker client command
