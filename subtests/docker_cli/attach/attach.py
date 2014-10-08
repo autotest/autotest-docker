@@ -2,16 +2,15 @@
 Summary
 ---------
 
-Test output of docker attach command
+Test functioning of docker attach command
 
 Operational Summary
 ----------------------
 
-Prerequisites
----------------
-
-Configuration
----------------
+#. Run container w/ control over stdin & stdout
+#. Separately attach to the container in another process
+#. Send input to container via stdin, monitor attach process stdout
+#. Verify output matches input
 """
 
 import time
