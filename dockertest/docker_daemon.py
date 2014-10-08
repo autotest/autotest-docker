@@ -114,7 +114,7 @@ def start(docker_path, docker_args):
     Start new docker daemon with special args.
 
     :param docker_path: Full path to executable
-    :param docker_args: String of command-line arguments to pass
+    :param docker_args: List of string of command-line arguments to pass
     :returns: Opaque daemon_process object (not for direct use)
     """
     # _SpecificServiceManager creates it's methods during __init__()

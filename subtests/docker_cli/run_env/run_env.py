@@ -49,6 +49,7 @@ import re
 
 from autotest.client import utils
 from dockertest import config, xceptions
+from dockertest import docker_daemon
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd
 from dockertest.dockercmd import AsyncDockerCmd
@@ -378,6 +379,12 @@ class rm_link(port):
 
     def initialize(self):
         self.record_iptables('initial')
+        self.logdebug('Restarting docker daemon w/ --icc=false')
+        self.sub_stuff['dd'] = docker_daemon.start(self.config['docker_path'],
+                                                   ['--selinux-enabled',
+                                                    '--icc=false', '-D', '-d',
+                                                    '--storage-opt dm.fs=xfs'])
+        self.failif(not docker_daemon.output_match(self.sub_stuff['dd']))
         super(rm_link, self).initialize()
 
     def run_once(self):
@@ -412,4 +419,7 @@ class rm_link(port):
 
     def cleanup(self):
         self.record_iptables('final')
+        if self.sub_stuff.get('dd') is not None:
+            self.logdebug('Recovering docker daemon to original state')
+            docker_daemon.restart_service(self.sub_stuff['dd'])
         super(rm_link, self).cleanup()
