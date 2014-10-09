@@ -1,13 +1,29 @@
 """
-Stress test
+Summary
+-------
+
+Sends signals to container very quickly
+
+Operational Summary
+-------------------
+
+1. start container with test command
+2. execute ``docker kill`` (or kill $PID) for each signal in
+   ``signals_sequence`` one after another without delay (using bash for loop)
+3. analyze results
 """
 import os
 import time
 
 from autotest.client import utils
-from dockertest import xceptions
+from dockertest import xceptions, subtest
 from dockertest.dockercmd import DockerCmd
-from kill import kill_base, SIGNAL_MAP, Output
+from kill_utils import kill_base, SIGNAL_MAP, Output
+
+
+class kill_stress(subtest.SubSubtestCaller):
+
+    """ Subtest caller """
 
 
 class stress(kill_base):
@@ -88,7 +104,7 @@ class stress(kill_base):
 
     def run_once(self):
         # Execute the kill command
-        super(stress, self).run_once()
+        kill_base.run_once(self)
         container_cmd = self.sub_stuff['container_cmd']
         kill_cmds = self.sub_stuff['kill_cmds']
         signals_set = self.sub_stuff['signals_set']
@@ -124,3 +140,31 @@ class stress(kill_base):
                                            " finish when kill -9 "
                                            "was executed.")
         self.sub_stuff['container_results'] = container_cmd.wait()
+
+
+class stress_ttyoff(stress):
+
+    """ Non-tty variant of the stress test """
+    tty = False
+
+
+class run_sigproxy_stress(stress):
+
+    """ direct kill variant of the stress test """
+
+
+class run_sigproxy_stress_ttyoff(run_sigproxy_stress):
+
+    """ non-tty variant of the run_sigproxy_stress test """
+    tty = False
+
+
+class attach_sigproxy_stress(stress):
+
+    """ attached container direct kill variant of the stress test """
+
+
+class attach_sigproxy_stress_ttyoff(attach_sigproxy_stress):
+
+    """ non-tty variant of the attach_sigproxy_stress test """
+    tty = False
