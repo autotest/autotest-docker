@@ -11,16 +11,12 @@ Operational Summary
 #. Run docker info command
 #. Check output
 #. Compare output with values obtained in userspace
+#. Disk-size error-margins are large, sanity-check only.
 
 Prerequisites
 -------------------------------------
 
-*  Docker daemon is running and accessible by it's unix socket.
-*  ``dmsetup`` and ``du`` commands are available.
-
-Configuration
------------------
-None
+``dmsetup``, ``stat`` and ``du`` commands are available on host.
 """
 
 from autotest.client import utils
@@ -78,58 +74,54 @@ class info(subtest.Subtest):
         self.logdebug("Docker pool name matches dmsetup pool.")
 
     @staticmethod
-    def _sizeof_fmt_mb(num, input_unit='b'):
-        conv = float(1024 * 1024)
-        if input_unit == 'Kb':
-            conv = float(1024)
-        fmt_num = num / conv
-        return "%.1f Mb" % (fmt_num)
+    def size_bytes(num_str):
+        num_str = num_str.lower()
+        num, units = num_str.strip().split()
+        if units == '':
+            return float(num)  # bytes already
+        if units == 'kb':
+            return float(num) * 1024
+        if units == 'mb':
+            return float(num) * 1024 * 1024
+        if units == 'gb':
+            return float(num) * 1024 * 1024 * 1024
+        if units == 'tb':
+            return float(num) * 1024 * 1024 * 1024 * 1024
+
+    def in_range(self, name, expected, reported):
+        error = float(expected) * self.config['%s_error' % name]
+        min_size = min([0.0, expected - error])
+        max_size = expected + error
+        msg = ("Docker info reported %s size %s, on disk size %s, "
+               "acceptable range %s - %s"
+               % (name, reported, expected, min_size, max_size))
+        self.failif(reported > max_size, msg)
+        self.failif(reported < min_size, msg)
+        self.loginfo(msg)
 
     def verify_sizes(self, data_file, data_used, data_total,
                      meta_file, meta_used, meta_total):
-        # read sizes of the data and meta files
+        # Convert reported sizes into bytes
+        data_used = self.size_bytes(data_used)
+        data_total = self.size_bytes(data_total)
+        meta_used = self.size_bytes(meta_used)
+        meta_total = self.size_bytes(meta_total)
+
+        # read sizes of the data and meta files from disk
         read_size = lambda x: float(
-            utils.run("du %s | cut -f1" % x).stdout.strip())
-        read_data_size = read_size(data_file)
-        read_meta_size = read_size(meta_file)
-        # read apparent sizes of data and meta files
-        data_asize = os.stat(data_file).st_size
-        meta_asize = os.stat(meta_file).st_size
-        # format sizes to compare them to docker output
-        read_data_size_mb = self._sizeof_fmt_mb(read_data_size, 'Kb')
-        read_meta_size_mb = self._sizeof_fmt_mb(read_meta_size, 'Kb')
-        read_data_asize_mb = self._sizeof_fmt_mb(data_asize)
-        read_meta_asize_mb = self._sizeof_fmt_mb(meta_asize)
+            utils.run("du --block-size=1 %s | cut -f1" % x).stdout.strip())
 
-        # compare actual file sizes
-        self.logdebug("Read metadata file size total: %s, "
-                      "Docker metadata file "
-                      "total size: %s", read_meta_asize_mb, meta_total)
-        self.failif(meta_total != read_meta_asize_mb,
-                    "Docker reported metadata file size total does not match "
-                    "read file size total.")
-        self.logdebug("Docker reported metadata file size total matches read "
-                      "file size total.")
-        self.logdebug("Read data file size total: %s, Docker data file total "
-                      "size: %s", read_data_asize_mb, data_total)
-        self.failif(data_total != read_data_asize_mb,
-                    "Docker reported data file size total does not match read "
-                    "file size total.")
-        self.logdebug("Docker reported data file size total matches read file "
-                      "size total.")
+        read_data_used = float(read_size(data_file))
+        read_data_total = float(os.stat(data_file).st_size)
+        read_meta_used = float(read_size(meta_file))
+        read_meta_total = float(os.stat(meta_file).st_size)
 
-        # compare real used file sizes
-        self.logdebug("Read metadata file size: %s, "
-                      "Docker metadata file size: "
-                      "%s", read_meta_size_mb, meta_used)
-        self.failif(meta_used != read_meta_size_mb,
-                    "Docker reported metadata file size does not match read "
-                    "file size.")
-        self.logdebug("Docker reported metadata file size matches read file "
-                      "size.")
-        self.logdebug("Read data file size: %s, Docker data file size: %s",
-                      read_data_size_mb, data_used)
-        self.failif(data_used != read_data_size_mb,
-                    "Docker reported data file size does not match read file "
-                    "size.")
-        self.logdebug("Docker reported data file size matches read file size.")
+        self.in_range('data', read_data_used, data_used)
+        self.in_range('data_total', read_data_total, data_total)
+        self.in_range('meta', read_meta_used, meta_used)
+        self.in_range('meta_total', read_meta_total, meta_total)
+        # Make sure used < total (idiot check)
+        self.failif(read_data_used >= read_data_total,
+                    "Data used > Data total")
+        self.failif(read_meta_used >= read_meta_total,
+                    "Meta used > Meta total")
