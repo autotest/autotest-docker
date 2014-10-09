@@ -1,12 +1,28 @@
 """
-Parallel stress test
+Summary
+-------
+
+Sends signals to container very quickly in parallel (one process per signal)
+
+Operational Summary
+-------------------
+
+1. start container with test command
+2. spawn one worker per each signal and let them stress container for
+   ``test_time``.
+3. analyze results
 """
 import time
 
 from autotest.client import utils
-from dockertest import xceptions
+from dockertest import subtest, xceptions
 from dockertest.dockercmd import DockerCmd
-from kill import kill_base, Output
+from kill_utils import kill_base, Output
+
+
+class kill_parallel_stress(subtest.SubSubtestCaller):
+
+    """ Subtest caller """
 
 
 class parallel_stress(kill_base):
@@ -174,3 +190,20 @@ class parallel_stress(kill_base):
                 self.failif(result.exit_status != 0,
                             "Exit status of the %s command was not 0 (%s)"
                             % (result.command, result.exit_status))
+
+
+class parallel_stress_ttyoff(parallel_stress):
+
+    """ non-tty version of the parallel_stress test """
+    tty = False
+
+
+class run_sigproxy_stress_parallel(parallel_stress):
+
+    """ sigproxy version of the parallel_stress test """
+
+
+class run_sigproxy_stress_parallel_ttyoff(parallel_stress):
+
+    """ non-tty sigproxy version of the parallel_stress test """
+    tty = False

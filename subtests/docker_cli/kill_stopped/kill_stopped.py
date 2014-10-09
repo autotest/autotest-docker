@@ -1,9 +1,28 @@
 """
-Sigstop test
+Summary
+-------
+
+Special scenario - kill stopped container
+
+Operational Summary
+-------------------
+
+1. start container with test command
+2. stop the container using kill -SIGSTOP
+3. send all (safe) signals except SIGCONT
+4. send SIGCONT
+5. check received signals
+
 """
 import random
 
-from kill import kill_check_base, DockerCmd
+from kill_utils import kill_check_base, DockerCmd
+from dockertest import subtest
+
+
+class kill_stopped(subtest.SubSubtestCaller):
+
+    """ Subtest caller """
 
 
 class sigstop(kill_check_base):
@@ -47,3 +66,20 @@ class sigstop(kill_check_base):
         self.logdebug("signals_sequence: %s", signals_sequence)
         self.sub_stuff['signals_sequence'] = signals_sequence
         self.sub_stuff['kill_cmds'] = kill_cmds
+
+
+class sigstop_ttyoff(sigstop):
+
+    """ Non-tty variant of the sigstop test """
+    tty = False
+
+
+class sigstop_sigproxy(sigstop):
+
+    """ Direct kill variant of the sigstop test """
+
+
+class sigstop_sigproxy_ttyoff(sigstop_sigproxy):
+
+    """ Non-tty variant of the sigstop_sigproxy test """
+    tty = False
