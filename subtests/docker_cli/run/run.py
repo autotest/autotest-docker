@@ -8,17 +8,13 @@ results.
 Operational Summary
 ----------------------
 
-
-Prerequisites
------------------------------------------
-*  Container image with a ``/bin/bash`` shell executable
-*  Container image with a ``/bin/true`` executable returning zero
-*  Container image with a ``/bin/false`` executable returning non-zero
-*  Container image with a ``/bin/date`` executable
-*  Accurate (relative to host) timekeeping in container
-
-Configuration
----------------
+#.  Test Container image with a ``/bin/true`` executable returning zero
+#.  Test Container image with a ``/bin/false`` executable returning non-zero
+#.  Test accurate (relative to host) timekeeping in running container
+#.  Test run requiring pulling an image down automatically
+#.  Smoke-test running container receiving signals
+#.  Smoke-test attaching to a running container
+#.  Smoke-test disconnecting from a running container
 """
 
 from dockertest.subtest import SubSubtest, SubSubtestCaller
