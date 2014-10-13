@@ -22,6 +22,55 @@ class DocumentationTestBase(unittest.TestCase):
         self.assertFalse(os.path.isdir(self.tmpdir))
 
 
+class TestDocBase(DocumentationTestBase):
+
+    def setUp(self):
+        super(TestDocBase, self).setUp()
+        self.docbase = self.documentation.DocBase
+
+    def test_init(self):
+        db = self.docbase()
+
+    def test_str(self):
+        db = self.docbase()
+        db.fmt = 'foobar'
+        self.assertEqual(str(db), 'foobar')
+
+    def test_repr(self):
+        db = self.docbase()
+        db.fmt = 'foobar'
+        self.assertEqual(repr(db), 'foobar')
+
+    def test_do_sub_good(self):
+        db = self.docbase()
+        db.fmt = '%(foo)s'
+        db.sub_str = {'foo': 'foobar'}
+        self.assertEqual(str(db), 'foobar')
+
+    def test_do_sub_nested(self):
+        db = self.docbase()
+        db.fmt = '%(foo)s'
+        db.sub_str = {'foo': '%(bar)s', 'bar': 'foobar'}
+        self.assertEqual(str(db), '%(bar)s')
+
+    def test_do_sub_bad_fmt(self):
+        db = self.docbase()
+        db.fmt = '%(foo)s'
+        db.sub_str = {'bar': None}
+        self.assertRaises(KeyError, str, db)
+
+    def test_do_sub_bad_sub(self):
+        db = self.docbase()
+        db.fmt = ''
+        db.sub_str = {'foo': 'bar'}
+        self.assertEqual(str(db), '')
+
+    def test_do_sub_bad_key(self):
+        db = self.docbase()
+        db.fmt = '%(bad)sfoo%(foo)s%(unknown)d'
+        db.sub_str = {'foo': 'bar'}
+        self.assertRaises(KeyError, str, db)
+
 class TestSubtestDoc(DocumentationTestBase):
 
     subtest_docstring = 'Fake docstring'
@@ -64,7 +113,7 @@ class TestSubtestDoc(DocumentationTestBase):
         self.assertEqual(name, self.subtest_testname)
 
     def test_str(self):
-        doc = self.sd(self.subtest_fullpath)
+        doc = self.sd(self.subtest_fullpath, {})
         test = '<p>%s %s</p>' % (self.subtest_testname, self.subtest_docstring)
         self.assertEqual(str(doc).strip(), test)
         self.assertEqual(str(doc).find('pass'), -1)
@@ -74,7 +123,7 @@ class TestSubtestDoc(DocumentationTestBase):
         self.assertEqual(doc.name(doc.subtest_path), self.subtest_testname)
 
     def test_html_summary(self):
-        doc = self.sd(self.subtest_fullpath)
+        doc = self.sd(self.subtest_fullpath, {})
         test = '<p>%s %s</p>' % (self.subtest_testname, self.subtest_docstring)
         self.assertEqual(str(doc).strip(), test)
         # IT's big! It's Ugly! Let's just get it over with...
@@ -207,6 +256,7 @@ class TestSubtestDocs(DocumentationTestBase):
             subtest.write('"""%s"""\n\npass\n' % content)
             subtest.close()
 
+    # FIXME: When run alone, it fails, must be ext. state dep. somewhere
     def test_html(self):
         stds = str(self.stds(os.path.join(self.tmpdir)))
         haz_stuff = [stds.find('baz Section!') > -1,

@@ -371,44 +371,7 @@ the special ``DEFAULTS`` section of the ``defaults.ini`` file.  This
 file is loaded *either* from ``config_defaults`` *or* ``config_custom``.
 
 
-*  For subtests which use the global default test image/repository,
-   it's fully-qualified name is formed by the values to the
-   ``docker_repo_name``, ``docker_repo_tag``
-   ``docker_registry_host``, and ``docker_registry_user`` options.
-   Be aware that some subtests have specific image content requirements.
-   See the individual sections below for more details if this is the case.
-*  Most tests that create images and/or containers will automatically
-   remove them if the ``remove_after_test`` option is set to ``yes``
-   (the default)
-*  The ``config_version`` option is set to the API version
-   this configuration is intended for.  Because a copy of the ``defaults.ini``
-   file will not inherit default version number changes, it **will** cause
-   most tests to fail after changing dockertest API versions. This is
-   intentional behavior and so this option must **not** be overriden
-   in any default/bundled subtest configuration.  It **should** be
-   overridden in custom/private test configuration.
-*  The ``autotest_version`` option specifies the minimum version
-   of the autotest framework that is required.  It may be overridden
-   by subtests to indicate they require a specific **later** version
-   than the default.  The autotest version is checked before the
-   dockertest version.
-*  The ``docker_path`` option specifies the absolute path to the
-   docker executable under test.  This permits both the framework
-   and/or individual sub-tests to utilize a separate compiled
-   executable (e.g. possibly with non-default build options).
-*  The ``docker_options`` option specifies the command-line
-   interface options to use **before** any sub-commands and
-   their options.
-*  Any operations calling the docker CLI will by default,
-   use the value in ``docker_timeout``.  This may be an
-   integer or floating-point number specifying the number
-   of seconds to allow any single command to complete.
-*  Since all tests run by default (when no ``--args`` CSV
-   list is used), it could be difficult to skip just a single
-   or several tests while running all others.  The ``disable``
-   option may be specified in ``DEFAULTS`` or any subtest
-   and contains a comma-separated-list of subtest or sub-subtest
-   names to skip.
+.. This file include also fills in defaults section
 
 .. include:: subtests.rst
 

@@ -16,6 +16,260 @@ import docutils.core
 import docutils.nodes
 
 
+class NoOverwriteDict(dict):
+
+    """
+    Dictionary which allows to set each key only once
+    :warning: Currently this feature is disabled and it behaves as normal dict
+    """
+
+    def __init__(self, name):
+        super(NoOverwriteDict, self).__init__()
+        self._name = name
+
+    def __setitem__(self, key, value):
+        if key in self:
+            raise KeyError("Key %s already exists\nexisting:%s\nnew:%s\n"
+                           "file:%s" % (key, self[key], value, self._name))
+        super(NoOverwriteDict, self).__setitem__(key, value)
+
+
+class BaseConfigDocs(object):
+
+    """
+    Abstract class for parsing configuration description from ini files
+    """
+
+    def __init__(self, name):
+        self.name = name
+        self.configs = []
+        self.undocumented = []
+        self.defaults = []
+
+    def populate_configs(self, keys, config, default_configs):
+        """ populates self.{defaults,configs,undocumented} values """
+        for key in keys:
+            conf = config[key]
+            if key in default_configs:
+                self.defaults.append("%s_" % key)
+                continue
+            if conf[1]:
+                self.configs.append((key, conf[1], conf[0]))
+            else:
+                self.undocumented.append("``%s``" % key)
+
+    @staticmethod
+    def render_line(config):
+        """ render config record as bullet item in defined format """
+        return "*  ``%s`` - %s ``[%s]``" % (config[0], config[1], config[2])
+
+    def render(self):
+        """ render this class's content """
+        raise NotImplementedError()
+
+    def __str__(self):
+        """ return rst rendered content when there is anything to print """
+        if bool(self):
+            return "\n".join(self.render())
+        else:
+            return ""
+
+    def __nonzero__(self):
+        """ is there any non-default content? """
+        if self.configs or self.undocumented or self.defaults:
+            return True
+        else:
+            return False
+
+
+class SubtestConfigDocs(BaseConfigDocs):
+
+    """ Subtest INI config parser """
+
+    def __init__(self, name, config, configs, default_configs):
+        super(SubtestConfigDocs, self).__init__(name)
+        self.missing = []
+        self.subsubtests = []
+
+        if "subsubtests" in config:
+            subsubtests = config.pop('subsubtests')[0]
+            self.populate_subsubtests(subsubtests, config, configs,
+                                      default_configs)
+
+        self.populate_configs(config.iterkeys(), config, default_configs)
+
+    def populate_subsubtests(self, subsubtests, config, configs,
+                             default_configs):
+        """ Populate subsubtests with subsubtests config """
+        self.subsubtests = []
+        for subsubtest in subsubtests.split(','):
+            subsubtest = "%s/%s" % (self.name, subsubtest)
+            if subsubtest in configs:
+                _ = SubSubtestConfigDocs(subsubtest, configs[subsubtest],
+                                         config, default_configs)
+                self.subsubtests.append(_)
+            else:
+                self.missing.append(subsubtest)
+
+    def render(self):
+        out = ['']
+        # underline = '=' * (len(self.name) + 9)
+        # out.append("%s Subtest\n%s\n" % (self.name, underline))
+        out.append("Configuration\n--------------\n")
+        if self.subsubtests:
+            subsubtests = ", ".join((_.name for _ in self.subsubtests))
+            out.append("*  ``subsubtests`` - ``%s``" % subsubtests)
+        for config in self.configs:
+            out.append(self.render_line(config))
+
+        if self.undocumented:
+            out.append("*  undocumented configs - %s"
+                       % ", ".join(self.undocumented))
+
+        if self.defaults:
+            out.append("*  overridden defaults - %s"
+                       % ", ".join(self.defaults))
+
+        out.extend((str(_) for _ in self.subsubtests))
+        return out
+
+    def __nonzero__(self):
+        if super(SubtestConfigDocs, self).__nonzero__() or self.subsubtests:
+            return True
+        else:
+            return False
+
+
+class SubSubtestConfigDocs(BaseConfigDocs):
+
+    """ SubSubtest INI config parser """
+
+    def __init__(self, name, config, subtest_conf, default_configs):
+        super(SubSubtestConfigDocs, self).__init__(name)
+
+        keys = [_ for _ in config if _ not in subtest_conf]
+        if not keys:
+            return
+        self.populate_configs(keys, config, default_configs)
+
+    def render(self):
+        out = []
+        underline = "~" * (len(self.name) + 11)
+        out.append("\n%s Subsubtest\n%s\n" % (self.name, underline))
+        out.extend((self.render_line(_) for _ in self.configs))
+
+        if self.undocumented:
+            out.append("*  undocumented configs - %s"
+                       % ", ".join(self.undocumented))
+
+        if self.defaults:
+            out.append("*  overridden defaults - %s"
+                       % ", ".join(self.defaults))
+        return out
+
+
+class ConfigINIParser(object):
+
+    """ parse ./config_defaults .ini files for test configuration """
+
+    def __init__(self, root_path='.', filenames=None):
+        self.root_path = root_path
+        if filenames is None:
+            filenames = SubtestDoc.module_filenames(root_path)
+        self.filenames = filenames
+
+    def parse(self):
+        """ Return tuple (default_configs, dict_of_test_configs) """
+        paths = os.walk(os.path.join(self.root_path, 'config_defaults'))
+        try:
+            tmptup = self.parse_default_config(paths)
+        except StopIteration:
+            # No default config., assume it's on purpose.
+            tmptup = ([], [''])
+        default_configs, rendered_defaults = tmptup
+        configs = self.parse_configs(paths)
+
+        missing = []
+        docs = {}
+        for path in self.filenames:
+            name = os.path.relpath(os.path.dirname(path),
+                                   os.path.join(self.root_path, 'subtests'))
+            if name not in configs:
+                missing.append(name)
+                continue
+            doc = SubtestConfigDocs(name, configs[name], configs,
+                                    default_configs)
+            if doc:
+                docs[name] = str(doc)
+            # No need to configure subsubtests
+            # missing.extend(doc.missing)
+
+        if missing:
+            missing = ", ".join(("``%s``" % _ for _ in missing))
+            rendered_defaults.append('Missing ini files for tests: %s\n\n\n'
+                                     % missing)
+
+        return "\n".join(rendered_defaults), docs
+
+    @staticmethod
+    def render_default_config(config):
+        """ render default_config records with labels """
+        return (".. _%s:\n\n*  ``%s`` - %s ``[%s]``\n"
+                % (config[0], config[0], config[2], config[1]))
+
+    def parse_default_config(self, paths):
+        """Return tuple of default key-list, rendered defaults section lines"""
+        default_configs = []
+        desc = []
+        if 'defaults.ini' in paths.next()[2]:
+            ini = open(os.path.join('.', 'config_defaults', 'defaults.ini'),
+                       'r')
+            for line in ini:
+                if not line:
+                    continue
+                elif line[0] == '#':
+                    if line.startswith('#: '):
+                        desc.append(line[3:].strip())
+                elif '=' in line:
+                    key, value = tuple(_.strip() for _ in line.split('=', 1))
+                    default_configs.append((key, value, " ".join(desc)))
+                    desc = []
+
+        rendered = []
+        for config in default_configs:
+            rendered.append(self.render_default_config(config))
+        default_configs = [_[0] for _ in default_configs]
+        return default_configs, rendered
+
+    @staticmethod
+    def parse_configs(paths):
+        """ Go through all .ini files in all directories and grab configs """
+        configs = {}
+        desc = []
+        for path in paths:
+            for ini in path[2]:
+                if not ini.endswith('.ini'):
+                    continue
+                ini = os.path.join(path[0], ini)
+                ini = open(ini, 'r')
+                for line in ini:
+                    line = line.strip()    # FIXME: Remove when all files fixed
+                    if line.startswith('#'):
+                        if line.startswith('#: '):  # ignore simple comments
+                            desc.append(line[3:].strip())
+                    elif line.startswith('[') and line.endswith(']'):
+                        test_name = line[1:-1]
+                        if test_name not in configs:
+                            configs[test_name] = NoOverwriteDict(ini.name)
+                        desc = []
+                    elif '=' in line:
+                        key, value = tuple(_.strip()
+                                           for _ in line.split('=', 1))
+                        configs[test_name][key] = (value, " ".join(desc))
+                        desc = []
+        return configs
+
+
 class DocBase(object):
 
     """
@@ -57,13 +311,7 @@ class DocBase(object):
         first = self.do_sub_str
         second = self.do_sub_method
         third = self.do_sub_method_args
-        # Run conversions 3 times to handle any nested keys
-        output_string = self.fmt
-        for _ in xrange(3):
-            try:
-                output_string = third(second(first(output_string)))
-            except KeyError:
-                pass  # Key's missing in content allow to pass through
+        output_string = third(second(first(self.fmt)))
         #  Allow optional final conversion modification at runtime
         return self.conv(output_string).strip()
 
@@ -81,7 +329,11 @@ class DocBase(object):
         if dct == {}:
             # Ignore empty dct, let values pass-through w/o substitution
             return input_string
-        return input_string % dct
+        try:
+            return input_string % dct
+        except Exception, xcept:
+            raise xcept.__class__("%s: fmt='%s' with dct='%s'"
+                                  % (xcept.message, input_string, dct))
 
     def do_sub_method(self, input_string):
         """Substitute from ``sub_method``, key/method-name results"""
@@ -135,8 +387,12 @@ class SubtestDoc(DocBase):
     #: (names convert to ids with ``docutils.nodes.make_id()``)
     exclude_names = ('operational detail', 'prerequisites', 'configuration')
 
-    def __init__(self, subtest_path):
+    #: Cached mapping of test-name to configuration section
+    config_cache = None
+
+    def __init__(self, subtest_path, config_cache):
         self.subtest_path = subtest_path
+        self.config_cache = config_cache
         # Not many keys, use same method and instance attributes
         self.sub_method = {'name': self._subs,
                            'docstring': self._subs,
@@ -156,17 +412,19 @@ class SubtestDoc(DocBase):
         # If this becomes performance bottleneck, implement cls._cache
         for subtest_path in cls.module_filenames(base_path):
             if name.strip() == cls.name(subtest_path):
-                return cls(subtest_path)
+                _, subtest_configs = ConfigINIParser(base_path).parse()
+                return cls(subtest_path, subtest_configs)
         raise ValueError("Subtest %s not found under %s/subtests"
                          % (name, os.path.abspath(base_path)))
 
     def _subs(self, key):
+        name = self.name(self.subtest_path)
         if key == 'name':
-            return self.name(self.subtest_path)
+            return name
         elif key == 'docstring':
             return self.docstring(self.subtest_path)
         elif key == 'configuration':
-            return ''
+            return self.config_cache.get(name, '')
         else:
             raise KeyError('Unknown fmt key "%s" passed to _subs()' % key)
 
@@ -353,6 +611,10 @@ class SubtestDocs(DocBase):
             self.exclude = exclude
         if subtestdocclass is not None:
             self.stdc = subtestdocclass
+        # Cache parsing of all configs.
+        config_ini_parser = ConfigINIParser(self.base_path)
+        # each subtest can pull it's config section from this dict.
+        self._def_rst, self._subtest_configs = config_ini_parser.parse()
 
     @property
     def fmt(self):
@@ -360,9 +622,9 @@ class SubtestDocs(DocBase):
 
         Any test names referenced in ``exclude`` will be skipped"""
         # Extra keys in ``subs`` excluded here will be ignored
-        return '\n\n'.join([('%%(%s)s' % name)
-                            for name in self.names_filenames
-                            if name not in self.exclude])
+        return '%(defaults)s' + '\n\n'.join([('%%(%s)s' % name)
+                                             for name in self.names_filenames
+                                             if name not in self.exclude])
 
     @property
     def sub_str(self):
@@ -373,7 +635,10 @@ class SubtestDocs(DocBase):
         lot = []
         for name, filename in self.names_filenames.iteritems():
             if name not in self.exclude:
-                lot.append((name, self.stdc(filename)))
+                lot.append((name, self.stdc(filename, self._subtest_configs)))
+        # Add in special defaults section
+        defaults = self._def_rst
+        lot.append(('defaults', defaults))
         # Excluded names not present in ``fmt`` will be ignored
         return dict(lot)
 
