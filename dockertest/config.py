@@ -13,6 +13,7 @@ from ConfigParser import SafeConfigParser, Error
 from collections import MutableMapping
 import os.path
 import sys
+import copy
 
 import xceptions
 
@@ -287,15 +288,18 @@ class Config(dict):
     configs_ = None
     #: private class-attribute cache used to return copy as a dict in __new__()
     _singleton = None
+    #: prepared dict for deep copy.
+    prepdict = None
 
     def __new__(cls, *args, **dargs):
         if cls._singleton is None:
             # Apply *args, *dargs _after_ making deep-copy
             cls._singleton = dict.__new__(cls)
-        copy = cls._singleton.copy()  # deep-copy cache into regular dict
-        copy.update(dict(*args, **dargs))
+            cls.prepdict = cls._singleton.copy()
+        deep_copy = copy.deepcopy(cls._singleton.prepdict)
+        deep_copy.update(dict(*args, **dargs))
         # Prevent any modifications from affecting cache and/or other tests
-        return copy
+        return deep_copy
 
     @property
     def defaults(self):
