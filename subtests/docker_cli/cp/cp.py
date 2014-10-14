@@ -18,16 +18,6 @@ Prerequisites
 *  Docker daemon is running and accessible by it's unix socket.
 *  Docker image with fairly complex, deeply nested directory
    structure.
-
-Configuration
----------------------------------
-*  The ``name_prefix`` option is used for naming test containers
-*  Directory/file prefixes to skip are listed as **quoted** CSV
-   to the ``exclude_paths`` option
-*  The ``exclude_symlinks`` yes/no option will skip trying to
-   copy any files which are symlinks in the container.
-*  The ``max_files`` option will stop copying after this many
-   files.
 """
 
 from StringIO import StringIO

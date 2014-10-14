@@ -8,13 +8,13 @@ checks the difference between ``docker images`` and ``docker images --all``.
 Operational Summary
 ----------------------
 
-1.  Create image test_a
-2.  Create image test_a1 with parent test_a
-3.  Create image test_b
-4.  Create image test_b1 with parent test_b
-5.  Untag test_a
-6.  Untag test_a1 (verify intermediary images were removed too)
-7.  Untag test_b1 (verify test_b was preserved)
+#.  Create image test_a
+#.  Create image test_a1 with parent test_a
+#.  Create image test_b
+#.  Create image test_b1 with parent test_b
+#.  Untag test_a
+#.  Untag test_a1 (verify intermediary images were removed too)
+#.  Untag test_b1 (verify test_b was preserved)
 
 *  Between steps 4-7 verify `docker images` and `docker history`
 """

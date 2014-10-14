@@ -10,12 +10,6 @@ Operational Summary
 1. start VM with test command
 2. kill $SIGNAL $test_process
 3. analyze results
-
-Configuration
--------------------------------------------
-*  The ``exec_cmd`` modifies the container command
-*  The ``wait_start`` is duration of container init
-*  The ``kill_signals`` space separated list of signals used in test
 """
 import time
 from autotest.client import utils

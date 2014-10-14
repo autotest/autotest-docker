@@ -12,7 +12,6 @@ Operational Summary
 3. send all (safe) signals except SIGCONT
 4. send SIGCONT
 5. check received signals
-
 """
 import random
 

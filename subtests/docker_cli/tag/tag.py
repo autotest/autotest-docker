@@ -11,18 +11,6 @@ Operational Summary
 #. tag changes.
 #. check if tagged image exists.
 #. remote tagged image from local repo.
-
-Prerequisites
--------------------
-None
-
-Configuration
------------------
-*  ``tag_force`` specifies use of ``--force`` option
-*  The ``tag_repo_name_prefix`` option has random characters appended
-   before it is used for tagging.
-*  ``docker_expected_result`` option allows changing between positive
-   and negative testing.
 """
 
 import time

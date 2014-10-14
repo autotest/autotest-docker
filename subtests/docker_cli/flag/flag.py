@@ -14,10 +14,6 @@ Operational Summary
 #. Run a container with flags which doesn't make sense
 #. Check the error/usage in docker run ouput
 #. Test will FAIL if the container could be run.
-
-Prerequisites
--------------------------------------
-*  Docker daemon is running and accessible by it's unix socket.
 """
 
 from dockertest import subtest

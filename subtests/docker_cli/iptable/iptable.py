@@ -18,11 +18,6 @@ Prerequisites
 *  Firewalld daemon is running and does not show any errors about
    fail to add rules (https://bugzilla.redhat.com/show_bug.cgi?id=1101484).
 *  Command iptable and brctl are working well.
-
-Configuration
--------------------------------------
-*  The option ``name_prefix`` sets the container's prefix name.
-*  The option ``bash_cmd`` sets the command that the container will execute.
 """
 
 from dockertest.dockercmd import NoFailDockerCmd

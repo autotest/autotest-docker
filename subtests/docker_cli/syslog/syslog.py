@@ -16,10 +16,6 @@ Prerequisites
 ----------------
 *  Docker daemon is running and accessible by it's unix socket.
 *  /dev/log is existing and could be mounted to containers.
-
-Configuration
-----------------
-None
 """
 
 import os

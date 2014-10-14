@@ -17,15 +17,6 @@ Prerequisites
 
 *  Docker daemon is running and accessible by it's unix socket.
    ``docker_cli/diff`` Configuration
-
-Configuration
----------------------------------
-
-*  ``command`` is a csv arg list to ``docker run`` that specifies
-   how a test will modify a file for the test
-*  ``files_changed`` is a csv list of expected change types and the
-   files/directories that are changed.  It is in the form of:
-   <change type 1>,<path 1>,<change type 2>,<path 2> and so on.
 """
 
 from dockertest.dockercmd import DockerCmd

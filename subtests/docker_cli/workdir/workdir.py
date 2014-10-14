@@ -28,11 +28,6 @@ Negative testing
 Prerequisites
 -------------------------------------
 *  Docker daemon is running and accessible by it's unix socket.
-
-Configuration
---------------------------------------
-*  The ``remove_after_test`` specifies whether to remove the
-   container created during the test.
 """
 
 from autotest.client import utils
