@@ -1,5 +1,15 @@
-"""
-Test docker restart connection.
+r"""
+Summary
+----------
+Test docker restart check if the docker daemon behave properly during restart.
+
+Operational Summary
+---------------------
+
+#.  Test docker container autorestart after docker dameon restart.
+#.  Test docker infinity uninteruptable container autorestart after docker
+    daemon restart.
+#.  Test stop of docker daemon and check if there left some "mess".
 """
 
 import os

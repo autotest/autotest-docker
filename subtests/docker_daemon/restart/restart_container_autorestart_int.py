@@ -1,11 +1,12 @@
 """
-Test autorestart of docker container after docker daemon restart.
+Test autorestart of infinite uninteruptable docker container after docker
+daemon restart.
 
-1. Stop system docker daemon
-2. Start test docker daemon with special work dir (graph) path.
-3. Start infinite docker container.
-4. Restart docker daemon.
-5. Check if docker container is auto restarted after docker restart.
+#. Stop system docker daemon
+#. Start test docker daemon with special work dir (graph) path.
+#. Start infinite docker container.
+#. Restart docker daemon.
+#. Check if docker container is auto restarted after docker restart.
 """
 # pylint: disable=E0611
 from restart import restart_container_autorestart_base

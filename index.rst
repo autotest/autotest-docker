@@ -412,9 +412,9 @@ file is loaded *either* from ``config_defaults`` *or* ``config_custom``.
 
 .. include:: subtests.rst
 
-----------------------------------
+-------------------------------------
 Dockertest |release| API Reference
-----------------------------------
+-------------------------------------
 
 Covers |release| and all revisions.
 

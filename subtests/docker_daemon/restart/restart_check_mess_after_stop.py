@@ -2,13 +2,13 @@
 Test stop of docker daemon and check if there left some "mess" after that.
 "mess" open files, unmounted directories, etc..
 
-1. Stop system docker daemon
-2. Start test docker daemon with special work dir (graph) path.
-3. Start docker container.
-4. Wait until docker container is finished.
-5. Stop test docker daemon.
-6. Check if no folder in docker work dir is mounted.
-7. Try to delete docker work dir.
+#. Stop system docker daemon
+#. Start test docker daemon with special work dir (graph) path.
+#. Start docker container.
+#. Wait until docker container is finished.
+#. Stop test docker daemon.
+#. Check if no folder in docker work dir is mounted.
+#. Try to delete docker work dir.
 """
 # pylint: disable=E0611
 import os
