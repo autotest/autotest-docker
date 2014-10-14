@@ -97,7 +97,7 @@ class DockerVersionError(DockerValueError):
             config_version = "Unknown"
         self.lib_version = lib_version
         self.config_version = config_version
-        super(DockerVersionError, self).__init__()
+        super(DockerVersionError, self).__init__("")
 
     def __str__(self):
         return ("Docker test library version %s incompatible with "
@@ -118,8 +118,8 @@ class DockerAutotestVersionError(DockerVersionError):
 class DockerOutputError(DockerValueError):
 
     def __init__(self, reason):
+        super(DockerOutputError, self).__init__("")
         self.reason = reason
-        super(DockerOutputError, self).__init__()
 
     def __str__(self):
         return str(self.reason)
@@ -128,7 +128,7 @@ class DockerOutputError(DockerValueError):
 class DockerFullNameFormatError(DockerValueError):
 
     def __init__(self, name):
-        super(DockerFullNameFormatError, self).__init__()
+        super(DockerFullNameFormatError, self).__init__("")
         self.name = name
 
     def __str__(self):
@@ -140,7 +140,7 @@ class DockerFullNameFormatError(DockerValueError):
 class DockerSubSubtestNAError(DockerTestNAError):
 
     def __init__(self, child_name):
-        super(DockerSubSubtestNAError, self).__init__()
+        super(DockerSubSubtestNAError, self).__init__("")
         self.child_name = child_name
 
     def __str__(self):
