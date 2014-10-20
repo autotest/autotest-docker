@@ -18,6 +18,7 @@ import os.path
 import docutils
 import docutils.core
 import docutils.nodes
+from textwriter import TextWriter
 
 #: Base storage class for each config. doc item
 DocItemBase = namedtuple('DocItemBase',
