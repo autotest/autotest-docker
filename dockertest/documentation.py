@@ -65,6 +65,36 @@ class DocItem(DocItemBase):
         return self._asdict()
 
 
+class SummaryVisitor(docutils.nodes.SparseNodeVisitor):
+
+    """
+    Strips all sections in tree-traversal order, matching exclude_names
+    """
+
+    #: For summary-only rendering, exclude these section names
+    #: (names convert to ids with ``docutils.nodes.make_id()``)
+    exclude_names = ('operational detail', 'prerequisites', 'configuration')
+
+    @property
+    def xids(self):
+        """Represent exclude_names in docutils.node Id format"""
+        return [docutils.nodes.make_id(name)
+                for name in self.exclude_names]
+
+    def visit_section(self, node):
+        """
+        Check each section, delete if it matches ``exclude_names``
+        """
+        # There can be more than one!
+        ids = node.get('ids')
+        for _id in ids:
+            if _id in self.xids:
+                node.parent.remove(node)
+                # Departure calls would fail, skip it entirely
+                raise docutils.nodes.SkipNode()
+            # Otherwise allow this node through
+
+
 class BaseConfigDocs(object):
     """
     Abstract class for parsing configuration description from ini files
@@ -396,6 +426,77 @@ class DocBase(object):
            (nothing by default)"""
         return input_string
 
+    # Helpers for subclass conv. methods
+
+    @staticmethod
+    def rst2doctree(rst, visitor=None):
+        """
+        Returns a (possibly modified) doctree ready for processing/publishing
+
+        :param visitor: optional ``doctutils.nodes.SparseNodeVisitor`` subclass
+        :returns: A doctree instance
+        """
+        # String conversion happened already in ``__new__()``
+        doctree = docutils.core.publish_doctree(rst)
+        if visitor is not None:
+            doctree.walkabout(visitor(doctree))
+        return doctree
+
+    @staticmethod
+    def doctree2html(doctree):
+        """
+        Return rendered html fragment from a doctree instance
+        """
+        # Combined publish_parts() + publish_from_doctree() utilities
+        _, publisher = docutils.core.publish_programmatically(
+            # TODO: Figure which params not needed & use defaults.
+            source=doctree,
+            source_path=None,
+            source_class=docutils.core.io.DocTreeInput,
+            destination_class=docutils.core.io.StringOutput,
+            destination=None,
+            destination_path=None,
+            reader=docutils.core.readers.doctree.Reader(),
+            reader_name='null',
+            parser=None,
+            parser_name='null',
+            writer=None,
+            writer_name='html',
+            settings=None,
+            settings_spec=None,
+            settings_overrides=None,
+            config_section=None,
+            enable_exit_status=False)
+        parts = publisher.writer.parts
+        return parts['body_pre_docinfo'] + parts['fragment']
+
+    @staticmethod
+    def doctree2text(doctree):
+        """
+        Return rendered text string from a doctree instance
+        """
+        # Combined publish_parts() + publish_from_doctree() utilities
+        output, _ = docutils.core.publish_programmatically(
+            # TODO: Figure which params not needed & use defaults.
+            source=doctree,
+            source_path=None,
+            source_class=docutils.core.io.DocTreeInput,
+            destination_class=docutils.core.io.StringOutput,
+            destination=None,
+            destination_path=None,
+            reader=docutils.core.readers.doctree.Reader(),
+            reader_name='null',
+            parser=None,
+            parser_name='null',
+            writer=TextWriter(doctree),
+            writer_name='null',
+            settings=None,
+            settings_spec=None,
+            settings_overrides=None,
+            config_section=None,
+            enable_exit_status=False)
+        return output
+
 
 class SubtestDoc(DocBase):
 
@@ -413,9 +514,6 @@ class SubtestDoc(DocBase):
            "%(docstring)s\n"
            "%(configuration)s\n")
 
-    #: For summary-only rendering, exclude these section names
-    #: (names convert to ids with ``docutils.nodes.make_id()``)
-    exclude_names = ('operational detail', 'prerequisites', 'configuration')
 
     #: Cached mapping of test-name to configuration section
     config_cache = None
@@ -505,97 +603,26 @@ class SubtestDoc(DocBase):
                 subtests.append(os.path.join(dirpath, subtest))
         return tuple(subtests)
 
-    @staticmethod
-    def rst2doctree(rst, visitor=None):
-        """
-        Returns a (possibly modified) doctree ready for processing/publishing
 
-        :param visitor: optional ``doctutils.nodes.SparseNodeVisitor`` subclass
-        :returns: A doctree instance
+    def html(self, input_string):
         """
-        # String conversion happened already in ``__new__()``
-        doctree = docutils.core.publish_doctree(rst)
-        if visitor is not None:
-            doctree.walkabout(visitor(doctree))
-        return doctree
-
-    @staticmethod
-    def doctree2html(doctree):
-        """
-        Return rendered html fragment from a doctree instance
-        """
-        # Combined publish_parts() + publish_from_doctree() utilities
-        _, publisher = docutils.core.publish_programmatically(
-            # TODO: Figure which params not needed & use defaults.
-            source=doctree,
-            source_path=None,
-            source_class=docutils.core.io.DocTreeInput,
-            destination_class=docutils.core.io.StringOutput,
-            destination=None,
-            destination_path=None,
-            reader=docutils.core.readers.doctree.Reader(),
-            reader_name='null',
-            parser=None,
-            parser_name='null',
-            writer=None,
-            writer_name='html',
-            settings=None,
-            settings_spec=None,
-            settings_overrides=None,
-            config_section=None,
-            enable_exit_status=False)
-        parts = publisher.writer.parts
-        return parts['body_pre_docinfo'] + parts['fragment']
-
-    def html(self, input_string, visitor=None):
-        """
-        Return input rendered as html snippet, after processing w/ visitor.
+        (conv method) Render as html snippet.
 
         :param input_string: RST-formatted string
         :param visitor: Optional ``Visitor`` class (from
                         ``docutils.nodes.NodeVisitor``)
         """
-        # Break it down to aid debugging
-        doctree = self.rst2doctree(input_string, visitor)
-        _html = self.doctree2html(doctree)
-        return _html
-
-    #: Default conversion method to call for final RST rendering
-    conv = html
+        return self.doctree2html(self.rst2doctree(input_string))
 
     def html_summary(self, input_string):
         """
-        Return input rendered as html snippet, w/ only summary info.
+        (conv method) Render as html snippet, w/ only summary info.
 
         :param input_string: RST-formatted string
         """
+        return self.doctree2html(self.rst2doctree(input_string,
+                                                  SummaryVisitor))
 
-        # Convert section-names into Doctree ids
-        _xids = [docutils.nodes.make_id(name) for name in self.exclude_names]
-
-        # Class instantiated in doctree.walkabout() in doctree2html()
-        class Visitor(docutils.nodes.SparseNodeVisitor):
-
-            """
-            Uses Gang of Four "Visitor" pattern, `impl. ref.`_
-.. _impl. ref.: file:///usr/lib/python2.7/site-packages/docutils/nodes.py"""
-            # Impossible to fit the link in < 80 chars :S
-
-            @staticmethod
-            def visit_section(node):
-                """
-                Check each section, delete if it matches ``exclude_names``
-                """
-                # There can be more than one!
-                ids = node.get('ids')
-                for _id in ids:
-                    if _id in _xids:
-                        node.parent.remove(node)
-                        # Departure calls would fail, skip it entirely
-                        raise docutils.nodes.SkipNode()
-                    # Otherwise allow this node through
-
-        return self.html(input_string, Visitor)
 
 
 class RSTDoc(SubtestDoc):
