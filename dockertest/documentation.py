@@ -660,9 +660,14 @@ class SubtestDoc(DocBase):
            "=============================="
            "=============================="
            "========\n\n"
-           "%(docstring)s\n"
+           "%(docstring)s\n\n"
            "%(configuration)s\n")
 
+    #: String to use for tests w/o any configuration
+    NoINIString = '\n:Note: Subtest does not have any default configuration\n'
+
+    #: Class to use for parsing documentation
+    ConfigDocClass = ConfigDoc  # important for unittesting!
 
     #: Default base-path to use for all methods requiring one.
     default_base_path = '.'  # important for unittesting!
@@ -670,9 +675,8 @@ class SubtestDoc(DocBase):
     #: Cached mapping of test-name to configuration section
     config_cache = None
 
-    def __init__(self, subtest_path, config_cache):
+    def __init__(self, subtest_path):
         self.subtest_path = subtest_path
-        self.config_cache = config_cache
         # Not many keys, use same method and instance attributes
         self.sub_method = {'name': self._subs,
                            'docstring': self._subs,
@@ -695,8 +699,7 @@ class SubtestDoc(DocBase):
         # If this becomes performance bottleneck, implement cls._cache
         for subtest_path in cls.module_filenames(base_path):
             if name.strip() == cls.name(subtest_path):
-                _, subtest_configs = ConfigINIParser(base_path).parse()
-                return cls(subtest_path, subtest_configs)
+                return cls(subtest_path)
         raise ValueError("Subtest %s not found under %s/subtests"
                          % (name, os.path.abspath(base_path)))
 
@@ -707,7 +710,11 @@ class SubtestDoc(DocBase):
         elif key == 'docstring':
             return self.docstring(self.subtest_path)
         elif key == 'configuration':
-            return self.config_cache.get(name, '')
+            try:
+                configdoc = ConfigDoc.new_by_name(self.name(self.subtest_path))
+            except ValueError:
+                return self.NoINIString
+            return configdoc
         else:
             raise KeyError('Unknown fmt key "%s" passed to _subs()' % key)
 
@@ -824,10 +831,6 @@ class SubtestDocs(DocBase):
             self.exclude = exclude
         if subtestdocclass is not None:
             self.stdc = subtestdocclass
-        # Cache parsing of all configs.
-        config_ini_parser = ConfigINIParser(self.base_path)
-        # each subtest can pull it's config section from this dict.
-        self._def_rst, self._subtest_configs = config_ini_parser.parse()
 
     @property
     def fmt(self):
@@ -835,9 +838,9 @@ class SubtestDocs(DocBase):
 
         Any test names referenced in ``exclude`` will be skipped"""
         # Extra keys in ``subs`` excluded here will be ignored
-        return '%(defaults)s' + '\n\n'.join([('%%(%s)s' % name)
-                                             for name in self.names_filenames
-                                             if name not in self.exclude])
+        return '\n\n'.join([('%%(%s)s' % name)
+                            for name in self.names_filenames
+                            if name not in self.exclude])
 
     @property
     def sub_str(self):
@@ -848,10 +851,7 @@ class SubtestDocs(DocBase):
         lot = []
         for name, filename in self.names_filenames.iteritems():
             if name not in self.exclude:
-                lot.append((name, self.stdc(filename, self._subtest_configs)))
-        # Add in special defaults section
-        defaults = self._def_rst
-        lot.append(('defaults', defaults))
+                lot.append((name, self.stdc(filename)))
         # Excluded names not present in ``fmt`` will be ignored
         return dict(lot)
 
