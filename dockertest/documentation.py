@@ -356,7 +356,7 @@ class SummaryVisitor(docutils.nodes.SparseNodeVisitor):
 class DocBase(object):
 
     """
-    Abstract, *builder* of multi-format output from composite sources.
+    Abstract, composer of multi-format output from composite sources.
 
     ``__init__`` is an optional abstract method, it may be overridden in
     sub-classes for their own particular purposes.
@@ -664,6 +664,9 @@ class SubtestDoc(DocBase):
            "%(configuration)s\n")
 
 
+    #: Default base-path to use for all methods requiring one.
+    default_base_path = '.'  # important for unittesting!
+
     #: Cached mapping of test-name to configuration section
     config_cache = None
 
@@ -676,16 +679,19 @@ class SubtestDoc(DocBase):
                            'configuration': self._subs}
 
     @classmethod
-    def new_by_name(cls, name, base_path='.'):
+    def new_by_name(cls, name, base_path=None):
         """
         Return instance by searching for ``name`` under ``path``
 
         :param name: Docker autotest standardized name for a subtest
         :param base_path: Relative/Absolute path where ``subtests`` and
                           ``config_defaults`` directories can be found.
+                          ``cls.default_base_path`` used if ``None``.
         :return: New instance of this class
         :raise ValueError: If subtest ``name`` not found.
         """
+        if base_path is None:
+            base_path = cls.default_base_path
         # If this becomes performance bottleneck, implement cls._cache
         for subtest_path in cls.module_filenames(base_path):
             if name.strip() == cls.name(subtest_path):
@@ -721,6 +727,7 @@ class SubtestDoc(DocBase):
         node = ast.parse(source, subtest_path, 'exec')
         return ast.get_docstring(node)
 
+    # new_by_name depends on this being static
     @staticmethod
     def name(subtest_path):
         """
@@ -736,14 +743,18 @@ class SubtestDoc(DocBase):
         subtest_name = subtest_path.partition('subtests')[2]
         return subtest_name.lstrip('/')
 
-    @staticmethod
-    def module_filenames(base_path='.'):
+    # Makefile depends on this being a static
+    @classmethod
+    def module_filenames(cls, base_path=None):
         """
         Return an iterable of absolute paths to all subtest modules found.
 
         :param base_path: Relative/Absolute path where ``subtests`` and
                           ``config_defaults`` directories can be found.
+                          Uses ``cls.default_base_path`` if None.
         """
+        if base_path is None:
+            base_path = cls.default_base_path
         subtests = []
         subtest_path = os.path.join(os.path.abspath(base_path), 'subtests')
         for dirpath, _, filenames in os.walk(subtest_path):
@@ -752,6 +763,7 @@ class SubtestDoc(DocBase):
                 subtests.append(os.path.join(dirpath, subtest))
         return tuple(subtests)
 
+    # Optional, alternate conv methods
 
     def html(self, input_string):
         """
@@ -772,23 +784,14 @@ class SubtestDoc(DocBase):
         return self.doctree2html(self.rst2doctree(input_string,
                                                   SummaryVisitor))
 
-
-
-class RSTDoc(SubtestDoc):
-
-    """
-    Render possibly re-formatted RST documentation for a subtest
-    """
-
-    @staticmethod
-    def raw(input_string):
+    def rst_summary(self, input_string):
         """
-        Perform no conversion at all, return raw RST format output
-        """
-        return input_string
+        (conv method) Render as RST w/ only summary info.
 
-    #: Default conversion method to call for final RST rendering
-    conv = raw
+        :param input_string: RST-formatted string
+        """
+        return self.doctree2text(self.rst2doctree(input_string,
+                                                  SummaryVisitor))
 
 
 class SubtestDocs(DocBase):
@@ -797,6 +800,7 @@ class SubtestDocs(DocBase):
     Combined output from multiple ``SubtestDoc`` instances
 
     :param base_path: Relative/Absolute path where searching should begin.
+                      Uses ``self.default_base_path`` if None.
     :param exclude: Customized list of subtests to exclude, None for default
     :param SubtestDocClass: Alternate class to use, None for SubtestDoc
     """
@@ -805,14 +809,17 @@ class SubtestDocs(DocBase):
     stdc = SubtestDoc
 
     #: Absolute path where searching should begin, None if not appropriate
-    base_path = '.'
+    base_path = None
+
+    #: Default base path to use if base_path is None
+    default_base_path = '.'
 
     #: Names of any subtests to exclude from documentation
     exclude = ['example', 'subexample']
 
     def __init__(self, base_path=None, exclude=None, subtestdocclass=None):
-        if base_path is not None:
-            self.base_path = os.path.abspath(base_path)
+        if base_path is None:
+            self.base_path = os.path.abspath(self.default_base_path)
         if exclude is not None:
             self.exclude = exclude
         if subtestdocclass is not None:
@@ -858,3 +865,12 @@ class SubtestDocs(DocBase):
                for path in self.stdc.module_filenames(self.base_path)]
         # let higher-level methods sort out the contents as needed
         return dict(lot)
+
+
+def set_default_base_path(base_path):
+    """
+    Modify all relevant classes ``default_base_path`` to base_path
+    """
+    # Order is significant!
+    for cls in (SubtestDocs, ConfigDoc, SubtestDoc.ConfigDocClass):
+        cls.default_base_path = base_path
