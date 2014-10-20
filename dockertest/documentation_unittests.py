@@ -9,17 +9,166 @@ import os.path
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
-
 class DocumentationTestBase(unittest.TestCase):
 
     def setUp(self):
         import documentation
         self.documentation = documentation
         self.tmpdir = tempfile.mkdtemp(self.__class__.__name__)
+        self.documentation.set_default_base_path(self.tmpdir)
 
     def tearDown(self):
         shutil.rmtree(self.tmpdir, ignore_errors=True)
         self.assertFalse(os.path.isdir(self.tmpdir))
+
+class TestDocItem(DocumentationTestBase):
+
+    def setUp(self):
+        super(TestDocItem, self).setUp()
+        self.DocItem = self.documentation.DocItem
+
+    def test_init(self):
+        style_one = self.DocItem(1, 2, 3, 4)
+        style_two = self.DocItem(subthing=1, option=2, desc=3, value=4)
+        unordered = self.DocItem(desc=3, subthing=1, value=4, option=2)
+        mixed = self.DocItem(1, desc=3, value=4, option=2)
+        self.assertEqual(style_one, style_two)
+        self.assertEqual(style_two, unordered)
+        self.assertEqual(unordered, mixed)
+
+    def test_wrong_args(self):
+        self.assertRaises(TypeError, self.DocItem)
+        self.assertRaises(TypeError, self.DocItem, 1, 2, 3)
+        self.assertRaises(TypeError, self.DocItem, 1, 2, 3, 4, 5)
+        self.assertRaises(TypeError, self.DocItem, subthing=1, desc=3)
+        self.assertRaises(TypeError, self.DocItem, subthing=1, desc=3)
+
+    def test_fields_asdict(self):
+        keys = ('subthing', 'option', 'desc', 'value')
+        values = (None, None, None, None)
+        dargs = dict(zip(keys, values))
+        foobar = self.DocItem(**dargs)
+        self.assertEqual(foobar.fields, keys)
+        self.assertEqual(foobar.asdict(), dargs)
+        self.assertEqual(foobar, self.DocItem(**foobar.asdict()))
+
+    def test_read_only(self):
+        foobar = self.DocItem(desc=3, subthing=1, value=4, option=2)
+        self.assertRaises(AttributeError, foobar.__setattr__, 'option', None)
+        self.assertRaises(AttributeError, foobar.__delattr__, 'value')
+        self.assertRaises(AttributeError, delattr, foobar, 'fields')
+
+
+class TestConfigINIParser(DocumentationTestBase):
+
+    def setUp(self):
+        super(TestConfigINIParser, self).setUp()
+        self.DocItem = self.documentation.DocItem
+        self.CIP = self.documentation.ConfigINIParser
+
+    def test_empty(self):
+        foo = self.CIP.from_string('')
+        bar = self.CIP.from_string(' ')
+        baz = self.CIP.from_string('\n')
+        bob = self.CIP.from_string('\n\n\n\n')
+        joe = self.CIP.from_string('\n\t  \n')
+        for test in (foo, bar, baz, bob, joe):
+            self.assertEqual(test, ())
+            self.assertRaises(IOError, getattr, test, 'subthing_names')
+            self.assertRaises(IOError, getattr, test, 'subtest_name')
+            self.assertRaises(IOError, getattr, test, 'subsub_names')
+
+    def test_empty_sec(self):
+        foo = self.CIP.from_string('[foo]')
+        bar = self.CIP.from_string('[foo]\n          \n')
+        baz = self.CIP.from_string('\n[foo] #bar\n#baz')
+        bob = self.CIP.from_string('[foo]\n#: = bar')
+        joe = self.CIP.from_string('#:foo\n[bar]\n            \t\t\t\t\n[baz]')
+        for test in (foo, bar, baz, bob, joe):
+            self.assertEqual(test, ())
+        for test in (foo, bar, baz, bob):
+            self.assertEqual(test.subthing_names, ('foo',))
+            self.assertEqual(test.subtest_name, 'foo')
+            self.assertEqual(test.subsub_names, tuple())
+        # Could throw exception, for now just make sure it works
+        self.assertTrue('baz' in joe.subthing_names)
+        self.assertTrue('bar' in joe.subthing_names)
+        # These mos def should throw exceptions
+        self.assertRaises(IOError, getattr, joe, 'subtest_name')
+        self.assertRaises(IOError, getattr, joe, 'subsub_names')
+
+    def test_one_undoc(self):
+        expt = self.DocItem(subthing='foo',
+                            option='option',
+                            desc=self.CIP.undoc_option_doc,
+                            value='value')
+        test = self.CIP.from_string('[foo]\noption=value')
+        self.assertEqual(len(test), 1)
+        self.assertEqual(test, (expt,))
+
+    def test_two_undoc(self):
+        expt1 = self.DocItem(subthing='foo',
+                             option='option1',
+                             desc=self.CIP.undoc_option_doc,
+                             value='value1')
+        expt2 = self.DocItem(subthing='foo',
+                             option='option2',
+                             desc=self.CIP.undoc_option_doc,
+                             value='value2')
+        test = self.CIP.from_string('[foo]\noption1=value1\n\noption2: value2\t\t\n')
+        self.assertEqual(len(test), 2)
+        self.assertTrue(expt1 in test)
+        self.assertTrue(expt2 in test)
+
+    def test_dupe(self):
+        expt = self.DocItem(subthing='foo',
+                             option='option',
+                             desc='description',
+                             value='value')
+        test = self.CIP.from_string('[foo]\noption=value\n#: description\n'
+                                    'option :value\t\t\n')
+        self.assertEqual(len(test), 1)
+        self.assertTrue(expt in test)
+
+    def test_value_cont(self):
+        expt = self.DocItem(subthing='foo',
+                             option='option',
+                             desc=self.CIP.undoc_option_doc,
+                             value='value more value')
+        test = self.CIP.from_string('[foo]\n'
+                                    'option =   value    \n'
+                                    '   more\t\t\n'
+                                    '                    \t\tvalue\t\t')
+        self.assertEqual(len(test), 1)
+        self.assertTrue(expt in test)
+
+    def test_correct_names(self):
+        expt1 = self.DocItem(subthing='foo',
+                             option='option1',
+                             desc=self.CIP.undoc_option_doc,
+                             value='value1')
+        expt2 = self.DocItem(subthing='foo',
+                             option='option2',
+                             desc='description second line',
+                             value='value2')
+        expt3 = self.DocItem(subthing='foo/bar',
+                             option='option3',
+                             desc=self.CIP.undoc_option_doc,
+                             value='value')
+        test = self.CIP.from_string('[foo]\n'
+                                    'option1=value1\n'
+                                    '#:       description    \n'
+                                    '#: second line\n\n\n\n'
+                                    'option2 : value2\t\t\n'
+                                    '[foo/bar]\n'
+                                    'option3 =\n'
+                                    '                value\n\n')
+        self.assertEqual(len(test), 3)
+        self.assertEqual(test.subtest_name, 'foo')
+        self.assertEqual(test.subsub_names, ('foo/bar',))
+        expt_test = tuple([expt1, expt2, expt3])
+        # This also verifies stripping of line continuation, empty first value
+        self.assertEqual(test, expt_test)
 
 
 class TestDocBase(DocumentationTestBase):
@@ -71,6 +220,108 @@ class TestDocBase(DocumentationTestBase):
         db.sub_str = {'foo': 'bar'}
         self.assertRaises(KeyError, str, db)
 
+
+# TODO: Test ConfigDoc class (don't forget to set default_base_path)
+class TestConfigDoc(DocumentationTestBase):
+
+    defaults_ini = """[DEFAULTS]
+# Don't change this file, or any file under this tree!
+#
+# Instead, copy the files you want to modify under config_custom/
+# (anywhere), and modify those copyies.  They will override
+# all settings and sections defined here (config_defaults/)
+
+#: API Version number applying to all bundled tests
+config_version = 0.7.7
+
+#: Autotest version dependency for framework (or override for individual tests)
+autotest_version = 0.16.0-master-66-g9aaee
+
+#: Subtests and SubSubtests names to skip (CSV)
+disable =
+
+##### docker command options
+
+#: Docker default options (before subcommand)
+docker_path = /usr/bin/docker
+
+#: Global docker command options to use
+docker_options = -D
+
+#: Max runtime in seconds for any docker command (auto-converts to float)
+docker_timeout = 300.0
+
+##### docker content options
+
+#: Default registry settings for testing
+#: (blank if not applicable)
+docker_repo_name =
+#: Default image settings for testing
+#: (blank if not applicable)
+docker_repo_tag =
+
+#: remote components (host:port)
+docker_registry_host =
+#: remote components (username)
+docker_registry_user =
+
+##### Operational testing options
+
+#: Attempt to remove all created containers/images during test
+remove_after_test = yes
+
+#: Deprecated Legacy cleanup options, DO NOT USE FOR NEW TESTS
+try_remove_after_test = %(remove_after_test)s
+
+##### Environment checking options
+
+#: CSV of checker pathnames to skip, relative to 'envchecks' subdirectory
+envcheck_skip =
+#: CSV of possibly existing image names to ignore
+envcheck_ignore_fqin =
+#: CSV of possibly existing image IDs to ignore
+envcheck_ignore_iids =
+"""
+
+    defaults_rst = """
+*  ``docker_repo_name`` - Default registry settings for testing (blank if not applicable) (default ``<None>``)
+*  ``autotest_version`` - Autotest version dependency for framework (or override for individual tests) (default ``0.16.0-master-66-g9aaee``)
+*  ``envcheck_ignore_fqin`` - CSV of possibly existing image names to ignore (default ``<None>``)
+*  ``envcheck_ignore_iids`` - CSV of possibly existing image IDs to ignore (default ``<None>``)
+*  ``docker_registry_host`` - remote components (host:port) (default ``<None>``)
+*  ``docker_path`` - Docker default options (before subcommand) (default ``/usr/bin/docker``)
+*  ``disable`` - Subtests and SubSubtests names to skip (CSV) (default ``<None>``)
+*  ``remove_after_test`` - Attempt to remove all created containers/images during test (default ``yes``)
+*  ``docker_registry_user`` - remote components (username) (default ``<None>``)
+*  ``docker_options`` - Global docker command options to use (default ``-D``)
+*  ``envcheck_skip`` - CSV of checker pathnames to skip, relative to 'envchecks' subdirectory (default ``<None>``)
+*  ``config_version`` - API Version number applying to all bundled tests (default ``0.7.7``)
+*  ``docker_timeout`` - Max runtime in seconds for any docker command (auto-converts to float) (default ``300.0``)
+*  ``docker_repo_tag`` - Default image settings for testing (blank if not applicable) (default ``<None>``)
+*  ``try_remove_after_test`` - Deprecated Legacy cleanup options, DO NOT USE FOR NEW TESTS (default ``%(remove_after_test)s``)
+"""
+
+    def setUp(self):
+        super(TestConfigDoc, self).setUp()
+        self.ConfigDoc = self.documentation.ConfigDoc
+        os.makedirs(os.path.join(self.tmpdir,
+                                 'config_defaults/subtests/docker_cli'))
+        self.defaults_path = os.path.join(self.tmpdir, 'config_defaults',
+                                          'defaults.ini')
+        defaults = open(self.defaults_path, 'wb')
+        defaults.write(self.defaults_ini)
+        self.documentation.set_default_base_path(self.tmpdir)
+
+    def test_defaults_render(self):
+        configdoc = self.ConfigDoc(self.defaults_path)
+        self.assertEqual(str(configdoc).strip(), self.defaults_rst.strip())
+
+    def test_ini_filenames(self):
+        self.assertEqual(self.ConfigDoc.ini_filenames(),
+                         (self.defaults_path,))
+
+    # FIXME: Need more tests
+
 class TestSubtestDoc(DocumentationTestBase):
 
     subtest_docstring = 'Fake docstring'
@@ -95,6 +346,10 @@ class TestSubtestDoc(DocumentationTestBase):
                                              self.subtest_path,
                                              self.subtest_fullname)
         self.base_path = os.path.join(self.tmpdir, self.subtest_base)
+        # Don't allow class to search elsewhere!
+        self.documentation.set_default_base_path(self.base_path)
+        # Don't test configuration parsing here
+        self.sd.NoINIString = ''
         subtest_dir = os.path.dirname(self.subtest_fullpath)
         os.makedirs(subtest_dir)
         subtest = open(self.subtest_fullpath, 'wb')
@@ -112,9 +367,11 @@ class TestSubtestDoc(DocumentationTestBase):
         name = self.sd.name(self.subtest_fullpath)
         self.assertEqual(name, self.subtest_testname)
 
-    def test_str(self):
-        doc = self.sd(self.subtest_fullpath, {})
-        test = '<p>%s %s</p>' % (self.subtest_testname, self.subtest_docstring)
+    def test_rst(self):
+        class MySD(self.sd):
+            conv = self.sd.rst_summary
+        doc = MySD(self.subtest_fullpath)
+        test = '%s %s' % (self.subtest_testname, self.subtest_docstring)
         self.assertEqual(str(doc).strip(), test)
         self.assertEqual(str(doc).find('pass'), -1)
 
@@ -123,7 +380,9 @@ class TestSubtestDoc(DocumentationTestBase):
         self.assertEqual(doc.name(doc.subtest_path), self.subtest_testname)
 
     def test_html_summary(self):
-        doc = self.sd(self.subtest_fullpath, {})
+        class MySD(self.sd):
+            conv = self.sd.html_summary
+        doc = MySD(self.subtest_fullpath)
         test = '<p>%s %s</p>' % (self.subtest_testname, self.subtest_docstring)
         self.assertEqual(str(doc).strip(), test)
         # IT's big! It's Ugly! Let's just get it over with...
@@ -204,14 +463,7 @@ Negative test client with wrong server identity
 Prerequisites
 ------------------------------------
 
-Openssl is installed and forward/reverse DNS is functioning for host.
-
-Configuration
--------------------------------------
-
-*  The option ``docker_daemon_bind`` sets special bind address.
-*  The option ``docker_client_bind`` sets special client args.
-*  The option ``docker_options_spec`` sets additional docker options.""")
+Openssl is installed and forward/reverse DNS is functioning for host.""")
         # def test_html_summary(self):
         # ...
         contains = ('<h1>Operational Summary</h1>',
@@ -248,6 +500,8 @@ class TestSubtestDocs(DocumentationTestBase):
     def setUp(self):
         super(TestSubtestDocs, self).setUp()
         self.stds = self.documentation.SubtestDocs
+        self.stds.default_base_path = self.tmpdir
+        self.stds.stdc.default_base_path = self.tmpdir
         for name, content in self.subtests_docstrings.items():
             subtest_fullpath = self.subtest_fullpath(name)
             subtest_dir = os.path.dirname(subtest_fullpath)
