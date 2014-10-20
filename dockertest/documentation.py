@@ -436,9 +436,7 @@ class DocBase(object):
         for method, args in self.sub_method_args.iteritems():
             if args is None:
                 args = tuple()
-            # Disable */** warning, arguments cannot be known ahead of time
-            # and using partial's can quickly become unmaintainable.
-            # pylint: disable=W0142
+            # reset_state() guarantees parameters match for **magic
             key, value = method(*args)
             subs[key] = value
         return self.do_sub_str(input_string, subs)

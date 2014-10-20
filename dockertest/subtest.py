@@ -232,7 +232,7 @@ class Subtest(SubBase, test.test):
                 pass  # work already done :)
             dirlist.reverse()  # correct order
             # i.e. docker_cli/run_twice
-            return os.path.join(*dirlist)  # pylint: disable=W0142
+            return os.path.join(*dirlist)
 
         def _init_config():  # private, no docstring pylint: disable=C0111
             # So tests don't need to set this up every time
