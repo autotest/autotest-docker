@@ -9,33 +9,62 @@ is assumed.
 .. _docutils documentation: http://docutils.sourceforge.net/docs/index.html
 """
 
+# Pylint runs from a different directory, it's fine to import this way
+# pylint: disable=W0403
+
+from collections import namedtuple
 import ast
 import os.path
 import docutils
 import docutils.core
 import docutils.nodes
 
+#: Base storage class for each config. doc item
+DocItemBase = namedtuple('DocItemBase',
+                         ('subthing', 'option', 'desc', 'value'))
 
-class NoOverwriteDict(dict):
+
+class DocItem(DocItemBase):
 
     """
-    Dictionary which allows to set each key only once
-    :warning: Currently this feature is disabled and it behaves as normal dict
+    Read-only storage class for each config option item's documentation.
     """
 
-    def __init__(self, name):
-        super(NoOverwriteDict, self).__init__()
-        self._name = name
+    #: String to use when filling in empty value items
+    empty_value = '<None>'
 
-    def __setitem__(self, key, value):
-        if key in self:
-            raise KeyError("Key %s already exists\nexisting:%s\nnew:%s\n"
-                           "file:%s" % (key, self[key], value, self._name))
-        super(NoOverwriteDict, self).__setitem__(key, value)
+    #: Tuple of field-names required by this class
+    fields = getattr(DocItemBase, '_fields', None)
+
+    def __new__(cls, *args, **dargs):
+        newone = super(DocItem, cls).__new__(cls, *args, **dargs)
+        # Special case, make sure empty value's are clear
+        if newone.value == '':
+            _dct = newone.asdict()
+            _dct['value'] = cls.empty_value
+            return cls(**_dct)
+        else:
+            return newone
+
+    def __cmp__(self, other):
+        # ConfigParser allows later duplicate options to overwrite prior
+        _self = tuple([self.subthing, self.option])
+        _other = tuple([other.subthing, other.option])
+        # Use tuple comparison / hashing
+        return cmp(_self, _other)
+
+    def __hash__(self):
+        # Ignore desc and value for comparison purposes, as in __cmp__
+        return hash(tuple([self.subthing, self.option]))
+
+    def asdict(self):
+        """
+        Return copy as an ordered-dictionary
+        """
+        return self._asdict()
 
 
 class BaseConfigDocs(object):
-
     """
     Abstract class for parsing configuration description from ini files
     """
