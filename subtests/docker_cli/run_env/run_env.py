@@ -42,7 +42,6 @@ Configuration
 None
 """
 import ast
-import os
 import os.path
 import random
 import re
@@ -92,7 +91,7 @@ class InteractiveAsyncDockerCmd(AsyncDockerCmd):
         """
         Return open file instance connected to processes stdin
         """
-        return os.fdopen(self._stdin, 'w', 0)
+        return self._stdin
 
     @stdin.setter
     def stdin(self, data):
@@ -246,20 +245,14 @@ class run_env_base(SubSubtest):
                       verbose=False).execute()
 
 
-class port(run_env_base):
+class port_base(run_env_base):
 
     """
-    1. Starts server with custom -e ENV_VARIABLE=$RANDOM_STRING and opened port
-    2. Starts client linked to server with another ENV_VARIABLE
-    3. Booth prints the env as {}
-    4. Client sends data to server (addr from env SERVER_PORT_$PORT_TCP_ADDR)
-    5. Server prints data with prefix and resends them back with another one.
-    6. Client prints the received data and finishes.
-    7. Checks if env and all data were printed correctly.
+    Base class for port test.
     """
 
     def initialize(self):
-        super(port, self).initialize()
+        super(port_base, self).initialize()
         self.sub_stuff['server_env'] = utils.generate_random_string(8)
         params = {'port': random.randrange(4000, 5000),
                   'container': 'SERVER',
@@ -300,6 +293,19 @@ class port(run_env_base):
             self.failif(result is None, fail_msg)
         else:
             self.failif(result > -1, fail_msg)  # negative test!
+
+
+class port(port_base):
+
+    """
+    1. Starts server with custom -e ENV_VARIABLE=$RANDOM_STRING and opened port
+    2. Starts client linked to server with another ENV_VARIABLE
+    3. Booth prints the env as {}
+    4. Client sends data to server (addr from env SERVER_PORT_$PORT_TCP_ADDR)
+    5. Server prints data with prefix and resends them back with another one.
+    6. Client prints the received data and finishes.
+    7. Checks if env and all data were printed correctly.
+    """
 
     def run_once(self):
         super(port, self).run_once()
@@ -365,7 +371,7 @@ class port(run_env_base):
                     "were not received on client:\n%s" % (exp, err_str))
 
 
-class rm_link(port):
+class rm_link(port_base):
 
     """
     1. Starts server with custom -e ENV_VARIABLE=$RANDOM_STRING and opened port
@@ -388,6 +394,7 @@ class rm_link(port):
         super(rm_link, self).initialize()
 
     def run_once(self):
+        super(rm_link, self).run_once()
         params = self.sub_stuff['params']
         # Server needs to be listening before client tries to connect
         servercmd = self.start_server()
@@ -416,6 +423,47 @@ class rm_link(port):
         # Order shouldn't matter here
         clientcmd.close()
         servercmd.close()
+
+    def postprocess(self):
+        super(rm_link, self).postprocess()
+        client_res = self.sub_stuff['client_result']
+        server_res = self.sub_stuff['server_result']
+        err_str = "\n\nServer\n%s\n\nClient\n%s" % (server_res, client_res)
+        # server env
+        server_env = self.get_env(server_res.stdout)
+        self.check_env(self.sub_stuff['server_env'], 'ENV_VARIABLE',
+                       server_env, 'server', err_str)
+
+        # client env
+        client_env = self.get_env(client_res.stdout)
+        self.check_env(self.sub_stuff['client_env'], 'ENV_VARIABLE',
+                       client_env, 'client', err_str)
+        # linked client env
+        self.check_env("/%s/server" % self.sub_stuff['client_name'],
+                       'SERVER_NAME', client_env, 'client', err_str)
+        self.check_env(self.sub_stuff['server_env'], 'SERVER_ENV_ENV_VARIABLE',
+                       client_env, 'client', err_str)
+        addr = r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'
+        serv_port = str(self.sub_stuff['params']['port'])
+        self.check_env("tcp://%s:%s" % (addr, serv_port), 'SERVER_PORT',
+                       client_env, 'client', err_str)
+        self.check_env("tcp://%s:%s" % (addr, serv_port), 'SERVER_PORT_%s_TCP'
+                       % serv_port, client_env, 'client', err_str)
+        self.check_env(addr, 'SERVER_PORT_%s_TCP_ADDR' % serv_port,
+                       client_env, 'client', err_str)
+        self.check_env(serv_port, 'SERVER_PORT_%s_TCP_PORT' % serv_port,
+                       client_env, 'client', err_str)
+        self.check_env('tcp', 'SERVER_PORT_%s_TCP_PROTO' % serv_port,
+                       client_env, 'client', err_str)
+        # data on server
+        data = self.sub_stuff['params']['data']
+        exp = "RECEIVED: %s" % data
+        self.failif(exp in server_res.stdout, "Data '%s' sent from client "
+                    "were not received on server:\n%s" % (exp, err_str))
+        # data on client
+        exp = "RESENDING: %s" % data
+        self.failif(exp in client_res.stdout, "Data '%s' sent from server "
+                    "were not received on client:\n%s" % (exp, err_str))
 
     def cleanup(self):
         self.record_iptables('final')
