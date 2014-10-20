@@ -13,6 +13,9 @@ is assumed.
 # pylint: disable=W0403
 
 from collections import namedtuple
+from ConfigParser import RawConfigParser
+from StringIO import StringIO
+import re
 import ast
 import os.path
 import docutils
@@ -95,239 +98,259 @@ class SummaryVisitor(docutils.nodes.SparseNodeVisitor):
             # Otherwise allow this node through
 
 
-class BaseConfigDocs(object):
+class ConfigINIParser(tuple):
+
     """
-    Abstract class for parsing configuration description from ini files
+    Parse ``config_defaults`` .ini file into tuple of DocItem instances
+
+    :param ini_filename: Absolute path to a ``.ini`` file
     """
 
-    def __init__(self, name):
-        self.name = name
-        self.configs = []
-        self.undocumented = []
-        self.defaults = []
+    #: String to use for undocumented options
+    undoc_option_doc = 'Undocumented Option, please fix!'
 
-    def populate_configs(self, keys, config, default_configs):
-        """ populates self.{defaults,configs,undocumented} values """
-        for key in keys:
-            conf = config[key]
-            if key in default_configs:
-                self.defaults.append("%s_" % key)
-                continue
-            if conf[1]:
-                self.configs.append((key, conf[1], conf[0]))
+    #: Option-line regular expression.
+    # word_chars + opt whitespace + '=' or ':' + opt whitespace + opt value
+    cfgoptval_regex = re.compile(r"""(\w+)\s*[=:]{1}\s*(.*)?""", re.IGNORECASE)
+
+    #: Absolute path to the original ``.ini`` file, if one was parsed
+    ini_filename = None  # from_string() does not set this
+
+    # Private copy of string in case from_string() was used
+    _ini_string = None
+
+    # Private cache for subtest_name property (subtest section name)
+    _subtest_name = None
+
+    # Private cache for subsub_names property (sub-subtest section names)
+    _subsub_names = None
+
+    # Private cache for subthing_names property (all section names)
+    _subthing_names = None
+
+    def __new__(cls, ini_filename):
+        # Makes unittesting easier if creation can come from string also
+        newone = super(ConfigINIParser,
+                       cls).__new__(cls,
+                                    cls._new__docitems(open(ini_filename,
+                                                            'rb')))
+        # Don't depend on __init__ so from_string() can work properly
+        newone.ini_filename = ini_filename
+        return newone
+
+    # FIXME: set() does not properly identify equivilent DocItem hashes
+    @staticmethod
+    def _dedupe(docitems):
+        docitems_hashes = [docitem.__hash__() for docitem in docitems]
+        # Make sure later added item overwrites any prior duplicate
+        dedupe_map = {}
+        for docitems_index, docitems_hash in enumerate(docitems_hashes):
+            # Ordered overwrite of any duplicates
+            dedupe_map[docitems_hash] = docitems[docitems_index]
+        return tuple(dedupe_map.values())
+
+    @classmethod
+    def _new__docitems(cls, iterable):
+        docitems = []
+        state = {}
+        cls.reset_state(state)
+        for line in iterable:
+            # line continuation begins with whitespace, strip right only.
+            result = cls.parse_line(line.rstrip(), state)
+            if result is None:
+                continue  # state is incomplete
+            else:  # state is complete, append then continue
+                docitems.append(result)  # overwrite any existing!
+        # Last item concluded by EOF?
+        if cls.state_complete(state):
+            # reset_state() guarantees parameters match for **magic
+            lastone = DocItem(**state)
+            docitems.append(lastone)  # possibly different one
+        return cls._dedupe(docitems)
+
+    @classmethod
+    def from_string(cls, ini_string):
+        """Return new ConfigINIParser from ``ini_string`` contents"""
+        lines = ini_string.splitlines()
+        # DO NOT set ini_filename
+        newone = super(ConfigINIParser,
+                       cls).__new__(cls,
+                                    cls._new__docitems(lines.__iter__()))
+        # Not accessing a protected member, this method is alternate __new__()
+        # pylint: disable=W0212
+        # So *_name() properties can work
+        newone._ini_string = ini_string
+        return newone
+
+    @classmethod
+    def reset_state(cls, state, subthing=None):
+        """
+        In-place modify state to 'incomplete', ready for new data
+        """
+        # Guarantee state items match DocItem fields exactly
+        state.update(DocItem(subthing,
+                             None,
+                             cls.undoc_option_doc,
+                             None).asdict())
+        # Presense of these signals a complete state
+        del state['option']
+        del state['value']
+        # The guarantee
+        assert not cls.state_complete(state)
+
+    @classmethod
+    def parse_line(cls, line, state):
+        """
+        Parse single line of INI file with state.
+
+        :return: None to continue parsing next line or completed
+                 DocItem instance to append.
+        """
+        # reset_state() guarantees parameters match for **magic
+        if line.startswith('[') and line.endswith(']'):
+            # Either first section or finishing previous one
+            if cls.state_complete(state):
+                # Delgate item parsing/storage to DocItem class
+                result = DocItem(**state)
             else:
-                self.undocumented.append("``%s``" % key)
+                result = None  # Continue parsing next line
+            # Forward parse current line, result encodes any prior state
+            cls.reset_state(state, line[1:-1])  # new section
+            return result  # state has been updated
+        elif line.startswith('#:'):
+            result = None  # Continue parsing next line by default
+            # Either new option-doc, continuing option/doc, finish previous
+            if cls.state_complete(state):  # Already received option/value
+                result = DocItem(**state)  # Record, and process line
+                # Line must start of a new option's doc
+                cls.reset_state(state, state['subthing'])  # same section
+            # Either new option-doc, or continuing prior option-doc
+            if state['desc'] == cls.undoc_option_doc:  # New option-doc
+                state['desc'] = line[2:].strip()
+            else:  # continuing prior option-doc
+                state['desc'] = '%s %s' % (state['desc'],
+                                           line[2:].strip())
+            return result  # state has been updated
+        else:  # Line must be junk, an option+value, or value-continuation
+            return cls.parse_non_section(line, state)
 
     @staticmethod
-    def render_line(config):
-        """ render config record as bullet item in defined format """
-        return "*  ``%s`` - %s ``[%s]``" % (config[0], config[1], config[2])
-
-    def render(self):
-        """ render this class's content """
-        raise NotImplementedError()
-
-    def __str__(self):
-        """ return rst rendered content when there is anything to print """
-        if bool(self):
-            return "\n".join(self.render())
-        else:
-            return ""
-
-    def __nonzero__(self):
-        """ is there any non-default content? """
-        if self.configs or self.undocumented or self.defaults:
-            return True
+    def state_complete(state):
+        """Return True if state is complete w/ no None values"""
+        state_len = len(state)
+        exptd_len = len(DocItem.fields)
+        if state_len == exptd_len:
+            # No field may be None
+            return all([state[field] is not None
+                        for field in DocItem.fields])
         else:
             return False
 
+    @classmethod
+    def parse_non_section(cls, line, state):
+        """Parse a single non-section line from INI file with state"""
+        # Determines if this is an option line, junk, or value-continuation
+        mobj = cls.cfgoptval_regex.match(line)
+        # reset_state() guarantees parameters match for **magic
+        if mobj is None:  # Line is value continuation or junk
+            # Value-continueation line (3-leading space is minimum)
+            if cls.state_complete(state) and line.startswith('   '):
+                # Replace multiple leading spaces with single
+                line = ' %s' % line.lstrip()
+                # Don't leave unnecessary whitespace if first is empty string
+                state['value'] = ('%s%s' % (state['value'], line)).strip()
+                return None  # Next line could value-continue also
+            else:  # line is junk
+                if cls.state_complete(state):
+                    return DocItem(**state)
+                else:
+                    return None  # ignore junk
+        else:  # line contains at least an unseen option
+            # Must be new option+value for desc already recorded or
+            # a new undocumented after a prev. undocumented option-doc
+            if cls.state_complete(state):  # did not parse this line yet
+                result = DocItem(**state)
+                cls.reset_state(state, state['subthing'])
+            else:  # Not complete yet, maybe line completes it
+                result = None  # continue with next line
+            # Parse this line, option could have zero or one value
+            groups = mobj.groups()
+            # Check completion after next line, in case value-continuation
+            if len(groups) == 1:  # empty values are possible!
+                state['option'], state['value'] = groups[0], ''
+            else:  # option w/ value
+                state['option'], state['value'] = groups
+            return result
 
-class SubtestConfigDocs(BaseConfigDocs):
+    @property
+    def subthing_names(self):
+        """
+        Represent all section names from ``.ini`` file reverse sorted by length
 
-    """ Subtest INI config parser """
-
-    def __init__(self, name, config, configs, default_configs):
-        super(SubtestConfigDocs, self).__init__(name)
-        self.missing = []
-        self.subsubtests = []
-
-        if "subsubtests" in config:
-            subsubtests = config.pop('subsubtests')[0]
-            self.populate_subsubtests(subsubtests, config, configs,
-                                      default_configs)
-
-        self.populate_configs(config.iterkeys(), config, default_configs)
-
-    def populate_subsubtests(self, subsubtests, config, configs,
-                             default_configs):
-        """ Populate subsubtests with subsubtests config """
-        self.subsubtests = []
-        for subsubtest in subsubtests.split(','):
-            subsubtest = "%s/%s" % (self.name, subsubtest)
-            if subsubtest in configs:
-                _ = SubSubtestConfigDocs(subsubtest, configs[subsubtest],
-                                         config, default_configs)
-                self.subsubtests.append(_)
+        :raises IOError: On failing to read ``.ini`` file or if no sections
+        """
+        if self._subthing_names is None:
+            # Using different parser here, helps validate job performed
+            # in this class is correct (at least for section names)
+            parser = RawConfigParser()
+            if self.ini_filename is not None:
+                parser.read([self.ini_filename])
             else:
-                self.missing.append(subsubtest)
+                parser.readfp(StringIO(self._ini_string))
+            section_names = parser.sections()  # Could be empty!
+            if len(section_names) < 1:
+                if self.ini_filename is not None:
+                    raise IOError("No sections found in ini file: %s"
+                                  % self.ini_filename)
+                else:
+                    raise IOError("No sections found in ini string: '%s'"
+                                  % self._ini_string)
+            section_names.sort(lambda x, y: cmp(len(x), len(y)), reverse=True)
+            self._subthing_names = section_names
+        return tuple(self._subthing_names)
 
-    def render(self):
-        out = ['']
-        # underline = '=' * (len(self.name) + 9)
-        # out.append("%s Subtest\n%s\n" % (self.name, underline))
-        out.append("Configuration\n--------------\n")
-        if self.subsubtests:
-            subsubtests = ", ".join((_.name for _ in self.subsubtests))
-            out.append("*  ``subsubtests`` - ``%s``" % subsubtests)
-        for config in self.configs:
-            out.append(self.render_line(config))
+    # new_by_name depends on this being static
+    @property
+    def subtest_name(self):
+        """
+        Represent standardized subtest name covered by this ``.ini`` file
+        """
+        # Parsing this is relativly expensive
+        if self._subtest_name is None:
+            # Handle easy-case first
+            if len(self.subthing_names) == 1:
+                return self.subthing_names[0]
+            else:  # Shortest name must be the subtest
+                # Avoid too-deep nesting in length search below
+                msg = "Multiple subtest sections found "
+                if self.ini_filename is not None:
+                    msg = ("%s in ini file: %s" % (msg, self.ini_filename))
+                else:
+                    msg = ("%s in ini string: '%s'" % (msg, self._ini_string))
+                # Must only be one subtest_name
+                subtest_name_len = len(self.subthing_names[-1])
+                for subthing_name in self.subthing_names[0:-1]:
+                    if subtest_name_len == len(subthing_name):
+                        raise IOError('%s: subtest "%s" == sub-subtest "%s"'
+                                      % (msg, self.subthing_names[-1],
+                                         subthing_name))
+                self._subtest_name = self.subthing_names[-1]
+        return self._subtest_name
 
-        if self.undocumented:
-            out.append("*  undocumented configs - %s"
-                       % ", ".join(self.undocumented))
-
-        if self.defaults:
-            out.append("*  overridden defaults - %s"
-                       % ", ".join(self.defaults))
-
-        out.extend((str(_) for _ in self.subsubtests))
-        return out
-
-    def __nonzero__(self):
-        if super(SubtestConfigDocs, self).__nonzero__() or self.subsubtests:
-            return True
-        else:
-            return False
-
-
-class SubSubtestConfigDocs(BaseConfigDocs):
-
-    """ SubSubtest INI config parser """
-
-    def __init__(self, name, config, subtest_conf, default_configs):
-        super(SubSubtestConfigDocs, self).__init__(name)
-
-        keys = [_ for _ in config if _ not in subtest_conf]
-        if not keys:
-            return
-        self.populate_configs(keys, config, default_configs)
-
-    def render(self):
-        out = []
-        underline = "~" * (len(self.name) + 11)
-        out.append("\n%s Subsubtest\n%s\n" % (self.name, underline))
-        out.extend((self.render_line(_) for _ in self.configs))
-
-        if self.undocumented:
-            out.append("*  undocumented configs - %s"
-                       % ", ".join(self.undocumented))
-
-        if self.defaults:
-            out.append("*  overridden defaults - %s"
-                       % ", ".join(self.defaults))
-        return out
-
-
-class ConfigINIParser(object):
-
-    """ parse ./config_defaults .ini files for test configuration """
-
-    def __init__(self, root_path='.', filenames=None):
-        self.root_path = root_path
-        if filenames is None:
-            filenames = SubtestDoc.module_filenames(root_path)
-        self.filenames = filenames
-
-    def parse(self):
-        """ Return tuple (default_configs, dict_of_test_configs) """
-        paths = os.walk(os.path.join(self.root_path, 'config_defaults'))
-        try:
-            tmptup = self.parse_default_config(paths)
-        except StopIteration:
-            # No default config., assume it's on purpose.
-            tmptup = ([], [''])
-        default_configs, rendered_defaults = tmptup
-        configs = self.parse_configs(paths)
-
-        missing = []
-        docs = {}
-        for path in self.filenames:
-            name = os.path.relpath(os.path.dirname(path),
-                                   os.path.join(self.root_path, 'subtests'))
-            if name not in configs:
-                missing.append(name)
-                continue
-            doc = SubtestConfigDocs(name, configs[name], configs,
-                                    default_configs)
-            if doc:
-                docs[name] = str(doc)
-            # No need to configure subsubtests
-            # missing.extend(doc.missing)
-
-        if missing:
-            missing = ", ".join(("``%s``" % _ for _ in missing))
-            rendered_defaults.append('Missing ini files for tests: %s\n\n\n'
-                                     % missing)
-
-        return "\n".join(rendered_defaults), docs
-
-    @staticmethod
-    def render_default_config(config):
-        """ render default_config records with labels """
-        return (".. _%s:\n\n*  ``%s`` - %s ``[%s]``\n"
-                % (config[0], config[0], config[2], config[1]))
-
-    def parse_default_config(self, paths):
-        """Return tuple of default key-list, rendered defaults section lines"""
-        default_configs = []
-        desc = []
-        if 'defaults.ini' in paths.next()[2]:
-            ini = open(os.path.join('.', 'config_defaults', 'defaults.ini'),
-                       'r')
-            for line in ini:
-                if not line:
-                    continue
-                elif line[0] == '#':
-                    if line.startswith('#: '):
-                        desc.append(line[3:].strip())
-                elif '=' in line:
-                    key, value = tuple(_.strip() for _ in line.split('=', 1))
-                    default_configs.append((key, value, " ".join(desc)))
-                    desc = []
-
-        rendered = []
-        for config in default_configs:
-            rendered.append(self.render_default_config(config))
-        default_configs = [_[0] for _ in default_configs]
-        return default_configs, rendered
-
-    @staticmethod
-    def parse_configs(paths):
-        """ Go through all .ini files in all directories and grab configs """
-        configs = {}
-        desc = []
-        for path in paths:
-            for ini in path[2]:
-                if not ini.endswith('.ini'):
-                    continue
-                ini = os.path.join(path[0], ini)
-                ini = open(ini, 'r')
-                for line in ini:
-                    line = line.strip()    # FIXME: Remove when all files fixed
-                    if line.startswith('#'):
-                        if line.startswith('#: '):  # ignore simple comments
-                            desc.append(line[3:].strip())
-                    elif line.startswith('[') and line.endswith(']'):
-                        test_name = line[1:-1]
-                        if test_name not in configs:
-                            configs[test_name] = NoOverwriteDict(ini.name)
-                        desc = []
-                    elif '=' in line:
-                        key, value = tuple(_.strip()
-                                           for _ in line.split('=', 1))
-                        configs[test_name][key] = (value, " ".join(desc))
-                        desc = []
-        return configs
+    @property
+    def subsub_names(self):
+        """
+        Represent all sub-subtest names (if any) covered by this ``.ini`` file
+        """
+        if self._subsub_names is None:
+            # Simpelest case first
+            if len(self.subthing_names) == 1:
+                return tuple()
+            subsub_names = [subthing_name
+                            for subthing_name in self.subthing_names
+                            if subthing_name != self.subtest_name]
+            self._subsub_names = set(subsub_names)
+        return tuple(self._subsub_names)
 
 
 class DocBase(object):
