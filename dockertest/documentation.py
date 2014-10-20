@@ -68,36 +68,6 @@ class DocItem(DocItemBase):
         return self._asdict()
 
 
-class SummaryVisitor(docutils.nodes.SparseNodeVisitor):
-
-    """
-    Strips all sections in tree-traversal order, matching exclude_names
-    """
-
-    #: For summary-only rendering, exclude these section names
-    #: (names convert to ids with ``docutils.nodes.make_id()``)
-    exclude_names = ('operational detail', 'prerequisites', 'configuration')
-
-    @property
-    def xids(self):
-        """Represent exclude_names in docutils.node Id format"""
-        return [docutils.nodes.make_id(name)
-                for name in self.exclude_names]
-
-    def visit_section(self, node):
-        """
-        Check each section, delete if it matches ``exclude_names``
-        """
-        # There can be more than one!
-        ids = node.get('ids')
-        for _id in ids:
-            if _id in self.xids:
-                node.parent.remove(node)
-                # Departure calls would fail, skip it entirely
-                raise docutils.nodes.SkipNode()
-            # Otherwise allow this node through
-
-
 class ConfigINIParser(tuple):
 
     """
@@ -351,6 +321,36 @@ class ConfigINIParser(tuple):
                             if subthing_name != self.subtest_name]
             self._subsub_names = set(subsub_names)
         return tuple(self._subsub_names)
+
+
+class SummaryVisitor(docutils.nodes.SparseNodeVisitor):
+
+    """
+    Strips all sections in tree-traversal order, matching exclude_names
+    """
+
+    #: For summary-only rendering, exclude these section names
+    #: (names convert to ids with ``docutils.nodes.make_id()``)
+    exclude_names = ('operational detail', 'prerequisites', 'configuration')
+
+    @property
+    def xids(self):
+        """Represent exclude_names in docutils.node Id format"""
+        return [docutils.nodes.make_id(name)
+                for name in self.exclude_names]
+
+    def visit_section(self, node):
+        """
+        Check each section, delete if it matches ``exclude_names``
+        """
+        # There can be more than one!
+        ids = node.get('ids')
+        for _id in ids:
+            if _id in self.xids:
+                node.parent.remove(node)
+                # Departure calls would fail, skip it entirely
+                raise docutils.nodes.SkipNode()
+            # Otherwise allow this node through
 
 
 class DocBase(object):
