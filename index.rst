@@ -22,6 +22,7 @@ Docker Autotest |version|
    :hidden:
    :numbered:
 
+   defaults
    subtests
 
 ----------------
@@ -282,13 +283,18 @@ All configuration files are loaded into a single name-space, divided by
 each section.   Section names can be arbitrary, however those which exactly
 match a subtest or subsubtest's name, will be automatically loaded (see Subtests_).
 
+.. _default configuration options:
+
 Defaults
 ----------------
 
 The Default, global values for **all** sections are located within the
 special ``defaults.ini`` file's ``DEFAULTS`` section.  These option
 names and values are supplied for all sections which do not contain
-a identical named option. See `Default configuration options`_ for more details.
+a identical named option.  This file is loaded *either* from the
+``config_defaults`` *or* ``config_custom`` directory.
+
+.. include:: defaults.rst
 
 Formatting
 =============
@@ -362,16 +368,6 @@ and any prerequisites or setup requirements.
 .. contents::
    :depth: 1
    :local:
-
-Default configuration options
-================================
-
-Global default options that apply to all other sections are set in
-the special ``DEFAULTS`` section of the ``defaults.ini`` file.  This
-file is loaded *either* from ``config_defaults`` *or* ``config_custom``.
-
-
-.. This file include also fills in defaults section
 
 .. include:: subtests.rst
 
