@@ -519,6 +519,134 @@ class DocBase(object):
         return output
 
 
+class ConfigDoc(DocBase):
+
+    """
+    Specialized ``DocBase`` to handle single configuration section + subsection
+
+    :param ini_path: Full or absolute path, including filename of config. file
+    """
+
+    #: Path to ini file, None if not parsed
+    ini_path = None
+
+    #: Contains a tuple of DocItems parsed or None if not
+    docitems = None
+
+    #: String format for each option, desc, value item in a DocItem
+    item_fmt = '*  ``%(option)s`` - %(desc)s (default ``%(value)s``)'
+
+    #: Default base-path to use for all methods requiring one.
+    default_base_path = '.'  # important for unittesting!
+
+    def __init__(self, ini_path):
+        self.ini_path = ini_path
+        self.docitems = ConfigINIParser(self.ini_path)
+
+    @classmethod
+    def new_by_name(cls, name, base_path=None):
+        """
+        Return instance by searching for ``name`` under ``path``
+
+        :param name: Subtest name or 'DEFAULTS' (NOT sub-subtest names!)
+        :param base_path: Relative/Absolute path where ``config_defaults``
+                          directory can be found. Uses
+                          ``cls.default_base_path`` if None.
+        :return: New instance of this class
+        :raise ValueError: If subtest ``name`` not found.
+        """
+        if base_path is None:
+            base_path = cls.default_base_path
+        # If this becomes performance bottleneck, implement cls._cache
+        for ini_path in cls.ini_filenames(base_path):
+            inst = cls(ini_path)
+            if name.strip() == inst.docitems.subtest_name:
+                return inst
+        raise ValueError("Subtest %s not found under %s/config_defaults"
+                         % (name, os.path.abspath(base_path)))
+
+    @property
+    def fmt(self):
+        """
+        Represent entire contents of configuration section (if any)
+        """
+        # Handle simple case first
+        if len(self.docitems) == 0:
+            return ''
+        if self.docitems.subtest_name != 'DEFAULTS':
+            _fmt = '\n\nConfiguration\n---------------\n\n'
+        else:
+            _fmt = ''
+        # No 'general' section unless non-zero sub-subtests
+        if len(self.docitems.subsub_names) == 0:
+            lines = [self.item_fmt % docitem.asdict()
+                     for docitem in self.docitems]
+            # Append to existing _fmt
+            _fmt = '%s%s\n\n' % (_fmt, '\n'.join(lines))
+            return _fmt
+
+        # Else, contains > 1 section, General sub-section data first
+        general_fmt = self._general_fmt()  # Could be empty
+        if len(general_fmt) > 1:  # In case stray newline
+            _fmt = '%sGeneral\n~~~~~~~~~\n\n%s\n' % (_fmt, general_fmt)
+
+        # Only include subsub section if it has items to document
+        subsub_fmt = self._subsub_fmt()  # Also could be empty
+        if len(subsub_fmt) > 1:
+            # Section headers will be embedded
+            _fmt = '%s\n%s\n' % (_fmt, subsub_fmt)
+        return _fmt
+
+    def _general_fmt(self):
+        # Could be completely empty
+        general_options = [docitem
+                           for docitem in self.docitems
+                           if docitem.subthing == self.docitems.subtest_name]
+        lines = [self.item_fmt % gop.asdict() for gop in general_options]
+        return '\n'.join(lines)
+
+    def _subsub_fmt(self):
+        # Organize sub-subtest content by name for unroll into sections
+        subsubs = dict([(subsub_name, [])
+                        for subsub_name in self.docitems.subsub_names])
+        for docitem in [di for di in self.docitems
+                        if di.subthing in subsubs]:
+            subsubs[docitem.subthing].append(docitem)
+        # Unroll each section's items under one heading per section
+        lines = []
+        for subsub_name in subsubs:
+            if len(subsubs[subsub_name]) == 0:
+                continue  # Skip sections w/o any content
+            lines.append('')  # blank before section content
+            lines.append('``%s`` Sub-subtest' % subsub_name)  # Section heading
+            lines.append('~' * (len(lines[-1]) + 2))
+            lines.append('')  # blank before section title
+            for docitem in subsubs[subsub_name]:  # Content
+                lines.append(self.item_fmt % docitem.asdict())
+        return '\n'.join(lines)
+
+    # Makefile depends on this being static
+    @classmethod
+    def ini_filenames(cls, base_path=None):
+        """
+        Return an iterable of absolute paths to all ini files found.
+
+        :param base_path: Relative/Absolute path where ``subtests`` and
+                          ``config_defaults`` directories can be found.
+                          Uses ``cls.default_base_path`` if None.
+        """
+        if base_path is None:
+            base_path = cls.default_base_path
+        ini_files = []
+        ini_path = os.path.join(os.path.abspath(base_path),
+                                'config_defaults')
+        for dirpath, _, filenames in os.walk(ini_path):
+            for filename in filenames:
+                if filename.endswith('.ini'):
+                    ini_files.append(os.path.join(dirpath, filename))
+        return tuple(ini_files)
+
+
 class SubtestDoc(DocBase):
 
     """
