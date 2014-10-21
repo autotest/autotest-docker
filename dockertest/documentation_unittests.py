@@ -224,6 +224,7 @@ class TestDocBase(DocumentationTestBase):
 # TODO: Test ConfigDoc class (don't forget to set default_base_path)
 class TestConfigDoc(DocumentationTestBase):
 
+    # Note: Some of the strings below are wrapped on purpose!
     defaults_ini = """[DEFAULTS]
 # Don't change this file, or any file under this tree!
 #
@@ -235,7 +236,10 @@ class TestConfigDoc(DocumentationTestBase):
 config_version = 0.7.7
 
 #: Autotest version dependency for framework (or override for individual tests)
-autotest_version = 0.16.0-master-66-g9aaee
+autotest_version =
+   0.16.0-master-66-g9aaee
+   
+   
 
 #: Subtests and SubSubtests names to skip (CSV)
 disable =
@@ -264,6 +268,9 @@ docker_repo_tag =
 docker_registry_host =
 #: remote components (username)
 docker_registry_user =
+   
+   
+   
 
 ##### Operational testing options
 
@@ -271,12 +278,14 @@ docker_registry_user =
 remove_after_test = yes
 
 #: Deprecated Legacy cleanup options, DO NOT USE FOR NEW TESTS
-try_remove_after_test = %(remove_after_test)s
+try_remove_after_test =
+   %(remove_after_test)s
 
 ##### Environment checking options
 
 #: CSV of checker pathnames to skip, relative to 'envchecks' subdirectory
 envcheck_skip =
+   
 #: CSV of possibly existing image names to ignore
 envcheck_ignore_fqin =
 #: CSV of possibly existing image IDs to ignore

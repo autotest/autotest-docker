@@ -81,7 +81,8 @@ class ConfigINIParser(tuple):
 
     #: Option-line regular expression.
     # word_chars + opt whitespace + '=' or ':' + opt whitespace + opt value
-    cfgoptval_regex = re.compile(r"""(\w+)\s*[=:]{1}\s*(.*)?""", re.IGNORECASE)
+    cfgoptval_regex = re.compile(r"""(\w+)\s*[=:]{1}\s*(.*)""",
+                                 re.IGNORECASE)
 
     #: Absolute path to the original ``.ini`` file, if one was parsed
     ini_filename = None  # from_string() does not set this
