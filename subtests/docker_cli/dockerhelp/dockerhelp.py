@@ -67,26 +67,27 @@ class help_base(SubSubtest):
     def postprocess(self):
         super(help_base, self).postprocess()  # Prints out basic info
         for cmdresult in self.sub_stuff["success_cmdresults"]:
-            self.loginfo("command: '%s'" % cmdresult.command)
             self.failif(cmdresult.exit_status != 0,
                         "Docker command returned non-zero exit status")
-            # https://bugzilla.redhat.com/show_bug.cgi?id=1098280
-            self.failif(cmdresult.stdout.count('Usage:') < 1,
-                        "Docker command did not return usage info on stderr")
-            self.failif(cmdresult.stdout.count('Commands:') < 1,
-                        "Docker command did not return command-line help "
-                        "on stderr.")
+            no_usage = cmdresult.stdout.lower().find('usage:') == -1
+            no_cmnds = cmdresult.stdout.lower().find('commands:') == -1
+            self.failif(no_usage, "Did not return usage help on stdout for: "
+                        "%s" % cmdresult.command)
+            self.failif(no_cmnds, "Did not return command help on stdout for: "
+                        "%s" % cmdresult.command)
             outputgood = OutputGood(cmdresult, ignore_error=True,
                                     skip=['usage_check', 'error_check'])
             self.failif(not outputgood, str(outputgood))
         for cmdresult in self.sub_stuff['failure_cmdresults']:
-            self.loginfo("command: '%s'" % cmdresult.command)
             self.failif(cmdresult.exit_status == 0,
                         "Invalid docker option returned exit status of '0'")
             # https://bugzilla.redhat.com/show_bug.cgi?id=1098280
-            self.failif(cmdresult.stderr.count('Error:') < 1,
-                        "Docker command did not throw an error "
-                        "on stderr.")
+            defined = cmdresult.stdout.lower().find('flag provided but '
+                                                    'not defined') > -1
+            usage = cmdresult.stdout.lower().find('usage:') > -1
+            self.failif(defined or usage, 'Did not return undefined '
+                        'error or usage message for: '
+                        "%s" % cmdresult.command)
             outputgood = OutputGood(cmdresult, ignore_error=True,
                                     skip=['usage_check'])
             self.failif(not outputgood, str(outputgood))
