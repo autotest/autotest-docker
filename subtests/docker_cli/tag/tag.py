@@ -25,67 +25,65 @@ Configuration
    and negative testing.
 """
 
-import time
 from autotest.client.shared import error
 from autotest.client import utils
 from dockertest.subtest import SubSubtest
 from dockertest.images import DockerImages
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
-from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
+from dockertest.dockercmd import DockerCmd, NoFailDockerCmd
 from dockertest import subtest
 from dockertest import config
 from dockertest import xceptions
 
 
 class tag(subtest.SubSubtestCaller):
-    pass
+
+    """ SubSubtest caller """
 
 
 class tag_base(SubSubtest):
 
-    def check_image_exists(self, full_name):
-        di = DockerImages(self.parent_subtest)
-        return di.list_imgs_with_full_name(full_name)
+    """ tag base class """
+
+    def __init__(self, *args, **kwargs):
+        super(tag_base, self).__init__(*args, **kwargs)
+        self.dkrimg = DockerImages(self.parent_subtest)
+
+    def get_images_by_name(self, full_name):
+        """ :return: List of images with given name """
+        return self.dkrimg.list_imgs_with_full_name(full_name)
 
     def prep_image(self, base_image):
-        pull_results = DockerCmd(self, "pull",
-                                 [base_image]).execute()
-        if pull_results.exit_status:
-            raise xceptions.DockerTestNAError("Problem pulling"
-                                              "base image %s for test"
-                                              % base_image)
+        """ Tag the dockertest image to this test name """
+        NoFailDockerCmd(self, "pull", [base_image], verbose=False).execute()
         subargs = [base_image, self.sub_stuff["image"]]
-        tag_results = DockerCmd(self, "tag", subargs).execute()
+        tag_results = DockerCmd(self, "tag", subargs, verbose=False).execute()
         if tag_results.exit_status:
             raise xceptions.DockerTestNAError("Problems during "
                                               "initialization of"
                                               " test: %s", tag_results)
 
-        im = self.check_image_exists(self.sub_stuff["image"])
-        self.sub_stuff['image_list'] = im
+        img = self.get_images_by_name(self.sub_stuff["image"])
+        self.failif(not img, "Image %s was not created."
+                    % self.sub_stuff["image"])
+        self.sub_stuff['image_list'] = img
 
     def initialize(self):
         super(tag_base, self).initialize()
         config.none_if_empty(self.config)
-
-        di = DockerImages(self.parent_subtest)
-        di.gen_lower_only = self.config['gen_lower_only']
-        new_img_name = di.get_unique_name()
-        # Make sure there are UPPER chars in the name (not gen_lower_only)
-        if (not self.config['gen_lower_only'] and
-                (new_img_name.lower() == new_img_name)):
-            new_img_name = di.get_unique_name("UPPER")
-
+        self.dkrimg.gen_lower_only = self.config['gen_lower_only']
+        new_img_name = self.dkrimg.get_unique_name()
         self.sub_stuff["image"] = new_img_name
         base_image = DockerImage.full_name_from_defaults(self.config)
         self.prep_image(base_image)
 
     def complete_docker_command_line(self):
+        """ :return: tag subargs using new_image_name """
         force = self.config["tag_force"]
 
         cmd = []
-        if force == "yes":
+        if force:
             cmd.append("-f")
 
         cmd.append(self.sub_stuff["image"])
@@ -95,14 +93,8 @@ class tag_base(SubSubtest):
 
     def run_once(self):
         super(tag_base, self).run_once()
-        dkrcmd = AsyncDockerCmd(self, 'tag',
-                                self.complete_docker_command_line())
-        self.loginfo("Executing background command: %s" % dkrcmd)
-        dkrcmd.execute()
-        while not dkrcmd.done:
-            self.loginfo("tagging...")
-            time.sleep(3)
-        self.sub_stuff["cmdresult"] = dkrcmd.wait()
+        subargs = self.complete_docker_command_line()
+        self.sub_stuff["cmdresult"] = DockerCmd(self, 'tag', subargs).execute()
 
     def postprocess(self):
         super(tag_base, self).postprocess()
@@ -113,30 +105,32 @@ class tag_base(SubSubtest):
                         "Non-zero tag exit status: %s"
                         % self.sub_stuff['cmdresult'])
 
-            im = self.check_image_exists(self.sub_stuff["new_image_name"])
+            img = self.get_images_by_name(self.sub_stuff["new_image_name"])
             # Needed for cleanup
-            self.sub_stuff['image_list'] += im
-            self.failif(len(im) < 1,
+            self.sub_stuff['image_list'] += img
+            self.failif(len(img) < 1,
                         "Failed to look up tagted image ")
 
         elif self.config["docker_expected_result"] == "FAIL":
-            og = OutputGood(self.sub_stuff['cmdresult'], ignore_error=True)
-            es = self.sub_stuff['cmdresult'].exit_status == 0
-            self.failif(not og or not es,
+            chck = OutputGood(self.sub_stuff['cmdresult'], ignore_error=True)
+            exit_code = self.sub_stuff['cmdresult'].exit_status
+            self.failif(not chck or not exit_code,
                         "Zero tag exit status: Command should fail due to"
                         " wrong command arguments.")
+        else:
+            self.failif(True, "Improper 'docker_expected_result' value %s"
+                        % self.config["docker_expected_result"])
 
     def cleanup(self):
         super(tag_base, self).cleanup()
         # Auto-converts "yes/no" to a boolean
         if self.config['remove_after_test'] and 'image_list' in self.sub_stuff:
             for image in self.sub_stuff["image_list"]:
-                di = DockerImages(self.parent_subtest)
                 self.logdebug("Removing image %s", image.full_name)
                 try:
-                    di.remove_image_by_full_name(image.full_name)
-                except error.CmdError, e:
-                    err = e.result_obj.stderr
+                    self.dkrimg.remove_image_by_full_name(image.full_name)
+                except error.CmdError, exc:
+                    err = exc.result_obj.stderr
                     if "tagged in multiple repositories" not in err:
                         raise
                 self.loginfo("Successfully removed test image: %s",
@@ -145,7 +139,13 @@ class tag_base(SubSubtest):
 
 class change_tag(tag_base):
 
+    """
+    1. tag testing image with different tag (keep the name, change only tag)
+    2. verify it worked well
+    """
+
     def generate_special_name(self):
+        """ keep the name, only get unique tag """
         img = self.sub_stuff['image_list'][0]
         _tag = "%s_%s" % (img.tag, utils.generate_random_string(8))
         if self.config['gen_lower_only']:
@@ -165,7 +165,7 @@ class change_tag(tag_base):
         super(change_tag, self).initialize()
 
         new_img_name = self.generate_special_name()
-        while self.check_image_exists(new_img_name):
+        while self.get_images_by_name(new_img_name):
             new_img_name = self.generate_special_name()
 
         self.sub_stuff["new_image_name"] = new_img_name
