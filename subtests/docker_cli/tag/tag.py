@@ -49,6 +49,7 @@ class tag_base(SubSubtest):
     def __init__(self, *args, **kwargs):
         super(tag_base, self).__init__(*args, **kwargs)
         self.dkrimg = DockerImages(self.parent_subtest)
+        self.sub_stuff['tmp_image_list'] = set()
 
     def get_images_by_name(self, full_name):
         """ :return: List of images with given name """
@@ -135,6 +136,13 @@ class tag_base(SubSubtest):
                         raise
                 self.loginfo("Successfully removed test image: %s",
                              image.full_name)
+            for image in self.sub_stuff['tmp_image_list']:
+                image = self.get_images_by_name(image)
+                if image:
+                    self.logdebug("Removing image %s", image[0].full_name)
+                    self.dkrimg.remove_image_by_full_name(image[0].full_name)
+                    self.loginfo("Successfully removed test image: %s",
+                                 image[0].full_name)
 
 
 class change_tag(tag_base):
@@ -169,3 +177,23 @@ class change_tag(tag_base):
             new_img_name = self.generate_special_name()
 
         self.sub_stuff["new_image_name"] = new_img_name
+
+
+class double_tag(change_tag):
+
+    """
+    1. tag testing image with different tag (keep the name, change only tag)
+    2. do the same and expect failure
+    """
+
+    def initialize(self):
+        super(double_tag, self).initialize()
+        # Tag it for the first time
+        self.sub_stuff['tmp_image_list'].add(self.sub_stuff["new_image_name"])
+        NoFailDockerCmd(self, 'tag', self.complete_docker_command_line(),
+                        verbose=False).execute()
+
+
+class double_tag_force(double_tag):
+
+    """ Same as ``double_tag`` only this time use `--force` and expect pass """
