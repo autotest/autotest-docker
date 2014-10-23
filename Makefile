@@ -15,8 +15,9 @@ I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
 GET_SUBTESTS_PY = from dockertest.documentation import SubtestDoc; print ' '.join(SubtestDoc.module_filenames())
 GET_INIFILES_PY = from dockertest.documentation import ConfigDoc; print ' '.join(ConfigDoc.ini_filenames())
+
 BUILD_SUBTEST_DOCS_PY = from dockertest.documentation import SubtestDocs; print SubtestDocs()
-BUILD_DEFAULTS_DOCS_PY = from dockertest.documentation import ConfigDoc; print ConfigDoc('config_defaults/defaults.ini')
+BUILD_DEFAULTS_DOCS_PY = from dockertest.documentation import DefaultDoc; print DefaultDoc('config_defaults/defaults.ini')
 
 SUBTESTS = $(shell python -c "${GET_SUBTESTS_PY}")
 INIFILES = $(shell python -c "${GET_INIFILES_PY}")

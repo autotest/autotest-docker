@@ -294,7 +294,9 @@ names and values are supplied for all sections which do not contain
 a identical named option.  This file is loaded *either* from the
 ``config_defaults`` *or* ``config_custom`` directory.
 
+
 .. include:: defaults.rst
+
 
 Formatting
 =============

@@ -100,6 +100,8 @@ class ConfigINIParser(tuple):
     _subthing_names = None
 
     def __new__(cls, ini_filename):
+        # Guarantee it's an absolute path
+        ini_filename = os.path.abspath(ini_filename)
         # Makes unittesting easier if creation can come from string also
         newone = super(ConfigINIParser,
                        cls).__new__(cls,
@@ -109,7 +111,7 @@ class ConfigINIParser(tuple):
         newone.ini_filename = ini_filename
         return newone
 
-    # FIXME: set() does not properly identify equivilent DocItem hashes
+    # set() does not properly identify equivilent DocItem hashes, bug?
     @staticmethod
     def _dedupe(docitems):
         docitems_hashes = [docitem.__hash__() for docitem in docitems]
@@ -520,6 +522,67 @@ class DocBase(object):
         return output
 
 
+class DefaultDoc(DocBase):
+
+    """
+    Specialized ``DocBase`` singleton that only handles Default configuration
+
+    :param ini_path: Optional, full or absolute path to defaults file.
+    """
+
+    #: Path to ini file, None if not parsed
+    ini_path = None
+
+    #: Contains a tuple of DocItems parsed or None if not
+    docitems = None
+
+    #: String format for each option, desc, value item in a DocItem
+    item_fmt = '*  ``%(option)s`` : %(desc)s (``%(value)s``)'
+
+    #: Default base-path to use for all methods requiring one.
+    default_base_path = '.'  # important for unittesting!
+
+    #: Class-reference to DefaultDoc instance singleton, if not None.
+    singleton = None
+
+    # Private cache for quickly looking up a default option by name
+    _default_map = None
+
+    def __new__(cls, ini_path=None):
+        if cls.singleton is None:
+            if ini_path is None:
+                ini_path = os.path.join(cls.default_base_path,
+                                        'config_defaults',
+                                        'defaults.ini')
+            cls.singleton = super(DefaultDoc, cls).__new__(cls)
+            cls.singleton.ini_path = ini_path
+            cls.singleton.docitems = ConfigINIParser(cls.singleton.ini_path)
+        # In all cases, return only the singleton instance
+        return cls.singleton
+
+    @property
+    def fmt(self):
+        """
+        Represent entire contents of defaults configuration section.
+        """
+        if len(self.docitems) == 0:
+            raise ValueError("No defaults.ini options were parsed from %s"
+                             % self.ini_path)
+        _fmt = ''
+        lines = [self.item_fmt % docitem.asdict()
+                 for docitem in self.docitems]
+        # Append to existing _fmt
+        _fmt = '%s%s\n\n' % (_fmt, '\n'.join(lines))
+        return _fmt
+
+    def get_default(self, option):
+        """Returns docitem for Default option, None if it doesn't exist"""
+        if self._default_map is None:
+            options = [docitem.option for docitem in self.docitems]
+            self._default_map = dict(zip(options, self.docitems))
+        return self._default_map.get(option, None)
+
+
 class ConfigDoc(DocBase):
 
     """
@@ -534,8 +597,13 @@ class ConfigDoc(DocBase):
     #: Contains a tuple of DocItems parsed or None if not
     docitems = None
 
-    #: String format for each option, desc, value item in a DocItem
-    item_fmt = '*  ``%(option)s`` - %(desc)s (default ``%(value)s``)'
+    #: String format for each non-default option, desc, value item in a DocItem
+    item_fmt = DefaultDoc.item_fmt
+
+    #: String format for any overridden default option, w/ cross-reference
+    def_item_fmt = ('*  ``%(option)s`` : ``%(value)s`` '
+                    ':ref:`Overrides default value '  # required for cross-file
+                    '<default configuration options>`: ``%(def_value)s``')
 
     #: Default base-path to use for all methods requiring one.
     default_base_path = '.'  # important for unittesting!
@@ -574,23 +642,11 @@ class ConfigDoc(DocBase):
         # Handle simple case first
         if len(self.docitems) == 0:
             return ''
-        if self.docitems.subtest_name != 'DEFAULTS':
-            _fmt = '\n\nConfiguration\n---------------\n\n'
-        else:
-            _fmt = ''
-        # No 'general' section unless non-zero sub-subtests
-        if len(self.docitems.subsub_names) == 0:
-            lines = [self.item_fmt % docitem.asdict()
-                     for docitem in self.docitems]
-            # Append to existing _fmt
-            _fmt = '%s%s\n\n' % (_fmt, '\n'.join(lines))
-            return _fmt
-
-        # Else, contains > 1 section, General sub-section data first
+        _fmt = '\n\nConfiguration\n---------------\n\n'
+        # FIXME: Add blurb listing sub-subtest names
         general_fmt = self._general_fmt()  # Could be empty
         if len(general_fmt) > 1:  # In case stray newline
-            _fmt = '%sGeneral\n~~~~~~~~~\n\n%s\n' % (_fmt, general_fmt)
-
+            _fmt = '%s\n%s\n' % (_fmt, general_fmt)
         # Only include subsub section if it has items to document
         subsub_fmt = self._subsub_fmt()  # Also could be empty
         if len(subsub_fmt) > 1:
@@ -598,13 +654,29 @@ class ConfigDoc(DocBase):
             _fmt = '%s\n%s\n' % (_fmt, subsub_fmt)
         return _fmt
 
+    def _fmt_options(self, options):
+        defaults = DefaultDoc()  # singleton!
+        lines = []
+        for option in options:
+            op_dct = option.asdict()
+            default = defaults.get_default(option.option)
+            if default is not None:  # Overridden default option
+                op_dct['def_value'] = default.value
+                line_fmt = self.def_item_fmt
+            else:
+                line_fmt = self.item_fmt
+            lines.append(line_fmt % op_dct)
+        return lines
+
     def _general_fmt(self):
         # Could be completely empty
         general_options = [docitem
                            for docitem in self.docitems
                            if docitem.subthing == self.docitems.subtest_name]
-        lines = [self.item_fmt % gop.asdict() for gop in general_options]
-        return '\n'.join(lines)
+        # Remove subsubtests option if present
+        general_options = [docitem for docitem in general_options
+                           if docitem.option != 'subsubtests']
+        return '\n'.join(self._fmt_options(general_options))
 
     def _subsub_fmt(self):
         # Organize sub-subtest content by name for unroll into sections
@@ -622,8 +694,7 @@ class ConfigDoc(DocBase):
             lines.append('``%s`` Sub-subtest' % subsub_name)  # Section heading
             lines.append('~' * (len(lines[-1]) + 2))
             lines.append('')  # blank before section title
-            for docitem in subsubs[subsub_name]:  # Content
-                lines.append(self.item_fmt % docitem.asdict())
+            lines += self._fmt_options(subsubs[subsub_name])
         return '\n'.join(lines)
 
     # Makefile depends on this being static
@@ -643,6 +714,8 @@ class ConfigDoc(DocBase):
                                 'config_defaults')
         for dirpath, _, filenames in os.walk(ini_path):
             for filename in filenames:
+                if filename == 'defaults.ini':
+                    continue  # processed separately
                 if filename.endswith('.ini'):
                     ini_files.append(os.path.join(dirpath, filename))
         return tuple(ini_files)
@@ -873,5 +946,5 @@ def set_default_base_path(base_path):
     Modify all relevant classes ``default_base_path`` to base_path
     """
     # Order is significant!
-    for cls in (SubtestDocs, ConfigDoc, SubtestDoc.ConfigDocClass):
+    for cls in (SubtestDocs, ConfigDoc, SubtestDoc.ConfigDocClass, DefaultDoc):
         cls.default_base_path = base_path
