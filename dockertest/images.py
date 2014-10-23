@@ -183,8 +183,16 @@ class DockerImage(object):  # pylint: disable=R0902
             config['docker_registry_host'],
             config['docker_registry_user'])
         if len(fqin) < min_length:
-            raise ValueError("FQIN '%s' likely wrong, from configuration %s"
-                             % (fqin, config))
+            raise ValueError("Unable to search image with FQIN '%s',"
+                             "please check values in configuration"
+                             " (defaults.ini) [docker_repo_name: %s,"
+                             " docker_repo_tag: %s, docker_registry_host: %s,"
+                             " docker_registry_user: %s]" %
+                             (fqin,
+                              config['docker_repo_name'],
+                              config['docker_repo_tag'],
+                              config['docker_registry_host'],
+                              config['docker_registry_user']))
         return fqin
 
     def cmp_id(self, image_id):
