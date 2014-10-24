@@ -2,8 +2,7 @@
 Low-level documentation building facilities, depends on external Docutils.
 
 This module shouldn't use any other ``dockertest`` modules it may create
-circular-dependencies.  These classes are a bit tricky, due to multiple
-input and output formats.  Some familiarity with the `docutils documentation`_
+circular-dependencies.  Some familiarity with the `docutils documentation`_
 is assumed.
 
 .. _docutils documentation: http://docutils.sourceforge.net/docs/index.html
@@ -32,6 +31,14 @@ class DocItem(DocItemBase):
 
     """
     Read-only storage class for each config option item's documentation.
+
+    :param subthing: Standardized docker autotest name for subtest, sub-subtest
+                     or DEFAULTS, also used as section names in ini files.
+    :param option: String name of the option key for ``subthing`` section.
+    :param desc:  Possibly multi-line string describing the purpose of
+                  ``option`` in this subtest or sub-subtest.
+    :param value:  Configured value (if any) for ``option`` in ``subthing``
+                   as described by ``desc``.
     """
 
     #: String to use when filling in empty value items
@@ -51,6 +58,7 @@ class DocItem(DocItemBase):
             return newone
 
     def __cmp__(self, other):
+        """Compare to another instance, ignoring ``desc`` and ``value``."""
         # ConfigParser allows later duplicate options to overwrite prior
         _self = tuple([self.subthing, self.option])
         _other = tuple([other.subthing, other.option])
@@ -58,13 +66,14 @@ class DocItem(DocItemBase):
         return cmp(_self, _other)
 
     def __hash__(self):
+        """
+        Return integer hash-value for instance. ignores ``desc`` and ``value``.
+        """
         # Ignore desc and value for comparison purposes, as in __cmp__
         return hash(tuple([self.subthing, self.option]))
 
     def asdict(self):
-        """
-        Return copy as an ordered-dictionary
-        """
+        """Return copy as an ordered-dictionary"""
         return self._asdict()
 
 
@@ -100,6 +109,10 @@ class ConfigINIParser(tuple):
     _subthing_names = None
 
     def __new__(cls, ini_filename):
+        """
+        New immutable parsed results from ``ini_filename`` to DocItem
+        instances.
+        """
         # Guarantee it's an absolute path
         ini_filename = os.path.abspath(ini_filename)
         # Makes unittesting easier if creation can come from string also
@@ -111,9 +124,11 @@ class ConfigINIParser(tuple):
         newone.ini_filename = ini_filename
         return newone
 
-    # set() does not properly identify equivilent DocItem hashes, bug?
     @staticmethod
     def _dedupe(docitems):
+        """
+        Workaround for set() not properly calling __hash__ to find duplicates
+        """
         docitems_hashes = [docitem.__hash__() for docitem in docitems]
         # Make sure later added item overwrites any prior duplicate
         dedupe_map = {}
@@ -124,6 +139,7 @@ class ConfigINIParser(tuple):
 
     @classmethod
     def _new__docitems(cls, iterable):
+        """Private helper for ``__new__`` to parse each ini-file line"""
         docitems = []
         state = {}
         cls.reset_state(state)
@@ -143,7 +159,7 @@ class ConfigINIParser(tuple):
 
     @classmethod
     def from_string(cls, ini_string):
-        """Return new ConfigINIParser from ``ini_string`` contents"""
+        """Invoke parser on ``ini_string`` contents instead of a file."""
         lines = ini_string.splitlines()
         # DO NOT set ini_filename
         newone = super(ConfigINIParser,
@@ -157,9 +173,7 @@ class ConfigINIParser(tuple):
 
     @classmethod
     def reset_state(cls, state, subthing=None):
-        """
-        In-place modify state to 'incomplete', ready for new data
-        """
+        """In-place modify state to 'incomplete', ready for new data"""
         # Guarantee state items match DocItem fields exactly
         state.update(DocItem(subthing,
                              None,
@@ -221,7 +235,9 @@ class ConfigINIParser(tuple):
 
     @classmethod
     def parse_non_section(cls, line, state):
-        """Parse a single non-section line from INI file with state"""
+        """
+        Parse a single already identified non-section line from INI file
+        """
         # Determines if this is an option line, junk, or value-continuation
         mobj = cls.cfgoptval_regex.match(line)
         # reset_state() guarantees parameters match for **magic
@@ -288,7 +304,7 @@ class ConfigINIParser(tuple):
         """
         Represent standardized subtest name covered by this ``.ini`` file
         """
-        # Parsing this is relativly expensive
+        # Parsing this is relativly expensive, use cache?
         if self._subtest_name is None:
             # Handle easy-case first
             if len(self.subthing_names) == 1:
@@ -343,9 +359,7 @@ class SummaryVisitor(docutils.nodes.SparseNodeVisitor):
                 for name in self.exclude_names]
 
     def visit_section(self, node):
-        """
-        Check each section, delete if it matches ``exclude_names``
-        """
+        """Check each section, delete if it matches ``exclude_names``"""
         # There can be more than one!
         ids = node.get('ids')
         for _id in ids:
@@ -394,47 +408,53 @@ class DocBase(object):
 
     def __str__(self):
         """Perform ``fmt % sub_*`` substitutions, then call ``conv_name``"""
-        first = self.do_sub_str
-        second = self.do_sub_method
-        third = self.do_sub_method_args
-        output_string = third(second(first(self.fmt)))
+        # Source from instance dictionaries, don't use/modify them.
+        dct = {}
+        # Combining dictionaries avoids individual methods throwing
+        # KeyErrors for keys substituted in different methods.
+        if self.sub_str is not None:
+            dct.update(self.sub_str)
+        if self.sub_method is not None:
+            dct.update(self.get_sub_method_dct())
+        if self.sub_method_args is not None:
+            dct.update(self.get_sub_method_args_dct())
+        if len(dct) > 0:
+            output_string = self.do_sub_str(self.fmt, dct)
+        else:  # No substitutions to perform!
+            output_string = self.fmt
         #  Allow optional final conversion modification at runtime
         return self.conv(output_string).strip()
 
-    def do_sub_str(self, input_string, dct=None):
-        """Substitute from ``sub_str`` keys/values directly.
+    @staticmethod
+    def do_sub_str(input_string, dct):
+        """
+        Substitute in ``sub_str`` from dct keys/values.
 
         :param input_string: Format string to substitute into
-        :param dct: Same as self.sub_str if None, otherwise substitute from."""
+        :param dct: Substitution dictionary to substutute from
+        """
         # Allows re-use of this method for other substitutions w/
         # uniform key checking...
-        if dct is None:
-            if self.sub_str is None:
-                return input_string  # nothing to substitute
-            dct = self.sub_str
-        if dct == {}:
-            # Ignore empty dct, let values pass-through w/o substitution
-            return input_string
         try:
             return input_string % dct
-        except Exception, xcept:
+        except Exception, xcept:  # add some helpful details
             raise xcept.__class__("%s: fmt='%s' with dct='%s'"
                                   % (xcept.message, input_string, dct))
 
-    def do_sub_method(self, input_string):
+    def get_sub_method_dct(self):
         """Substitute from ``sub_method``, key/method-name results"""
         if self.sub_method is None:
-            return input_string
+            return {}
         subs = {}
         for key, method in self.sub_method.iteritems():
-            subs[key] = str(method(key))
-        return self.do_sub_str(input_string, subs)
+            subs[key] = method(key)
+        return subs
 
-    def do_sub_method_args(self, input_string):
+    def get_sub_method_args_dct(self):
         """Substitute from calls to ``sub_method_args`` returned
         ``(key, value)``"""
         if self.sub_method_args is None:
-            return input_string
+            return {}
         subs = {}
         for method, args in self.sub_method_args.iteritems():
             if args is None:
@@ -442,7 +462,7 @@ class DocBase(object):
             # reset_state() guarantees parameters match for **magic
             key, value = method(*args)
             subs[key] = value
-        return self.do_sub_str(input_string, subs)
+        return subs
 
     @staticmethod
     def conv(input_string):
@@ -468,9 +488,7 @@ class DocBase(object):
 
     @staticmethod
     def doctree2html(doctree):
-        """
-        Return rendered html fragment from a doctree instance
-        """
+        """Return rendered html fragment from a doctree instance"""
         # Combined publish_parts() + publish_from_doctree() utilities
         _, publisher = docutils.core.publish_programmatically(
             # TODO: Figure which params not needed & use defaults.
@@ -496,9 +514,7 @@ class DocBase(object):
 
     @staticmethod
     def doctree2text(doctree):
-        """
-        Return rendered text string from a doctree instance
-        """
+        """Return rendered text string from a doctree instance"""
         # Combined publish_parts() + publish_from_doctree() utilities
         output, _ = docutils.core.publish_programmatically(
             # TODO: Figure which params not needed & use defaults.
@@ -537,7 +553,7 @@ class DefaultDoc(DocBase):
     docitems = None
 
     #: String format for each option, desc, value item in a DocItem
-    item_fmt = '*  ``%(option)s`` : %(desc)s (``%(value)s``)'
+    item_fmt = '*  ``%(option)s`` : (``%(value)s``) %(desc)s'
 
     #: Default base-path to use for all methods requiring one.
     default_base_path = '.'  # important for unittesting!
@@ -549,13 +565,19 @@ class DefaultDoc(DocBase):
     _default_map = None
 
     def __new__(cls, ini_path=None):
+        """Create new universal (singleton) instance, if none exist."""
         if cls.singleton is None:
-            if ini_path is None:
+            if ini_path is None and cls.ini_path is None:
                 ini_path = os.path.join(cls.default_base_path,
                                         'config_defaults',
                                         'defaults.ini')
+                ini_path = os.path.abspath(ini_path)
+            elif ini_path is None:
+                ini_path = os.path.abspath(cls.ini_path)
+            else:  # ini_path is not None but cls.ini_path is None
+                cls.ini_path = os.path.abspath(ini_path)
             cls.singleton = super(DefaultDoc, cls).__new__(cls)
-            cls.singleton.ini_path = ini_path
+            cls.singleton.ini_path = os.path.abspath(ini_path)  # Just in case
             cls.singleton.docitems = ConfigINIParser(cls.singleton.ini_path)
         # In all cases, return only the singleton instance
         return cls.singleton
@@ -605,6 +627,9 @@ class ConfigDoc(DocBase):
                     ':ref:`Overrides default value '  # required for cross-file
                     '<default configuration options>`: ``%(def_value)s``')
 
+    #: String format for any subtest options inherited by sub-subtest
+    inherit_fmt = DefaultDoc.item_fmt + ' - *inherited*'
+
     #: Default base-path to use for all methods requiring one.
     default_base_path = '.'  # important for unittesting!
 
@@ -643,7 +668,10 @@ class ConfigDoc(DocBase):
         if len(self.docitems) == 0:
             return ''
         _fmt = '\n\nConfiguration\n---------------\n\n'
-        # FIXME: Add blurb listing sub-subtest names
+        ssns = ["``%s``" % ssn for ssn in self.docitems.subsub_names]
+        if len(ssns) > 0:
+            subsublist = ':Sub-subtests: %s' % ', '.join(ssns)
+            _fmt = '%s%s\n\n' % (_fmt, subsublist)
         general_fmt = self._general_fmt()  # Could be empty
         if len(general_fmt) > 1:  # In case stray newline
             _fmt = '%s\n%s\n' % (_fmt, general_fmt)
@@ -654,7 +682,13 @@ class ConfigDoc(DocBase):
             _fmt = '%s\n%s\n' % (_fmt, subsub_fmt)
         return _fmt
 
-    def _fmt_options(self, options):
+    def _fmt_options(self, options, inherited=None):
+        """
+        Private ``fmt()`` helper for ``_general_fmt()`` and ``_subsub_fmt()``
+        """
+        if inherited is None:
+            inherited = []  # Makes conditional smaller (below)
+        undoc_doc = ConfigINIParser.undoc_option_doc
         defaults = DefaultDoc()  # singleton!
         lines = []
         for option in options:
@@ -664,11 +698,19 @@ class ConfigDoc(DocBase):
                 op_dct['def_value'] = default.value
                 line_fmt = self.def_item_fmt
             else:
-                line_fmt = self.item_fmt
+                if option.desc == undoc_doc and option.option in inherited:
+                    line_fmt = self.inherit_fmt
+                    # inherited maps subtest option name, to its docitem
+                    op_dct['desc'] = inherited[option.option].desc
+                else:  # Standard formatting
+                    line_fmt = self.item_fmt
             lines.append(line_fmt % op_dct)
         return lines
 
     def _general_fmt(self):
+        """
+        Private helper for fmt() to render all subtest options, if any.
+        """
         # Could be completely empty
         general_options = [docitem
                            for docitem in self.docitems
@@ -679,6 +721,12 @@ class ConfigDoc(DocBase):
         return '\n'.join(self._fmt_options(general_options))
 
     def _subsub_fmt(self):
+        """
+        Private helper for fmt() to render all sub-subtest sections + options
+        """
+        # Sub-subtests inherit options from parent subtest
+        inherited = dict([(di.option, di) for di in self.docitems
+                          if di.subthing == self.docitems.subtest_name])
         # Organize sub-subtest content by name for unroll into sections
         subsubs = dict([(subsub_name, [])
                         for subsub_name in self.docitems.subsub_names])
@@ -694,7 +742,7 @@ class ConfigDoc(DocBase):
             lines.append('``%s`` Sub-subtest' % subsub_name)  # Section heading
             lines.append('~' * (len(lines[-1]) + 2))
             lines.append('')  # blank before section title
-            lines += self._fmt_options(subsubs[subsub_name])
+            lines += self._fmt_options(subsubs[subsub_name], inherited)
         return '\n'.join(lines)
 
     # Makefile depends on this being static
@@ -746,9 +794,6 @@ class SubtestDoc(DocBase):
     #: Default base-path to use for all methods requiring one.
     default_base_path = '.'  # important for unittesting!
 
-    #: Cached mapping of test-name to configuration section
-    config_cache = None
-
     def __init__(self, subtest_path):
         self.subtest_path = subtest_path
         # Not many keys, use same method and instance attributes
@@ -778,6 +823,8 @@ class SubtestDoc(DocBase):
                          % (name, os.path.abspath(base_path)))
 
     def _subs(self, key):
+        """Private helper for ``str()`` handling of ``sub_method`` for ``key``
+        """
         name = self.name(self.subtest_path)
         if key == 'name':
             return name
@@ -901,6 +948,8 @@ class SubtestDocs(DocBase):
     def __init__(self, base_path=None, exclude=None, subtestdocclass=None):
         if base_path is None:
             self.base_path = os.path.abspath(self.default_base_path)
+        else:
+            self.base_path = os.path.abspath(base_path)
         if exclude is not None:
             self.exclude = exclude
         if subtestdocclass is not None:
@@ -912,9 +961,11 @@ class SubtestDocs(DocBase):
 
         Any test names referenced in ``exclude`` will be skipped"""
         # Extra keys in ``subs`` excluded here will be ignored
-        return '\n\n'.join([('%%(%s)s' % name)
-                            for name in self.names_filenames
-                            if name not in self.exclude])
+        subtest_fmt = [('%%(%s)s' % name)
+                       for name in self.names_filenames
+                       if name not in self.exclude]
+        subtest_fmt.sort()
+        return '\n\n'.join(subtest_fmt)
 
     @property
     def sub_str(self):
@@ -942,9 +993,7 @@ class SubtestDocs(DocBase):
 
 
 def set_default_base_path(base_path):
-    """
-    Modify all relevant classes ``default_base_path`` to base_path
-    """
+    """Modify all relevant classes ``default_base_path`` to base_path"""
     # Order is significant!
     for cls in (SubtestDocs, ConfigDoc, SubtestDoc.ConfigDocClass, DefaultDoc):
         cls.default_base_path = base_path

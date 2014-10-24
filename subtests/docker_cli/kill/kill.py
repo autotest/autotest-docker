@@ -78,6 +78,7 @@ class go_lang_bad_signals(kill_check_base):
     postprocess:
     3) analyze results
     """
+
     def _check_signal(self, container_out, _check, signal, timeout):
         """
         Inverse container check for $signal check output presence

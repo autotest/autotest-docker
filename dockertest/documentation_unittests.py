@@ -9,17 +9,36 @@ import os.path
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
+
 class DocumentationTestBase(unittest.TestCase):
 
     def setUp(self):
         import documentation
         self.documentation = documentation
         self.tmpdir = tempfile.mkdtemp(self.__class__.__name__)
-        self.documentation.set_default_base_path(self.tmpdir)
+        # Don't let changes in module affect unittesting
+        documentation.set_default_base_path(self.tmpdir)
+        documentation.DocItem.empty_value = '<None>'
+        documentation.ConfigINIParser.undoc_option_doc = (
+            'Undocumented Option, please fix!')
+        documentation.SummaryVisitor.exclude_names = (
+            'operational detail', 'prerequisites', 'configuration')
+        documentation.DefaultDoc.item_fmt = '%(option)s%(desc)s%(value)s'
+        documentation.ConfigDoc.item_fmt = '%(option)s%(desc)s%(value)s'
+        documentation.ConfigDoc.def_item_fmt = ('%(option)s%(desc)s%(value)s'
+                                                '%(def_value)s')
+        documentation.SubtestDoc.fmt = ("%(name)s "
+                                        "%(docstring)s "
+                                        "%(configuration)s ")
+        documentation.SubtestDoc.NoINIString = ('Note: Subtest does not '
+                                                'have any default '
+                                                'configuration')
+        documentation.SubtestDoc.ConfigDocClass = documentation.ConfigDoc
 
     def tearDown(self):
         shutil.rmtree(self.tmpdir, ignore_errors=True)
         self.assertFalse(os.path.isdir(self.tmpdir))
+
 
 class TestDocItem(DocumentationTestBase):
 
@@ -122,9 +141,9 @@ class TestConfigINIParser(DocumentationTestBase):
 
     def test_dupe(self):
         expt = self.DocItem(subthing='foo',
-                             option='option',
-                             desc='description',
-                             value='value')
+                            option='option',
+                            desc='description',
+                            value='value')
         test = self.CIP.from_string('[foo]\noption=value\n#: description\n'
                                     'option :value\t\t\n')
         self.assertEqual(len(test), 1)
@@ -132,9 +151,9 @@ class TestConfigINIParser(DocumentationTestBase):
 
     def test_value_cont(self):
         expt = self.DocItem(subthing='foo',
-                             option='option',
-                             desc=self.CIP.undoc_option_doc,
-                             value='value more value')
+                            option='option',
+                            desc=self.CIP.undoc_option_doc,
+                            value='value more value')
         test = self.CIP.from_string('[foo]\n'
                                     'option =   value    \n'
                                     '   more\t\t\n'
@@ -220,6 +239,70 @@ class TestDocBase(DocumentationTestBase):
         db.sub_str = {'foo': 'bar'}
         self.assertRaises(KeyError, str, db)
 
+    def test_do_sub_method(self):
+        # This will be a different "self"
+        def bar(_self_, key):
+            _self_.called_bar = True
+            return unicode('bar')
+        try:
+            setattr(self.docbase, 'bar', bar)
+            setattr(self.docbase, 'called_foo', False)
+            setattr(self.docbase, 'called_bar', False)
+            db = self.docbase()
+
+            def foo(key):
+                db.called_foo = True
+                return 0xf00
+            db.fmt = '%(bar)X%(foo)s'
+            db.sub_method = {'foo': db.bar,
+                             'bar': foo}
+            expected = 'F00bar'
+            self.assertEqual(str(db), expected)
+            self.assertTrue(db.called_foo)
+            self.assertTrue(db.called_bar)
+        finally:  # Just for safety's sake, put it back to stock
+            delattr(self.docbase, 'bar')
+            delattr(self.docbase, 'called_foo')
+            delattr(self.docbase, 'called_bar')
+
+    def test_sub_method_args(self):
+        db = self.docbase()
+        db.called_foo = False
+        db.called_bar = False
+
+        def foo(it_works=True):
+            db.called_foo = it_works
+            return ('foo', 'bar')
+
+        def bar(x, y, z):
+            db.called_bar = True
+            return ('bar', x + y + z)
+        db.fmt = '%(bar)x%(foo)s'
+        db.sub_method_args = {foo: None,
+                              lambda a, b, c: bar(a, b, c): (507, 3210, 123)}
+        expected = 'f00bar'
+        self.assertEqual(str(db), expected)
+        self.assertTrue(db.called_foo)
+        self.assertTrue(db.called_bar)
+
+    def test_multi_sub(self):
+        def baz(_self_, ch):
+            return ('baz', ch)
+        try:
+            setattr(self.docbase, 'baz', baz)
+            db = self.docbase()
+            db.fmt = '%(foo)s%(BAR)sba%(baz)c'
+            db.sub_str = {'foo': 'foo'}
+
+            def bar(key):
+                return key.lower()
+            db.sub_method = {'BAR': bar}
+            db.sub_method_args = {db.baz: 'z'}
+            expected = 'foobarbaz'
+            self.assertEqual(str(db), expected)
+        finally:
+            delattr(self.docbase, 'baz')
+
 
 # TODO: Test ConfigDoc class (don't forget to set default_base_path)
 class TestConfigDoc(DocumentationTestBase):
@@ -238,8 +321,8 @@ config_version = 0.7.7
 #: Autotest version dependency for framework (or override for individual tests)
 autotest_version =
    0.16.0-master-66-g9aaee
-   
-   
+
+
 
 #: Subtests and SubSubtests names to skip (CSV)
 disable =
@@ -268,9 +351,9 @@ docker_repo_tag =
 docker_registry_host =
 #: remote components (username)
 docker_registry_user =
-   
-   
-   
+
+
+
 
 ##### Operational testing options
 
@@ -285,7 +368,7 @@ try_remove_after_test =
 
 #: CSV of checker pathnames to skip, relative to 'envchecks' subdirectory
 envcheck_skip =
-   
+
 #: CSV of possibly existing image names to ignore
 envcheck_ignore_fqin =
 #: CSV of possibly existing image IDs to ignore
@@ -293,26 +376,28 @@ envcheck_ignore_iids =
 """
 
     defaults_rst = """
-*  ``docker_repo_name`` - Default registry settings for testing (blank if not applicable) (default ``<None>``)
-*  ``autotest_version`` - Autotest version dependency for framework (or override for individual tests) (default ``0.16.0-master-66-g9aaee``)
-*  ``envcheck_ignore_fqin`` - CSV of possibly existing image names to ignore (default ``<None>``)
-*  ``envcheck_ignore_iids`` - CSV of possibly existing image IDs to ignore (default ``<None>``)
-*  ``docker_registry_host`` - remote components (host:port) (default ``<None>``)
-*  ``docker_path`` - Docker default options (before subcommand) (default ``/usr/bin/docker``)
-*  ``disable`` - Subtests and SubSubtests names to skip (CSV) (default ``<None>``)
-*  ``remove_after_test`` - Attempt to remove all created containers/images during test (default ``yes``)
-*  ``docker_registry_user`` - remote components (username) (default ``<None>``)
-*  ``docker_options`` - Global docker command options to use (default ``-D``)
-*  ``envcheck_skip`` - CSV of checker pathnames to skip, relative to 'envchecks' subdirectory (default ``<None>``)
-*  ``config_version`` - API Version number applying to all bundled tests (default ``0.7.7``)
-*  ``docker_timeout`` - Max runtime in seconds for any docker command (auto-converts to float) (default ``300.0``)
-*  ``docker_repo_tag`` - Default image settings for testing (blank if not applicable) (default ``<None>``)
-*  ``try_remove_after_test`` - Deprecated Legacy cleanup options, DO NOT USE FOR NEW TESTS (default ``%(remove_after_test)s``)
+docker_repo_nameDefault registry settings for testing (blank if not applicable)<None>
+autotest_versionAutotest version dependency for framework (or override for individual tests)0.16.0-master-66-g9aaee
+envcheck_ignore_fqinCSV of possibly existing image names to ignore<None>
+envcheck_ignore_iidsCSV of possibly existing image IDs to ignore<None>
+docker_registry_hostremote components (host:port)<None>
+docker_pathDocker default options (before subcommand)/usr/bin/docker
+disableSubtests and SubSubtests names to skip (CSV)<None>
+remove_after_testAttempt to remove all created containers/images during testyes
+docker_registry_userremote components (username)<None>
+docker_optionsGlobal docker command options to use-D
+envcheck_skipCSV of checker pathnames to skip, relative to 'envchecks' subdirectory<None>
+config_versionAPI Version number applying to all bundled tests0.7.7
+docker_timeoutMax runtime in seconds for any docker command (auto-converts to float)300.0
+docker_repo_tagDefault image settings for testing (blank if not applicable)<None>
+try_remove_after_testDeprecated Legacy cleanup options, DO NOT USE FOR NEW TESTS%(remove_after_test)s
 """
 
     def setUp(self):
         super(TestConfigDoc, self).setUp()
         self.ConfigDoc = self.documentation.ConfigDoc
+        self.DefaultDoc = self.documentation.DefaultDoc
+        # So changes in module don't affect unittesting
         os.makedirs(os.path.join(self.tmpdir,
                                  'config_defaults/subtests/docker_cli'))
         self.defaults_path = os.path.join(self.tmpdir, 'config_defaults',
@@ -322,14 +407,16 @@ envcheck_ignore_iids =
         self.documentation.set_default_base_path(self.tmpdir)
 
     def test_defaults_render(self):
-        configdoc = self.ConfigDoc(self.defaults_path)
-        self.assertEqual(str(configdoc).strip(), self.defaults_rst.strip())
+        defaultdoc = self.DefaultDoc(self.defaults_path)
+        self.assertEqual(str(defaultdoc).strip(), self.defaults_rst.strip())
 
     def test_ini_filenames(self):
         self.assertEqual(self.ConfigDoc.ini_filenames(),
-                         (self.defaults_path,))
+                         tuple())  # defaults should not be expressed
+                                   # from ConfigDoc, only DefaultDoc
 
     # FIXME: Need more tests
+
 
 class TestSubtestDoc(DocumentationTestBase):
 
@@ -347,9 +434,6 @@ class TestSubtestDoc(DocumentationTestBase):
     def setUp(self):
         super(TestSubtestDoc, self).setUp()
         self.sd = self.documentation.SubtestDoc
-        self.sd.fmt = ("%(name)s "
-                       "%(docstring)s "
-                       "%(configuration)s ")
         # Need input file to test from w/ known contents
         self.subtest_fullpath = os.path.join(self.tmpdir,
                                              self.subtest_path,
