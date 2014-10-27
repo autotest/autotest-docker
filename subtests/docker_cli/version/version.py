@@ -15,11 +15,6 @@ Prerequisites
 ---------------
 
 None
-
-Configuration
----------------
-
-None
 """
 
 from dockertest import subtest

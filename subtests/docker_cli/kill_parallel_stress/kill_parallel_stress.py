@@ -7,10 +7,10 @@ Sends signals to container very quickly in parallel (one process per signal)
 Operational Summary
 -------------------
 
-1. start container with test command
-2. spawn one worker per each signal and let them stress container for
+#. start container with test command
+#. spawn one worker per each signal and let them stress container for
    ``test_time``.
-3. analyze results
+#. analyze results
 """
 import time
 

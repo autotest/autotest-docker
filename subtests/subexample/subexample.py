@@ -32,23 +32,6 @@ Prerequisites
 
 *  This example test does not require anything other than
    Autotest, Docker autotest, and this file.
-
-Configuration
----------------
-
-General
-~~~~~~~~~~
-*  The optional ``iterations`` option specifies how many times
-   this test will run.  The current iteration number is available
-   in the ``iteration`` attribute.
-
-Test Two
-~~~~~~~~~
-*  Doesn't do anything differently, so configuration is the same.
-
-Test Three
-~~~~~~~~~~~~
-*  No additional configuation
 """
 
 import logging

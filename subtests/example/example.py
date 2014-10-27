@@ -24,13 +24,6 @@ Prerequisites
 
 This example test does not require anything other than
 Autotest, Docker autotest, and this file.
-
-Configuration
----------------
-
-The optional ``iterations`` option specifies how many times
-this test will run.  The current iteration number is available
-in the ``iteration`` attribute.
 """
 
 from dockertest import subtest

@@ -13,9 +13,9 @@ Several variations of running the kill command.
 Operational Summary
 ----------------------
 
-1. start container with test command
-2. execute docker kill no_iteration times
-3. analyze results
+#. start container with test command
+#. execute docker kill no_iteration times
+#. analyze results
 """
 from dockertest import subtest, xceptions
 from kill_utils import kill_check_base
@@ -78,6 +78,7 @@ class go_lang_bad_signals(kill_check_base):
     postprocess:
     3) analyze results
     """
+
     def _check_signal(self, container_out, _check, signal, timeout):
         """
         Inverse container check for $signal check output presence

@@ -7,23 +7,9 @@ Test usage of docker 'stop' command
 Operational Summary
 ----------------------
 
-1. start VM with test command
-2. execute docker stop
-3. analyze results (duration, exit_code)
-
-Configuration
---------------------------------------
-*  The ``stop_name_prefix`` is prefix of the tested container followed by
-   random characters to make it unique.
-*  The ``run_options_csv`` modifies the running container options.
-*  The ``stop_options_csv`` specifies the stop command options
-*  The ``exec_cmd`` modifies the container command
-*  The ``stop_duration`` sets the acceptable stop command duration (+-2s)
-*  The ``check_stdout`` value is expected output of command for PASS.
-*  To verify the value of ``check_stdout`` does NOT appear, set the
-   ``check_output_inverted`` option.
-*  The required exit code for PASS is specified by ``docker_exit_code``
-   otherwise ``0`` is assumed.
+#. start VM with test command
+#. execute docker stop
+#. analyze results (duration, exit_code)
 """
 import time
 

@@ -19,20 +19,6 @@ Prerequisites
    docker daemon hasn't been restarted in a while)
 *  Host clock is accurate, local timezone setup properly.
 *  Host clock does not change drastically during test
-
-Configuration
---------------------------------------
-*  ``run_args`` is a CSV list of arguments to the run command
-*  ``rm_after_run`` specifies whether or not to use the ``docker rm``
-   command after the container finishes.
-*  The ``wait_stop`` option specifies time in seconds to wait
-   after removing the container, to check events.
-*  ``expect_events`` is a CSV of required events for test to pass
-*  ``name_prefix`` specifies the container name prefix to use.
-   before random characters are added.
-*  The ``unparseable_allowance`` setting specifies the number of
-   lines with parse errors to allow.
-*  The ``remove_after_test`` option controls cleanup after test
 """
 
 import re

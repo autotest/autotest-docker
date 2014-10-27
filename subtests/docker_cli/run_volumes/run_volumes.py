@@ -26,32 +26,6 @@ Prerequisites
 
 *  Remote filesystems are mounted and accessible on host system.
 *  Containers have access to read & write files w/in mountpoints
-
-Configuration
-------------------
-
-volumes_rw
-~~~~~~~~~~~~~
-*  The ``host_paths`` and corresponding ``cntr_paths`` are most important.
-   They are the host paths and container paths comma-separated values to
-   test.  There must be 1:1 correspondence between CSVs of both options.
-   The lists must also be the same length.
-*  ``run_template`` allows fine-tuning the options to the run command.
-*  The ``cmd_template`` allows fine-tuning the command to run inside
-   the container.  It makes use of shell-like value substitution from
-   the contents of ``host_paths`` and ``cntr_paths``.
-*  The ``wait_stop`` option specifies the time in seconds to wait after all
-   docker run processes exit.
-
-volumes_one_source
-~~~~~~~~~~~~~~~~~~~
-*  The ``num_containers`` is the number of containers to run concurrently.
-*  The ``cmd_timeout`` is the timeout for each container's IO command.
-*  The ``cntr_path`` is where to mount the volume inside the container.
-*  The ``exec_command`` is the command each container should run.  This
-   should be an IO command that writes to a file at ${write_path} which will
-   be inside the mounted volume.  This command should also take time to
-   allow for taking place while the other containers are also writing IO.
 """
 
 import time

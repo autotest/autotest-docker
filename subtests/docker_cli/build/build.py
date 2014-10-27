@@ -23,21 +23,6 @@ Prerequisites
 
 *  Tarballs bundled with the subtest
 *  Statically linked 'busybox' executable available on path or over HTTP
-
-Configuration
---------------
-
-*  The ``build_timeout_seconds`` option specifies a fixed time (in
-   seconds) the build must complete within)
-*  ``try_remove_after_test`` is a boolean option, selecting whether
-   or not the built-image should be removed when the test is complete.
-   (Any removal errors will be ignored)
-*  ``image_name_prefix`` and ``image_name_postfix`` adjust
-   strings prepended/appended to a random non-conflicting name.
-*  The location of the statically linked ``busybox`` executable
-   is specified by the ``busybox_url`` option.
-*  Source path of Dockerfile or directory containing Dockerfile is defined
-   by ``dockerfile_path``
 """
 
 import os.path

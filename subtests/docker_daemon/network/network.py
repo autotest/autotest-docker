@@ -18,19 +18,6 @@ Prerequisites
 *  Docker is installed in host system.
 *  Container os has installed python package.
 *  Command iptable and brctl are working well.
-
-Configuration
-------------------------------------------
-
-General
-~~~~~~~~~
-*  The option ``docker_daemon_args`` sets the special network args.
-*  The option ``docker_daemon_bind`` sets special bind address.
-
-ICC
-~~~~~
-*  The option ``docker_cmd1_args`` sets args for server container commands.
-*  The option ``docker_cmd2_args`` sets args for client container commands.
 """
 
 import os

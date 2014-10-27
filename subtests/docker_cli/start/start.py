@@ -16,18 +16,6 @@ Prerequisites
 ----------------
 
 *  A remote registry server
-
-Configuration
-----------------
-
-*  The ``container_name_prefix`` is prefix of the tested container followed by
-   random characters to make it unique.
-*  The ``run_cmd`` option
-*  Options ``docker_start_timeout`` and ``docker_run_timeout`` specify max
-   time to wait for container to start, and finish (``docker wait``).
-*  The ``docker_interactive`` and ``docker_attach`` options specify whether
-   or not the container is initially run with the ``-i`` and/or ``-d``
-   parameters.
 """
 
 from autotest.client.shared import error

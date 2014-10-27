@@ -5,14 +5,16 @@ Verifies that subtests.rst contains all required data
 import os
 import re
 import sys
-from dockertest.environment import SubtestDocs
+from dockertest.documentation import SubtestDoc
 
 
 # TODO: Subclass environment.AllGoodBase to seperate behavior from results
 class SubtestsDocumented(object):
+
     """
     Checker object
     """
+
     def __init__(self, path='.'):
         """ Location of the subtests.rst directory """
         self.path = os.path.join(path, 'subtests')
@@ -30,10 +32,12 @@ class SubtestsDocumented(object):
 
     def walk_directories(self):
         """ Checks whether all existing tests are documented """
-        dir_tests = SubtestDocs.filenames()
+        dir_tests = SubtestDoc.module_filenames()
         err = False
         for dir_item in dir_tests:
-            name = SubtestDocs.name(dir_item)
+            name = SubtestDoc.name(dir_item)
+            if 'example' in name:
+                continue
             if name:
                 # Require at least the same number of `=` as chapter name
                 chapter = "``%s`` Subtest\n" % name

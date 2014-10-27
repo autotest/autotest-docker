@@ -11,21 +11,6 @@ Operational Summary
 #. Make changes in image by docker run [dockerand_data_prepare_cmd].
 #. Get docker history using docker image history.
 #. check if image history is correct.
-
-Configuration
----------------
-
-General
-~~~~~~~
-
-* The option ``docker_history_timeout`` set timeout for history command.
-* The option ``docker_data_prepare_cmd`` set history preparation command.
-* The option ``docker_read_file_cmd`` set cmd for reading file from container.
-
-Simple
-~~~~~~~
-* The option ``docker_expected_result`` set expectation of commad result.
-* The option ``history_repo_name_prefix`` set prefix of test image.
 """
 
 import time

@@ -36,10 +36,6 @@ Prerequisites
 ---------------
 
 Docker daemon and host-networking setup to allow ICC between containers.
-
-Configuration
----------------
-None
 """
 import ast
 import os

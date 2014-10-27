@@ -15,10 +15,10 @@ virtualenv:
 before_script:
     - echo "deb http://ppa.launchpad.net/lmr/autotest/ubuntu trusty main" | sudo tee -a /etc/apt/sources.list
     - sudo apt-get update -q
-    - sudo apt-get -y --force-yes install autotest python-sphinx
+    - sudo apt-get -y --force-yes install autotest
 
 install:
-    - pip install pylint pep8
+    - pip install Pylint Pep8 Sphinx
 
 script:
     - ./run_pylint.sh

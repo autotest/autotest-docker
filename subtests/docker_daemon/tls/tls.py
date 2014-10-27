@@ -73,13 +73,6 @@ Prerequisites
 ------------------------------------
 
 Openssl is installed and forward/reverse DNS is functioning for host.
-
-Configuration
--------------------------------------
-
-*  The option ``docker_daemon_bind`` sets special bind address.
-*  The option ``docker_client_bind`` sets special client args.
-*  The option ``docker_options_spec`` sets additional docker options.
 """
 
 import os
