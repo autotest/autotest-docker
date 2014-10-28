@@ -469,10 +469,11 @@ The operational list of sub/sub-subtests (after include/exclude/bugzilla
 filtering) is supplied in the ``subtests`` option value.
 
 :**Note**:  The results directory's ``control.ini`` may optionally
-be consulted  by sub/sub-subtests.  However, it's format and/or any
-contained options must always have default values in case of
-format changes or missing values.  This facility may not be
-provided at all, or implemented differently by other control files.
+            be consulted  by sub/sub-subtests.  However, it's format
+            and/or any contained options must always have default
+            values in case of format changes or missing values.
+            This facility may not be provided at all, or implemented
+            differently by other control files.
 
 Bugzilla Integration
 ---------------------
