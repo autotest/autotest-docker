@@ -220,6 +220,9 @@ class Subtest(SubBase, test.test):
     #: can reassign it to any type needed.
     stuff = None
 
+    #: Private cache of control.ini's [Control] section contents (do not use!)
+    _control_ini = None
+
     def __init__(self, *args, **dargs):
 
         def _make_cfgsect():
@@ -270,12 +273,22 @@ class Subtest(SubBase, test.test):
         # subclasses can do whatever they like with this
         self.stuff = {}
 
+    @staticmethod
+    def not_disabled(config_dict, config_section):
+        """
+        Return False if config_section (name) is in config_dict[disable]
+        """
+        disable = config_dict.get('disable', '')
+        disabled = [thing.strip() for thing in disable.strip().split(',')]
+        if len(disabled) > 0 and config_section.strip() in disabled:
+            return False
+        return True
+
     def check_disable(self, config_section):
         """
         Raise DockerTestNAError if test disabled on this host/environment
         """
-        disable = self.config.get('disable', '')
-        if config_section in disable.split(','):
+        if not self.not_disabled(self.config, config_section):
             msg = "Subtest disabled in configuration."
             self.loginfo(msg)
             raise DockerTestNAError(msg)
@@ -311,6 +324,27 @@ class Subtest(SubBase, test.test):
         self.loginfo("postprocess_iteration() #%d of #%d",
                      self.iteration, self.iterations)
 
+    @property
+    def control_config(self):
+        """
+        Represent operational control.ini's [Control] section as a dict or None
+        """
+        if self._control_ini is None:
+            fullpath = os.path.join(self.job.resultdir, 'control.ini')
+            # Control-file & behavior cannot be assumed, file may not exist.
+            try:
+                self._control_ini = config.ConfigDict('Control')
+                self._control_ini.read(open(fullpath, 'rb'))
+            except (IOError, OSError, config.Error):
+                self.logwarning("Failed to load reference '%s' and/or"
+                                "it's '[Control]' section.", fullpath)
+                self._control_ini = {}
+        if self._control_ini == {}:
+            self.logdebug("No reference control.ini found, returning None")
+            return None
+        else:
+            return dict(self._control_ini.items())  # return a copy
+
 
 class SubSubtest(SubBase):
 
@@ -343,8 +377,8 @@ class SubSubtest(SubBase):
         self.parent_subtest = parent_subtest
         # Append this subclass's name onto parent's section name
         # e.g. [parent_config_section/child_class_name]
-        self.config_section = (os.path.join(self.parent_subtest.config_section,
-                                            classname))
+        pscs = self.parent_subtest.config_section
+        self.config_section = self.make_name(pscs)
         # Allow child to inherit and override parent config
         all_configs = config.Config()
         # make_subsubtest_config will modify this
@@ -353,13 +387,14 @@ class SubSubtest(SubBase):
         if self.config_section not in all_configs:
             self.config = parent_config
         else:
-            self.make_subsubtest_config(all_configs,
-                                        parent_config,
-                                        all_configs[self.config_section])
-        if not self.config.get('enable', True):
-            raise DockerSubSubtestNAError(classname)
+            self.config = self.make_config(all_configs,
+                                           parent_config,
+                                           self.config_section)
         # Not automatically logged along with parent subtest
-        # for records/archival/logging purposes
+        msg = "Sub-subtest %s configuration:\n" % self.config_section
+        for key, value in self.config.items():
+            msg += '\t\t%s = "%s"\n' % (key, value)
+        self.logdebug(msg)
         note = {'Configuration_for_Subsubtest': self.config_section}
         self.parent_subtest.write_test_keyval(note)
         self.parent_subtest.write_test_keyval(self.config)
@@ -370,12 +405,24 @@ class SubSubtest(SubBase):
                                        suffix='tmpdir',
                                        dir=self.parent_subtest.tmpdir)
 
-    def make_subsubtest_config(self, all_configs, parent_config,
-                               subsubtest_config):
+    @classmethod
+    def make_name(cls, parent_name):
+        """
+        Return automated sub-subtest name (config_section) based on parent_name
+
+        :param parent_name: Unique name (config_section) of parent subtest
+        :return:  String of unique subsubtest (config_section) name for class
+        """
+        return os.path.join(parent_name, cls.__name__)
+
+    @classmethod
+    def make_config(cls, all_configs, parent_config, name):
         """
         Form subsubtest configuration by inheriting parent subtest config
         """
-        self.config = parent_config  # a copy
+        subsubtest_config = all_configs.get(name, {})
+        # don't redefine the module
+        _config = parent_config  # a copy
         # global defaults mixed in, even if overridden in parent :(
         for key, val in subsubtest_config.items():
             if key in all_configs['DEFAULTS']:
@@ -385,19 +432,25 @@ class SubSubtest(SubBase):
                     if par_val != def_val:
                         # Parent overrides default, subsubtest inherited
                         # default
-                        self.config[key] = par_val
+                        _config[key] = par_val
                     else:
                         # Parent uses default, subsubtest did not override
-                        self.config[key] = def_val
+                        _config[key] = def_val
                 else:
-                    self.config[key] = val
+                    _config[key] = val
             else:
-                self.config[key] = val
-        msg = "Sub-subtest %s configuration:\n" % self.__class__.__name__
-        for key, value in self.config.items():
-            msg += '\t\t%s = "%s"\n' % (key, value)
-        self.logdebug(msg)
-        return self.config
+                _config[key] = val
+        return _config
+
+    def make_subsubtest_config(self, all_configs, parent_config,
+                               subsubtest_config):
+        """
+        Deprecated, use make_config() instead, will be removed soon
+        """
+        del subsubtest_config  # not used
+        logging.warning("SubSubtest.make_subsubtest_config() is deprecated!")
+        self.config = self.make_config(all_configs, parent_config,
+                                       self.config_section)
 
 
 class SubSubtestCaller(Subtest):
@@ -510,9 +563,8 @@ class SubSubtestCaller(Subtest):
                                       detail)
                     raise error.TestError("Sub-subtest %s cleanup"
                                           " failures: %s" % (name, detail))
-
         else:
-            logging.warning("Failed importing sub-subtest %s", name)
+            pass  # Assume a message was already logged
 
     def run_once(self):
         """
@@ -526,6 +578,9 @@ class SubSubtestCaller(Subtest):
         super(SubSubtestCaller, self).run_once()
         for name in self.subsubtest_names:
             self.run_all_stages(name, self.new_subsubtest(name))
+        if len(self.start_subsubtests) == 0:
+            raise error.TestError("No sub-subtests configured to run "
+                                  "for subtest %s", self.config_section)
 
     def postprocess(self):
         """
@@ -568,6 +623,90 @@ class SubSubtestCaller(Subtest):
         else:
             return sys.modules[name]
 
+    def subsubtests_in_list(self, subsubtests, thinglist):
+        """
+        Return True if any subsubtest appears in thinglist
+        """
+        parent_name = self.config_section
+        for subsub in [os.path.join(parent_name, subsub.strip())
+                       for subsub in subsubtests]:
+            if subsub in thinglist:
+                return True
+        return False
+
+    def subsub_control_enabled(self, name, control_config):
+        """
+        Return True if name not excluded in control.ini
+        """
+        subthings_csv = control_config.get('subthings', '')
+        exclude_csv = control_config.get('exclude', '')
+        include_csv = control_config.get('include', '')
+        if subthings_csv != '':
+            subthings = [subthing.strip()
+                         for subthing in subthings_csv.strip().split(',')]
+        else:
+            return False  # nothing is suppose to run?!?!?!?!?
+        if exclude_csv != '':
+            excludes = [exclude.strip()
+                        for exclude in exclude_csv.strip().split(',')]
+            if name in excludes:
+                return False
+            # else more checking reqired
+        else:
+            excludes = []  # exclude nothing
+        if include_csv != '':
+            includes = [include.strip()
+                        for include in include_csv.strip().split(',')]
+            # Can't use self.config['subsubtests'] b/c initialize() could
+            # have modified/augmented it.
+            specifics = self.subsubtests_in_list(self.subsubtest_names,
+                                                 includes)
+            if specifics:
+                return name in includes
+        else:
+            # All self.subsubtest_names included if none appear
+            pass
+        # everything included, name not excluded, specific sub-subtests?
+        specifics = self.subsubtests_in_list(self.subsubtest_names,
+                                             subthings)
+        if specifics:
+            return name in subthings
+        else:
+            # This code is running, assume all sub-subtest should run.
+            return True
+
+    def subsub_enabled(self, subsubtest_class):
+        """
+        Determine if a subsubtest is enabled (default) or not (optional)
+
+        :param subsubtest_class:  A SubSubtest class or sub-class.
+        :return: False if subsubtest_class is explicitly disabled
+        """
+        if not issubclass(subsubtest_class, SubSubtest):
+            raise ValueError("Object '%s' is not a SubSubtest class or "
+                             "subclass" % str(subsubtest_class))
+        sstc = subsubtest_class  # save some typing
+        # subsubtest name
+        name = sstc.make_name(self.config_section).strip()  # classmethod
+        all_configs = config.Config()  # fast, cached in module
+        parent_config = self.config
+        if name not in all_configs:
+            subsubtest_config = parent_config
+        else:
+            subsubtest_config = sstc.make_config(all_configs,
+                                                 parent_config,
+                                                 name)
+        if not self.not_disabled(subsubtest_config, name):
+            self.logdebug("Sub-subtest %s in 'disable' list in config.",
+                          name)
+            return False  # subsubtest in disabled option CSV list
+
+        # Also check optional reference control.ini
+        control_config = self.control_config
+        if control_config != {}:
+            return self.subsub_control_enabled(name, control_config)
+        return True  # Empty or non-existant optional value, assume inclusion
+
     def new_subsubtest(self, name):
         """
         Attempt to import named subsubtest subclass from subtest module or
@@ -587,12 +726,18 @@ class SubSubtestCaller(Subtest):
             mod = self.import_if_not_loaded(name, [mydir])
             cls = getattr(mod, name, None)
         if issubclass(cls, SubSubtest):
+            # Don't load excluded sub-subtests
+            name = cls.make_name(self.config_section)
+            if not self.subsub_enabled(cls):
+                self.loginfo("Disabled/Excluded: '%s'", name)
+                return None
+            self.logdebug("Instantiating sub-subtest: %s", name)
             # Create instance, pass this subtest subclass as only parameter
             try:
                 return cls(self)
             except DockerSubSubtestNAError, xcpt:
                 self.logwarning(str(xcpt))
-                return None  # skip this one
+                # return None
         # Load failure will be caught and loged later
         return None
 
@@ -646,6 +791,9 @@ class SubSubtestCallerSimultaneous(SubSubtestCaller):
                     # Log problem, don't add to run_subsubtests
                     self.logtraceback(name, sys.exc_info(), "initialize",
                                       detail)
+        if len(self.start_subsubtests) == 0:
+            raise error.TestError("No sub-subtests configured to run "
+                                  "for subtest %s", self.config_section)
 
     def run_once(self):
         # DO NOT CALL superclass run_once() this variation works

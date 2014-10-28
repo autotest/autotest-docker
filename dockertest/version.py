@@ -25,11 +25,11 @@ import xceptions
 MAJOR = 0
 
 #: Minor API version number, as an integer (range 0-255).
-MINOR = 7
+MINOR = 8
 
 #: API Revision number, as an integer (range 0-255).  Not significant!
 #: for version comparisons. e.g. ``0.0.1 == 0.0.2 != 0.2.2``
-REVIS = 8
+REVIS = 1
 
 #: String format representation for MAJOR, MINOR, and REVIS
 FMTSTRING = "%d.%d.%d"
@@ -41,8 +41,8 @@ STRING = (FMTSTRING % (MAJOR, MINOR, REVIS))
 #: to signal version checking is impossible
 NOVERSIONCHECK = '@!NOVERSIONCHECK!@'
 
-#: If by change no autotest_version is set, use this value
-AUTOTESTVERSION = '0.15.0'
+#: If by chance no autotest_version is set, use this value
+AUTOTESTVERSION = '0.16.0'
 
 
 def str2int(version_string):
