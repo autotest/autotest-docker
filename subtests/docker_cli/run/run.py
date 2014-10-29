@@ -100,7 +100,7 @@ class run_false(run_base):
 
 
 class run_names(run_base):
-    # FIXME: What exactly does this test do?
+    # Verify behavior when multiple --name options passed
 
     def initialize(self):
         super(run_names, self).initialize()
