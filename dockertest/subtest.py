@@ -17,6 +17,7 @@ import os.path
 import imp
 import sys
 import traceback
+import copy
 from autotest.client.shared import error
 from autotest.client.shared.error import AutotestError
 from autotest.client.shared.version import get_version
@@ -382,10 +383,10 @@ class SubSubtest(SubBase):
         # Allow child to inherit and override parent config
         all_configs = config.Config()
         # make_subsubtest_config will modify this
-        parent_config = self.parent_subtest.config.copy()
+        parent_config = self.parent_subtest.config
         # subsubtest config is optional, overrides parent.
         if self.config_section not in all_configs:
-            self.config = parent_config
+            self.config = copy.deepcopy(parent_config)
         else:
             self.config = self.make_config(all_configs,
                                            parent_config,
@@ -422,7 +423,7 @@ class SubSubtest(SubBase):
         """
         subsubtest_config = all_configs.get(name, {})
         # don't redefine the module
-        _config = parent_config  # a copy
+        _config = copy.deepcopy(parent_config)  # a copy
         # global defaults mixed in, even if overridden in parent :(
         for key, val in subsubtest_config.items():
             if key in all_configs['DEFAULTS']:
@@ -691,7 +692,7 @@ class SubSubtestCaller(Subtest):
         all_configs = config.Config()  # fast, cached in module
         parent_config = self.config
         if name not in all_configs:
-            subsubtest_config = parent_config
+            subsubtest_config = copy.deepcopy(parent_config)
         else:
             subsubtest_config = sstc.make_config(all_configs,
                                                  parent_config,
