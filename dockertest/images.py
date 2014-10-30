@@ -50,7 +50,8 @@ class DockerImage(object):  # pylint: disable=R0902
     #: parsing, spec defined in docker-io documentation.  e.g.
     #: ``[registry_hostname[:port]/][user_name/]
     #: (repository_name[:version_tag])``
-    repo_split_p = re.compile(r"(.+?(:\w+?)?/)?([<\w>]+/)?([^:.]+)(:[<\w>]+)?")
+    repo_split_p = re.compile(r"(.+?(:[\d]+?)?/)?([\w\-\.\+]+/)?"
+                              r"([\w\-\.]+)(:[\w\-\.]+)?")
 
     # Many arguments are simply required here
     # pylint: disable=R0913
@@ -131,14 +132,14 @@ class DockerImage(object):  # pylint: disable=R0902
         if full_name is None:
             return None, None, None, None
         try:
-            (repo_addr, _, user,
+            (repo_addr, _, user,  # ignore optional port sub-group value
              repo, tag) = DockerImage.repo_split_p.match(full_name).groups()
             if repo_addr:
-                repo_addr = repo_addr[:-1]
+                repo_addr = repo_addr[:-1]  # remove trailing slash
             if user:
-                user = user[:-1]
+                user = user[:-1]  # remove trailing slash
             if tag:
-                tag = tag[1:]
+                tag = tag[1:]  # remove beginning colon
         except TypeError:  # no match
             raise DockerFullNameFormatError(full_name)
         return repo, tag, repo_addr, user
