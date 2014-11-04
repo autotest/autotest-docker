@@ -581,7 +581,7 @@ class SubSubtestCaller(Subtest):
             self.run_all_stages(name, self.new_subsubtest(name))
         if len(self.start_subsubtests) == 0:
             raise error.TestError("No sub-subtests configured to run "
-                                  "for subtest %s", self.config_section)
+                                  "for subtest %s" % self.config_section)
 
     def postprocess(self):
         """
