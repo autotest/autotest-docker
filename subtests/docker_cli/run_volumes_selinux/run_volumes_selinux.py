@@ -27,24 +27,19 @@ from dockertest.containers import DockerContainers
 from dockertest.images import DockerImage
 
 
-try:
-    import selinux
-except ImportError:
-    if utils.run("selinuxenabled", 10, True).exit_status:
-        raise xceptions.DockerTestNAError("Selinux not enabled on this "
-                                          "machine.")
-    else:
-        raise
-
-
 def set_selinux_context(pwd, context=None, recursive=True):
     """ Wrapper around environment.set_selinux_context """
     return environment.set_selinux_context(pwd, context, recursive)
 
 
 def get_selinux_context(pwd):
-    """ Wrapper around selinux to set selinux context """
-    return selinux.getfilecon(pwd)[1]
+    """ Wrapper around ls to get selinux context """
+    out = utils.run("ls -d --scontext %s" % pwd,
+                    10).stdout.strip().splitlines()
+    if len(out) != 1:
+        raise ValueError("Unable to get %s scontext, multiple dirs match:\n%s"
+                         % (pwd, out))
+    return out[0].split()[0]
 
 
 class InteractiveAsyncDockerCmd(dockercmd.AsyncDockerCmd):
