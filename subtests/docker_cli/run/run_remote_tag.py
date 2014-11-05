@@ -59,9 +59,9 @@ class run_remote_tag(run_base):
             pass  # removal was the goal
         images = di.list_imgs_with_full_name(fqin)
         if images != []:
-            error.TestNAError("Unable to prepare env for test:"
-                              " image %s already/still"
-                              " exist in docker repository", fqin)
+            raise error.TestNAError("Unable to prepare env for test:"
+                                    " image %s already/still"
+                                    " exist in docker repository", fqin)
 
         self.logdebug("Existing images: %s", di.list_imgs_full_name())
         self.loginfo("Executing test commands")

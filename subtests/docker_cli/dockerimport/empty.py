@@ -67,6 +67,7 @@ class empty(SubSubtest):
     def run_tar(self, tar_command, dkr_command):
         command = "%s | %s" % (tar_command, dkr_command)
         # Free, instance-specific namespace
+        self.logdebug("Command line: %s" % command)
         cmdresult = utils.run(command, ignore_status=True, verbose=False)
         self.sub_stuff['cmdresult'] = cmdresult
         self.loginfo("Command result: %s", cmdresult.stdout.strip())
