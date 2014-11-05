@@ -46,8 +46,7 @@ class inspect_base(SubSubtest):
 
     @staticmethod
     def get_cid_from_name(subtest, name):
-        containers = DockerContainers(subtest,
-                                      'cli').list_containers()
+        containers = DockerContainers(subtest).list_containers()
         return next(x.long_id for x in containers if x.container_name == name)
 
     def parse_cli_output(self, output):

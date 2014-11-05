@@ -236,10 +236,6 @@ class DockerContainersCLISpec(DockerContainersCLI):
                          timeout=timeout)
 
 
-class DockerContainersE(DockerContainers):
-    interfaces = {"cli_spec": DockerContainersCLISpec}
-
-
 class tls(SubSubtestCaller):
 
     def initialize(self):
@@ -355,8 +351,7 @@ class tls_base(SubSubtest):
         bind_addr = self.config["docker_client_bind"]
         dos = " ".join(get_as_list(self.config['docker_options_spec']))
 
-        self.conts = DockerContainersE(self.parent_subtest,
-                                       interface_name="cli_spec")
+        self.conts = DockerContainersCLISpec(self)
         self.conts.interface.docker_client_bind = bind_addr
         self.conts.interface.docker_options_spec = dos
 

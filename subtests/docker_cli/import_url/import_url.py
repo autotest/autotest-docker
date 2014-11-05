@@ -51,8 +51,8 @@ class base(SubSubtest):
 
     def initialize(self):
         super(base, self).initialize()
-        dc = self.sub_stuff['dc'] = DockerContainers(self, 'cli')
-        di = self.sub_stuff['di'] = DockerImages(self, 'cli')
+        dc = self.sub_stuff['dc'] = DockerContainers(self)
+        di = self.sub_stuff['di'] = DockerImages(self)
         import_repo = di.get_unique_name()
         run_name = dc.get_unique_name()
         self.sub_stuff['run_name'] = run_name

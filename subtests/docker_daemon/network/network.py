@@ -183,10 +183,6 @@ class DockerContainersCLISpec(DockerContainersCLI):
                          timeout=timeout)
 
 
-class DockerContainersE(DockerContainers):
-    interfaces = {"cli": DockerContainersCLISpec}
-
-
 class network(SubSubtestCaller):
     config_section = 'docker_daemon/network'
 
@@ -201,11 +197,10 @@ class network_base(SubSubtest):
 
         bind_addr = self.config["docker_daemon_bind"]
 
-        conts = DockerContainersE(self.parent_subtest)
+        conts = DockerContainersCLISpec(self)
         self.sub_stuff['conts'] = conts
         conts.interface.docker_daemon_bind = bind_addr
-        self.dkr_cmd = DkrcmdFactory(self.parent_subtest,
-                                     dkrcmd_class=AsyncDockerCmdSpec)
+        self.dkr_cmd = DkrcmdFactory(self, dkrcmd_class=AsyncDockerCmdSpec)
         self.sub_stuff["image_name"] = None
         self.sub_stuff["container"] = None
         self.sub_stuff["containers"] = []

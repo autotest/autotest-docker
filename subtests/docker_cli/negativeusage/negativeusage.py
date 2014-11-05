@@ -58,7 +58,7 @@ class negativeusage(subtest.SubSubtestCaller):
 
     def initialize(self):
         super(negativeusage, self).initialize()
-        dc = self.stuff['dc'] = containers.DockerContainers(self, 'cli')
+        dc = self.stuff['dc'] = containers.DockerContainers(self)
         dc.remove_args = '--force --volumes'
         ecs = self.stuff['existing_containers'] = dc.list_container_ids()
         di = self.stuff['di'] = images.DockerImages(self)
@@ -91,10 +91,10 @@ class negativeusage(subtest.SubSubtestCaller):
 class Base(subtest.SubSubtest):
 
     def init_utilities(self):
-        dc = self.sub_stuff['dc'] = containers.DockerContainers(self, 'cli')
+        dc = self.sub_stuff['dc'] = containers.DockerContainers(self)
         dc.remove_args = '--force --volumes'
         dc.verify_output = True
-        di = self.sub_stuff['di'] = images.DockerImages(self, 'cli')
+        di = self.sub_stuff['di'] = images.DockerImages(self)
         di.verify_output = True
 
     def init_subcntrs(self):

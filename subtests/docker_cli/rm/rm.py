@@ -33,7 +33,7 @@ class rm(SubSubtestCaller):
 
     def initialize(self):
         # Fail if any containers are running
-        dc = self.stuff['dc'] = DockerContainers(self, 'cli')
+        dc = self.stuff['dc'] = DockerContainers(self)
         for cntr in dc.list_containers():
             if cntr.status is None:
                 cntr.status = "None"
