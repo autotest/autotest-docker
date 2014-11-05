@@ -23,6 +23,7 @@ from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtest
 from dockertest.output import mustpass
 from dockertest.dockercmd import DockerCmd
+from dockertest.xceptions import DockerExecError
 
 
 class restart(subtest.SubSubtestCaller):
@@ -163,7 +164,14 @@ class restart_base(SubSubtest):
             msg = ("Multiple containers matches id %s, not removing any of "
                    "them...", cont_id)
             raise xceptions.DockerTestError(msg)
-        DockerCmd(self, 'rm', ['--force', '--volumes', cont_id]).execute()
+        args = ['--force', '--volumes', cont_id]
+        for _ in xrange(3):
+            try:
+                mustpass(DockerCmd(self, 'rm', args).execute())
+                break
+            except DockerExecError, details:
+                self.logwarning("Unable to remove docker container: %s " %
+                                details)
 
 
 class nice(restart_base):
