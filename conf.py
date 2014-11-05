@@ -296,3 +296,11 @@ setattr(mock('autotest.client.shared.version'), 'get_version', lambda: "0.15.0")
 mock('autotest.client.shared.base_job')
 mock('autotest.client.shared.job')
 mock('autotest.client.job')
+
+# -- Build subtests.rst and defaults.rst ---------------
+
+from dockertest.documentation import DefaultDoc
+from dockertest.documentation import SubtestDocs
+open('defaults.rst', 'w+').write(str(DefaultDoc('config_defaults/defaults.ini')))
+open('subtests.rst', 'w+').write(str(SubtestDocs()))
+
