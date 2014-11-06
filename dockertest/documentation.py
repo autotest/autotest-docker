@@ -832,8 +832,9 @@ class SubtestDoc(DocBase):
             return self.docstring(self.subtest_path)
         elif key == 'configuration':
             try:
-                configdoc = ConfigDoc.new_by_name(self.name(self.subtest_path))
-            except ValueError:
+                new_by_name = self.ConfigDocClass.new_by_name
+                configdoc = new_by_name(self.name(self.subtest_path))
+            except (ValueError, AttributeError):  # ConfigDocClass can be None
                 return self.NoINIString
             return configdoc
         else:
