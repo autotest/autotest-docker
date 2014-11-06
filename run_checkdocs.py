@@ -1,11 +1,42 @@
 #!/usr/bin/env python
 """
-Verifies that subtests.rst contains all required data
+Verify all subtests contain required minimum sections, ini's doc all options
 """
 import os
 import re
 import sys
+import docutils.nodes
 from dockertest.documentation import SubtestDoc
+
+# Parse rst docstring into doctree, store list of top-level section names
+class SubtestDocSections(SubtestDoc):
+
+    sections = None  # List of found section names
+    # Make sure no configuration section is rendered
+    ConfigDocClass = None
+    NoINIString = '\n'
+
+    def __init__(self, subtest_path):
+        self.sections = []
+        super(SubtestDocSections, self).__init__(subtest_path)
+
+
+    def conv(self, input_string):
+
+        class MinSecVisitor(docutils.nodes.SparseNodeVisitor):
+
+            @staticmethod
+            def visit_section(node):
+                # self is attribute on SubtestDocSections!
+                self.sections += node.get('names')  # maybe more than one name
+                # Only care about top-level section-nodes
+                node.parent.remove(node)
+                # Don't visit children, don't call depart_section()
+                raise docutils.nodes.SkipNode()
+
+        self.rst2doctree(input_string, MinSecVisitor)
+        self.sections.sort()
+        return ','.join(self.sections)
 
 
 # TODO: Subclass environment.AllGoodBase to seperate behavior from results
@@ -38,17 +69,16 @@ class SubtestsDocumented(object):
             name = SubtestDoc.name(dir_item)
             if 'example' in name:
                 continue
-            if name:
-                # Require at least the same number of `=` as chapter name
-                chapter = "``%s`` Subtest\n" % name
-                chapter += "=" * (len(chapter) - 1)
-                if chapter not in self.doc:
-                    err = True
-                    if name in self.doc:
-                        print ("%s present in subtests.rst, but not as \n%s."
-                               % (name, chapter))
-                    else:
-                        print "%s not present in subtests.rst" % name
+            missing_sections = self.missing_sections(dir_item)
+            if missing_sections is not None:
+                err = True
+                print ("%s: Missing '%s' section"
+                       % (dir_item, missing_sections))
+            extra_sections = self.extra_sections(dir_item)
+            if extra_sections is not None:
+                err = True
+                print ("%s: Extra nonstandard '%s' section found"
+                       % (dir_item, extra_sections))
         return err, dir_tests
 
     def check_missing_tests(self, dir_tests):
@@ -61,6 +91,33 @@ class SubtestsDocumented(object):
             return True
         return False
 
+    def missing_sections(self, subtest_path):
+        """
+        Return name of any missing required docstring sections
+
+        :param subtest_path: Path to subtest module
+        :return: None or name of missing required section
+        """
+        subtest_doc_sections = SubtestDocSections(subtest_path)
+        # Output doesn't matter, only sections instance attr. value
+        print subtest_path, str(subtest_doc_sections)
+        for required in ('summary', 'operational summary'):
+            if required not in subtest_doc_sections.sections:
+                return required
+        return None
+
+    def extra_sections(self, subtest_path):
+        subtest_doc_sections = SubtestDocSections(subtest_path)
+        str(subtest_doc_sections)
+        acceptable = ('prerequisites', 'operational detail',
+                      'summary', 'operational summary')
+        acceptable = set(acceptable)
+        actual = set(subtest_doc_sections.sections)
+        difference = actual - acceptable
+        try:
+            return difference.pop()
+        except KeyError:
+            return None
 
 if __name__ == "__main__":
     STATUS = SubtestsDocumented().check()
