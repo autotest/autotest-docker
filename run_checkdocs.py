@@ -11,6 +11,7 @@ from dockertest.documentation import ConfigDoc
 from dockertest.documentation import DefaultDoc
 from dockertest.documentation import ConfigINIParser
 
+
 # Parse rst docstring into doctree, store list of top-level section names
 class SubtestDocSections(SubtestDoc):
 
@@ -22,7 +23,6 @@ class SubtestDocSections(SubtestDoc):
     def __init__(self, subtest_path):
         self.sections = []
         super(SubtestDocSections, self).__init__(subtest_path)
-
 
     def conv(self, input_string):
 
@@ -46,7 +46,6 @@ class SubtestDocSections(SubtestDoc):
 class UndocSubtestConfigItems(SubtestDoc):
 
     docitems = None  # Tuple of parsed ini option docs
-    ConfigDocClass = None  # Dynamically generated in conv()
     NoINIString = '\n'
 
     def __init__(self, subtest_path):
@@ -59,13 +58,13 @@ class UndocSubtestConfigItems(SubtestDoc):
 
         class ConfigDocCapture(ConfigDoc):
 
+            # This _self is different from outer self on purpose.
             def conv(_self, input_string):
                 # Copy parser state at final output stage
                 self.docitems = _self.docitems
                 return ''
 
         return ConfigDocCapture
-
 
     def conv(self, input_string):
         if not isinstance(self.docitems, ConfigINIParser):
@@ -100,7 +99,7 @@ class UndocSubtestConfigItems(SubtestDoc):
         return ', '.join(set([docitem.option
                               for docitem in docitems])).strip()
 
-# TODO: Subclass environment.AllGoodBase to seperate behavior from results
+
 class SubtestsDocumented(object):
 
     """
@@ -157,7 +156,8 @@ class SubtestsDocumented(object):
             return True
         return False
 
-    def missing_sections(self, subtest_path):
+    @staticmethod
+    def missing_sections(subtest_path):
         """
         Return name of any missing required docstring sections
 
@@ -172,7 +172,8 @@ class SubtestsDocumented(object):
                 return required
         return None
 
-    def extra_sections(self, subtest_path):
+    @staticmethod
+    def extra_sections(subtest_path):
         subtest_doc_sections = SubtestDocSections(subtest_path)
         str(subtest_doc_sections)
         acceptable = ('prerequisites', 'operational detail',
@@ -185,7 +186,8 @@ class SubtestsDocumented(object):
         except KeyError:
             return None
 
-    def undoc_options(self, subtest_path):
+    @staticmethod
+    def undoc_options(subtest_path):
         undoc_subtest_config_items = UndocSubtestConfigItems(subtest_path)
         undocumented = str(undoc_subtest_config_items)
         if undocumented:
