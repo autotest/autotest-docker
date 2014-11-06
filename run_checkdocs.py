@@ -7,6 +7,9 @@ import re
 import sys
 import docutils.nodes
 from dockertest.documentation import SubtestDoc
+from dockertest.documentation import ConfigDoc
+from dockertest.documentation import DefaultDoc
+from dockertest.documentation import ConfigINIParser
 
 # Parse rst docstring into doctree, store list of top-level section names
 class SubtestDocSections(SubtestDoc):
@@ -38,6 +41,64 @@ class SubtestDocSections(SubtestDoc):
         self.sections.sort()
         return ','.join(self.sections)
 
+
+# Access undocumented test configuration items from high-level interface
+class UndocSubtestConfigItems(SubtestDoc):
+
+    docitems = None  # Tuple of parsed ini option docs
+    ConfigDocClass = None  # Dynamically generated in conv()
+    NoINIString = '\n'
+
+    def __init__(self, subtest_path):
+        self.docitems = tuple()
+        self.defaults = DefaultDoc()
+        super(UndocSubtestConfigItems, self).__init__(subtest_path)
+
+    @property
+    def ConfigDocClass(self):
+
+        class ConfigDocCapture(ConfigDoc):
+
+            def conv(_self, input_string):
+                # Copy parser state at final output stage
+                self.docitems = _self.docitems
+                return ''
+
+        return ConfigDocCapture
+
+
+    def conv(self, input_string):
+        if not isinstance(self.docitems, ConfigINIParser):
+            print ('Warning: No configuration found for: %s'
+                   % SubtestDoc.name(self.subtest_path))
+            return ''
+        # Supplied by tuple-subclass
+        undoc_option_doc = self.docitems.undoc_option_doc
+        subtest_name = self.docitems.subtest_name
+        get_default = self.defaults.get_default
+        # Split options by subtest and subsubtests, filter along the way.
+        subtest_options = []  # just option names for comparison
+        subtest_docitems = []
+        subsub_docitems = []
+        for docitem in self.docitems:
+            if get_default(docitem.option) is not None:
+                continue  # skip default options
+            if docitem.subthing == subtest_name:
+                if docitem.option != 'subsubtests':  # special case
+                    subtest_options.append(docitem.option)
+                    subtest_docitems.append(docitem)
+            else:  # must be non-default sub-subtest option
+                subsub_docitems.append(docitem)
+        # Remove all subsub docitem options appearing in subtest_options
+        subsub_docitems = [docitem
+                           for docitem in subsub_docitems
+                           if docitem.option not in subtest_options]
+        # Combine lists, remove all documented items
+        docitems = [docitem
+                    for docitem in subtest_docitems + subsub_docitems
+                    if docitem.desc == undoc_option_doc]
+        return ', '.join(set([docitem.option
+                              for docitem in docitems])).strip()
 
 # TODO: Subclass environment.AllGoodBase to seperate behavior from results
 class SubtestsDocumented(object):
@@ -73,12 +134,17 @@ class SubtestsDocumented(object):
             if missing_sections is not None:
                 err = True
                 print ("%s: Missing '%s' section"
-                       % (dir_item, missing_sections))
+                       % (name, missing_sections.title()))
             extra_sections = self.extra_sections(dir_item)
             if extra_sections is not None:
                 err = True
                 print ("%s: Extra nonstandard '%s' section found"
-                       % (dir_item, extra_sections))
+                       % (name, extra_sections.title()))
+            undoc_options = self.undoc_options(dir_item)
+            if undoc_options is not None:
+                err = True
+                print ("%s: Undocumented configuration option(s): %s"
+                       % (name, undoc_options))
         return err, dir_tests
 
     def check_missing_tests(self, dir_tests):
@@ -100,7 +166,7 @@ class SubtestsDocumented(object):
         """
         subtest_doc_sections = SubtestDocSections(subtest_path)
         # Output doesn't matter, only sections instance attr. value
-        print subtest_path, str(subtest_doc_sections)
+        str(subtest_doc_sections)
         for required in ('summary', 'operational summary'):
             if required not in subtest_doc_sections.sections:
                 return required
@@ -117,6 +183,14 @@ class SubtestsDocumented(object):
         try:
             return difference.pop()
         except KeyError:
+            return None
+
+    def undoc_options(self, subtest_path):
+        undoc_subtest_config_items = UndocSubtestConfigItems(subtest_path)
+        undocumented = str(undoc_subtest_config_items)
+        if undocumented:
+            return undocumented
+        else:
             return None
 
 if __name__ == "__main__":
