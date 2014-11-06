@@ -127,7 +127,7 @@ class wait_base(SubSubtest):
                 wait_duration = max(wait_duration, cont['sleep_time'])
             else:
                 subargs.append(cont[1:])
-                msg = ("Error response from daemon: wait: no such container: "
+                msg = ("Error response from daemon: wait: No such container: "
                        "%s" % cont[1:])
                 wait_stderr.append(msg)
                 end = True

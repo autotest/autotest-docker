@@ -13,12 +13,16 @@ Operational Summary
 """
 import time
 from autotest.client import utils
-from dockertest import config, subtest
+from dockertest import config
+from dockertest import subtest
 from dockertest.containers import DockerContainers
-from dockertest.dockercmd import AsyncDockerCmd, NoFailDockerCmd
+from dockertest.dockercmd import AsyncDockerCmd
+from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtest
-from dockertest.xceptions import DockerTestFail, DockerExecError
+from dockertest.xceptions import DockerTestFail
+from dockertest.xceptions import DockerExecError
 
 
 # Okay to be less-strict for these cautions/warnings in subtests
@@ -164,6 +168,8 @@ class sigproxy_base(SubSubtest):
                 NoFailDockerCmd(self, 'rm', args).execute()
             except DockerExecError, details:
                 failures.append("Remove after test failed: %s" % details)
+                for _ in xrange(3):
+                    DockerCmd(self, 'rm', args).execute()
         self.failif(failures, "\n".join(failures))
 
 

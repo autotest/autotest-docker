@@ -18,6 +18,7 @@ from dockertest.dockercmd import DockerCmd
 
 class long_term_app(short_term_app):
     config_section = 'docker_cli/start/long_term_app'
+    check_if_cmd_finished = False
 
     def initialize(self):
         super(long_term_app, self).initialize()

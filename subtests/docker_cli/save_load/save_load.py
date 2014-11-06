@@ -96,7 +96,7 @@ class save_load_base(SubSubtest):
             for cont in self.sub_stuff["containers"]:
                 conts = containers.list_containers_with_name(cont)
                 if conts == []:
-                    return  # container doesn't exist, clean
+                    break  # container doesn't exist, clean
                 elif len(conts) > 1:
                     msg = ("Multiple containers matches name %s, not "
                            "removing any of them...", cont)
@@ -106,6 +106,8 @@ class save_load_base(SubSubtest):
             for image in self.sub_stuff["images"]:
                 try:
                     dkrimg = self.sub_stuff['img']
+                    if dkrimg.list_imgs_with_image_id(image) == []:
+                        break
                     self.logdebug("Removing image %s", image)
                     dkrimg.remove_image_by_full_name(image)
                     self.logdebug("Successfully removed test image: %s",
@@ -133,8 +135,8 @@ class simple(save_load_base):
 
         cmdresult = dkrcmd.execute()
         if cmdresult.exit_status != 0:
-            error.TestNAError("Unable to prepare env for test: %s" %
-                              (cmdresult))
+            raise error.TestNAError("Unable to prepare env for test: %s" %
+                                    (cmdresult))
 
         rand_name = self.sub_stuff["rand_name"]
         cid = self.sub_stuff["cont"].list_containers_with_name(rand_name)
@@ -147,13 +149,13 @@ class simple(save_load_base):
 
         cmdresult = dkrcmd.execute()
         if cmdresult.exit_status != 0:
-            error.TestNAError("Unable to prepare env for test: %s" %
-                              (cmdresult))
+            raise error.TestNAError("Unable to prepare env for test: %s" %
+                                    (cmdresult))
         dkrcmd = DockerCmd(self, 'rm', [rand_name])
         cmdresult = dkrcmd.execute()
         if cmdresult.exit_status != 0:
-            error.TestNAError("Failed to cleanup env for test: %s" %
-                              (cmdresult))
+            raise error.TestNAError("Failed to cleanup env for test: %s" %
+                                    (cmdresult))
 
     def run_once(self):
         super(simple, self).run_once()  # Prints out basic info
@@ -198,7 +200,6 @@ class simple(save_load_base):
     def postprocess(self):
         super(simple, self).postprocess()  # Prints out basic info
         # Fail test if bad command or other stdout/stderr problems detected
-
         OutputGood(self.sub_stuff['cmdresult_save'])
         OutputGood(self.sub_stuff['cmdresult_load'])
 
@@ -267,8 +268,8 @@ class stressed_load(save_load_base):
 
             cmdresult = dkrcmd.execute()
             if cmdresult.exit_status != 0:
-                error.TestNAError("Unable to prepare env for test: %s" %
-                                  (cmdresult))
+                raise error.TestNAError("Unable to prepare env for test: %s" %
+                                        (cmdresult))
 
             cid = self.sub_stuff["cont"].list_containers_with_name(rand_name)
 
@@ -280,13 +281,13 @@ class stressed_load(save_load_base):
 
             cmdresult = dkrcmd.execute()
             if cmdresult.exit_status != 0:
-                error.TestNAError("Unable to prepare env for test: %s" %
-                                  (cmdresult))
+                raise error.TestNAError("Unable to prepare env for test: %s" %
+                                        (cmdresult))
             dkrcmd = DockerCmd(self, 'rm', [rand_name])
             cmdresult = dkrcmd.execute()
             if cmdresult.exit_status != 0:
-                error.TestNAError("Failed to cleanup env for test: %s" %
-                                  (cmdresult))
+                raise error.TestNAError("Failed to cleanup env for test: %s" %
+                                        (cmdresult))
 
     def run_once(self):
         """

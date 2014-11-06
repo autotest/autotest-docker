@@ -35,13 +35,13 @@ class commit(subtest.SubSubtestCaller):
 class commit_base(SubSubtest):
 
     def check_image_exists(self, full_name):
-        di = DockerImages(self.parent_subtest)
+        di = DockerImages(self)
         return di.list_imgs_with_full_name(full_name)
 
     def initialize(self):
         super(commit_base, self).initialize()
         config.none_if_empty(self.config)
-        di = DockerImages(self.parent_subtest)
+        di = DockerImages(self)
         new_img_name = di.get_unique_name()
         self.sub_stuff["new_image_name"] = new_img_name
 

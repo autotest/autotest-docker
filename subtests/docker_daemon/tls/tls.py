@@ -120,9 +120,6 @@ class AsyncDockerCmdStdIn(AsyncDockerCmd):
     def __init__(self, subtest, subcmd, subargs=None, timeout=None,
                  verbose=True, stdin_r=None, stdin=None):
         self.parent = subtest
-        if isinstance(subtest, SubSubtest):
-            subtest = subtest.parent_subtest
-
         super(AsyncDockerCmdStdIn, self).__init__(subtest, subcmd, subargs,
                                                   timeout, verbose)
 
@@ -423,7 +420,7 @@ class tls_verify_all_base(tls_base):
         self.sub_stuff["bash1"] = self.dkr_cmd.async("run", args1,
                                                      stdin_r=adc_p)
         # 1. Run with no options
-        self.sub_stuff["bash1"].wait(120)
+        self.sub_stuff["bash1"].wait(240)
 
     def cleanup(self):
         super(tls_verify_all_base, self).cleanup()
@@ -443,6 +440,7 @@ class tls_verify_all_base_bad(tls_verify_all_base):
                 self.config['docker_options_spec_good']))
             self.conts.interface.docker_options_spec = dos
         # Avoid warning about not exist container.
+
         c1 = self.conts.list_containers_with_name(self.sub_stuff["cont1_name"])
         if c1 != []:
             self.sub_stuff["containers"].remove(self.sub_stuff["cont1_name"])
