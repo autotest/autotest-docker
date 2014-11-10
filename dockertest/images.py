@@ -429,7 +429,7 @@ class DockerImagesBase(object):
         :return: **non-overlapping** [FQIN, FQIN, ...]
         """
 
-        dis = self.get_dockerimages_list()
+        dis = self.list_imgs()
         return [(di.full_name) for di in dis]
 
     def list_imgs_ids(self):
@@ -440,7 +440,7 @@ class DockerImagesBase(object):
         :return: **possibly overlapping** [long ID, long ID, ...]
         """
 
-        dis = self.get_dockerimages_list()
+        dis = self.list_imgs()
         return list(set([di.long_id for di in dis]))
 
     def list_imgs_with_full_name(self, full_name):
@@ -453,7 +453,7 @@ class DockerImagesBase(object):
                  on full_name (FQIN)
         """
 
-        dis = self.get_dockerimages_list()
+        dis = self.list_imgs()
         return [di for di in dis if di.cmp_greedy_full_name(full_name)]
 
     # Extra verbosity in name is needed here
@@ -471,7 +471,7 @@ class DockerImagesBase(object):
                  on FQIN components.
         """
 
-        dis = self.get_dockerimages_list()
+        dis = self.list_imgs()
         return [di for di in dis if di.cmp_greedy(repo, tag, repo_addr, user)]
 
     def list_imgs_with_image_id(self, image_id):
@@ -484,7 +484,7 @@ class DockerImagesBase(object):
                  on FQIN components.
         """
 
-        dis = self.get_dockerimages_list()
+        dis = self.list_imgs()
         return [di for di in dis if di.cmp_id(image_id)]
 
     # Disabled by default extension point, can't be static.
