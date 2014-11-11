@@ -62,7 +62,7 @@ class import_export_base(SubSubtest):
         self.sub_stuff['subargs'].append(self.config['docker_data_prep_cmd'])
         self.sub_stuff["containers"] = []
         self.sub_stuff["images"] = []
-        self.sub_stuff["cont"] = DockerContainers(self.parent_subtest)
+        self.sub_stuff["cont"] = DockerContainers(self)
 
     def cleanup(self):
         super(import_export_base, self).cleanup()
@@ -78,7 +78,7 @@ class import_export_base(SubSubtest):
                     self.logwarning("Failed" + msg)
             for image in self.sub_stuff["images"]:
                 try:
-                    di = DockerImages(self.parent_subtest)
+                    di = DockerImages(self)
                     self.logdebug("Removing image %s", image)
                     di.remove_image_by_full_name(image)
                     self.logdebug("Successfully removed test image: %s",
@@ -96,12 +96,12 @@ class simple(import_export_base):
     def initialize(self):
         super(simple, self).initialize()
         # Test container setup
-        dc = DockerContainers(self.parent_subtest)
+        dc = DockerContainers(self)
         c_name = dc.get_unique_name()
         self.sub_stuff["containers"].append(c_name)
         self.init_test_container(c_name)
         # export/import command setup
-        di = DockerImages(self.parent_subtest)
+        di = DockerImages(self)
         i_name = di.get_unique_name(c_name)  # easier debugging
         self.sub_stuff["images"].append(i_name)
         subdct = {"container": c_name, "image": i_name}

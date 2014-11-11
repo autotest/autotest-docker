@@ -22,7 +22,7 @@ class run_interactive_disconnect(run_base):
         rand_name = utils.generate_random_string(8)
         self.sub_stuff["rand_name"] = rand_name
         self.sub_stuff["subargs"].insert(0, "--name=\"%s\"" % rand_name)
-        self.sub_stuff["cont"] = DockerContainers(self.parent_subtest)
+        self.sub_stuff["cont"] = DockerContainers(self)
 
     def run_once(self):
         self.loginfo("Starting background docker command, timeout %s seconds",

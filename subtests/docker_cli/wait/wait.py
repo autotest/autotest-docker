@@ -98,7 +98,7 @@ class wait_base(SubSubtest):
     def init_use_names(self, use_names=False):
         if use_names:
             conts = self.sub_stuff['containers']
-            containers = DockerContainers(self.parent_subtest)
+            containers = DockerContainers(self)
             containers = containers.list_containers()
             cont_ids = [cont['id'] for cont in conts]
             for cont in containers:
@@ -215,7 +215,7 @@ class wait_base(SubSubtest):
         super(wait_base, self).cleanup()
         if not self.sub_stuff.get('containers'):
             return  # Docker was not created, we are clean
-        containers = DockerContainers(self.parent_subtest).list_containers()
+        containers = DockerContainers(self).list_containers()
         test_conts = self.sub_stuff.get('containers')
         for cont in test_conts:
             if 'id' not in cont:  # Execution failed, we don't have id

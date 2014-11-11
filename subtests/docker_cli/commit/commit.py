@@ -131,7 +131,7 @@ class commit_base(SubSubtest):
                 self.logwarning("Failed" + msg)
             for image in self.sub_stuff["image_list"]:
                 try:
-                    di = DockerImages(self.parent_subtest)
+                    di = DockerImages(self)
                     self.logdebug("Removing image %s", image.full_name)
                     di.remove_image_by_full_name(image.full_name)
                     self.loginfo("Successfully removed test image: %s",

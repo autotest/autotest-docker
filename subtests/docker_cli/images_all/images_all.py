@@ -69,8 +69,8 @@ class images_all_base(SubSubtest):
         super(images_all_base, self).initialize()
         # Prepare a container
         config.none_if_empty(self.config)
-        self.sub_stuff['dc'] = DockerContainers(self.parent_subtest)
-        self.sub_stuff['di'] = DockerImages(self.parent_subtest)
+        self.sub_stuff['dc'] = DockerContainers(self)
+        self.sub_stuff['di'] = DockerImages(self)
         self.sub_stuff['containers'] = []
         self.sub_stuff['images'] = []
 
@@ -199,7 +199,7 @@ class two_images_with_parents(images_all_base):
     def initialize(self):
         super(two_images_with_parents, self).initialize()
         self.sub_stuff['sizes'] = []
-        self.sub_stuff['dia'] = DockerImages(self.parent_subtest)
+        self.sub_stuff['dia'] = DockerImages(self)
         self.sub_stuff['dia'].images_args += " --all"
 
     def run_once(self):

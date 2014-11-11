@@ -110,7 +110,7 @@ class volumes_base(SubSubtest):
         subargs = str(run_template % test_dict).strip().split(',')
         subargs.append(fqin)
         subargs.append(cmd_tmplate % test_dict)
-        return dockercmd_class(subtest.parent_subtest, 'run', subargs)
+        return dockercmd_class(subtest, 'run', subargs)
 
     @staticmethod
     def init_dkrcmds(subtest, path_info, dockercmds):
@@ -229,8 +229,8 @@ class volumes_rw(volumes_base):
             for index, cmdresult in enumerate(self.sub_stuff['cmdresults']):
                 cidfilename = self.sub_stuff['path_info'][index]['cidfile']
                 try:
-                    self.try_kill(self.parent_subtest, cidfilename, cmdresult)
-                    self.try_rm(self.parent_subtest, cidfilename, cmdresult)
+                    self.try_kill(self, cidfilename, cmdresult)
+                    self.try_rm(self, cidfilename, cmdresult)
                 except ValueError, detail:
                     self.logwarning("Cleanup problem detected: ValueError: %s",
                                     str(detail))
