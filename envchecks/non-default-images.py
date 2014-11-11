@@ -8,7 +8,7 @@ from subprocess import Popen, PIPE, STDOUT
 def get_envcheck_ignore_iids():
     csv = os.environ.get('envcheck_ignore_iids')
     if csv is not None:
-        return csv.strip().split(',')
+        return [val.strip() for val in csv.strip().split(',')]
     else:
         return []
 
@@ -16,7 +16,7 @@ def get_envcheck_ignore_iids():
 def get_envcheck_ignore_fqin():
     csv = os.environ.get('envcheck_ignore_fqin')
     if csv is not None:
-        return csv.strip().split(',')
+        return [val.strip() for val in csv.strip().split(',')]
     else:
         return []
 
