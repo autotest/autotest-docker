@@ -348,6 +348,13 @@ class DockerImagesBase(object):
             if name not in all_images:
                 return name
 
+    @property
+    def default_image(self):
+        """
+        Represent the default test image FQIN based on subtest configuration
+        """
+        return DockerImage.full_name_from_defaults(self.subtest.config)
+
     # Not defined static on purpose
     def get_dockerimages_list(self):    # pylint: disable=R0201
         """
