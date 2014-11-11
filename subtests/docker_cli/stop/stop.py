@@ -35,7 +35,7 @@ class stop_base(SubSubtest):
     def initialize(self):
         super(stop_base, self).initialize()
         # Prepare a container
-        docker_containers = DockerContainers(self.parent_subtest)
+        docker_containers = DockerContainers(self)
         name = docker_containers.get_unique_name()
         self.sub_stuff['container_name'] = name
         config.none_if_empty(self.config)

@@ -34,7 +34,7 @@ class run_remote_tag(run_base):
 
         super(run_remote_tag, self).initialize()
 
-        dc = DockerContainers(self.parent_subtest)
+        dc = DockerContainers(self)
         rand_name = dc.get_unique_name()
         self.sub_stuff["rand_name"] = rand_name
         self.sub_stuff["subargs"].insert(0, "--name=%s " % rand_name)
@@ -50,7 +50,7 @@ class run_remote_tag(run_base):
     def run_once(self):
         fqin = self.sub_stuff['fqin']
         self.sub_stuff["images"].append(fqin)
-        di = DockerImages(self.parent_subtest)
+        di = DockerImages(self)
         try:
             images = di.list_imgs_with_full_name(fqin)
             for i in images:

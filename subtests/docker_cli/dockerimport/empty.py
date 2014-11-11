@@ -18,7 +18,7 @@ class empty(SubSubtest):
 
     def initialize(self):
         super(empty, self).initialize()
-        di = DockerImages(self.parent_subtest)
+        di = DockerImages(self)
         suffix = self.config.get('image_name_postfix')
         image_name_tag = di.get_unique_name(suffix=suffix)
         image_name, image_tag = image_name_tag.split(':', 1)
@@ -84,7 +84,7 @@ class empty(SubSubtest):
                                     % self.sub_stuff['cmdresult']))
 
     def lookup_image_id(self, image_name, image_tag):
-        di = DockerImages(self.parent_subtest)
+        di = DockerImages(self)
         fqin = DockerImage.full_name_from_component(image_name, image_tag)
         imglst = di.list_imgs_with_full_name(fqin)
         try:

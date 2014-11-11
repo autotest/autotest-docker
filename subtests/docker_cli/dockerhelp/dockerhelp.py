@@ -57,11 +57,11 @@ class help_base(SubSubtest):
         super(help_base, self).run_once()  # Prints out basic info
         for option in self.sub_stuff['success_option_list']:
             # No successful command should throw an exception
-            dkrcmd = NoFailDockerCmd(self.parent_subtest, option)
+            dkrcmd = NoFailDockerCmd(self, option)
             self.sub_stuff["success_cmdresults"].append(dkrcmd.execute())
         for option in self.sub_stuff['failure_option_list']:
             # These are likely to return non-zero
-            dkrcmd = DockerCmd(self.parent_subtest, option)
+            dkrcmd = DockerCmd(self, option)
             self.sub_stuff['failure_cmdresults'].append(dkrcmd.execute())
 
     def postprocess(self):

@@ -112,7 +112,7 @@ class rmi_base(SubSubtest):
 
     def cleanup(self):
         super(rmi_base, self).cleanup()
-        di = DockerImages(self.parent_subtest)
+        di = DockerImages(self)
         # Auto-converts "yes/no" to a boolean
         if (self.config['remove_after_test'] and
                 'image_list' in self.sub_stuff):
@@ -134,7 +134,7 @@ class rmi_base(SubSubtest):
                 self.loginfo("Successfully removed test image")
 
     def check_image_exists(self, full_name):
-        di = DockerImages(self.parent_subtest)
+        di = DockerImages(self)
         return di.list_imgs_with_full_name(full_name)
 
     # FIXME: Clobber this method when 'commit_run_params' goes away (below)
@@ -171,7 +171,7 @@ class with_blocking_container_by_tag(rmi_base):
         rand_data = utils.generate_random_string(5)
         self.sub_stuff["rand_data"] = rand_data
 
-        di = DockerImages(self.parent_subtest)
+        di = DockerImages(self)
         self.sub_stuff["image_name"] = di.get_unique_name(":tag")
 
         cmd_with_rand = self.config['docker_data_prepare_cmd'] % (rand_data)
@@ -281,5 +281,5 @@ class with_blocking_container_by_id(with_blocking_container_by_tag):
                     self.sub_stuff["image_name"])
 
     def check_image_exists_by_id(self, image_id):
-        di = DockerImages(self.parent_subtest)
+        di = DockerImages(self)
         return di.list_imgs_with_image_id(image_id)

@@ -93,7 +93,7 @@ class sigproxy_base(SubSubtest):
         self.sub_stuff['check_stdout'] = self.config['check_stdout']
         config.none_if_empty(self.config)
         # Prepare a container
-        docker_containers = DockerContainers(self.parent_subtest)
+        docker_containers = DockerContainers(self)
         name = docker_containers.get_unique_name()
         self.sub_stuff['container_name'] = name
         if self.sub_stuff['attached']:

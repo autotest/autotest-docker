@@ -54,7 +54,7 @@ class iptable_base(SubSubtest):
         Initialize basic arguments that will use for start container
         Will return a list 'args'
         """
-        docker_containers = DockerContainers(self.parent_subtest)
+        docker_containers = DockerContainers(self)
         image = DockerImage.full_name_from_defaults(self.config)
         name = docker_containers.get_unique_name()
         self.sub_stuff['name'] = name
