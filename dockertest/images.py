@@ -50,7 +50,8 @@ class DockerImage(object):  # pylint: disable=R0902
     #: parsing, spec defined in docker-io documentation.  e.g.
     #: ``[registry_hostname[:port]/][user_name/]
     #: (repository_name[:version_tag])``
-    repo_split_p = re.compile(r"(.+?(:\w+?)?/)?([<\w>]+/)?([^:.]+)(:[<\w>]+)?")
+    repo_split_p = re.compile(r"(.+?(:[\d]+?)?/)?([\w\-\.\+]+/)?"
+                              r"([\w\-\.]+)(:[\w\-\.]+)?")
 
     # Many arguments are simply required here
     # pylint: disable=R0913
@@ -131,14 +132,14 @@ class DockerImage(object):  # pylint: disable=R0902
         if full_name is None:
             return None, None, None, None
         try:
-            (repo_addr, _, user,
+            (repo_addr, _, user,  # ignore optional port sub-group value
              repo, tag) = DockerImage.repo_split_p.match(full_name).groups()
             if repo_addr:
-                repo_addr = repo_addr[:-1]
+                repo_addr = repo_addr[:-1]  # remove trailing slash
             if user:
-                user = user[:-1]
+                user = user[:-1]  # remove trailing slash
             if tag:
-                tag = tag[1:]
+                tag = tag[1:]  # remove beginning colon
         except TypeError:  # no match
             raise DockerFullNameFormatError(full_name)
         return repo, tag, repo_addr, user
@@ -428,7 +429,7 @@ class DockerImagesBase(object):
         :return: **non-overlapping** [FQIN, FQIN, ...]
         """
 
-        dis = self.get_dockerimages_list()
+        dis = self.list_imgs()
         return [(di.full_name) for di in dis]
 
     def list_imgs_ids(self):
@@ -439,7 +440,7 @@ class DockerImagesBase(object):
         :return: **possibly overlapping** [long ID, long ID, ...]
         """
 
-        dis = self.get_dockerimages_list()
+        dis = self.list_imgs()
         return list(set([di.long_id for di in dis]))
 
     def list_imgs_with_full_name(self, full_name):
@@ -452,7 +453,7 @@ class DockerImagesBase(object):
                  on full_name (FQIN)
         """
 
-        dis = self.get_dockerimages_list()
+        dis = self.list_imgs()
         return [di for di in dis if di.cmp_greedy_full_name(full_name)]
 
     # Extra verbosity in name is needed here
@@ -470,7 +471,7 @@ class DockerImagesBase(object):
                  on FQIN components.
         """
 
-        dis = self.get_dockerimages_list()
+        dis = self.list_imgs()
         return [di for di in dis if di.cmp_greedy(repo, tag, repo_addr, user)]
 
     def list_imgs_with_image_id(self, image_id):
@@ -483,7 +484,7 @@ class DockerImagesBase(object):
                  on FQIN components.
         """
 
-        dis = self.get_dockerimages_list()
+        dis = self.list_imgs()
         return [di for di in dis if di.cmp_id(image_id)]
 
     # Disabled by default extension point, can't be static.

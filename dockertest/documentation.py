@@ -74,7 +74,7 @@ class DocItem(DocItemBase):
 
     def asdict(self):
         """Return copy as an ordered-dictionary"""
-        return self._asdict()
+        return super(DocItem, self)._asdict()
 
 
 class ConfigINIParser(tuple):

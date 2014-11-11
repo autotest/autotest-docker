@@ -300,6 +300,13 @@ class DockerImageTestBasic(ImageTestBase):
         act = self.images.DockerImage.full_name_from_defaults(config)
         self.assertEqual(act, 'fedora')
 
+    def test_bastard_repo(self):
+        test = "bAsTaRd-rEPo.lOcAl_hOsT:1073741824/.b+o-F_H./a.s-d_f:F.d-S_a"
+        DI = self.images.DockerImage
+        repo, tag, addr, user = DI.split_to_component(test)
+        di = DI(repo, tag, '0'*64, None, None, addr, user)
+        self.assertEqual(di.full_name, test)
+
     def test_remove_cli(self):
         d = self.images.DockerImages(self.fake_subtest, 'cli', 1.0, True)
         self.assertEqual(d.remove_image_by_id('123456789012').command,
