@@ -71,10 +71,7 @@ class help_base(SubSubtest):
             self.failif(cmdresult.exit_status != 0,
                         "Docker command returned non-zero exit status")
             no_usage = cmdresult.stdout.lower().find('usage:') == -1
-            no_cmnds = cmdresult.stdout.lower().find('commands:') == -1
             self.failif(no_usage, "Did not return usage help on stdout for: "
-                        "%s" % cmdresult.command)
-            self.failif(no_cmnds, "Did not return command help on stdout for: "
                         "%s" % cmdresult.command)
             outputgood = OutputGood(cmdresult, ignore_error=True,
                                     skip=['usage_check', 'error_check'])
