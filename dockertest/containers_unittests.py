@@ -17,7 +17,6 @@ class ContainersTestBase(unittest.TestCase):
         import containers
         self.containers = containers
         self.DC = self.containers.DockerContainer
-        self.DCB = self.containers.DockerContainersBase
 
     def tearDown(self):
         del self.containers
