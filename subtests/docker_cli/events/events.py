@@ -35,27 +35,22 @@ from dockertest.xceptions import DockerValueError
 
 # TODO: Turn this into a general module?
 cid_regex = re.compile(r'\s+([a-z0-9]{64})\:\s+')
-dt_regex = re.compile(r'\[(\d{4}-\d{2}-\d{2})\s+'  # date part
-                      r'(\d{2}:\d{2}:\d{2})\s+'  # time part
-                      r'([+-]?\d{4})\s+'  # UTC offset part
-                      r'([a-zA-Z]+)\]\s+')  # Timezone part
-ymd_regex = re.compile(r'(\d{4})-(\d{2})-(\d{2})')
-hms_regex = re.compile(r'(\d{2})\:(\d{2})\:(\d{2})')
-source_regex = re.compile(r'\s+\(from\s+%s\)\s+'
-                          % DockerImage.repo_split_p.pattern)
+dt_regex = re.compile(r'(\d{4})-(\d{2})-(\d{2})\S+'  # date part
+                      r'(\d{2}):(\d{2}):(\d{2})\S+'  # time part
+                      r'([+-]\d{2}):(\d{2})\s+')  # UTC offset part
+source_regex = re.compile(r'\s+\(from\s+\S+\)\s+')
 operation_regex = re.compile(r'\s+(\w+)$')  # final word chars
 
 
 def event_dt(line):
     try:
-        dt_mo = dt_regex.search(line)
+        (year, month, day,
+         hour, minute, second,
+         o_hour, o_minutes) = dt_regex.search(line).groups()
+
         # utc offset
-        utc_offset_hours = int(dt_mo.group(3)) / 100.0  # remove +/-
-        utc_offset = datetime.timedelta(hours=utc_offset_hours)
-        ymd_mo = ymd_regex.search(dt_mo.group(1))
-        year, month, day = ymd_mo.groups()
-        hms_mo = hms_regex.search(dt_mo.group(2))
-        hour, minute, second = hms_mo.groups()
+        utc_offset = datetime.timedelta(hours=int(o_hour),
+                                        minutes=int(o_minutes))
         dt = datetime.datetime(int(year), int(month), int(day),
                                int(hour), int(minute), int(second))
         dt += utc_offset
@@ -76,9 +71,9 @@ def event_source(line):
     mobj = source_regex.search(line)
     if mobj is not None:
         # Verifies formatting
-        fqin = "".join([s for s in mobj.group(1, 3, 4, 5)
-                        if s is not None])
-        return fqin
+        containerid = "".join([s for s in mobj.group(0)
+                               if s is not None])
+        return containerid
     else:
         return None
 
