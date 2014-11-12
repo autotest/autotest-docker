@@ -25,6 +25,17 @@ class restart_container_autorestart(restart_container_autorestart_base):
         self.failif(i is None,
                     "Container was probably not created.")
 
+        daemon_stdout = ""
+        daemon_stderr = ""
+        if "docker_daemon" in self.sub_stuff:
+            daemon_stdout = self.sub_stuff["docker_daemon"].get_stdout()
+            daemon_stderr = self.sub_stuff["docker_daemon"].get_stderr()
+
+        if not i[0]["State"]["Running"]:
+            self.logdebug("\nDAEMON-STDOUT:\n"
+                          "%s\nDAEMON-STDERR:\n%s" % (daemon_stdout,
+                                                      daemon_stderr))
+
         self.failif(not i[0]["State"]["Running"],
                     "Container was not autorestarted after docker "
-                    "daemon restart.")
+                    "daemon restart. Closer detail in debug.")

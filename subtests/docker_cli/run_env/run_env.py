@@ -47,7 +47,7 @@ from dockertest import config, xceptions
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd
 from dockertest.dockercmd import AsyncDockerCmd
-from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.output import mustpass
 from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtestCaller, SubSubtest
 
@@ -274,10 +274,10 @@ class port(run_env_base):
         return clientcmd
 
     def remove_link(self, client_name, alias):
-        return NoFailDockerCmd(self,
-                               'rm',
-                               ['--link=true',
-                                '%s/%s' % (client_name, alias)]).execute()
+        return mustpass(DockerCmd(self,
+                                  'rm',
+                                  ['--link=true',
+                                   '%s/%s' % (client_name, alias)]).execute())
 
     def wait_for(self, dkrcmd, what, fail_msg, negative=False):
         result = utils.wait_for(lambda: dkrcmd.stdout.find(what) > -1,

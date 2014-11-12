@@ -13,7 +13,7 @@ Operational Summary
 
 from dockertest.config import Config
 from dockertest.dockercmd import DockerCmd
-from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.output import mustpass
 from dockertest.output import OutputGood
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
@@ -57,8 +57,9 @@ class help_base(SubSubtest):
         super(help_base, self).run_once()  # Prints out basic info
         for option in self.sub_stuff['success_option_list']:
             # No successful command should throw an exception
-            dkrcmd = NoFailDockerCmd(self, option)
-            self.sub_stuff["success_cmdresults"].append(dkrcmd.execute())
+            dkrcmd_results = mustpass(DockerCmd(self,
+                                                option).execute())
+            self.sub_stuff["success_cmdresults"].append(dkrcmd_results)
         for option in self.sub_stuff['failure_option_list']:
             # These are likely to return non-zero
             dkrcmd = DockerCmd(self, option)
@@ -70,10 +71,7 @@ class help_base(SubSubtest):
             self.failif(cmdresult.exit_status != 0,
                         "Docker command returned non-zero exit status")
             no_usage = cmdresult.stdout.lower().find('usage:') == -1
-            no_cmnds = cmdresult.stdout.lower().find('commands:') == -1
             self.failif(no_usage, "Did not return usage help on stdout for: "
-                        "%s" % cmdresult.command)
-            self.failif(no_cmnds, "Did not return command help on stdout for: "
                         "%s" % cmdresult.command)
             outputgood = OutputGood(cmdresult, ignore_error=True,
                                     skip=['usage_check', 'error_check'])

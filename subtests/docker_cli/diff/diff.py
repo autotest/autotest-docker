@@ -20,7 +20,7 @@ Prerequisites
 """
 
 from dockertest.dockercmd import DockerCmd
-from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.output import mustpass
 from dockertest.images import DockerImage
 from dockertest.containers import DockerContainers
 from dockertest.subtest import SubSubtest
@@ -46,13 +46,13 @@ class diff_base(SubSubtest):
         fin = DockerImage.full_name_from_defaults(self.config)
         subargs = ['--name=%s' % (name), fin]
         subargs = subargs + self.config['command'].split(',')
-        nfdc = NoFailDockerCmd(self, 'run', subargs)
-        nfdc.execute()
+        nfdc = DockerCmd(self, 'run', subargs)
+        mustpass(nfdc.execute())
 
     def run_once(self):
         super(diff_base, self).run_once()
-        nfdc = NoFailDockerCmd(self, 'diff', [self.sub_stuff['name']])
-        self.sub_stuff['cmdresult'] = nfdc.execute()
+        nfdc = DockerCmd(self, 'diff', [self.sub_stuff['name']])
+        self.sub_stuff['cmdresult'] = mustpass(nfdc.execute())
 
     def postprocess(self):
         super(diff_base, self).postprocess()

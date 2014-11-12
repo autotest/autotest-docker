@@ -6,8 +6,9 @@ properly.
 """
 
 from dockertest import xceptions
-from dockertest.dockercmd import NoFailDockerCmd
-from dockertest.dockercmd import MustFailDockerCmd
+from dockertest.dockercmd import DockerCmd
+from dockertest.output import mustpass
+from dockertest.output import mustfail
 from dockertest.images import DockerImage
 from cgroups_base import cgroups_base
 
@@ -168,9 +169,9 @@ class memory_base(cgroups_base):
 
         for subargs in self.sub_stuff['subargs']:
             if self.config['expect_success'] == "PASS":
-                memory_container = NoFailDockerCmd(self,
-                                                   'run -d -t',
-                                                   subargs).execute()
+                memory_container = mustpass(DockerCmd(self,
+                                                      'run -d -t',
+                                                      subargs).execute())
                 long_id = self.container_json(str(subargs[0]).split('=')[1],
                                               'Id')
                 memory_arg = self.get_value_from_arg(
@@ -185,9 +186,9 @@ class memory_base(cgroups_base):
                 self.sub_stuff['result'].append(self.check_memory(
                     memory_value, cgroup_memory, memory_unit))
             else:
-                memory_container = MustFailDockerCmd(self,
-                                                     'run',
-                                                     subargs)
+                memory_container = mustfail(DockerCmd(self,
+                                                      'run',
+                                                      subargs))
                 # throws exception if exit_status == 0
                 self.sub_stuff['result'] = memory_container.execute()
 

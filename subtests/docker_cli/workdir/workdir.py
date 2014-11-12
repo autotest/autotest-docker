@@ -32,7 +32,8 @@ Prerequisites
 
 from autotest.client import utils
 from dockertest import subtest
-from dockertest.dockercmd import NoFailDockerCmd, DockerCmd
+from dockertest.output import mustpass
+from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
 
@@ -58,8 +59,8 @@ class workdir(subtest.Subtest):
             subargs.append('--name=%s' % name)
             subargs.append(self.stuff['fin'])
             subargs.append('pwd')
-            nfdc = NoFailDockerCmd(self, 'run', subargs)
-            self.stuff['cmdresults'][name] = nfdc.execute()
+            nfdc = DockerCmd(self, 'run', subargs)
+            self.stuff['cmdresults'][name] = mustpass(nfdc.execute())
         for name, _dir in self.stuff['bad_dirs'].items():
             subargs = ['--workdir=%s' % _dir]
             subargs.append('--name=%s' % name)

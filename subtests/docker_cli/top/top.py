@@ -29,8 +29,8 @@ from dockertest import config, subtest, xceptions
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.dockercmd import DockerCmd
-from dockertest.dockercmd import NoFailDockerCmd
-from dockertest.dockercmd import MustFailDockerCmd
+from dockertest.output import mustpass
+from dockertest.output import mustfail
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
 from dockertest.xceptions import DockerTestNAError
@@ -77,9 +77,9 @@ class top(subtest.Subtest):
 
         subargs.append(fin)
         subargs.append("bash")
-        container = NoFailDockerCmd(self, 'run', subargs)
+        container = DockerCmd(self, 'run', subargs)
         self.stuff['container_cmd'] = container
-        container.execute()
+        mustpass(container.execute())
 
         if self.config.get('attach_options_csv'):
             subargs = [arg for arg in
@@ -105,14 +105,12 @@ class top(subtest.Subtest):
         `self.stuff`.
         """
         if not fail:
-            cmd = NoFailDockerCmd(self, "top", [self.stuff['container_name'],
-                                                'all'])
-            out = cmd.execute().stdout.splitlines()
+            cmd = DockerCmd(self, "top", [self.stuff['container_name'], 'all'])
+            out = mustpass(cmd.execute()).stdout.splitlines()
             self.stuff['docker_top'].append(out)
         else:
-            cmd = MustFailDockerCmd(self, "top", [self.stuff['container_name'],
-                                                  'all'])
-            out = cmd.execute()
+            cmd = DockerCmd(self, "top", [self.stuff['container_name'], 'all'])
+            out = mustfail(cmd.execute())
             self.stuff['docker_top'].append(out)
             return
 

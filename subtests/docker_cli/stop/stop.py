@@ -18,8 +18,9 @@ from dockertest import config, subtest, xceptions
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
 from dockertest.images import DockerImage
-from dockertest.output import OutputGood
+from dockertest.output import OutputGood, mustpass
 from dockertest.subtest import SubSubtest
+from dockertest.xceptions import DockerExecError
 
 
 class stop(subtest.SubSubtestCaller):
@@ -48,6 +49,7 @@ class stop_base(SubSubtest):
         subargs.append("bash")
         subargs.append("-c")
         subargs.append(self.config['exec_cmd'])
+
         container = AsyncDockerCmd(self, 'run', subargs)
         self.sub_stuff['container_cmd'] = container
         container.execute()
@@ -131,10 +133,17 @@ class stop_base(SubSubtest):
             utils.signal_pid(container_cmd.process_id, 15)
             if not container_cmd.done:
                 utils.signal_pid(container_cmd.process_id, 9)
+
         if (self.config.get('remove_after_test')
                 and self.sub_stuff.get('container_name')):
             args = ['--force', '--volumes', self.sub_stuff['container_name']]
-            OutputGood(DockerCmd(self, 'rm', args).execute())
+            for _ in xrange(3):
+                try:
+                    mustpass(DockerCmd(self, 'rm', args).execute())
+                    break
+                except DockerExecError, details:
+                    self.logwarning("Unable to remove docker container: %s " %
+                                    details)
 
 
 class nice(stop_base):

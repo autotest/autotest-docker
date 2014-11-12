@@ -22,17 +22,17 @@ from autotest.client.shared import error
 from dockertest.subtest import SubSubtest
 from dockertest.output import OutputGood
 from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
-from dockertest.containers import DockerContainersCLI
+from dockertest.containers import DockerContainers
 from dockertest.images import DockerImage
 from dockertest import subtest
 from dockertest import config
 
 
-class DockerContainersCLIWithOutSize(DockerContainersCLI):
+class DockerContainersWithOutSize(DockerContainers):
 
     """
-    DockerContainersCLIWithOutSize remove size checking from
-    DockerContainersCLI for cmd time reduction.
+    DockerContainersWithOutSize remove size checking from
+    DockerContainers for cmd time reduction.
     """
 
     #: This is probably test-subject related, be a bit more noisy
@@ -44,10 +44,10 @@ class DockerContainersCLIWithOutSize(DockerContainersCLI):
                                self.timeout)
 
 
-class DockerContainersCLIRunOnly(DockerContainersCLIWithOutSize):
+class DockerContainersRunOnly(DockerContainersWithOutSize):
 
     """
-    DockerContainersCLI remove size checking from DockerContainersCLI.
+    DockerContainers remove size checking from DockerContainers.
     It takes lots of time. Only running containers.
     """
 
@@ -69,9 +69,9 @@ class start_base(SubSubtest):
     def initialize(self):
         super(start_base, self).initialize()
         config.none_if_empty(self.config)
-        dc = DockerContainersCLIWithOutSize(self)
+        dc = DockerContainersWithOutSize(self)
         self.sub_stuff["conts_obj"] = dc
-        dc = DockerContainersCLIRunOnly(self)
+        dc = DockerContainersRunOnly(self)
         self.sub_stuff["con_ro_obj"] = dc
 
         self.sub_stuff["image_name"] = None

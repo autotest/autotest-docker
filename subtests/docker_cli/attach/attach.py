@@ -23,6 +23,8 @@ from dockertest.images import DockerImages
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
 from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
+from dockertest.output import mustpass
+from dockertest.xceptions import DockerExecError
 from dockertest import subtest
 
 
@@ -55,13 +57,14 @@ class attach_base(SubSubtest):
         # Auto-converts "yes/no" to a boolean
         if self.config['remove_after_test']:
             for cont in self.sub_stuff["containers"]:
-                dkrcmd = DockerCmd(self, "rm", ['--volumes', '--force', cont])
-                cmdresult = dkrcmd.execute()
-                msg = (" removed test container: %s" % cont)
-                if cmdresult.exit_status == 0:
-                    self.logdebug("Successfully" + msg)
-                else:
-                    self.logwarning("Failed" + msg)
+                args = ['--force', '--volumes', cont]
+                for _ in xrange(3):
+                    try:
+                        mustpass(DockerCmd(self, 'rm', args).execute())
+                        break
+                    except DockerExecError, details:
+                        self.logwarning("Unable to remove docker"
+                                        " container: %s " % details)
             for image in self.sub_stuff["images"]:
                 try:
                     di = DockerImages(self)

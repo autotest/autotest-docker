@@ -8,9 +8,9 @@ Frequently used docker CLI operations/data
 
 import time
 from autotest.client import utils
-from subtest import SubBase
+from subtestbase import SubBase
 from xceptions import (DockerNotImplementedError,
-                       DockerExecError, DockerRuntimeError, DockerTestError)
+                       DockerRuntimeError, DockerTestError)
 
 
 class DockerCmdBase(object):
@@ -88,6 +88,7 @@ class DockerCmdBase(object):
                'suba': self.subargs,
                'subc': self.subcmd,
                'verb': self.verbose}
+
         if self.cmdresult is not None:
             # Don't assume executed command is current command
             dct['cmd'] = self.cmdresult.command
@@ -166,22 +167,6 @@ class DockerCmdBase(object):
 
         # Defined in [DEFAULTS] guaranteed to exist
         return self.subtest.config['docker_path']
-
-    @property
-    def command(self):
-        """
-        String representation of command + subcommand + args
-        """
-
-        if len(self.subargs) > 0:
-            return ("%s %s %s %s" % (self.docker_command,
-                                     self.docker_options,
-                                     self.subcmd,
-                                     " ".join(self.subargs))).strip()
-        else:  # Avoid adding extra spaces anywhere in or to command
-            return ("%s %s %s" % (self.docker_command,
-                                  self.docker_options,
-                                  self.subcmd)).strip()
 
     @property
     def stdout(self):
@@ -265,12 +250,34 @@ class DockerCmdBase(object):
         return self.cmdresult
 
 
+
+    @property
+    def command(self):
+        """
+        String representation of command + subcommand + args
+        """
+
+        if len(self.subargs) > 0:
+            return ("%s %s %s %s" % (self.docker_command,
+                                     self.docker_options,
+                                     self.subcmd,
+                                     " ".join(self.subargs))).strip()
+        else:  # Avoid adding extra spaces anywhere in or to command
+            return ("%s %s %s" % (self.docker_command,
+                                  self.docker_options,
+                                  self.subcmd)).strip()
+
+
 class DockerCmd(DockerCmdBase):
 
     """
     Setup a call docker subcommand as if by CLI w/ subtest config integration
     Execute docker subcommand with arguments and a timeout.
     """
+    def __init__(self, subtest, subcmd, subargs=None, timeout=None,
+                 verbose=True):
+        super(DockerCmd, self).__init__(subtest, subcmd, subargs,
+                                        timeout, verbose)
 
     def execute(self, stdin=None):
         """
@@ -303,67 +310,19 @@ class DockerCmd(DockerCmdBase):
         return self.executed
 
 
-class NoFailDockerCmd(DockerCmd):
-
-    """
-    Setup a call docker subcommand as if by CLI w/ subtest config integration
-    Execute docker subcommand with arguments and a timeout.
-    """
-
-    #: Exception message to use
-    exception_msg = "Unexpected non-zero exit code, details: %s"
-    #: If ``None`` use ``str(self.details)``, otherwise custom sub. value.
-    exception_msg_args = None
-
-    def execute(self, stdin=None):
-        """
-        Execute docker command, raising DockerCommandError if non-zero exit
-        """
-
-        super(NoFailDockerCmd, self).execute(stdin)
-        if self.exit_status != 0:
-            if self.exception_msg_args is None:
-                self.exception_msg_args = (self.details, )
-            raise DockerExecError(self.exception_msg
-                                  % self.exception_msg_args)
-        return self.cmdresult
-
-
-class MustFailDockerCmd(DockerCmd):
-
-    """
-    Setup a call docker subcommand as if by CLI w/ subtest config integration
-    Execute docker subcommand with arguments and a timeout.
-    """
-
-    #: Exception message to use
-    exception_msg = "Unexpected zero exit code, details: %s"
-    #: If ``None`` use ``str(self.details)``, otherwise custom sub. value.
-    exception_msg_args = None
-
-    def execute(self, stdin=None):
-        """
-        Execute docker command, raise DockerExecError if **zero** exit code
-        """
-
-        cmdresult = super(MustFailDockerCmd, self).execute(stdin)
-        if cmdresult.exit_status == 0:
-            if self.exception_msg_args is None:
-                self.exception_msg_args = (self.details, )
-            raise DockerExecError(self.exception_msg
-                                  % self.exception_msg_args)
-        return cmdresult
-
-
 class AsyncDockerCmd(DockerCmdBase):
 
     """
     Execute docker command as asynchronous background process on ``execute()``
     Execute docker subcommand with arguments and a timeout.
     """
-
     #: Private, class assumes exclusive access and no locking is performed
     _async_job = None
+
+    def __init__(self, subtest, subcmd, subargs=None, timeout=None,
+                 verbose=True):
+        super(AsyncDockerCmd, self).__init__(subtest, subcmd, subargs,
+                                             timeout, verbose)
 
     def execute(self, stdin=None):
         """

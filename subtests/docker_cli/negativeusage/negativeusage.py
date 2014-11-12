@@ -39,6 +39,7 @@ from dockertest import images
 from dockertest import config
 from dockertest import output
 from dockertest import xceptions
+from dockertest.output import mustpass
 
 
 class NoisyCmd(dockercmd.DockerCmd):
@@ -58,7 +59,7 @@ class negativeusage(subtest.SubSubtestCaller):
 
     def initialize(self):
         super(negativeusage, self).initialize()
-        dc = self.stuff['dc'] = containers.DockerContainers(self, 'cli')
+        dc = self.stuff['dc'] = containers.DockerContainers(self)
         dc.remove_args = '--force --volumes'
         ecs = self.stuff['existing_containers'] = dc.list_container_ids()
         di = self.stuff['di'] = images.DockerImages(self)
@@ -78,23 +79,24 @@ class negativeusage(subtest.SubSubtestCaller):
             if cid not in ecs:
                 # Sub-subtests should have cleaned up for themselves
                 self.logwarning("Removing container %s", cid)
-                dockercmd.DockerCmd('rm', ['--force', cid]).execute()
+                dockercmd.DockerCmd(self, 'rm', ['--force', cid]).execute()
         # Don't clean default image
         for full_name in di.list_imgs_full_name():
             if full_name not in eis:
                 # Sub-subtests should have cleaned up for themselves
                 self.logwarning("Removing image: %s", full_name)
                 di.remove_image_by_full_name(full_name)
-                dockercmd.DockerCmd('rmi', ['--force', full_name]).execute()
+                dockercmd.DockerCmd(self, 'rmi',
+                                    ['--force', full_name]).execute()
 
 
 class Base(subtest.SubSubtest):
 
     def init_utilities(self):
-        dc = self.sub_stuff['dc'] = containers.DockerContainers(self, 'cli')
+        dc = self.sub_stuff['dc'] = containers.DockerContainers(self)
         dc.remove_args = '--force --volumes'
         dc.verify_output = True
-        di = self.sub_stuff['di'] = images.DockerImages(self, 'cli')
+        di = self.sub_stuff['di'] = images.DockerImages(self)
         di.verify_output = True
 
     def init_subcntrs(self):
@@ -112,10 +114,10 @@ class Base(subtest.SubSubtest):
             raise xceptions.DockerTestNAError("Failed to initialize %s"
                                               % self.config_section)
         # Throw away cntr, all we need is the CID
-        cntr = dockercmd.NoFailDockerCmd(self, 'run',
-                                         ['--detach',
-                                          self.sub_stuff['FQIN'], 'true'],
-                                         verbose=False).execute()
+        cntr = mustpass(dockercmd.DockerCmd(self, 'run',
+                                            ['--detach',
+                                             self.sub_stuff['FQIN'], 'true'],
+                                            verbose=False).execute())
         # Only the CID is needed
         self.sub_stuff['STPCNTR'] = cntr.stdout.splitlines()[-1].strip()
 

@@ -247,6 +247,7 @@ class simple_base(logs_follow_base):
         dkrcmd.execute()
         self.wait_exists(name)
         # Create docker logs --follow
+        time.sleep(5)
         log1 = AsyncDockerCmd(self, 'logs', ['--follow', name],
                               verbose=False)
         self.sub_stuff['async_processes'].append(log1)

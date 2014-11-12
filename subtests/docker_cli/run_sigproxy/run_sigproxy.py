@@ -16,13 +16,11 @@ from autotest.client import utils
 from dockertest import config
 from dockertest import subtest
 from dockertest.containers import DockerContainers
-from dockertest.dockercmd import AsyncDockerCmd
-from dockertest.dockercmd import NoFailDockerCmd
-from dockertest.dockercmd import DockerCmd
+from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
+from dockertest.output import mustpass
 from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtest
-from dockertest.xceptions import DockerTestFail
-from dockertest.xceptions import DockerExecError
+from dockertest.xceptions import DockerTestFail, DockerExecError
 
 
 # Okay to be less-strict for these cautions/warnings in subtests
@@ -65,9 +63,9 @@ class sigproxy_base(SubSubtest):
         subargs.append("bash")
         subargs.append("-c")
         subargs.append(self.config['exec_cmd'])
-        container = NoFailDockerCmd(self, 'run', subargs)
+        container = DockerCmd(self, 'run', subargs)
         self.sub_stuff['container_cmd'] = container
-        container.execute()
+        mustpass(container.execute())
 
         if self.sub_stuff.get('attach_options_csv'):
             subargs = [arg for arg in
@@ -146,7 +144,7 @@ class sigproxy_base(SubSubtest):
 
         # stop the container
         container_name = self.sub_stuff['container_name']
-        NoFailDockerCmd(self, "kill", [container_name]).execute()
+        mustpass(DockerCmd(self, "kill", [container_name]).execute())
         container = self.sub_stuff['container_cmd']
         if not utils.wait_for(lambda: container.done, 5, step=0.1):
             raise DockerTestFail("Unable to kill container after test...")
@@ -156,7 +154,7 @@ class sigproxy_base(SubSubtest):
         # In case of internal failure the running container might not finish.
         failures = []
         container_cmd = self.sub_stuff.get('container_cmd')
-        # container_cmd might be temporarily NoFailDockerCmd
+        # container_cmd might be temporarily mustpassDockerCmd
         if (container_cmd and hasattr(container_cmd, 'done')
                 and not container_cmd.done):
             utils.signal_pid(container_cmd.process_id, 15)
@@ -165,7 +163,7 @@ class sigproxy_base(SubSubtest):
         if self.sub_stuff.get('container_name'):
             args = ['--force', '--volumes', self.sub_stuff['container_name']]
             try:
-                NoFailDockerCmd(self, 'rm', args).execute()
+                mustpass(DockerCmd(self, 'rm', args).execute())
             except DockerExecError, details:
                 failures.append("Remove after test failed: %s" % details)
                 for _ in xrange(3):

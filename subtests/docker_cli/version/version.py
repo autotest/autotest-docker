@@ -20,7 +20,8 @@ None
 from dockertest import subtest
 from dockertest.output import OutputGood
 from dockertest.output import DockerVersion
-from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.output import mustpass
+from dockertest.dockercmd import DockerCmd
 from dockertest.docker_daemon import SocketClient
 
 
@@ -32,8 +33,8 @@ class version(subtest.Subtest):
     def run_once(self):
         super(version, self).run_once()
         # 1. Run with no options
-        nfdc = NoFailDockerCmd(self, "version")
-        self.stuff['cmdresult'] = nfdc.execute()
+        nfdc = DockerCmd(self, "version")
+        self.stuff['cmdresult'] = mustpass(nfdc.execute())
 
     def postprocess(self):
         super(version, self).postprocess()

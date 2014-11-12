@@ -110,6 +110,7 @@ setattr(mock('autotest.client.shared.version'), 'get_version',
 # Need all three for Subtest class
 mock('autotest.client.shared.base_job')
 mock('autotest.client.shared.job')
+mock('autotest.client.shared.utils')
 mock('autotest.client.job')
 
 import version
@@ -174,11 +175,13 @@ class DockerCmdTestBase(unittest.TestCase):
     def setUp(self):
         import config
         import dockercmd
+        import output
         import subtest
         import xceptions
         self.xceptions = xceptions
         self.config = config
         self.dockercmd = dockercmd
+        self.output = output
         self.subtest = subtest
         self.config.CONFIGDEFAULT = tempfile.mkdtemp(self.__class__.__name__)
         self.config.CONFIGCUSTOMS = tempfile.mkdtemp(self.__class__.__name__)
@@ -265,24 +268,24 @@ class DockerCmdTestBasic(DockerCmdTestBase):
         # pylint: enable=E1101
 
     def test_no_fail_docker_cmd(self):
-        docker_command = self.dockercmd.NoFailDockerCmd(self.fake_subtest,
-                                                        'fake_subcommand')
-        self.assertTrue(docker_command.execute())
+        docker_command = self.dockercmd.DockerCmd(self.fake_subtest,
+                                                  'fake_subcommand')
+        self.assertTrue(self.output.mustpass(docker_command.execute()))
 
-        docker_command = self.dockercmd.NoFailDockerCmd(self.fake_subtest,
-                                                        'unittest_fail')
-        self.assertRaises(self.dockercmd.DockerExecError,
-                          docker_command.execute)
+        docker_command = self.dockercmd.DockerCmd(self.fake_subtest,
+                                                  'unittest_fail')
+        self.assertRaises(self.xceptions.DockerExecError,
+                          self.output.mustpass, docker_command.execute())
 
     def test_must_fail_docker_cmd(self):
-        docker_command = self.dockercmd.MustFailDockerCmd(self.fake_subtest,
-                                                          'fake_subcommand')
-        self.assertRaises(self.dockercmd.DockerExecError,
-                          docker_command.execute)
+        docker_command = self.dockercmd.DockerCmd(self.fake_subtest,
+                                                  'fake_subcommand')
+        self.assertRaises(self.xceptions.DockerExecError,
+                          self.output.mustfail, docker_command.execute())
 
-        docker_command = self.dockercmd.MustFailDockerCmd(self.fake_subtest,
-                                                          'unittest_fail')
-        self.assertTrue(docker_command.execute())
+        docker_command = self.dockercmd.DockerCmd(self.fake_subtest,
+                                                  'unittest_fail')
+        self.assertTrue(self.output.mustfail(docker_command.execute()))
 
 
 class AsyncDockerCmd(DockerCmdTestBase):

@@ -8,7 +8,8 @@ https://bugzilla.redhat.com/show_bug.cgi?id=1092773
 """
 
 from dockerinspect import inspect_base
-from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.output import mustpass
+from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
 from dockertest.xceptions import DockerTestError
 import re
@@ -24,8 +25,8 @@ class inspect_keys(inspect_base):
         self.sub_stuff['image'] = image
 
     def inspect_and_parse(self, subargs):
-        nfdc = NoFailDockerCmd(self, "inspect", subargs)
-        cmdresult = nfdc.execute()
+        nfdc = DockerCmd(self, "inspect", subargs)
+        cmdresult = mustpass(nfdc.execute())
         return self.parse_cli_output(cmdresult.stdout)
 
     def run_once(self):

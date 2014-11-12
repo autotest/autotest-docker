@@ -17,7 +17,6 @@ class ContainersTestBase(unittest.TestCase):
         import containers
         self.containers = containers
         self.DC = self.containers.DockerContainer
-        self.DCB = self.containers.DockerContainersBase
 
     def tearDown(self):
         del self.containers
@@ -270,7 +269,7 @@ class DockerContainersTestBase(ContainersTestBase):
 class DockerContainersTest(DockerContainersTestBase):
 
     def test_defaults(self):
-        dcc = self.containers.DockerContainersCLI(self.fake_subtest)
+        dcc = self.containers.DockerContainers(self.fake_subtest)
         cl = dcc.list_containers()
         self.assertEqual(len(cl), 8)
 
@@ -281,7 +280,7 @@ class DockerContainersTest(DockerContainersTestBase):
         self.assertNotEqual(len(dcc.json_by_name("suspicious_pare")), 0)
 
     def test_noports(self):
-        dcc = self.containers.DockerContainersCLI(self.fake_subtest)
+        dcc = self.containers.DockerContainers(self.fake_subtest)
         short_id = "ac8c9fa367f9"
         cl = [c for c in dcc.list_containers() if c.cmp_id(short_id)]
         self.assertEqual(len(cl), 1)
@@ -289,7 +288,7 @@ class DockerContainersTest(DockerContainersTestBase):
 
     def test_ports(self):
         from networking import ContainerPort
-        dcc = self.containers.DockerContainersCLI(self.fake_subtest)
+        dcc = self.containers.DockerContainers(self.fake_subtest)
         long_id = ("ef0fe72271778aefcb5cf6015f30067fbe"
                    "01f05996a123037f65db0b82795915")
         cl = [c for c in dcc.list_containers() if c.cmp_id(long_id)]
@@ -304,7 +303,7 @@ class DockerContainersTest(DockerContainersTestBase):
         self.assertEqual(p1.host_port, 1234)
 
     def test_links1(self):
-        dcc = self.containers.DockerContainersCLI(self.fake_subtest)
+        dcc = self.containers.DockerContainers(self.fake_subtest)
         long_id = ("abf8c40b19e353ff1f67e3a26a967"
                    "c14944b07b8f5aceb752f781ffca285a2a9")
         cnt = dcc.list_containers_with_cid(long_id)[0]
@@ -314,7 +313,7 @@ class DockerContainersTest(DockerContainersTestBase):
             self.assertEqual(cnt.links[i], t)
 
     def test_links2(self):
-        dcc = self.containers.DockerContainersCLI(self.fake_subtest)
+        dcc = self.containers.DockerContainers(self.fake_subtest)
         long_id = ("gfjggkkg9049iewm430oitjg09f"
                    "d09094jte0re8g5gcgbg5ge7e15f6a2gtgggg")
         cnt = dcc.list_containers_with_cid(long_id)[0]

@@ -17,7 +17,7 @@ import re
 import time
 from autotest.client.shared import utils
 from dockertest.subtest import SubSubtest
-from dockertest.containers import DockerContainers, DockerContainersCLI
+from dockertest.containers import DockerContainers
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.images import DockerImage
 from dockertest import docker_daemon
@@ -165,7 +165,7 @@ class DkrcmdFactory(object):
         return cmd
 
 
-class DockerContainersCLISpec(DockerContainersCLI):
+class DockerContainersSpec(DockerContainers):
     docker_daemon_bind = None
 
     def docker_cmd(self, cmd, timeout=None):
@@ -184,10 +184,6 @@ class DockerContainersCLISpec(DockerContainersCLI):
         return utils.run(docker_cmd,
                          verbose=self.verbose,
                          timeout=timeout)
-
-
-class DockerContainersE(DockerContainers):
-    interfaces = {"cli": DockerContainersCLISpec}
 
 
 class restart(subtest.SubSubtestCaller):
@@ -209,8 +205,8 @@ class restart_base(SubSubtest):
 
         bind_addr = self.config["docker_daemon_bind"]
 
-        self.conts = DockerContainersE(self)
-        self.conts.interface.docker_daemon_bind = bind_addr
+        self.conts = DockerContainersSpec(self)
+        self.conts.docker_daemon_bind = bind_addr
 
         self.dkr_cmd = DkrcmdFactory(self, dkrcmd_class=AsyncDockerCmdSpec)
         self.sub_stuff["image_name"] = None
@@ -265,7 +261,7 @@ class restart_base(SubSubtest):
                 for _ in xrange(3):
                     try:
                         # pylint: disable=W0201
-                        self.conts.remove_args = "--stop --volumes"
+                        self.conts.remove_args = "--force --volumes"
                         self.conts.remove_by_name(cont)
                     except Exception, e:  # pylint: disable=W0703
                         self.logwarning(e)
@@ -294,8 +290,9 @@ class restart_container_autorestart_base(restart_base):
         args1 = ["--name=%s" % (self.sub_stuff["cont1_name"])]
         args1.append(fin)
         if self.config.get('interruptable'):
-            args1 += ["python", "-c", "'import signal; "
-                      "signal.signal(signal.SIGTERM, exit); signal.pause()'"]
+            args1 += ["python", "-c", "'import signal;"
+                      " hnd=lambda signum, frame:exit(0);"
+                      "signal.signal(signal.SIGTERM, hnd); signal.pause()'"]
         else:
             args1 += ["bash", "-c", '"while [ true ]; do sleep 1; done"']
         self.sub_stuff["bash1"] = self.dkr_cmd.async("run", args1)

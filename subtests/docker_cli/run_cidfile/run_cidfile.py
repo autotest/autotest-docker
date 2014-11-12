@@ -20,6 +20,8 @@ from autotest.client.shared import utils
 from dockertest import config, xceptions, subtest, dockercmd
 from dockertest.containers import DockerContainers
 from dockertest.images import DockerImage
+from dockertest.output import mustfail
+from dockertest.output import mustpass
 import time
 
 
@@ -97,14 +99,20 @@ class basic(subtest.SubSubtest):
 
     """ Base class """
 
-    def _init_container(self, subargs, cidfile, cmd, dkrcmd_cls=None):
+    def _init_container(self, subargs, cidfile, cmd, check_method=None,
+                        custom_dockercmd=None):
         """
         Starts container
         :warning: When dkrcmd_cls is of Async type, there is no guarrantee
                   that it is going to be up&running after return.
         """
-        if dkrcmd_cls is None:
-            dkrcmd_cls = dockercmd.DockerCmd
+        def do_nothing(resutls):
+            return resutls
+
+        if custom_dockercmd is None:
+            custom_dockercmd = dockercmd.DockerCmd
+        if check_method is None:
+            check_method = do_nothing
         if not subargs:
             subargs = []
         self.sub_stuff['cidfiles'].add(cidfile)
@@ -115,8 +123,8 @@ class basic(subtest.SubSubtest):
         fin = DockerImage.full_name_from_defaults(self.config)
         subargs.append(fin)
         subargs.append(cmd)
-        dkrcmd = dkrcmd_cls(self, 'run', subargs)
-        dkrcmd.execute()
+        dkrcmd = custom_dockercmd(self, 'run', subargs)
+        check_method(dkrcmd.execute())
         return dkrcmd
 
     def initialize(self):
@@ -134,7 +142,7 @@ class basic(subtest.SubSubtest):
         containers = []
         cidfile = self._nonexisting_path(self.tmpdir, "cidfile-")
         subargs = self.config.get('run_options_csv').split(',')
-        containers.append(self._init_container(subargs, cidfile, 'sh',
+        containers.append(self._init_container(subargs, cidfile, 'sh', None,
                                                InteractiveAsyncDockerCmd))
         name = self.sub_stuff['containers'][0]
         self.failif(utils.wait_for(lambda: os.path.isfile(cidfile), 9) is None,
@@ -144,7 +152,7 @@ class basic(subtest.SubSubtest):
         self._check_cidfile(long_id, cidfile)
         # cidfile already exists (running container)
         containers.append(self._init_container(subargs, cidfile, 'true',
-                                               dockercmd.MustFailDockerCmd))
+                                               mustfail))
         self._check_failure_cidfile_present(containers[-1])
         # cidfile already exists (exited container)
         containers[0].stdin("exit\n")
@@ -152,11 +160,11 @@ class basic(subtest.SubSubtest):
         containers[0].wait(10)
         containers[0].close()
         containers.append(self._init_container(subargs, cidfile, 'true',
-                                               dockercmd.MustFailDockerCmd))
+                                               mustfail))
         self._check_failure_cidfile_present(containers[-1])
         # restart container with cidfile
-        dockercmd.NoFailDockerCmd(self, 'start', [name],
-                                  verbose=False).execute()
+        mustpass(dockercmd.DockerCmd(self, 'start', [name],
+                                     verbose=False).execute())
         is_alive = lambda: 'Up' in self._get_container_by_name(name).status
         self.failif(utils.wait_for(is_alive, 10) is None, "Container %s "
                     "was not restarted in 10 seconds." % name)
@@ -190,7 +198,12 @@ class basic(subtest.SubSubtest):
 
     def _check_cidfile(self, long_id, cidfile):
         """ check id from cidfile with long_id """
-        act = open(cidfile, 'r').read()
+        act = ""
+        for _ in xrange(5):
+            act = open(cidfile, 'r').read()
+            if act != "":
+                break
+            time.sleep(1)
         self.failif(long_id != act, "Cidfile output (%s) doesn't match "
                     "expected long_id (%s)" % (act, long_id))
 

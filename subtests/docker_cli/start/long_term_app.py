@@ -12,7 +12,7 @@ docker start full_name
 """
 
 from autotest.client.shared import error
-from start import short_term_app, DockerContainersCLIRunOnly
+from start import short_term_app, DockerContainersRunOnly
 from dockertest.dockercmd import DockerCmd
 
 
@@ -39,7 +39,7 @@ class long_term_app(short_term_app):
                     "Non-zero start exit status: %s"
                     % cmdresult)
 
-        dc = DockerContainersCLIRunOnly(self)
+        dc = DockerContainersRunOnly(self)
         running_c = dc.list_containers_with_cid(
             self.sub_stuff["container"].long_id)
         self.failif(running_c == [],

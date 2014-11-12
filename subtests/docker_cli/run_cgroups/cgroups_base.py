@@ -4,7 +4,7 @@ Base class for cgroups testing
 
 import os
 from dockertest import xceptions
-from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.output import mustpass
 from dockertest.dockercmd import DockerCmd
 from dockertest.containers import DockerContainers
 from dockertest.subtest import SubSubtest
@@ -50,10 +50,8 @@ class cgroups_base(SubSubtest):
         """
         inspect_id_args = ['--format={{.%s}}' % content]
         inspect_id_args.append(name)
-        container_json = NoFailDockerCmd(self,
-                                         'inspect',
-                                         inspect_id_args)
-        content_value = container_json.execute().stdout.strip()
+        container_json = DockerCmd(self, 'inspect', inspect_id_args)
+        content_value = mustpass(container_json.execute()).stdout.strip()
 
         return content_value
 

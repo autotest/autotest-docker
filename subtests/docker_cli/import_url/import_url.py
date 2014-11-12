@@ -24,8 +24,8 @@ from dockertest.subtest import SubSubtestCaller
 from dockertest.containers import DockerContainers
 from dockertest.images import DockerImages
 from dockertest.dockercmd import DockerCmd
-from dockertest.dockercmd import NoFailDockerCmd
-from dockertest.dockercmd import MustFailDockerCmd
+from dockertest.output import mustpass
+from dockertest.output import mustfail
 
 
 class import_url(SubSubtestCaller):
@@ -37,7 +37,7 @@ class base(SubSubtest):
     def run_import(self):
         subargs = [self.config['tar_url'].strip(),
                    self.sub_stuff['import_repo']]
-        cmdresult = NoFailDockerCmd(self, 'import', subargs).execute()
+        cmdresult = mustpass(DockerCmd(self, 'import', subargs).execute())
         self.sub_stuff['import_cmdresult'] = cmdresult
 
     def run_image(self):
@@ -47,12 +47,12 @@ class base(SubSubtest):
         subargs += [self.sub_stuff['import_repo']]
         subargs += ['some', 'dummy', 'command']
         self.logdebug("Next docker command should fail...")
-        MustFailDockerCmd(self, 'run', subargs).execute()
+        mustfail(DockerCmd(self, 'run', subargs).execute())
 
     def initialize(self):
         super(base, self).initialize()
-        dc = self.sub_stuff['dc'] = DockerContainers(self, 'cli')
-        di = self.sub_stuff['di'] = DockerImages(self, 'cli')
+        dc = self.sub_stuff['dc'] = DockerContainers(self)
+        di = self.sub_stuff['di'] = DockerImages(self)
         import_repo = di.get_unique_name()
         run_name = dc.get_unique_name()
         self.sub_stuff['run_name'] = run_name
@@ -83,7 +83,7 @@ class md5sum(base):
         subargs = ['%s:%s' % (self.sub_stuff['run_name'],
                               self.config['in_tar_file']),
                    self.tmpdir]
-        NoFailDockerCmd(self, 'cp', subargs).execute()
+        mustpass(DockerCmd(self, 'cp', subargs).execute())
 
     def postprocess(self):
         super(md5sum, self).postprocess()

@@ -19,7 +19,7 @@ from dockertest.images import DockerImages
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
 from dockertest.dockercmd import DockerCmd
-from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.output import mustpass
 from dockertest import xceptions
 from dockertest import subtest
 
@@ -50,7 +50,7 @@ class import_export_base(SubSubtest):
         # Actually executed command
         export_args = export_arg_csv.split(',')
         export_args.append(import_dkrcmd.command)
-        export_import_dkrcmd = NoFailDockerCmd(self, "export", export_args)
+        export_import_dkrcmd = DockerCmd(self, "export", export_args)
         export_import_dkrcmd.verbose = True
         self.sub_stuff['export_import_dkrcmd'] = export_import_dkrcmd
 
@@ -113,7 +113,7 @@ class simple(import_export_base):
         super(simple, self).run_once()
         export_import_dkrcmd = self.sub_stuff['export_import_dkrcmd']
         self.loginfo("Starting %s", export_import_dkrcmd)
-        self.sub_stuff['cmdresult'] = export_import_dkrcmd.execute()
+        self.sub_stuff['cmdresult'] = mustpass(export_import_dkrcmd.execute())
 
     def postprocess(self):
         super(simple, self).postprocess()  # Prints out basic info

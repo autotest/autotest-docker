@@ -195,7 +195,7 @@ class DockerImageTestBasic(ImageTestBase):
                " DockerImage(full_name:fedora:latest LONG_ID:58394af373423902a1b97f209a31e3777932d9321ef10e64feaaa7b4df609cf9 CREATED:5 weeks ago SIZE:385.5 MB)]")
         self.assertEqual(images, exp)
 
-        act = self.images.DockerImagesBase.filter_list_full_name(all_images,
+        act = self.images.DockerImages.filter_list_full_name(all_images,
                                                                  "fedora:"
                                                                  "latest")
         self.assertEqual(str(act), exp)
@@ -204,7 +204,7 @@ class DockerImageTestBasic(ImageTestBase):
         exp = ("[DockerImage(full_name:192.168.122.245:5000/fedora:32 LONG_ID:0d20aec6529d5d396b195182c0eaa82bfe014c3e82ab390203ed56a774d2c404 CREATED:5 weeks ago SIZE:387 MB),"
                " DockerImage(full_name:192.168.122.245:5000/fedora:latest LONG_ID:58394af373423902a1b97f209a31e3777932d9321ef10e64feaaa7b4df609cf9 CREATED:5 weeks ago SIZE:385.5 MB)]")
         self.assertEqual(images, exp)
-        act = self.images.DockerImagesBase.filter_list_by_components(all_images,
+        act = self.images.DockerImages.filter_list_by_components(all_images,
                                                                      repo_addr='192.168.122.245:5000')
         self.assertEqual(str(act), exp)
 
@@ -308,7 +308,7 @@ class DockerImageTestBasic(ImageTestBase):
         self.assertEqual(di.full_name, test)
 
     def test_remove_cli(self):
-        d = self.images.DockerImages(self.fake_subtest, 'cli', 1.0, True)
+        d = self.images.DockerImages(self.fake_subtest, 1.0, True)
         self.assertEqual(d.remove_image_by_id('123456789012').command,
                          "/foo/bar rmi 123456789012")
         self.assertEqual(d.remove_image_by_id('123456789012').command,
@@ -326,11 +326,7 @@ class DockerImageTestBasic(ImageTestBase):
                          "/foo/bar rmi user_user/fedora_repo:last_tag")
 
     def test_docker_images_lowlevel(self):
-        self.assertRaises(KeyError, self.images.DockerImages,
-                          self.fake_subtest, 'missing')
-        images = self.images.DockerImages(self.fake_subtest, "cli")
-        self.assertEqual(images.interface_name, "DockerImagesCLI")
-        self.assertEqual(images.interface_shortname, "cli")
+        images = self.images.DockerImages(self.fake_subtest)
 
         self.assertEqual(images.docker_cmd("command_pass").command,
                          '/foo/bar command_pass')

@@ -30,7 +30,8 @@ from config import none_if_empty
 from autotest.client import utils
 from output import OutputGood
 from output import TextTable
-from subtest import SubBase
+from subtestbase import SubBase
+from xceptions import DockerTestError
 from xceptions import DockerFullNameFormatError
 from xceptions import DockerCommandError
 
@@ -285,34 +286,32 @@ class DockerImage(object):  # pylint: disable=R0902
         return self.cmp_greedy(repo, tag, repo_addr, user)
 
 
-class DockerImagesBase(object):
+class DockerImages(object):
 
     """
-    Implementation defined collection of DockerImage-like instances with
-    helpers
+    Docker command supported DockerImage-like instance collection and helpers.
+
+    :param subtest: A subtest.SubBase subclass instance
+    :param timeout: A float, seconds to timeout internal operations.
+    :param verbose: A boolean, cause internal operations to make more noise.
     """
 
     #: Operational timeout, may be overridden by subclasses and/or parameters.
-    #: May not be used/enforced equally by all implementations.
     timeout = 60.0
 
-    #: Control verbosity level of operations, implementation may be
-    #: subclass-specific.  Actual verbosity level may vary across
-    #: implementations.
+    #: Control verbosity level of operations
     verbose = False
 
     #: Workaround docker problem of only accepting lower-case image names
     gen_lower_only = True
 
-    def __init__(self, subtest, timeout, verbose):
-        """
-        Initialize subclass operational instance.
+    #: Run important docker commands output through OutputGood when True
+    verify_output = False
 
-        :param subtest: A subtest.SubBase subclass instance
-        :param timeout: An opaque non-default timeout value to use on instance
-        :param verbose: A boolean non-default verbose value to use on instance
-        """
+    #: Arguments to use when listing images
+    images_args = "--no-trunc"
 
+    def __init__(self, subtest, timeout=None, verbose=False):
         if timeout is None:
             # Defined in [DEFAULTS] guaranteed to exist
             self.timeout = subtest.config['docker_timeout']
@@ -323,7 +322,58 @@ class DockerImagesBase(object):
         if verbose:
             self.verbose = verbose
 
-        self.subtest = subtest
+        if not isinstance(subtest, SubBase):
+            raise DockerTestError("%s is not a SubBase instance."
+                                  % subtest.__class__.__name__)
+        else:
+            self.subtest = subtest
+
+    # private methods don't need docstrings
+    @staticmethod
+    def _di_from_row(row):  # pylint: disable=C0111
+        # Translate from row dictionary, to DockerImage parameters
+        repo = row['REPOSITORY']
+        tag = row['TAG']
+        long_id = row['IMAGE ID']
+        created = row['CREATED']
+        size = row['VIRTUAL SIZE']
+        return DockerImage(repo, tag, long_id, created, size)
+
+    # private methods don't need docstrings
+    def _parse_colums(self, stdout_strip):  # pylint: disable=C0111
+        texttable = TextTable(stdout_strip)
+        return [self._di_from_row(row) for row in texttable]
+
+    def docker_cmd(self, cmd, timeout=None):
+        """
+        Called on to execute the docker command cmd with timeout.
+
+        :param cmd: Command which should be called using docker
+        :param timeout: Override self.timeout if not None
+        :return: ``autotest.client.utils.CmdResult`` instance
+        """
+
+        docker_image_cmd = ("%s %s" % (self.subtest.config['docker_path'],
+                                       cmd))
+        if timeout is None:
+            timeout = self.timeout
+        from autotest.client.shared.error import CmdError
+        try:
+            return utils.run(docker_image_cmd,
+                             verbose=self.verbose,
+                             timeout=timeout)
+        except CmdError, detail:
+            raise DockerCommandError(detail.command, detail.result_obj,
+                                     additional_text=detail.additional_text)
+
+    def docker_cmd_check(self, cmd, timeout=None):
+        """
+        Wrap docker_cmd, running result through OutputGood before returning
+        """
+
+        result = self.docker_cmd(cmd, timeout)
+        OutputGood(result)
+        return result
 
     def get_unique_name(self, prefix="", suffix="", length=4):
         """
@@ -359,16 +409,16 @@ class DockerImagesBase(object):
     # Not defined static on purpose
     def get_dockerimages_list(self):    # pylint: disable=R0201
         """
-        Standard name for behavior specific to subclass implementation details
+        Retrieve list of images using docker CLI
 
         :note:  This is probably not the method you're looking for,
                 try ``list_imgs()`` instead.
 
-        :raise RuntimeError: if not defined by subclass
-        :return: **implementation-specific**
+        :return: Opaque value, do not use
         """
-
-        raise RuntimeError()
+        cmdresult = self.docker_cmd("images %s" % self.images_args,
+                                    self.timeout)
+        return self._parse_colums(cmdresult.stdout.strip())
 
     @staticmethod
     def filter_list_full_name(image_list, full_name=None):
@@ -380,8 +430,7 @@ class DockerImagesBase(object):
                       container interfaces.  Similarly, the type of
                       items inside need only be DockerImage-like.
 
-        :param image_list: Opaque, iterable, container-like, specific
-                           to subclass implementation.
+        :param image_list: List of DockerImage instances
         :param full_name: FQIN string, Fully Qualified Image Name
         :return: Iterable container-like of DockerImage-like instances
         """
@@ -399,8 +448,7 @@ class DockerImagesBase(object):
                       container interfaces.  Similarly, the type of
                       items inside need only be DockerImage-like.
 
-        :param image_list: Opaque, iterable, container-like, specific
-                           to subclass implementation.
+        :param image_list: List of DockerImage instances
         :param repo: String repository name component
         :param tag: Optional tag name string
         :param repo_addr: String representing network address/port
@@ -487,115 +535,6 @@ class DockerImagesBase(object):
         dis = self.list_imgs()
         return [di for di in dis if di.cmp_id(image_id)]
 
-    # Disabled by default extension point, can't be static.
-    def remove_image_by_id(self, image_id):  # pylint: disable=R0201
-        """
-        Remove image by 64-character (long) or 12-character (short) image ID.
-
-        :raise RuntimeError: when implementation does not permit image removal
-        :return: Implementation specific value
-        """
-        # FIXME: This should raise Implementation-independant exceptions
-        #        for common conditions, otherwise caller is locked to
-        #        implementation-specific exceptions :(
-        del image_id  # keep pylint happy
-        raise RuntimeError()
-
-    # Disabled by default extension point, can't be static.
-    def remove_image_by_full_name(self, full_name):  # pylint: disable=R0201
-        """
-        Remove an image by FQIN Fully Qualified Image Name.
-
-        :raise RuntimeError: when implementation does not permit image removal
-        :return: Implementation specific value
-        """
-        # FIXME: This should raise Implementation-independant exceptions
-        #        for common conditions, otherwise caller is locked to
-        #        implementation-specific exceptions :(
-        del full_name  # keep pylint happy
-        raise RuntimeError()
-
-    def remove_image_by_image_obj(self, image_obj):
-        """
-        Alias for remove_image_by_full_name(image_obj.full_name)
-
-        :raise RuntimeError: when implementation does not permit image removal
-        :return: Same as remove_image_by_full_name()
-        """
-        # FIXME: This should raise Implementation-independant exceptions
-        #        for common conditions, otherwise caller is locked to
-        #        implementation-specific exceptions :(
-        return self.remove_image_by_full_name(image_obj.full_name)
-
-
-class DockerImagesCLI(DockerImagesBase):
-
-    """
-    Docker command supported DockerImage-like instance collection and helpers.
-    """
-
-    #: Run important docker commands output through OutputGood when True
-    verify_output = False
-
-    #: Arguments to use when listing images
-    images_args = "--no-trunc"
-
-    def __init__(self, subtest, timeout=None, verbose=False):
-        super(DockerImagesCLI, self).__init__(subtest,
-                                              timeout,
-                                              verbose)
-
-    @staticmethod
-    def _di_from_row(row):
-        # Translate from row dictionary, to DockerImage parameters
-        repo = row['REPOSITORY']
-        tag = row['TAG']
-        long_id = row['IMAGE ID']
-        created = row['CREATED']
-        size = row['VIRTUAL SIZE']
-        return DockerImage(repo, tag, long_id, created, size)
-
-    # private methods don't need docstrings
-    def _parse_colums(self, stdout_strip):  # pylint: disable=C0111
-        texttable = TextTable(stdout_strip)
-        return [self._di_from_row(row) for row in texttable]
-
-    def docker_cmd(self, cmd, timeout=None):
-        """
-        Called on to execute the docker command cmd with timeout.
-
-        :param cmd: Command which should be called using docker
-        :param timeout: Override self.timeout if not None
-        :return: ``autotest.client.utils.CmdResult`` instance
-        """
-
-        docker_image_cmd = ("%s %s" % (self.subtest.config['docker_path'],
-                                       cmd))
-        if timeout is None:
-            timeout = self.timeout
-        from autotest.client.shared.error import CmdError
-        try:
-            return utils.run(docker_image_cmd,
-                             verbose=self.verbose,
-                             timeout=timeout)
-        except CmdError, detail:
-            raise DockerCommandError(detail.command, detail.result_obj,
-                                     additional_text=detail.additional_text)
-
-    def docker_cmd_check(self, cmd, timeout=None):
-        """
-        Wrap docker_cmd, running result through OutputGood before returning
-        """
-
-        result = self.docker_cmd(cmd, timeout)
-        OutputGood(result)
-        return result
-
-    def get_dockerimages_list(self):
-        cmdresult = self.docker_cmd("images %s" % self.images_args,
-                                    self.timeout)
-        return self._parse_colums(cmdresult.stdout.strip())
-
     def remove_image_by_id(self, image_id):
         """
         Use docker CLI to removes image matching long or short image_ID.
@@ -622,81 +561,10 @@ class DockerImagesCLI(DockerImagesBase):
             dkrcmd = self.docker_cmd
         return dkrcmd("rmi %s" % full_name, self.timeout)
 
-
-class DockerImages(object):
-
-    """
-    Encapsulates ``DockerImage`` interfaces for manipulation of docker images.
-    """
-
-    #: Mapping of interface short-name string to DockerImagesBase subclass.
-    #: (shortens line-length when instantiating)
-    interfaces = {"cli": DockerImagesCLI}
-
-    def __init__(self, subtest, interface_name="cli",
-                 timeout=None, verbose=False):
+    def remove_image_by_image_obj(self, image_obj):
         """
-        Execute docker subcommand with arguments and a timeout.
+        Alias for remove_image_by_full_name(image_obj.full_name)
 
-        :param subtest: A subtest.SubBase subclass instance
-        :param interface_name: Class-defined string representing a
-                               DockerImagesBase subclass
-        :param timeout: Operational timeout override specific to interface
-        :param verbose: Operational verbose override specific to interface
+        :return: Same as remove_image_by_full_name()
         """
-        # Prevent accidental test.test instance passing
-        if not isinstance(subtest, SubBase):
-            raise TypeError("Instance %s is not a SubBase or "
-                            "subclass instance." % str(subtest))
-        _dic = self.interfaces[interface_name]
-        super(DockerImages, self).__setattr__('_interface',
-                                              _dic(subtest, timeout, verbose))
-
-    def __getattr__(self, name):
-        """
-        Hide interface choice while allowing attribute/method access.
-
-        :return: attribute/method provided by interface implementation.
-        """
-
-        return getattr(self._interface, name)
-
-    def __setattr__(self, name, value):
-        """
-        Hide interface choice while allowing attribute/method access.
-
-        :return: attribute/method provided by interface implementation.
-        """
-        if hasattr(self._interface, name):
-            return setattr(self._interface, name, value)
-        else:
-            super(DockerImages, self).__setattr__(name, value)
-
-    @property
-    def interface(self):
-        """
-        Interface class being encapsulated (read-only property)
-        """
-
-        return self._interface.__class__
-
-    @property
-    def interface_name(self):
-        """
-        Class name of interface being encapsulated (read-only property)
-        """
-
-        return self.interface.__name__
-
-    @property
-    def interface_shortname(self):
-        """
-        Short-name used to create this instance (read-only property)
-        """
-
-        keys = self.interfaces.keys()
-        values = self.interfaces.values()
-        try:
-            return keys[values.index(self.interface)]
-        except ValueError, detail:
-            raise KeyError(detail)
+        return self.remove_image_by_full_name(image_obj.full_name)
