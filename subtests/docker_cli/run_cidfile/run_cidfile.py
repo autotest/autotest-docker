@@ -198,7 +198,12 @@ class basic(subtest.SubSubtest):
 
     def _check_cidfile(self, long_id, cidfile):
         """ check id from cidfile with long_id """
-        act = open(cidfile, 'r').read()
+        act = ""
+        for _ in xrange(5):
+            act = open(cidfile, 'r').read()
+            if act != "":
+                break
+            time.sleep(1)
         self.failif(long_id != act, "Cidfile output (%s) doesn't match "
                     "expected long_id (%s)" % (act, long_id))
 
