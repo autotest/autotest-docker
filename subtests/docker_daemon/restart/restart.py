@@ -261,7 +261,7 @@ class restart_base(SubSubtest):
                 for _ in xrange(3):
                     try:
                         # pylint: disable=W0201
-                        self.conts.remove_args = "--stop --volumes"
+                        self.conts.remove_args = "--force --volumes"
                         self.conts.remove_by_name(cont)
                     except Exception, e:  # pylint: disable=W0703
                         self.logwarning(e)
@@ -290,8 +290,9 @@ class restart_container_autorestart_base(restart_base):
         args1 = ["--name=%s" % (self.sub_stuff["cont1_name"])]
         args1.append(fin)
         if self.config.get('interruptable'):
-            args1 += ["python", "-c", "'import signal; "
-                      "signal.signal(signal.SIGTERM, exit); signal.pause()'"]
+            args1 += ["python", "-c", "'import signal;"
+                      " hnd=lambda signum, frame:exit(0);"
+                      "signal.signal(signal.SIGTERM, hnd); signal.pause()'"]
         else:
             args1 += ["bash", "-c", '"while [ true ]; do sleep 1; done"']
         self.sub_stuff["bash1"] = self.dkr_cmd.async("run", args1)
