@@ -79,14 +79,15 @@ class negativeusage(subtest.SubSubtestCaller):
             if cid not in ecs:
                 # Sub-subtests should have cleaned up for themselves
                 self.logwarning("Removing container %s", cid)
-                dockercmd.DockerCmd('rm', ['--force', cid]).execute()
+                dockercmd.DockerCmd(self, 'rm', ['--force', cid]).execute()
         # Don't clean default image
         for full_name in di.list_imgs_full_name():
             if full_name not in eis:
                 # Sub-subtests should have cleaned up for themselves
                 self.logwarning("Removing image: %s", full_name)
                 di.remove_image_by_full_name(full_name)
-                dockercmd.DockerCmd('rmi', ['--force', full_name]).execute()
+                dockercmd.DockerCmd(self, 'rmi',
+                                    ['--force', full_name]).execute()
 
 
 class Base(subtest.SubSubtest):
