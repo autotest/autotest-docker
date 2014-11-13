@@ -13,7 +13,7 @@ def get_envcheck_ignore(what):
         return []
 
 
-def get_docker_path():
+def get_docker_bin():
     docker_path = os.environ.get('docker_path')
     if docker_path is not None:
         return docker_path
@@ -33,12 +33,12 @@ if __name__ == "__main__":
     ignore_cnames = get_envcheck_ignore('envcheck_ignore_cnames')
     ignore_cids = get_envcheck_ignore('envcheck_ignore_cids')
 
-    cmd = "%s ps -aq" % get_docker_path()
+    cmd = "%s ps -aq" % get_docker_bin()
     cids = [line.strip()
             for line in cmdstdout(cmd).strip().splitlines()]
     cnames = []
     cmd = ("%s inspect --format='{{.Name}}' %s"
-           % (get_docker_path(), "%s"))
+           % (get_docker_bin(), "%s"))
     for cid in cids:
         name = cmdstdout(cmd % cid).strip()
         if name.startswith('/'):
