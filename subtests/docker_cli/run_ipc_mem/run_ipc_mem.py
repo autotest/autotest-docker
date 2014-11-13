@@ -384,13 +384,15 @@ class IpcBase(subtest.SubSubtest):
         worker.verify_started(timeout)
         return cname
 
-    '''
-    def _exec_container_stdin(self, name, ipc, args, err=None, timeout=10):
+    def _init_container_stdin(self, name, ipc, err=None):
         """
         Starts container
+        :param name: User-friendly name used as reference
         :param ipc: --ipc $ipc argument
         :param args: shm_ping_pong.py arguments in form of:
                      "$shmid $no_iter $set_str $wait_for_str $cleanup[yn]"
+        :param err: Expected error (bool or string)
+        :param timeout: How long to wait until it's started
         """
         subargs = self.config.get('run_options_csv')
         if subargs is None:
@@ -408,12 +410,23 @@ class IpcBase(subtest.SubSubtest):
         dkrcmd = InteractiveAsyncDockerCmd(self, 'run', subargs, verbose=False)
         worker = Worker(name, dkrcmd, err)
         self.sub_stuff['cmds'].append(worker)
-        dkrcmd.execute("cd /opt/ipc; python shm_ping_pong.py %s || "
-                       "(ipcrm -M %s && python shm_ping_pong.py %s); exit $?\n"
-                       % (args, args.split(' ')[0], args))
-        worker.verify_started(timeout)
+        dkrcmd.execute()
+        # TODO verify it's visible
+        time.sleep(1)
+        # worker.verify_started(timeout)
         return cname
-    '''     # Custom scenarios will utilize this one pylint: disable=W0105
+
+    def _exec_container_stdin(self, worker, args, timeout=10):
+        """
+        Execute the woker through container's stdin
+        :param worker: Worker() which uses InteractiveAsyncDockerCmd
+        :param args: shm_ping_pong.py arguments
+        :param timeout: start timeout
+        """
+        cmd = "cd /opt/ipc; python shm_ping_pong.py %s; exit $?\n" % args
+        self.logdebug("%s stdin: %s" % (worker.name, cmd))
+        worker.cmd.stdin(cmd)
+        worker.verify_started(timeout)
 
     def _exec_host(self, name, args, err=None, timeout=10):
         """ Execute shm_ping_pong.py $args on host
