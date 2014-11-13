@@ -17,7 +17,7 @@ Operational Summary
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
 from dockertest.dockercmd import DockerCmd
-from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.output import mustpass
 from dockertest.containers import DockerContainers
 from dockertest.images import DockerImage
 from dockertest.images import DockerImages
@@ -83,7 +83,7 @@ class create_base(SubSubtest):
         # cid must be printed on stdout, always
         cid = self.get_cid()
         # non-forced removal must succeed, rely on rm test to verify.
-        NoFailDockerCmd(self, 'rm', [cid]).execute()
+        mustpass((self, 'rm', [cid]).execute())
 
     def cleanup(self):
         super(create_base, self).cleanup()

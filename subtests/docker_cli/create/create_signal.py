@@ -3,7 +3,8 @@ Test sending signal to created but not started container returns successfully
 """
 
 import signal
-from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.dockercmd import DockerCmd
+from dockertest.output import mustpass
 from dockertest.output import OutputGood
 from create import create_base
 
@@ -20,9 +21,10 @@ class create_signal(create_base):
         sig = getattr(signal, self.config['listen_signal'])
         cont.kill_signal = sig
         # Should not fail
-        sigdkrcmd = NoFailDockerCmd(self, 'kill',
-                                    ['--signal', str(sig),
-                                     self.get_cid()]).execute()
+        sigdkrcmd = DockerCmd(self, 'kill',
+                              ['--signal', str(sig),
+                               self.get_cid()])
+        sigdkrcmd = mustpass(sigdkrcmd.execute())
         self.sub_stuff['sigdkrcmd'] = sigdkrcmd
 
     def postprocess(self):
