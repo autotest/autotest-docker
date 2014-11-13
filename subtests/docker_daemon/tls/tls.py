@@ -88,7 +88,6 @@ from dockertest.xceptions import DockerTestNAError
 from dockertest.xceptions import DockerOutputError
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
-from dockertest.output import mustpass
 from dockertest import docker_daemon
 
 # Okay to be less-strict for these cautions/warnings in subtests

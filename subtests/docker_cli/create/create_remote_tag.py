@@ -1,6 +1,6 @@
 import os.path
 from autotest.client.shared import error
-from dockertest.dockercmd import NoFailDockerCmd
+from dockertest.output import mustpass
 from dockertest.dockercmd import DockerCmd
 from dockertest.config import get_as_list
 from dockertest.xceptions import DockerTestFail
@@ -40,11 +40,11 @@ class create_remote_tag(create_base):
                 self.loginfo("Going to save image %s" % img.full_name)
                 subargs.append(img.full_name)
             self.loginfo("Saving images...")
-            NoFailDockerCmd(self, 'save', subargs).execute()
+            mustpass((self, 'save', subargs).execute())
             self.loginfo("Removing images...")
             subargs = ['--force']
             subargs += [img.full_name for img in existing_images]
-            NoFailDockerCmd(self, 'rmi', subargs, verbose=True).execute()
+            mustpass(DockerCmd(self, 'rmi', subargs, verbose=True).execute())
             # Wait for images to actually go away
             _fn = lambda: self.long_id_in_images(long_id)
             gone = utils.wait_for(_fn, 60, step=1,

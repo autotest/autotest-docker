@@ -30,15 +30,15 @@ Introduction
 ----------------
 
 Docker Autotest_ is a sub-framework for standalone testing of docker_.
-It does not strictly depend on docker itself, though it can make use
-of the python-docker-py_ package (currently a reference implementation)
-if/when available.  Functionally, testing occurs within a number of sub-test
-modules, which in some cases also include a number of sub-sub-tests.
+It does not depend on docker itself, Functionally, testing occurs within
+any number of sub-test modules, which in some cases also include further
+nested sub-sub-tests. It is designed to support extremely simple linear
+and complex nested, iterative testing of arbitrary external commands.
 
-It is designed to support extremely simple linear and iterative testing
-of arbitrary external commands under control of test-specific and default
-configuration values.  Test content and configuration is fully modular,
-supporting both bundled and external tests.
+Test content and configuration is fully modular, supporting both bundled
+and external tests.  The current test content is primarily focused on
+continuous-integration testing of the Docker CLI client, with a very
+limited amount of negative and stress testing.
 
 As with other `Autotest Client Tests`_ the main entry point is the test
 control file.  Docker Autotest's control file utilizes Autotest's

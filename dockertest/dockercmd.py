@@ -249,8 +249,6 @@ class DockerCmdBase(object):
                                           duration=value.duration)
         return self.cmdresult
 
-
-
     @property
     def command(self):
         """
