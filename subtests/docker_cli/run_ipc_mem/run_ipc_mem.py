@@ -34,32 +34,6 @@ from dockertest.containers import DockerContainers
 from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
-import threading
-
-
-# This belongs to dockertest.subtest.py
-def parent_locked(old_func):
-
-    """ Decorator to execute function with self.parent_subtest.bsl """
-
-    def _new_func(self, *args, **kwargs):
-        """ Acquire and release the lock safely """
-        self.parent_subtest.bsl.acquire()
-        try:
-            return old_func(self, *args, **kwargs)
-        finally:
-            self.parent_subtest.bsl.release()
-    return _new_func
-
-
-# This belongs to dockertest.subtest (instead of SubSubtestCallerSimultaneous)
-class BetterSSTCSimultaneous(subtest.SubSubtestCallerSimultaneous):
-
-    """ Initialize bsl - big subtest lock """
-
-    def __init__(self, *args, **kwargs):
-        super(BetterSSTCSimultaneous, self).__init__(*args, **kwargs)
-        self.bsl = threading.Lock()
 
 
 class InteractiveAsyncDockerCmd(AsyncDockerCmd):
@@ -263,7 +237,7 @@ class Worker(object):
             return self.cmd.wait(timeout)
 
 
-class run_ipc_mem(BetterSSTCSimultaneous):
+class run_ipc_mem(subtest.SubSubtestCallerSimultaneous):
 
     """ SubSubtest caller """
 
@@ -332,12 +306,13 @@ class run_ipc_mem(BetterSSTCSimultaneous):
     def initialize(self):
         super(run_ipc_mem, self).initialize()
         # There is 10m timeout, use 9 minutes and 60s for timeout-less cleanup
-        self.stuff['shms'] = []
         self.stuff['end_time'] = time.time() + 540
 
     def adjust_timeout(self, timeout):
-        """ Adjust timeout to not overcome the end_test time """
-        return min(timeout, max(0, self.stuff['end_time'] - time.time()))
+        if time.time() > self.stuff['end_time']:
+            return 1
+        else:
+            return timeout
 
 
 class IpcBase(subtest.SubSubtest):
@@ -368,26 +343,15 @@ class IpcBase(subtest.SubSubtest):
         return utils.generate_random_string(random.randint(min_length,
                                                            max_length))
 
-    @parent_locked
-    def _reserve_hosts_free_ipc(self, start_key):
+    @staticmethod
+    def _find_hosts_free_ipc(start_key):
         """ Try to find first usable shm in 1024 iterations """
         for key in xrange(start_key, start_key + 1024):
-            if key in self.parent_subtest.stuff['shms']:
-                continue
             if 'not found' in utils.run("LC_ALL=C ipcs -m -i %s" % key,
                                         10, verbose=False).stderr:
-                self.parent_subtest.stuff['shms'].append(key)
-                self.sub_stuff['shms'].append(key)
                 return key
-        raise xceptions.DockerTestError("Unable to find free shmmid in "
-                                        "1024 steps (starting from %s)"
-                                        % start_key)
-
-    @parent_locked
-    def _mark_as_free_ipc(self, key):
-        """ Mark ipc $key as freed """
-        self.parent_subtest.stuff['shms'].remove(key)
-        self.sub_stuff['shms'].remove(key)
+        raise xceptions.DockerTestError("Unable to find free shmmid in 1024 "
+                                        "steps (starting from %s)" % start_key)
 
     def _exec_container(self, name, ipc, args, err=None, timeout=10):
         """
@@ -482,7 +446,7 @@ class IpcBase(subtest.SubSubtest):
         cmd = "ipcrm -M %s" % key
         self.logdebug("Running: Command: %s" % cmd)
         utils.run(cmd, ignore_status=True, verbose=False)
-        self._mark_as_free_ipc(key)
+        self.sub_stuff['shms'].remove(key)
 
     def _cleanup_shms(self):
         """ Unregister and remove the shm segment (using host) """
@@ -570,7 +534,8 @@ class AutoIpcBase(IpcBase):
     def run_once(self):
         super(AutoIpcBase, self).run_once()
         no_iter = self.config.get('no_iterations', 1024)
-        key = self._reserve_hosts_free_ipc(random.randint(1, 65536))
+        key = self._find_hosts_free_ipc(random.randint(1, 65536))
+        self.sub_stuff['shms'].append(key)
         setup = enumerate(self.config['setup'].split(' '))
         for setup in self.config['setup'].split('|'):
             self._run_setup(no_iter, key, enumerate(setup.strip().split(' ')))
@@ -582,7 +547,7 @@ class AutoIpcBase(IpcBase):
             timeout = int(self.config.get('%s_stop' % cmd.name, 20))
             timeout = self.parent_subtest.adjust_timeout(timeout)
             cmd.wait_check(timeout)
-        self._mark_as_free_ipc(self.sub_stuff['shms'][-1])
+        self.sub_stuff['shms'].pop(-1)
         del self.sub_stuff['cmds']
 
 
