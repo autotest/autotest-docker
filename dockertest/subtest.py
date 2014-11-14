@@ -18,12 +18,13 @@ import imp
 import sys
 import traceback
 import copy
-from autotest.client.shared import error
 from autotest.client.shared.error import AutotestError
+from autotest.client.shared.error import TestError
 from autotest.client.shared.version import get_version
 from autotest.client import test
 import version
 import config
+import subtestbase
 from xceptions import DockerTestFail
 from xceptions import DockerTestNAError
 from xceptions import DockerTestError
@@ -192,7 +193,7 @@ class SubBase(object):
         self.logdebug(error_tb)
 
 
-class Subtest(SubBase, test.test):
+class Subtest(subtestbase.SubBase, test.test):
 
     r"""
     Extends autotest test.test with dockertest-specific items
@@ -347,7 +348,7 @@ class Subtest(SubBase, test.test):
             return dict(self._control_ini.items())  # return a copy
 
 
-class SubSubtest(SubBase):
+class SubSubtest(subtestbase.SubBase):
 
     """
     Simplistic/minimal subtest interface matched with config section
@@ -372,6 +373,7 @@ class SubSubtest(SubBase):
     n_tabs = 2     # two-levels
 
     def __init__(self, parent_subtest):
+        super(SubSubtest, self).__init__()
         classname = self.__class__.__name__
         # Allow parent_subtest to use any interface this
         # class is setup to support. Don't check type.
@@ -562,8 +564,8 @@ class SubSubtestCaller(Subtest):
                                       sys.exc_info(),
                                       "Cleanup",
                                       detail)
-                    raise error.TestError("Sub-subtest %s cleanup"
-                                          " failures: %s" % (name, detail))
+                    raise TestError("Sub-subtest %s cleanup"
+                                    " failures: %s" % (name, detail))
         else:
             pass  # Assume a message was already logged
 
@@ -580,8 +582,8 @@ class SubSubtestCaller(Subtest):
         for name in self.subsubtest_names:
             self.run_all_stages(name, self.new_subsubtest(name))
         if len(self.start_subsubtests) == 0:
-            raise error.TestError("No sub-subtests configured to run "
-                                  "for subtest %s" % self.config_section)
+            raise TestError("No sub-subtests configured to run "
+                            "for subtest %s" % self.config_section)
 
     def postprocess(self):
         """
@@ -793,8 +795,8 @@ class SubSubtestCallerSimultaneous(SubSubtestCaller):
                     self.logtraceback(name, sys.exc_info(), "initialize",
                                       detail)
         if len(self.start_subsubtests) == 0:
-            raise error.TestError("No sub-subtests configured to run "
-                                  "for subtest %s", self.config_section)
+            raise TestError("No sub-subtests configured to run "
+                            "for subtest %s", self.config_section)
 
     def run_once(self):
         # DO NOT CALL superclass run_once() this variation works
