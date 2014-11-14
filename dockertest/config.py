@@ -295,7 +295,8 @@ class Config(dict):
         if cls._singleton is None:
             # Apply *args, *dargs _after_ making deep-copy
             cls._singleton = dict.__new__(cls)
-            cls.prepdict = cls._singleton.copy()
+            if cls._singleton.prepdict is None:
+                cls._singleton.prepdict = cls._singleton.copy()
         deep_copy = copy.deepcopy(cls._singleton.prepdict)
         deep_copy.update(dict(*args, **dargs))
         # Prevent any modifications from affecting cache and/or other tests
