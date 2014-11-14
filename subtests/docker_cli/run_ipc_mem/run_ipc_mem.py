@@ -187,8 +187,9 @@ class Worker(object):
                 done = self.done()
                 if "Silent 0th iteration" in self.output():
                     break
-                self.failif(done, "Worker finished before 'Silent 0th "
-                            "iteration'message occurred in output\n%s" % self)
+                self.failif(done, "Worker %s finished before 'Silent 0th "
+                            "iteration'message occurred in output."
+                            % self.name)
         else:
             self.failif(True, "Worker %s didn't started in %ss\n%s"
                         % (self.name, timeout, self))
@@ -208,10 +209,11 @@ class Worker(object):
         res = self.wait(timeout)
         if not self.is_bgjob:     # DockerCmd, check for other failures
             OutputGood(res, skip='error_check')
-        self.failif(res.exit_status, "Worker %s failed\n%s" % (self.name, res))
+        self.failif(res.exit_status, "Worker %s exit status != 0"
+                    % (self.name))
         self.failif("All iterations passed" not in res.stdout, "Worker %s "
-                    "passed but 'All iterations passed' not in the output:\n"
-                    "%s" % (self.name, res))
+                    "finished with 0 but 'All iterations passed' not in the "
+                    "output." % (self.name))
         return res
 
     def _wait_check_bad(self, timeout):
@@ -233,16 +235,14 @@ class Worker(object):
             res = self.cmd.cmdresult
         output = res.stdout + res.stderr
         if isinstance(self.err, basestring) and self.err not in output:
-            msg = ("Worker %s doesn't have '%s' message in the output:\n%s"
-                   % (self.name, self.err, res))
+            msg = ("Bad worker %s doesn't have '%s' message in the output."
+                   % (self.name, self.err))
             raise xceptions.DockerTestFail(msg)
         elif res.exit_status == 0:
-            msg = ("Worker %s was suppose to fail but passed instead:\n%s"
-                   % (self.name, res))
+            msg = ("Bad worker %s exit status == 0" % (self.name))
             raise xceptions.DockerTestFail(msg)
-        self.failif('All iterations passed' in output, "Worker %s contains "
-                    "'All iterations passed' message in output although it "
-                    "should have failed...:\n%s" % (self.name, res))
+        self.failif('All iterations passed' in output, "Bad worker %s output "
+                    "contains 'All iterations passed' message" % self.name)
         if not self.done():
             self.wait(0)    # Kill the bastard in case it's still running
 
