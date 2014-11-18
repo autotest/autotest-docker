@@ -156,21 +156,19 @@ def subtest_of_subsubtest(name, subtest_modules):
     Return subtest owning subsubtest name or None if name is not a sub-subtest
     """
     name = name.strip()  # just in case
-    none_msg = ("Name '%s' is NOT a sub-subtest" % name)
     # Quick-find first, name's w/ 1 or fewer '/' chars can never be sub-subtests
     if name.count('/') <= 1:
-        logging.debug(none_msg)
+        #logging.debug(none_msg)
         return None
-    # subtests actually available (not using include/exclude lists)
-    for subtest in subtest_modules:  # never a sub-subtest
-        # A sub-subtest name will always begin with a real subtest module
-        if name != subtest and name.startswith(subtest):
-            logging.debug("Sub-subtest '%s' is owned by subtest '%s'",
-                          name, subtest)
-            return subtest
-        if name == subtest:  # not a sub-subtest
-            logging.debug(none_msg)
-            return None
+    subtest_modules = set(subtest_modules)  # Real, existing subtest names
+    # Exact match to real subtest module
+    if name in subtest_modules:
+        return None # Must be a subtest
+    # Must be a sub-subtest, name could be arbitrarily deep
+    while name.count('/') > 1:
+        name = os.path.dirname(name)  # Drop right-most / and following
+        if name in subtest_modules:
+            return name  # Must be parent
     # This is a problem
     logging.error("Name '%s' does not match (with) any "
                     "known subtest modules.", name)
@@ -197,7 +195,7 @@ def noisy_bz():
     urllog = logging.getLogger("urllib3")
     urllog.setLevel(logging.DEBUG)
 
-def get_bzojb(bzopts):
+def get_bzobj(bzopts):
     """Load bugzilla module, return bz obj or None if error"""
     username = bzopts['bugzilla_username']
     password = bzopts['bugzilla_password']
@@ -238,35 +236,58 @@ def subtests_subsubtests(subthing_set, subtest_modules):
             subtest_to_subsubtest[subtest] = new_subsubtest_set
     return subtest_to_subsubtest
 
-def bugged_subthings(control_ini, subthings):
+def bugged_subthings(control_ini, subthings, subtest_modules):
     """
     Return dict of subthings that are blocked by one or more BZ's to their #'s
     """
     # All keys guaranteed to exist in control.ini by get_control_ini()
     bzopts = dict(control_ini.items('Bugzilla'))
-    bz = get_bzojb(bzopts)
+    bz = get_bzobj(bzopts)
     if bz is None:
         return {}
+
     namestobzs = {}  # docker_cli/test/name = 12345,67890,...
     for name, bzcsv in control_ini.items('NamesToBZs'):
         namestobzs[name] = [int(bugnum.strip())  # needed by bz.getbugs()
                             for bugnum in bzcsv.strip().split(',')]
-    fixed_states_csv = bzopts['bugzilla_fixed_states'].strip()
-    fixed_states = [state.strip() for state in fixed_states_csv.split(',')]
     # No need to check same subthing more than once
     subset = set(subthings)
-    bug_blocked = {} # subthings blocked mapped to blocking bugs
+
+    # Check possibly bugged sub-subtests if parent in subset
+    for subthing in namestobzs:
+        # having parent means subthing must be a sub-subtest
+        parent = subtest_of_subsubtest(subthing, subtest_modules)
+        if parent is not None:
+            if parent in subset:
+                subset.add(subthing)
+
+    # Check each possible blocker bug exactly once
+    check_bzs = set()
     for subthing in subset:
-        possible_bzs = namestobzs.get(subthing, [])
-        if len(possible_bzs) > 0:
-            blocker_bzs = [bug.id for bug in bz.getbugs(possible_bzs)
-                           if bug.status not in fixed_states]
-            if len(blocker_bzs) > 0:
-                bug_blocked[subthing] = blocker_bzs
+        if subthing in namestobzs:
+            check_bzs |= set(namestobzs[subthing])
+    fixed_states_csv = bzopts['bugzilla_fixed_states'].strip()
+    fixed_states = [state.strip() for state in fixed_states_csv.split(',')]
+    logging.info("Checking status of %d bugs", len(check_bzs))
+    blocker_bzs = set([bug.id for bug in bz.getbugs(check_bzs)
+                       if bug.status not in fixed_states])
     noisy_bz()  # Put it back the way it was
     del sys.modules['bugzilla']  # save some memory (maybe)
+
+    # Filter subthings w/ bugs in blocker_bzs set
+    bug_blocked = {}
+    for subthing in subset:
+        if subthing not in namestobzs:
+            continue  # No bz recorded for it
+        blockers = set(namestobzs[subthing]) & blocker_bzs
+        if len(blockers) > 0:
+            bug_blocked[subthing] = blockers
+
     logging.debug("Sub/sub-subtests blocked by bugzillas: %s",
                   bug_blocked.keys())
+    control_ini.set('Bugzilla',
+                    'bugzilla_exclude',
+                    ", ".join(bug_blocked.keys()))
     return bug_blocked
 
 def inject_subtests(subthing_includes, subtest_modules):
@@ -365,7 +386,7 @@ def filter_subthings(control_path, args):
     subthings = [subthing for subthing in included
                  if subthing not in subthing_exclude]
     # Additional exclusions due to unresolved bug
-    bug_blocked = bugged_subthings(control_ini, subthings)
+    bug_blocked = bugged_subthings(control_ini, subthings, subtest_modules)
     subthing_exclude += bug_blocked.keys()
     # Log and remove all bug_blocked items from subthings (in-place modify)
     filter_bugged(subthings, bug_blocked, subtest_modules)
