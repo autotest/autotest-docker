@@ -11,16 +11,15 @@ Operational Summary
 #. execute docker stop
 #. analyze results (duration, exit_code)
 """
-import time
 
+import time
 from autotest.client import utils
 from dockertest import config, subtest, xceptions
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
 from dockertest.images import DockerImage
-from dockertest.output import OutputGood, mustpass
+from dockertest.output import OutputGood
 from dockertest.subtest import SubSubtest
-from dockertest.xceptions import DockerExecError
 
 
 class stop(subtest.SubSubtestCaller):
@@ -137,13 +136,11 @@ class stop_base(SubSubtest):
         if (self.config.get('remove_after_test')
                 and self.sub_stuff.get('container_name')):
             args = ['--force', '--volumes', self.sub_stuff['container_name']]
-            for _ in xrange(3):
-                try:
-                    mustpass(DockerCmd(self, 'rm', args).execute())
-                    break
-                except DockerExecError, details:
-                    self.logwarning("Unable to remove docker container: %s " %
-                                    details)
+            cmdrslt = DockerCmd(self, 'rm', args).execute()
+            if cmdrslt.exit_status != 0:
+                if 'No such container' not in cmdrslt.stderr:
+                    self.logwarning("Unable to remove docker container: %s ",
+                                    cmdrslt.stderr)
 
 
 class nice(stop_base):
