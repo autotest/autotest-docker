@@ -148,7 +148,7 @@ def dir_subtests(control_path):
             # 3rd item is dir relative to subtests subdir
             subtest = dirpath.partition(subtest_path + '/')[2]
             subtests.append(subtest)
-    log_list(logging.debug, "On-disk Subtest modules found", subtests)
+    #log_list(logging.debug, "On-disk Subtest modules found", subtests)
     return subtests
 
 def subtest_of_subsubtest(name, subtest_modules):
@@ -283,8 +283,9 @@ def bugged_subthings(control_ini, subthings, subtest_modules):
         if len(blockers) > 0:
             bug_blocked[subthing] = blockers
 
-    logging.debug("Sub/sub-subtests blocked by bugzillas: %s",
-                  bug_blocked.keys())
+    log_list(logging.info,
+             "Sub/sub-subtests blocked by bugzillas:",
+             bug_blocked.keys())
     control_ini.set('Bugzilla',
                     'bugzilla_exclude',
                     ", ".join(bug_blocked.keys()))
@@ -327,13 +328,13 @@ def filter_bugged(subthings, bug_blocked, subtest_modules):
     for subtest, subsubtests in submap.items():
         if subtest in bug_blocked:
             for subsubtest in subsubtests:
-                logging.info("Excluding Sub-subtest'%s' because "
-                             " parent subtest blocked by bugzilla(s): %s",
-                             subsubtest, bug_blocked[subtest])
+            #    logging.info("Excluding Sub-subtest'%s' because "
+            #                 " parent subtest blocked by bugzilla(s): %s",
+            #                 subsubtest, bug_blocked[subtest])
                 subthings.remove(subsubtest)
-            logging.info("Excluding subtest '%s' because it is "
-                         "blocked by bugzilla(s): %s", subtest,
-                         bug_blocked[subtest])
+            #logging.info("Excluding subtest '%s' because it is "
+            #             "blocked by bugzilla(s): %s", subtest,
+            #             bug_blocked[subtest])
             subthings.remove(subtest)
     return None  # mods were done in-place!!!
 
@@ -393,7 +394,7 @@ def filter_subthings(control_path, args):
     # Save as CSV to operational/reference control.ini
     write_control_ini(control_ini, job.resultdir,
                       subthings, subthing_include, subthing_exclude)
-    log_list(logging.info, "Filtered subthing list:", subthings)
+    #log_list(logging.info, "Filtered subthing list:", subthings)
     # Control file can't handle sub-subtests, filter those out
     return only_subtests(subthings, subtest_modules)
 
