@@ -141,12 +141,14 @@ class restart_base(SubSubtest):
         # Check if execution took the right time (SIGTERM 0s vs. SIGKILL 10s)
         super(restart_base, self).postprocess()
         for check in ("restart", "stop"):
-            if self.sub_stuff.get(check + "_duration"):
+            value = self.sub_stuff.get(check + "_duration")
+            if value is not None:
+                value = float(value)
                 result = self.sub_stuff[check + "_results"]
-                self.failif(result.duration > check + 3, "Execution of %s took"
+                self.failif(result.duration > value + 3, "Execution of %s took"
                             "longer, than expected. (%s)" % (result.duration,
                                                              check))
-                self.failif(result.duration < check - 3, "Execution of %s took"
+                self.failif(result.duration < value - 3, "Execution of %s took"
                             "less, than expected. (%s)" % (result.duration,
                                                            check))
 
@@ -228,7 +230,55 @@ class stopped(restart_base):
     postprocess:
     7) analyze results
     """
-    pass
+
+    def check_output(self, lines, bad_lines, timeout=5):
+        """
+        Wait $timeout for all good lines presence in sub_stuff['container_id']
+        :param lines: list of expected lines in given order. All other lines
+                      in between are ignored.
+        :param bad_lines: list of lines, which musn't be present in the output
+        :param timeout: operation deadline
+        :raise xceptions.DockerTestFail: In case of bad output or timeout
+        :warning: It doesn't wait for input when only bad_lines are given!
+        """
+        endtime = time.time() + timeout
+        container_id = self.sub_stuff['container_id']
+        while time.time() < endtime:
+            log_results = mustpass(DockerCmd(self, 'logs',
+                                             [container_id]).execute())
+            log = log_results.stdout.splitlines()
+            i = 0   # (good) lines idx
+            exp = lines[i]
+            for act in log:
+                if act in bad_lines:
+                    msg = ("Check output fail; all lines present, but "
+                           "bad_lines too:\nlines:\n%s\nbad_lines:\n%s\n"
+                           "output:\n%s" % (lines, bad_lines, log))
+                    raise xceptions.DockerTestFail(msg)
+                if exp == act:
+                    i += 1
+                    if i < len(lines):
+                        exp = lines[i]
+                    else:
+                        exp = None  # lines are done, check only bad_lines...
+            if i >= len(lines):
+                break
+        else:
+            msg = ("Check output fail:\ncheck_lines:\n%s\nbad_lines:\n%s\n"
+                   "docker_output:\n%s" % (lines, bad_lines, log))
+            raise xceptions.DockerTestFail(msg)
+
+    def postprocess(self):
+        # Check if execution took the right time (SIGTERM 0s vs. SIGKILL 10s)
+        super(stopped, self).postprocess()
+        for check in ("restart", "stop"):
+            value = self.sub_stuff.get(check + "_duration")
+            if value is not None:
+                value = float(value)
+                result = self.sub_stuff[check + "_results"]
+                self.failif(result.duration > value + 3, "Execution of %s took"
+                            "longer, than expected. (%s)" % (result.duration,
+                                                             check))
 
 
 class zerotime(restart_base):
