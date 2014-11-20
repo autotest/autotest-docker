@@ -15,9 +15,10 @@ Operation Summary
 #.  Load the modified and verify new file content (modified)
 """
 from dockertest import subtest
-from dockertest.dockercmd import NoFailDockerCmd, DockerCmd
+from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImages, DockerImage
 from dockertest.containers import DockerContainers
+from dockertest.output import mustpass
 import os
 from autotest.client import utils
 
@@ -43,17 +44,21 @@ class load_similar(subtest.Subtest):
         self.stuff['container'] = name
         fin = DockerImage.full_name_from_defaults(self.config)
         cmd = 'sh -c "echo 1234567890 > /testfile"'
-        NoFailDockerCmd(self, "run", ["--name %s" % name, fin, cmd],
-                        verbose=False).execute()
+        mustpass(DockerCmd(self, "run", ["--name %s" % name, fin, cmd],
+                           verbose=False).execute())
         # Commit the image and persistently store it's id
         self.stuff['img'] = DockerImages(self).get_unique_name()
-        img_id = NoFailDockerCmd(self, "commit", [name, self.stuff['img']],
-                                 verbose=False).execute().stdout.strip()
+        cmt_cmd = DockerCmd(self, "commit", [name, self.stuff['img']],
+                            verbose=False).execute()
+        mustpass(cmt_cmd)
+        img_id = cmt_cmd.stdout.strip()
         self.stuff['img_id'] = img_id
         utils.run("echo -n %s > %s/img_id" % (img_id, self.srcdir))
-        NoFailDockerCmd(self, "save",
-                        [self.stuff['img'], "> %s/test.tar" % original_dir],
-                        verbose=False).execute()
+        mustpass(DockerCmd(self, "save",
+                           [self.stuff['img'],
+                            "> %s/test.tar"
+                            % original_dir],
+                           verbose=False).execute())
         # Extract to corrupted dir
         utils.run("tar -xf %s/test.tar -C %s" % (original_dir, corrupted_dir))
         os.chdir(os.path.join(corrupted_dir, self.stuff['img_id']))
@@ -74,19 +79,19 @@ class load_similar(subtest.Subtest):
         # Check original
         cmd = "cat /testfile"
         original_path = os.path.join(self.srcdir, "original", "test.tar")
-        NoFailDockerCmd(self, "load", ["< %s" % original_path],
-                        verbose=False).execute()
-        original = NoFailDockerCmd(self, "run", ["--rm", img_id, cmd],
-                                   verbose=False).execute().stdout.strip()
+        mustpass(DockerCmd(self, "load", ["< %s" % original_path],
+                           verbose=False).execute())
+        original = mustpass(DockerCmd(self, "run", ["--rm", img_id, cmd],
+                                      verbose=False).execute()).stdout.strip()
         self.failif(original != "1234567890", "Content of the original "
                     "image is not 1234567890 (%s)" % original)
 
         # Check corrupted
         corrupted_path = os.path.join(self.srcdir, "corrupted", "test.tar")
-        NoFailDockerCmd(self, "load", ["< %s" % corrupted_path],
-                        verbose=False).execute()
-        corrupted = NoFailDockerCmd(self, "run", ["--rm", img_id, cmd],
-                                    verbose=False).execute().stdout.strip()
+        mustpass(DockerCmd(self, "load", ["< %s" % corrupted_path],
+                           verbose=False).execute())
+        corrupted = mustpass(DockerCmd(self, "run", ["--rm", img_id, cmd],
+                                       verbose=False).execute()).stdout.strip()
         self.failif(corrupted == "1234567890", "Content of the corrupted "
                     "image is not 1234567890A, but still the same value as "
                     "the original image (1234567890)")
