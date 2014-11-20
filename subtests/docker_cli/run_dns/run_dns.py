@@ -15,7 +15,8 @@ import re
 
 from autotest.client import utils
 from dockertest import subtest
-from dockertest.dockercmd import NoFailDockerCmd, MustFailDockerCmd
+from dockertest.dockercmd import DockerCmd
+from dockertest.output import mustpass, mustfail
 from dockertest.images import DockerImage
 import itertools
 
@@ -37,7 +38,8 @@ class run_dns(subtest.Subtest):
         if search:
             for name in search:
                 subargs.insert(0, '--dns-search %s' % name)
-        return MustFailDockerCmd(self, 'run', subargs, verbose=False).execute()
+        return mustfail(DockerCmd(self, 'run', subargs,
+                                  verbose=False).execute())
 
     def _execute_and_record(self, dns, search, dnss, searches):
         """ Execute and store the new dns/searches """
@@ -48,7 +50,8 @@ class run_dns(subtest.Subtest):
         if search:
             for name in search:
                 subargs.insert(0, '--dns-search %s' % name)
-        res = NoFailDockerCmd(self, 'run', subargs, verbose=False).execute()
+        res = mustpass(DockerCmd(self, 'run', subargs,
+                                 verbose=False).execute())
         dnss.append(self.re_nameserver.findall(res.stdout))
         search = self.re_search.findall(res.stdout)
         self.failif(len(search) > 1, "Number of search lines is > 1:\n%s"
