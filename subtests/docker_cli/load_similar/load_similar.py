@@ -5,8 +5,8 @@ Summary
 Verify that when loading container with the same ID but different content
 it actually overwrites the container.
 
-Operation Summary
------------------
+Operational Summary
+---------------------
 
 #.  Prepare container with new file
 #.  Commit the container and save it

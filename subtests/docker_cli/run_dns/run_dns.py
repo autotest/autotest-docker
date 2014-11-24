@@ -4,11 +4,11 @@ Summary
 
 Set various dns' and dns-searches and check docker behave well.
 
-Operation Summary
------------------
+Operational Summary
+---------------------
 
-1.  Execute couple of correctly set dns/dns-search scenarios
-2.  Execute couple of incorrect dns/dns-search scenarios
+#.  Execute couple of correctly set dns/dns-search scenarios
+#.  Execute couple of incorrect dns/dns-search scenarios
 """
 import random
 import re
