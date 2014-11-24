@@ -815,7 +815,6 @@ class SubtestDoc(DocBase):
         """
         if base_path is None:
             base_path = cls.default_base_path
-        # If this becomes performance bottleneck, implement cls._cache
         for subtest_path in cls.module_filenames(base_path):
             if name.strip() == cls.name(subtest_path):
                 return cls(subtest_path)
@@ -966,7 +965,8 @@ class SubtestDocs(DocBase):
                        for name in self.names_filenames
                        if name not in self.exclude]
         subtest_fmt.sort()
-        return '\n\n'.join(subtest_fmt)
+        contents = ".. contents::\n   :depth: 1\n   :local:\n"
+        return "%s\n%s\n" % (contents, '\n\n'.join(subtest_fmt))
 
     @property
     def sub_str(self):
