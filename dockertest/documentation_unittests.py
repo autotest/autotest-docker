@@ -13,12 +13,14 @@ import os.path
 class DocumentationTestBase(unittest.TestCase):
 
     def setUp(self):
+        import docdeps
         import documentation
+        self.docdeps = docdeps
         self.documentation = documentation
         self.tmpdir = tempfile.mkdtemp(self.__class__.__name__)
         # Don't let changes in module affect unittesting
         documentation.set_default_base_path(self.tmpdir)
-        documentation.DocItem.empty_value = '<None>'
+        docdeps.DocItem.empty_value = '<None>'
         documentation.ConfigINIParser.undoc_option_doc = (
             'Undocumented Option, please fix!')
         documentation.SummaryVisitor.exclude_names = (
@@ -44,7 +46,7 @@ class TestDocItem(DocumentationTestBase):
 
     def setUp(self):
         super(TestDocItem, self).setUp()
-        self.DocItem = self.documentation.DocItem
+        self.DocItem = self.docdeps.DocItem
 
     def test_init(self):
         style_one = self.DocItem(1, 2, 3, 4)
@@ -82,7 +84,7 @@ class TestConfigINIParser(DocumentationTestBase):
 
     def setUp(self):
         super(TestConfigINIParser, self).setUp()
-        self.DocItem = self.documentation.DocItem
+        self.DocItem = self.docdeps.DocItem
         self.CIP = self.documentation.ConfigINIParser
 
     def test_empty(self):

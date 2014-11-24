@@ -73,6 +73,9 @@ class SocketClient(ClientBase):
         :param path: Path to the existing unix socket
         """
 
+        # Too few pub. meth: Subclass of builtin, don't break design.
+        # pylint: disable=R0903
+
         def __init__(self, path="/var/run/docker.sock"):
             httplib.HTTPConnection.__init__(self, 'localhost')
             self.path = path
