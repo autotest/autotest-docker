@@ -38,7 +38,6 @@ class SubtestDocSections(SubtestDoc):
                 raise docutils.nodes.SkipNode()
 
         self.rst2doctree(input_string, MinSecVisitor)
-        self.sections.sort()
         return ','.join(self.sections)
 
 
@@ -106,6 +105,9 @@ class SubtestsDocumented(object):
     Checker object
     """
 
+    sec_order = ('summary', 'operational summary', 'operational detail',
+                 'prerequisites')
+
     def __init__(self, path='.'):
         """ Location of the subtests.rst directory """
         self.path = os.path.join(path, 'subtests')
@@ -126,19 +128,35 @@ class SubtestsDocumented(object):
         dir_tests = SubtestDoc.module_filenames()
         err = False
         for dir_item in dir_tests:
+            # Order of checks (below) is significant
             name = SubtestDoc.name(dir_item)
+            subtestdocsec = SubtestDocSections(dir_item)
+            # Output doesn't matter, only sections instance attr. value
+            str(subtestdocsec)
+
             if 'example' in name:
                 continue
-            missing_sections = self.missing_sections(dir_item)
+            missing_sections = self.missing_sections(subtestdocsec)
             if missing_sections is not None:
                 err = True
                 print ("%s: Missing '%s' section"
                        % (name, missing_sections.title()))
-            extra_sections = self.extra_sections(dir_item)
+            extra_sections = self.extra_sections(subtestdocsec)
             if extra_sections is not None:
                 err = True
                 print ("%s: Extra nonstandard '%s' section found"
                        % (name, extra_sections.title()))
+            if 'configuration' in subtestdocsec.sections:
+                err = True
+                print ("%s: Hard-coded configuration section found"
+                       % name)
+            out_of_order = self.section_out_of_order(subtestdocsec)
+            if out_of_order is not None:
+                err = True
+                print ("%s: Out of order section: %s.  Should be: #%d"
+                       % (name, out_of_order,
+                          # Index is zero-based
+                          self.sec_order.index(out_of_order) + 1))
             undoc_options = self.undoc_options(dir_item)
             if undoc_options is not None:
                 err = True
@@ -157,34 +175,53 @@ class SubtestsDocumented(object):
         return False
 
     @staticmethod
-    def missing_sections(subtest_path):
+    def missing_sections(subtest_doc_sections):
         """
         Return name of any missing required docstring sections
 
         :param subtest_path: Path to subtest module
         :return: None or name of missing required section
         """
-        subtest_doc_sections = SubtestDocSections(subtest_path)
-        # Output doesn't matter, only sections instance attr. value
-        str(subtest_doc_sections)
         for required in ('summary', 'operational summary'):
             if required not in subtest_doc_sections.sections:
                 return required
         return None
 
     @staticmethod
-    def extra_sections(subtest_path):
-        subtest_doc_sections = SubtestDocSections(subtest_path)
-        str(subtest_doc_sections)
+    def extra_sections(subtest_doc_sections):
         acceptable = ('prerequisites', 'operational detail',
                       'summary', 'operational summary')
-        acceptable = set(acceptable)
+        acceptable = set(SubtestsDocumented.sec_order)
         actual = set(subtest_doc_sections.sections)
         difference = actual - acceptable
         try:
             return difference.pop()
         except KeyError:
             return None
+
+    @staticmethod
+    def sec_comes_next(sec, sectidx):
+        if sec in sectidx:
+            if sectidx[sec] == min(sectidx.values()):
+                return True  # Not out of place
+            else:
+                return False  # Out of place
+        else:
+            return None
+
+    @staticmethod
+    def section_out_of_order(subtest_doc_sections):
+        sections = list(subtest_doc_sections.sections)
+        sectidx = dict([(val, key) for key, val in enumerate(sections)])
+
+        for act_idx, sec in enumerate(SubtestsDocumented.sec_order):
+            # sec_comes_next deletes sec from sectidx
+            sec_comes_next = SubtestsDocumented.sec_comes_next(sec, sectidx)
+            if (sec_comes_next is not None) and (sec_comes_next is False):
+                return sections[act_idx]
+            if sec_comes_next is not None:
+                del sectidx[sec]  # Remove from min()
+        return None
 
     @staticmethod
     def undoc_options(subtest_path):
