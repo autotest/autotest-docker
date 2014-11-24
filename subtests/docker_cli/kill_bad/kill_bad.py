@@ -3,12 +3,12 @@ Summary
 -------
 Tests bad signals and good signals to nonexisting containers
 
-Operation Summary
------------------
-1. start container with test command
-2. test all ``bad_signals`` using ``docker kill -s $signal $container`` and
+Operational Summary
+---------------------
+#. start container with test command
+#. test all ``bad_signals`` using ``docker kill -s $signal $container`` and
    verify it wasn't killed
-3. try to kill nonexisting container
+#. try to kill nonexisting container
 """
 import time
 from dockertest import config, xceptions, subtest
