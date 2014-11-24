@@ -82,6 +82,9 @@ class ColumnRanges(Mapping):
     :raises ValueError: Column < than min_col_len or # columns != expected
     """
 
+    # Too few pub. methods, pylint doesn't count abstract __special_methods__
+    # pylint: disable=R0903
+
     __slots__ = ('ranges', 'columns', 'count')
 
     #: Iterable of start/end character-offset tuples corresponding to columns

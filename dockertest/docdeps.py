@@ -34,6 +34,9 @@ class DocItem(DocItemBase):
                    as described by ``desc``.
     """
 
+    # Too few pub. methods:  doesn't count __special_methods__
+    # pylint: disable=R0903
+
     #: String to use when filling in empty value items
     empty_value = '<None>'
 

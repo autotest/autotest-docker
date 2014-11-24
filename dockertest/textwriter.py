@@ -19,13 +19,17 @@ from itertools import groupby
 from docutils import nodes, writers
 from docutils.utils import column_width
 
-
 # There are a TON of small operations here,
 # relax on variable name length to avoid re-writing all
 # pylint: disable=C0103
+
+
 class TextWrapper(textwrap.TextWrapper):
 
     """Custom subclass that uses a different word separator regex."""
+
+    # Avoiding making methods public so as to not break original design
+    # pylint: disable=R0903
 
     wordsep_re = re.compile(
         r'(\s+|'                                  # any whitespace
@@ -130,6 +134,10 @@ class TextWrapper(textwrap.TextWrapper):
 class TextWriter(writers.Writer):
 
     """Servent type for docutils.publish() rendering into text output"""
+
+    # Avoiding making methods public so as to not break original design
+    # pylint: disable=R0903
+
     supported = ('text',)
     settings_spec = ('No options here.', '', ())
     settings_defaults = {}
