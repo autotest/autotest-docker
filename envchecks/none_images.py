@@ -29,7 +29,7 @@ if __name__ == "__main__":
     going_to_fail = False
     for line in lines:
         if '<none>' in line.lower():
-            print "Orphan: '%s'", line
+            print "Orphan: '%s' ", line.strip.split()[2]
             going_to_fail = True
     if going_to_fail:
         sys.exit(3)
