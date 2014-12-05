@@ -298,6 +298,21 @@ more horizontal-whitespace characters with a newline.  For example:
 In this case, the runs of multiple whitespace following the newline will
 be folded into a single space, and combined with the previous line.
 
+Warning Values
+------------------
+
+In order to help dockertest operate w/o custimization, many example or demonstration
+value have been configured.  While is fine for development and informal testing
+purposes, it adds external dependencies for production testing. Therefor, every
+option with default, example values should be specified in a
+comma-separated list to the special ``__warning__`` option.
+
+The ``__warning__`` option's value is parsed specially.  It is not inherited from
+defaults, or from subtest to sub-subtest.  Instead, it is compounded at each level
+then pruned of modified options (as compared to their default/example value).  Any
+unmodified options remaining at the beginning of a test will cause loud warnings
+to be issued.
+
 Value substitution
 ---------------------
 

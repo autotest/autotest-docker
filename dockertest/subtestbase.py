@@ -10,6 +10,7 @@ modules.
 import logging
 import traceback
 from xceptions import DockerTestFail
+from config import get_as_list
 
 
 class SubBase(object):
@@ -44,6 +45,20 @@ class SubBase(object):
         """
 
         self.loginfo("initialize()")
+        # Issue warnings for failed to customize suggested options
+        not_customized = self.config.get('__warning__', None)
+        if not_customized is not None and not_customized is not '':
+            self.logwarning("WARNING: Recommended options not customized:")
+            for nco in get_as_list(not_customized):
+                self.logwarning("WARNING: %s" % nco)
+            self.logwarning("WARNING: Test results may be externaly "
+                            "dependent!")
+        msg = "%s configuration:\n" % self.__class__.__name__
+        for key, value in self.config.items():
+            if key == '__warning__':
+                continue
+            msg += '\t\t%s = "%s"\n' % (key, value)
+        self.logdebug(msg)
 
     def run_once(self):
         """

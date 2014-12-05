@@ -151,10 +151,6 @@ class Subtest(subtestbase.SubBase, test.test):
         version.check_autotest_version(self.config, get_version())
         # Fail test if configuration being used doesn't match dockertest API
         version.check_version(self.config)
-        msg = "Subtest %s configuration:\n" % self.__class__.__name__
-        for key, value in self.config.items():
-            msg += '\t\t%s = "%s"\n' % (key, value)
-        self.logdebug(msg)
 
     def postprocess_iteration(self):
         """
@@ -265,7 +261,20 @@ class SubSubtest(subtestbase.SubBase):
         _config = copy.deepcopy(parent_config)  # a copy
         # global defaults mixed in, even if overridden in parent :(
         for key, val in subsubtest_config.items():
-            if key in all_configs['DEFAULTS']:
+            if key == '__warning__':
+                # Compose from parent + subsub
+                par_val = parent_config.get(key, '').strip()
+                if par_val is not '':
+                    par_val = set(config.get_as_list(par_val))
+                else:
+                    par_val = set()
+                sst_val = val.strip()
+                if sst_val is not '':
+                    sst_val = set(config.get_as_list(sst_val))
+                else:
+                    sst_val = set()
+                _config[key] = ", ".join(par_val | sst_val)
+            elif key in all_configs['DEFAULTS']:
                 def_val = all_configs['DEFAULTS'][key]
                 par_val = parent_config[key]
                 if val == def_val:
