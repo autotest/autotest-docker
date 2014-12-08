@@ -7,6 +7,7 @@ docker pull full_name_wrong_tag
 2. Command should fail.
 """
 from pull import pull_base, check_registry
+from dockertest.output import OutputGood
 
 
 class wrong_tag(pull_base):
@@ -16,3 +17,8 @@ class wrong_tag(pull_base):
         # check docker registry:
         registry_addr = self.config["docker_registry_host"]
         check_registry(registry_addr)
+
+    def outputcheck(self):
+        # Raise exception if problems found
+        skip = ['error_check', 'error_check']
+        OutputGood(self.sub_stuff['cmdresult'], skip=skip)
