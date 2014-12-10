@@ -356,7 +356,7 @@ class Config(dict):
     @staticmethod
     def load_config_sec(scp, newcd, section, configs_dict, defaults_dict):
         """
-        Load parsed contents and process __warning__ options.
+        Load parsed contents and process __example__ options.
 
         :param scp: ``SafeConfigParser`` instance loaded with content
         :param newcd: New ``ConfigDict`` instance loaded with content
@@ -364,17 +364,17 @@ class Config(dict):
         :param configs_dict: Destination dict-like to store result
         :param defaults_dict: Dict-like containing all default option/values.
         """
-        def_warn = defaults_dict.get('__warning__', '').lower()
+        def_warn = defaults_dict.get('__example__', '').lower()
         if def_warn is not '':
             def_warn = set(get_as_list(def_warn))
         else:
             def_warn = set()
-        # Need to detect __warning__ options that differ w/ existing
+        # Need to detect __example__ options that differ w/ existing
         old_sec = configs_dict[section]
         configs_dict[section] = newcd  # incoming, overriding section
         # reference from scp, it does not know/inherit defaults
         try:
-            sec_warn = scp.get(section, '__warning__').lower()
+            sec_warn = scp.get(section, '__example__').lower()
             if sec_warn is not '':
                 sec_warn = set(get_as_list(sec_warn))
             else:
@@ -386,20 +386,20 @@ class Config(dict):
             sec_warn.remove(None)
         if '' in sec_warn:
             sec_warn.remove('')
-        # Discard warnings for options that were modified from original
+        # Discard examples for options that were modified from original
         for warn_option in set(sec_warn):  # work from copy
-            # allow keyerror if undefined option in __warning__
+            # allow keyerror if undefined option in __example__
             former_value = old_sec.get(warn_option)
             currnt_value = newcd.get(warn_option)
             if currnt_value != former_value:
                 sec_warn.remove(warn_option)  # change was made
-            # else, contents unmodified, allow warning through
+            # else, contents unmodified, allow example through
         # Re-form it back into a CSV
         if len(sec_warn) > 0:
-            newcd['__warning__'] = ', '.join(sec_warn)
+            newcd['__example__'] = ', '.join(sec_warn)
         else:
             # Everything overriden, prevent defaults creeping in
-            newcd['__warning__'] = ''
+            newcd['__example__'] = ''
 
     @staticmethod
     def load_config_dir(dirpath, filenames, configs_dict, defaults_dict):
@@ -429,8 +429,8 @@ class Config(dict):
                 newcd.read(config_file)
                 if section not in configs_dict:
                     configs_dict[section] = newcd
-                    continue  # all defaults, no processing of __warning__
-                # Remove __warning__ options where newcd option value
+                    continue  # all defaults, no processing of __example__
+                # Remove __example__ options where newcd option value
                 # differs from existing (default) value in configs_dict.
                 Config.load_config_sec(scp, newcd, section,
                                        configs_dict, defaults_dict)

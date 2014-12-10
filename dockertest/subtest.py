@@ -261,7 +261,7 @@ class SubSubtest(subtestbase.SubBase):
         _config = copy.deepcopy(parent_config)  # a copy
         # global defaults mixed in, even if overridden in parent :(
         for key, val in subsubtest_config.items():
-            if key == '__warning__':
+            if key == '__example__':
                 # Compose from parent + subsub
                 par_val = parent_config.get(key, '').strip()
                 if par_val is not '':

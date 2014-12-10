@@ -225,20 +225,20 @@ class TestConfig(ConfigTestBase):
     def test_warn(self):
         # Global DEFAULTS defines tEsTOPTioNi, TesToPTIONf, testoptionS
 
-        # This warning should get discarded
+        # This example should get discarded
         dfl = self.config.ConfigSection(None, 'DEFAULTS')
-        dfl.set('__warning__', 'testoptions')  # should be discarded
+        dfl.set('__example__', 'testoptions')  # should be discarded
         dfl.merge_write(self.deffile)
 
         # defaults testsection defines TestOptionB, overrides TesTopTIONs
         #                  and defines testoptionx
 
         foo = self.config.ConfigSection(None, 'TestSection')
-        foo.set('__warning__', 'tEsTOPTioNi,  TestOptionB, testoptionx')
+        foo.set('__example__', 'tEsTOPTioNi,  TestOptionB, testoptionx')
         # require override on inherited tEsTOPTioNi from DEFAULTS
         foo.set('testoptionb', 'FAIL!')  # modified from DEFAULTS
         foo.set('testoptionx', 'FAIL!')  # redefined here
-        foo.remove_option('testoptions') # test DEFAULTS __warning__ ignored
+        foo.remove_option('testoptions') # test DEFAULTS __example__ ignored
         foo.merge_write(self.cfgfile)  # update, don't overwrite
 
         # Custom config, modifies tEsTOPTioNi,  TestOptionB, testoptionx
@@ -247,7 +247,7 @@ class TestConfig(ConfigTestBase):
         os.close(osfd)
         cfgfile = open(filename, 'wb')
         bar = self.config.ConfigSection(None, 'TestSection')
-        bar.set('__warning__', 'tEsTOPTioNi,  TestOptionB, testoptionx')
+        bar.set('__example__', 'tEsTOPTioNi,  TestOptionB, testoptionx')
         bar.set('TestOptioni', 'Pass!')
         bar.set('TestOptionB', 'Pass!')
         bar.set('TestOptionX', 'Pass!')
@@ -256,14 +256,14 @@ class TestConfig(ConfigTestBase):
         config = self.config.Config()
         self.assertEqual(len(config), 2)
         testsection = config['TestSection']
-        self.assertEqual(testsection['__warning__'], "")
+        self.assertEqual(testsection['__example__'], "")
 
     def test_warn_default(self):
         # Global DEFAULTS defines tEsTOPTioNi, TesToPTIONf, testoptionS
 
-        # This warning should get discarded
+        # This example should get discarded
         dfl = self.config.ConfigSection(None, 'DEFAULTS')
-        dfl.set('__warning__', 'testoptioni, testOptionb, TestOptionX')
+        dfl.set('__example__', 'testoptioni, testOptionb, TestOptionX')
         dfl.merge_write(self.deffile)
 
         # defaults testsection defines TestOptionB, overrides TesTopTIONs
@@ -282,7 +282,7 @@ class TestConfig(ConfigTestBase):
         config = self.config.Config()
         self.assertEqual(len(config), 2)
         testsection = config['TestSection']
-        self.assertEqual(testsection['__warning__'], "testoptioni")
+        self.assertEqual(testsection['__example__'], "testoptioni")
 
     def test_warn_custom(self):
         # Global DEFAULTS defines tEsTOPTioNi, TesToPTIONf, testoptionS
@@ -295,7 +295,7 @@ class TestConfig(ConfigTestBase):
         os.close(osfd)
         cfgfile = open(filename, 'wb')
         bar = self.config.ConfigSection(None, 'TestSection')
-        bar.set('__warning__', 'tEsTOPTioNi,  TestOptionB, testoptionx')
+        bar.set('__example__', 'tEsTOPTioNi,  TestOptionB, testoptionx')
         bar.set('TestOptioni', 'Pass!')  # differs from default
         bar.set('testoptionb', 'no')  # unchanged from default config
         bar.set('testoptionx', 'yes') # this too
@@ -305,9 +305,9 @@ class TestConfig(ConfigTestBase):
         self.assertEqual(len(config), 2)
         testsection = config['TestSection']
         # order doesn't matter
-        warnings = set(self.config.get_as_list(testsection['__warning__']))
+        examples= set(self.config.get_as_list(testsection['__example__']))
         expected = set(['testoptionb', 'testoptionx'])
-        self.assertEqual(warnings, expected)
+        self.assertEqual(examples, expected)
 
 
 class TestUtilities(ConfigTestBase):
