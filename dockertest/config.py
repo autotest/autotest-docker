@@ -9,7 +9,7 @@ unit-tested but not intended for wide-spread general use.
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
-from ConfigParser import SafeConfigParser, Error, NoOptionError
+from ConfigParser import SafeConfigParser
 from collections import MutableMapping
 import os.path
 import sys
@@ -255,6 +255,8 @@ class ConfigDict(MutableMapping):
                     for val in self._config_section.options()])
         default = set([val.lower()
                        for val in self._config_section.defaults().keys()])
+        # Special option is cascaded, never inherit!
+        default -= set(['__example__'])
         complete = mine | default
         return complete
 
@@ -287,6 +289,13 @@ class ConfigDict(MutableMapping):
 
     def __delitem__(self, key):
         return self._config_section.remove_option(key)
+
+    def get_other(self, option, other=None):
+        """Regular ``get()`` is non-standard, this is defaulting version"""
+        try:
+            return self.get(option)
+        except xceptions.DockerKeyError:
+            return other
 
     def read(self, filelike):
         """Load configuration from file-like object filelike"""
@@ -336,34 +345,43 @@ class Config(dict):
         Read-only cached defaults.ini DEFAULTS section options as a dict.
         """
         if self.__class__.defaults_ is None:
-            defaults_ = SafeConfigParser()
-            default_defaults = os.path.join(CONFIGDEFAULT, DEFAULTSFILE)
-            custom_defaults = os.path.join(CONFIGCUSTOMS, DEFAULTSFILE)
-            try:
-                defaults_.read(custom_defaults)
-                # Dump out all DEFAULTS section options into a dict. & cache it
-                self.__class__.defaults_ = dict(defaults_.items('DEFAULTS'))
-            except (IOError, Error):
-                defaults_.read(default_defaults)
-                self.__class__.defaults_ = dict(defaults_.items('DEFAULTS'))
-            # Drop options not used by docker autotest
-            for option in list(self.__class__.defaults_.keys()):
-                if option.startswith('envcheck_'):
-                    del self.__class__.defaults_[option]
+            default_path = os.path.join(CONFIGDEFAULT, DEFAULTSFILE)
+            custom_path = os.path.join(CONFIGCUSTOMS, DEFAULTSFILE)
+            default_cd = ConfigDict('DEFAULTS')
+            default_cd.read(open(default_path, 'r'))
+            # Defaults must all be string values
+            defaults_ = dict([(key, str(val))
+                              for key, val in default_cd.items()])
+            # Options always have lowercase names
+            if '__example__' in defaults_:
+                defaults_['__example__'] = defaults_['__example__'].lower()
+            else:
+                defaults_['__example__'] = ''  # Option must always exist
+            if os.path.isfile(custom_path):
+                custom_file = open(custom_path, 'r')
+                newcd = ConfigDict('DEFAULTS', defaults_)
+                newcd.read(custom_file)
+                configs_dict = {'DEFAULTS': defaults_}
+                # Filter __example__ options between custom and defaults
+                Config.load_config_sec(newcd, 'DEFAULTS', configs_dict)
+                defaults_ = dict([(key, str(val))
+                                  for key,
+                                  val in configs_dict['DEFAULTS'].items()])
+            self.__class__.defaults_ = defaults_
         # Return CACHED defaults dictionary
         return self.__class__.defaults_
 
     @staticmethod
-    def load_config_sec(scp, newcd, section, configs_dict, defaults_dict):
+    def load_config_sec(newcd, section, configs_dict):
         """
         Load parsed contents and process __example__ options.
 
-        :param scp: ``SafeConfigParser`` instance loaded with content
         :param newcd: New ``ConfigDict`` instance loaded with content
         :param section: Name of section to process.
         :param configs_dict: Destination dict-like to store result
         :param defaults_dict: Dict-like containing all default option/values.
         """
+        defaults_dict = configs_dict['DEFAULTS']
         def_warn = defaults_dict.get('__example__', '').lower()
         if def_warn is not '':
             def_warn = set(get_as_list(def_warn))
@@ -371,35 +389,29 @@ class Config(dict):
             def_warn = set()
         # Need to detect __example__ options that differ w/ existing
         old_sec = configs_dict[section]
-        configs_dict[section] = newcd  # incoming, overriding section
-        # reference from scp, it does not know/inherit defaults
-        try:
-            sec_warn = scp.get(section, '__example__').lower()
-            if sec_warn is not '':
-                sec_warn = set(get_as_list(sec_warn))
-            else:
-                sec_warn = set()
-        except NoOptionError:
+        sec_warn = newcd.get_other('__example__', '').lower()
+        if sec_warn is not '':
+            sec_warn = set(get_as_list(sec_warn))
+        else:
             sec_warn = set()
         sec_warn |= def_warn  # re-combine with global DEFAULTS
-        if None in sec_warn:
-            sec_warn.remove(None)
-        if '' in sec_warn:
-            sec_warn.remove('')
+        # Just in case, prune empty/None items
+        sec_warn -= set([None, ''])
         # Discard examples for options that were modified from original
         for warn_option in set(sec_warn):  # work from copy
-            # allow keyerror if undefined option in __example__
-            former_value = old_sec.get(warn_option)
-            currnt_value = newcd.get(warn_option)
-            if currnt_value != former_value:
+            if warn_option not in newcd or warn_option not in old_sec:
+                continue  # ignore it, warning will be issued from subbase
+            # Compare option string-converted values
+            if str(newcd.get(warn_option)) != str(old_sec.get(warn_option)):
                 sec_warn.remove(warn_option)  # change was made
-            # else, contents unmodified, allow example through
+            # else, contents unmodified, allow through
         # Re-form it back into a CSV
         if len(sec_warn) > 0:
             newcd['__example__'] = ', '.join(sec_warn)
         else:
             # Everything overriden, prevent defaults creeping in
             newcd['__example__'] = ''
+        configs_dict[section] = dict(newcd.items())  # incoming section
 
     @staticmethod
     def load_config_dir(dirpath, filenames, configs_dict, defaults_dict):
@@ -412,28 +424,28 @@ class Config(dict):
         :param defaults_dict: Dict-like containing all default option/values.
         """
         for filename in filenames:
-            if CONTROLFILE in filename:
+            if filename in CONTROLFILE or filename in DEFAULTSFILE:
                 continue
             fullpath = os.path.join(dirpath, filename)
             if filename.startswith('.') or not filename.endswith('.ini'):
                 continue
             config_file = open(fullpath, 'r')
-            # Temp use sections variable for reading sections list
+            # Easiest way to get all sections
             scp = SafeConfigParser()
             scp.readfp(config_file)
             sections = scp.sections()
             for section in sections:
-                # First call to defaults_dict will cache result
+                if section == 'DEFAULTS':  # loaded separetly
+                    continue
                 newcd = ConfigDict(section, defaults_dict)
-                # Will seek(0), incorporate defaults & overwrite any dupes.
+                # Will seek(0), incorporate deaults & overwrite any dupes.
                 newcd.read(config_file)
                 if section not in configs_dict:
-                    configs_dict[section] = newcd
+                    configs_dict[section] = dict(newcd.items())
                     continue  # all defaults, no processing of __example__
                 # Remove __example__ options where newcd option value
                 # differs from existing (default) value in configs_dict.
-                Config.load_config_sec(scp, newcd, section,
-                                       configs_dict, defaults_dict)
+                Config.load_config_sec(newcd, section, configs_dict)
 
     @property
     def configs(self):
@@ -441,7 +453,7 @@ class Config(dict):
         Read-only cached dict of ConfigDict's by section, aggregating all ini's
         """
         if self.__class__.configs_ is None:
-            self.__class__.configs_ = {}
+            self.__class__.configs_ = {'DEFAULTS': self.defaults}
             # Overwrite section-by-section from customs after loading defaults
             for dirpath, dirnames, filenames in os.walk(CONFIGDEFAULT):
                 del dirnames  # not needed

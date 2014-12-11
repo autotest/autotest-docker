@@ -17,6 +17,7 @@ import os.path
 import imp
 import sys
 import copy
+from ConfigParser import Error
 from autotest.client.shared.error import AutotestError
 from autotest.client.shared.error import TestError
 from autotest.client.shared.version import get_version
@@ -170,7 +171,7 @@ class Subtest(subtestbase.SubBase, test.test):
             try:
                 self._control_ini = config.ConfigDict('Control')
                 self._control_ini.read(open(fullpath, 'rb'))
-            except (IOError, OSError, config.Error):
+            except (IOError, OSError, Error):
                 self.logwarning("Failed to load reference '%s' and/or"
                                 "it's '[Control]' section.", fullpath)
                 self._control_ini = {}
@@ -227,10 +228,6 @@ class SubSubtest(subtestbase.SubBase):
                                            parent_config,
                                            self.config_section)
         # Not automatically logged along with parent subtest
-        msg = "Sub-subtest %s configuration:\n" % self.config_section
-        for key, value in self.config.items():
-            msg += '\t\t%s = "%s"\n' % (key, value)
-        self.logdebug(msg)
         note = {'Configuration_for_Subsubtest': self.config_section}
         self.parent_subtest.write_test_keyval(note)
         self.parent_subtest.write_test_keyval(self.config)

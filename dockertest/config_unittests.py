@@ -47,7 +47,11 @@ setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
 setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
 setattr(mock('dockertest.xceptions'), 'DockerKeyError', DockerKeyError)
+setattr(mock('dockertest.xceptions'), 'DockerConfigError', DockerKeyError)
+setattr(mock('dockertest.xceptions'), 'DockerIOError', DockerKeyError)
 setattr(mock('xceptions'), 'DockerKeyError', DockerKeyError)
+setattr(mock('xceptions'), 'DockerConfigError', DockerKeyError)
+setattr(mock('xceptions'), 'DockerIOError', DockerKeyError)
 
 
 class ConfigTestBase(unittest.TestCase):
@@ -174,7 +178,7 @@ class TestConfig(ConfigTestBase):
         foobar = self.config.Config()
         self.assertEqual(len(foobar), 2)
         testsection = foobar['TestSection']
-        self.assertEqual(len(testsection), 5)
+        self.assertEqual(len(testsection), 6)
         self.assertEqual(testsection['testoptioni'], 2)
         self.assertEqual(testsection['testoptionb'], False)
         self.assertAlmostEqual(testsection['testoptionf'], 3.14)
@@ -203,7 +207,7 @@ class TestConfig(ConfigTestBase):
         self.assertEqual(len(config), 4)
 
         testsection = config['TestSection']
-        self.assertEqual(len(testsection), 5)
+        self.assertEqual(len(testsection), 6)
         self.assertEqual(testsection['testoptioni'], 2)
         self.assertEqual(testsection['testoptionb'], False)
         self.assertAlmostEqual(testsection['testoptionf'], 3.14)

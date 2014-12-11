@@ -55,7 +55,7 @@ class SubBase(object):
                             "dependent!")
         msg = "%s configuration:\n" % self.__class__.__name__
         for key, value in self.config.items():
-            if key == '__example__':
+            if key == '__example__' or key.startswith('envcheck'):
                 continue
             msg += '\t\t%s = "%s"\n' % (key, value)
         self.logdebug(msg)
