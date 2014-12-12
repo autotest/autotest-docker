@@ -133,6 +133,7 @@ class DockerCmdTestBase(unittest.TestCase):
         cfgsect = self.config.ConfigSection(None, cfgsection)
         for key, val in cfgdict.items():
             cfgsect.set(key, val)
+        cfgsect.set('__example__', '')
         cfgsect.write(cfgfile)
         return filename
 

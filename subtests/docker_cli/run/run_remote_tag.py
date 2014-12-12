@@ -22,10 +22,6 @@ from run import run_base
 class run_remote_tag(run_base):
 
     def initialize(self):
-        if self.config["remote_image_fqin"] == "":
-            raise error.TestNAError("Unable to prepare env for test:"
-                                    "run_remote_tag/remote_image_fqin have to "
-                                    "be filled by functional repo address.")
         comp = DockerImage.split_to_component(self.config["remote_image_fqin"])
         (self.config["docker_repo_name"],
          self.config["docker_repo_tag"],
@@ -61,7 +57,7 @@ class run_remote_tag(run_base):
         if images != []:
             raise error.TestNAError("Unable to prepare env for test:"
                                     " image %s already/still"
-                                    " exist in docker repository", fqin)
+                                    " exist in docker repository" % fqin)
 
         self.logdebug("Existing images: %s", di.list_imgs_full_name())
         self.loginfo("Executing test commands")

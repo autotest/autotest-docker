@@ -6,6 +6,9 @@ branches:
     only:
         - master
 
+matrix:
+  fast_finish: true
+
 git:
     submodules: false
 
@@ -21,10 +24,10 @@ install:
     - pip install Pylint Pep8 Sphinx
 
 script:
-    - ./run_pylint.sh
-    - ./run_unittests.sh
     - SPHINXOPTS="-W" make
     - ./run_checkdocs.py
+    - ./run_unittests.sh
+    - ./run_pylint.sh
 
 # TODO: Do we need notifications?
 #notifications:

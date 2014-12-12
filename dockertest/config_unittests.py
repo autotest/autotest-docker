@@ -47,7 +47,11 @@ setattr(mock('autotest.client.shared.error'), 'TestError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestNAError', Exception)
 setattr(mock('autotest.client.shared.error'), 'AutotestError', Exception)
 setattr(mock('dockertest.xceptions'), 'DockerKeyError', DockerKeyError)
+setattr(mock('dockertest.xceptions'), 'DockerConfigError', DockerKeyError)
+setattr(mock('dockertest.xceptions'), 'DockerIOError', DockerKeyError)
 setattr(mock('xceptions'), 'DockerKeyError', DockerKeyError)
+setattr(mock('xceptions'), 'DockerConfigError', DockerKeyError)
+setattr(mock('xceptions'), 'DockerIOError', DockerKeyError)
 
 
 class ConfigTestBase(unittest.TestCase):
@@ -174,7 +178,7 @@ class TestConfig(ConfigTestBase):
         foobar = self.config.Config()
         self.assertEqual(len(foobar), 2)
         testsection = foobar['TestSection']
-        self.assertEqual(len(testsection), 5)
+        self.assertEqual(len(testsection), 6)
         self.assertEqual(testsection['testoptioni'], 2)
         self.assertEqual(testsection['testoptionb'], False)
         self.assertAlmostEqual(testsection['testoptionf'], 3.14)
@@ -203,7 +207,7 @@ class TestConfig(ConfigTestBase):
         self.assertEqual(len(config), 4)
 
         testsection = config['TestSection']
-        self.assertEqual(len(testsection), 5)
+        self.assertEqual(len(testsection), 6)
         self.assertEqual(testsection['testoptioni'], 2)
         self.assertEqual(testsection['testoptionb'], False)
         self.assertAlmostEqual(testsection['testoptionf'], 3.14)
@@ -222,6 +226,93 @@ class TestConfig(ConfigTestBase):
         self.assertEqual(atestsection['testoptions'], "foobarbaz")  # default
         self.assertEqual(yatestsection['testoptionx'], False)  # overridden
 
+    def test_warn(self):
+        # Global DEFAULTS defines tEsTOPTioNi, TesToPTIONf, testoptionS
+
+        # This example should get discarded
+        dfl = self.config.ConfigSection(None, 'DEFAULTS')
+        dfl.set('__example__', 'testoptions')  # should be discarded
+        dfl.merge_write(self.deffile)
+
+        # defaults testsection defines TestOptionB, overrides TesTopTIONs
+        #                  and defines testoptionx
+
+        foo = self.config.ConfigSection(None, 'TestSection')
+        foo.set('__example__', 'tEsTOPTioNi,  TestOptionB, testoptionx')
+        # require override on inherited tEsTOPTioNi from DEFAULTS
+        foo.set('testoptionb', 'FAIL!')  # modified from DEFAULTS
+        foo.set('testoptionx', 'FAIL!')  # redefined here
+        foo.remove_option('testoptions') # test DEFAULTS __example__ ignored
+        foo.merge_write(self.cfgfile)  # update, don't overwrite
+
+        # Custom config, modifies tEsTOPTioNi,  TestOptionB, testoptionx
+        osfd, filename = tempfile.mkstemp(suffix='.ini',  #vvvvvvvvvvvv
+                                          dir=self.config.CONFIGCUSTOMS)
+        os.close(osfd)
+        cfgfile = open(filename, 'wb')
+        bar = self.config.ConfigSection(None, 'TestSection')
+        bar.set('__example__', 'tEsTOPTioNi,  TestOptionB, testoptionx')
+        bar.set('TestOptioni', 'Pass!')
+        bar.set('TestOptionB', 'Pass!')
+        bar.set('TestOptionX', 'Pass!')
+        bar.write(cfgfile)
+        cfgfile.close()
+        config = self.config.Config()
+        self.assertEqual(len(config), 2)
+        testsection = config['TestSection']
+        self.assertEqual(testsection['__example__'], "")
+
+    def test_warn_default(self):
+        # Global DEFAULTS defines tEsTOPTioNi, TesToPTIONf, testoptionS
+
+        # This example should get discarded
+        dfl = self.config.ConfigSection(None, 'DEFAULTS')
+        dfl.set('__example__', 'testoptioni, testOptionb, TestOptionX')
+        dfl.merge_write(self.deffile)
+
+        # defaults testsection defines TestOptionB, overrides TesTopTIONs
+        #                  and defines testoptionx
+
+        # Custom config, modifies TestOptionB, testoptionx
+        osfd, filename = tempfile.mkstemp(suffix='.ini',  #vvvvvvvvvvvv
+                                          dir=self.config.CONFIGCUSTOMS)
+        os.close(osfd)
+        cfgfile = open(filename, 'wb')
+        bar = self.config.ConfigSection(None, 'TestSection')
+        bar.set('TestOptionB', 'Pass!')
+        bar.set('TestOptionX', 'Pass!')
+        bar.write(cfgfile)
+        cfgfile.close()
+        config = self.config.Config()
+        self.assertEqual(len(config), 2)
+        testsection = config['TestSection']
+        self.assertEqual(testsection['__example__'], "testoptioni")
+
+    def test_warn_custom(self):
+        # Global DEFAULTS defines tEsTOPTioNi, TesToPTIONf, testoptionS
+        # defaults testsection defines TestOptionB, overrides TesTopTIONs
+        #                  and defines testoptionx
+
+        # Custom config, modifies tEsTOPTioNi, TestOptionB, testoptionx
+        osfd, filename = tempfile.mkstemp(suffix='.ini',  #vvvvvvvvvvvv
+                                          dir=self.config.CONFIGCUSTOMS)
+        os.close(osfd)
+        cfgfile = open(filename, 'wb')
+        bar = self.config.ConfigSection(None, 'TestSection')
+        bar.set('__example__', 'tEsTOPTioNi,  TestOptionB, testoptionx')
+        bar.set('TestOptioni', 'Pass!')  # differs from default
+        bar.set('testoptionb', 'no')  # unchanged from default config
+        bar.set('testoptionx', 'yes') # this too
+        bar.write(cfgfile)
+        cfgfile.close()
+        config = self.config.Config()
+        self.assertEqual(len(config), 2)
+        testsection = config['TestSection']
+        # order doesn't matter
+        examples= set(self.config.get_as_list(testsection['__example__']))
+        expected = set(['testoptionb', 'testoptionx'])
+        self.assertEqual(examples, expected)
+
 
 class TestUtilities(ConfigTestBase):
 
@@ -230,12 +321,12 @@ class TestUtilities(ConfigTestBase):
         self.config.none_if_empty(test_dict)
         self.assertEqual(test_dict, {'foo': 0, 'bar': None, 'baz': None})
 
-    def test_nfs_one(self):
+    def test_nfe_one(self):
         test_dict = {'foo': 0, 'bar': None, 'baz': "      "}
         self.config.none_if_empty(test_dict, 'bar')
         self.assertEqual(test_dict, {'foo': 0, 'bar': None, 'baz': "      "})
 
-    def test_nfs_another(self):
+    def test_nfe_another(self):
         test_dict = {'foo': 0, 'bar': None, 'baz': "      "}
         self.config.none_if_empty(test_dict, 'baz')
         self.assertEqual(test_dict, {'foo': 0, 'bar': None, 'baz': None})
