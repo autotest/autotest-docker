@@ -259,7 +259,7 @@ class events(Subtest):
 
     def cleanup(self):
         super(events, self).cleanup()
-        if self.config['try_remove_after_test']:
+        if self.config['remove_after_test']:
             cid = self.stuff['nfdc_cid']
             dc = self.stuff['dc']
             try:
