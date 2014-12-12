@@ -70,7 +70,7 @@ class DockerCmdBase(object):
             self.subargs = list(subargs)
         if timeout is None:
             # Defined in [DEFAULTS] guaranteed to exist
-            self.timeout = subtest.config['docker_timeout']
+            self.timeout = float(subtest.config['docker_timeout'])
         else:
             # config() autoconverts otherwise catch non-float convertable
             self.timeout = float(timeout)
