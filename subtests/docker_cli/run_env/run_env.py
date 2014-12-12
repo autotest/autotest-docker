@@ -396,6 +396,7 @@ class rm_link(port_base):
         servercmd = self.start_server()
         # Container running properly when python prompt appears
         self.wait_for(servercmd, '>>> ', "No python prompt from server")
+        self.logdebug("Executing server code...")
         servercmd.stdin = str(self.python_server % params)  # str() for clarity
         # Executed python prints this on stdout
         utils.wait_for(lambda: servercmd.stdout.find("Server Listening") > -1,
@@ -409,6 +410,7 @@ class rm_link(port_base):
 
         self.record_iptables('after_rmlink')
 
+        self.logdebug("Executing client code...")
         clientcmd.stdin = str(self.python_client % params)
         # Executed python includes printing this on stdout
         self.wait_for(clientcmd, "Client Connecting", "No client connect")
