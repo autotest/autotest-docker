@@ -285,7 +285,7 @@ def bugged_subthings(control_ini, subthings, subtest_modules):
 
     log_list(logging.info,
              "Sub/sub-subtests blocked by bugzillas:",
-             bug_blocked.keys())
+             bug_blocked.items())
     control_ini.set('Bugzilla',
                     'bugzilla_exclude',
                     ", ".join(bug_blocked.keys()))
