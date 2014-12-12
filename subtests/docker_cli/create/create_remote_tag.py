@@ -40,7 +40,7 @@ class create_remote_tag(create_base):
                 self.loginfo("Going to save image %s" % img.full_name)
                 subargs.append(img.full_name)
             self.loginfo("Saving images...")
-            mustpass((self, 'save', subargs).execute())
+            mustpass(DockerCmd(self, 'save', subargs).execute())
             self.loginfo("Removing images...")
             subargs = ['--force']
             subargs += [img.full_name for img in existing_images]
