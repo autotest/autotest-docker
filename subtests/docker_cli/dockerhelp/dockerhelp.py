@@ -13,7 +13,6 @@ Operational Summary
 
 from dockertest.config import Config
 from dockertest.dockercmd import DockerCmd
-from dockertest.output import mustpass
 from dockertest.output import OutputGood
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
@@ -56,20 +55,15 @@ class help_base(SubSubtest):
     def run_once(self):
         super(help_base, self).run_once()  # Prints out basic info
         for option in self.sub_stuff['success_option_list']:
-            # No successful command should throw an exception
-            dkrcmd_results = mustpass(DockerCmd(self,
-                                                option).execute())
+            dkrcmd_results = DockerCmd(self, option).execute()
             self.sub_stuff["success_cmdresults"].append(dkrcmd_results)
         for option in self.sub_stuff['failure_option_list']:
-            # These are likely to return non-zero
-            dkrcmd = DockerCmd(self, option)
-            self.sub_stuff['failure_cmdresults'].append(dkrcmd.execute())
+            dkrcmd_results = DockerCmd(self, option).execute()
+            self.sub_stuff['failure_cmdresults'].append(dkrcmd_results)
 
     def postprocess(self):
         super(help_base, self).postprocess()  # Prints out basic info
         for cmdresult in self.sub_stuff["success_cmdresults"]:
-            self.failif(cmdresult.exit_status != 0,
-                        "Docker command returned non-zero exit status")
             no_usage = cmdresult.stdout.lower().find('usage:') == -1
             self.failif(no_usage, "Did not return usage help on stdout for: "
                         "%s" % cmdresult.command)
@@ -77,9 +71,6 @@ class help_base(SubSubtest):
                                     skip=['usage_check', 'error_check'])
             self.failif(not outputgood, str(outputgood))
         for cmdresult in self.sub_stuff['failure_cmdresults']:
-            self.failif(cmdresult.exit_status == 0,
-                        "Invalid docker option returned exit status of '0'")
-            # https://bugzilla.redhat.com/show_bug.cgi?id=1098280
             defined = cmdresult.stdout.lower().find('flag provided but '
                                                     'not defined') > -1
             usage = cmdresult.stdout.lower().find('usage:') > -1

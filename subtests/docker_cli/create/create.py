@@ -83,7 +83,7 @@ class create_base(SubSubtest):
         # cid must be printed on stdout, always
         cid = self.get_cid()
         # non-forced removal must succeed, rely on rm test to verify.
-        mustpass((self, 'rm', [cid]).execute())
+        mustpass(DockerCmd(self, 'rm', [cid]).execute())
 
     def cleanup(self):
         super(create_base, self).cleanup()

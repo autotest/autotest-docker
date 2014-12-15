@@ -121,33 +121,29 @@ class invalid_base(subtest.SubSubtest):
 
         for cmdresult in self.sub_stuff['cmdresult_inpara']:
             if exp_out_inpara not in str(cmdresult):
-                self.sub_stuff['result_inparam'] &= True
-                self.loginfo("It's failed to find the expected '%s' in "
-                             "cmdresult '%s'" % (exp_out_inpara,
-                                                 cmdresult))
+                self.sub_stuff['result_inparam'] |= True
+                self.logerror("Failed to find expected '%s'."
+                              % exp_out_inpara)
             else:
-                self.logdebug("It's successful to find the expected '%s' in "
-                              "cmdresult '%s'" % (exp_out_inpara,
-                                                  cmdresult))
+                self.logdebug("Successfully found expected '%s'."
+                              % exp_out_inpara)
 
         for cmdresult in self.sub_stuff['cmdresult_invals']:
             if exp_out_invals not in str(cmdresult):
-                self.sub_stuff['result_invalus'] &= True
-                self.loginfo("It's failed to find the expected '%s' in "
-                             "cmdresult '%s'" % (exp_out_invals,
-                                                 cmdresult))
+                self.sub_stuff['result_invalus'] |= True
+                self.logerror("Failed to find expected '%s'."
+                              % exp_out_invals)
             else:
-                self.logdebug("It's successful to find the expected '%s' in "
-                              "cmdresult '%s'" % (exp_out_invals,
-                                                  cmdresult))
+                self.logdebug("Successfully found expected '%s'."
+                              % exp_out_invals)
 
     def postprocess(self):
         super(invalid_base, self).postprocess()
         self.outputcheck()
 
         ret = False
-        ret &= self.sub_stuff['result_inparam']
-        ret &= self.sub_stuff['result_invalus']
+        ret |= self.sub_stuff['result_inparam']
+        ret |= self.sub_stuff['result_invalus']
 
         for cmdresult in self.sub_stuff['cmdresult_inpara']:
             self.logdebug(cmdresult)

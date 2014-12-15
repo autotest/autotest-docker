@@ -274,7 +274,7 @@ class build_base(subtest.SubSubtest):
     def cleanup(self):
         super(build_base, self).cleanup()
         # Auto-converts "yes/no" to a boolean
-        if self.config['try_remove_after_test']:
+        if self.config['remove_after_test']:
             # Remove all previously non-existing containers
             for cid in self.sub_stuff['dc'].list_container_ids():
                 if cid in self.sub_stuff['existing_containers']:
