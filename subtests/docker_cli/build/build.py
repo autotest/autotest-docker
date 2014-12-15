@@ -33,6 +33,7 @@ from dockertest import subtest
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import mustpass
+from dockertest.images import DockerImage
 from dockertest.images import DockerImages
 from dockertest.output import OutputGood
 from dockertest.xceptions import DockerTestNAError
@@ -74,25 +75,53 @@ class build(subtest.SubSubtestCaller):
             shutil.copy(os.path.join(self.srcdir, 'busybox'),
                         os.path.join(dst, 'busybox'))
 
-    def initialize(self):
-        super(build, self).initialize()
-        # Most tests use 'empty_base_image'. Add it only here
-        tarball = open(os.path.join(self.bindir, 'empty_base_image.tar'), 'rb')
-        dkrcmd = DockerCmd(self, 'import', ["-", "empty_base_image"])
-        mustpass(dkrcmd.execute(stdin=tarball))
-
-    def cleanup(self):
-        super(build, self).cleanup()
-        DockerImages(self).remove_image_by_full_name("empty_base_image")
-
 
 class build_base(subtest.SubSubtest):
 
-    def dockerfile_path(self, path):
-        if path[0] == '/':
+    def dockerfile_dir_path(self, dir_path):
+        if dir_path[0] == '/':
             srcdir = self.parent_subtest.srcdir
-            path = srcdir + path
-        return path
+            dir_path = srcdir + dir_path
+        return dir_path
+
+    @classmethod
+    def dockerfile_token_value_finder(cls, dockerfile, token):
+        re_token = re.compile(r'%s\s+.*' % token)
+        re_token_value = re.compile(r'\s+.*')
+        re_token_comment = re.compile(r'^\#')
+        if re_token_comment.findall(dockerfile):
+            return ''
+        else:
+            token_with_value = re_token.findall(dockerfile)
+            token_value = re_token_value.findall(''.join(token_with_value))
+            return ''.join(token_value).strip(' ')
+
+    def dockerfile_repo_replace(self, path, repo):
+        dockerfile_new_data = ''
+        dockerfile_old = open(path, 'r')
+        try:
+            dockerfile_line = dockerfile_old.readlines()
+        finally:
+            dockerfile_old.close()
+        for token_line in dockerfile_line:
+            repo_old = self.dockerfile_token_value_finder(token_line, "FROM")
+            if repo_old:
+                token_line = token_line.replace(repo_old, repo)
+            dockerfile_new_data += token_line
+        dockerfile_new = open(path, 'w')
+        try:
+            dockerfile_new.write(dockerfile_new_data)
+        finally:
+            dockerfile_new.close()
+
+    def _initialize_repo(self, config_repo, file_path, repo_name):
+        if config_repo:
+            self.dockerfile_repo_replace(file_path, repo_name)
+        else:
+            tarball = open(os.path.join(self.parent_subtest.bindir,
+                                        'empty_base_image.tar'), 'rb')
+            dkrcmd = DockerCmd(self, 'import', ["-", "empty_base_image"])
+            mustpass(dkrcmd.execute(stdin=tarball))
 
     def initialize(self):
         super(build_base, self).initialize()
@@ -104,21 +133,43 @@ class build_base(subtest.SubSubtest):
         img_name = dimg.get_unique_name()
         # Build definition:
         # build['image_name'] - name
-        # build['dockerfile_path'] - path to docker file
+        # build['dockerfile_dir_path'] - path to docker file directory
         # build['result'] - results of docker build ...
         # build['intermediary_containers'] - Please set to true when --rm=False
+        # build['use_config_repo'] - Whether use repo 'docker_repo_name'
+        # build['dockerfile_path'] - path to Dockerfile
+        # build['base_repo_fqin'] - repo name in 'docker_rpo_name'
         build_def = {}
         self.sub_stuff['builds'] = [build_def]
         build_def['image_name'] = img_name
-        path = self.config.get('dockerfile_path')
-        if not path:
-            raise DockerTestNAError("config['dockerfile_path'] not provided")
-        build_def['dockerfile_path'] = self.dockerfile_path(path)
+        if 'dockerfile_use_config_repo' not in self.config:
+            use_config_repo = 'net_dockerfile'
+        else:
+            use_config_repo = self.config.get('dockerfile_use_config_repo')
+        build_def['use_config_repo'] = use_config_repo
+        dir_path = self.config.get('dockerfile_dir_path')
+        if not dir_path:
+            raise DockerTestNAError(
+                "config['dockerfile_dir_path'] not provided")
+        build_def['dockerfile_dir_path'] = self.dockerfile_dir_path(dir_path)
+        if build_def['use_config_repo'] != 'net_dockerfile':
+            file_path = build_def['dockerfile_dir_path'] + '/' + 'Dockerfile'
+            if not os.path.isfile(file_path):
+                raise DockerTestNAError("Dockerfile does not exist")
+            build_def['dockerfile_path'] = file_path
+        else:
+            build_def['dockerfile_path'] = ''
         im_cnt = self.config.get('docker_build_intermediary_containers')
         build_def['intermediary_containers'] = im_cnt
         build_def['build_fail_msg'] = self.config.get('docker_build_fail_msg')
         build_def['stdout'] = self.config.get('docker_build_stdout')
         build_def['no_stdout'] = self.config.get('docker_build_no_stdout')
+        full_repo = DockerImage.full_name_from_defaults(self.config)
+        build_def['full_repo'] = full_repo
+        if build_def['dockerfile_path']:
+            self._initialize_repo(build_def['use_config_repo'],
+                                  build_def['dockerfile_path'],
+                                  build_def['full_repo'])
 
     def run_once(self):
         super(build_base, self).run_once()
@@ -131,7 +182,7 @@ class build_base(subtest.SubSubtest):
         Build container according to the `build_def` dictionary.
         """
         subargs += ["-t", build_def['image_name'],
-                    build_def['dockerfile_path']]
+                    build_def['dockerfile_dir_path']]
         dkrcmd = DockerCmd(self, 'build', subargs,
                            self.config['build_timeout_seconds'],
                            verbose=True)

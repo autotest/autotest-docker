@@ -16,8 +16,8 @@ class rm_false(build_base):
         self.sub_stuff['builds'].append(build_def)
         build_def['image_name'] = ("%s_2" %
                                    self.sub_stuff['builds'][0]['image_name'])
-        path = self.config['dockerfile_path2']
-        build_def['dockerfile_path'] = self.dockerfile_path(path)
+        dir_path = self.config['dockerfile_dir_path2']
+        build_def['dockerfile_dir_path'] = self.dockerfile_dir_path(dir_path)
         build_def['intermediary_containers'] = True
 
     def run_once(self):
