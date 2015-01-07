@@ -2,69 +2,83 @@ r"""
 Summary
 ----------
 
-Test docker run by executing basic commands inside container and checking the
+Test docker run by command(s) inside container and checking the
 results.
 
 Operational Summary
 ----------------------
 
-#.  Test Container image with a ``/bin/true`` executable returning zero
-#.  Test Container image with a ``/bin/false`` executable returning non-zero
-#.  Test accurate (relative to host) timekeeping in running container
-#.  Test run requiring pulling an image down automatically
-#.  Smoke-test running container receiving signals
-#.  Smoke-test attaching to a running container
-#.  Smoke-test disconnecting from a running container
+#.  Form docker command line from configuration options
+#.  Execute docker command
+#.  PASS/FAIL based on configuration and executed command output/results
 """
 
 from dockertest.subtest import SubSubtest, SubSubtestCaller
 from dockertest.dockercmd import DockerCmd
 from dockertest.containers import DockerContainers
-from dockertest.images import DockerImage
 from dockertest.images import DockerImages
+from dockertest.images import DockerImage
 from dockertest.output import OutputGood
-from autotest.client.shared import error
+from dockertest.config import Config
+from dockertest.config import get_as_list
 
 
 class run(SubSubtestCaller):
-    config_section = 'docker_cli/run'
+    pass
 
 
 class run_base(SubSubtest):
 
-    def init_subargs(self):
-        self.sub_stuff['subargs'] = self.config['run_options_csv'].split(',')
+    def init_image(self):
         fqin = DockerImage.full_name_from_defaults(self.config)
         self.sub_stuff['fqin'] = fqin
-        self.sub_stuff['subargs'].append(fqin)
-        self.sub_stuff['subargs'] += self.config['bash_cmd'].split(',')
-        self.sub_stuff['subargs'].append(self.config['cmd'])
+
+    def init_subargs(self):
+        subargs = self.sub_stuff['subargs']
+        subargs += get_as_list(self.config['run_options_csv'])
+        if self.config['run_append_name'] is True:
+            dc = self.sub_stuff["cont"]
+            name = dc.get_unique_name()
+            self.sub_stuff['name'] = name
+            self.sub_stuff['containers'].append(name)
+            subargs.append('--name')
+            subargs.append(name)
+        fqin = self.sub_stuff['fqin']
+        subargs.append(fqin)
+        subargs += get_as_list(self.config['bash_cmd'])
+        subargs.append(self.config['cmd'])
+
+    def init_dockercmd(self):
+        dkrcmd = DockerCmd(self, 'run', self.sub_stuff['subargs'],
+                           verbose=True)
+        self.sub_stuff['dkrcmd'] = dkrcmd
 
     def initialize(self):
         super(run_base, self).initialize()
-        self.init_subargs()
+        self.sub_stuff['fqin'] = ''
+        self.sub_stuff['dkrcmd'] = None
+        self.sub_stuff['stdin'] = None
+        self.sub_stuff['subargs'] = []
         self.sub_stuff["containers"] = []
         self.sub_stuff["images"] = []
         self.sub_stuff["cont"] = DockerContainers(self)
         self.sub_stuff["img"] = DockerImages(self)
+        self.init_image()
+        self.init_subargs()
+        self.init_dockercmd()
 
     def run_once(self):
         super(run_base, self).run_once()    # Prints out basic info
-        dkrcmd = DockerCmd(self, 'run', self.sub_stuff['subargs'])
-        dkrcmd.verbose = True
-        self.sub_stuff['dkrcmd'] = dkrcmd
-        dkrcmd.execute()
+        self.sub_stuff['dkrcmd'].execute(self.sub_stuff['stdin'])
 
     def postprocess(self):
         super(run_base, self).postprocess()  # Prints out basic info
-        if 'dkrcmd' in self.sub_stuff:
-            # Fail test if bad command or other stdout/stderr problems detected
-            OutputGood(self.sub_stuff['dkrcmd'].cmdresult)
-            expected = self.config['exit_status']
-            self.failif(self.sub_stuff['dkrcmd'].exit_status != expected,
-                        "Exit status non-zero command %s"
-                        % self.sub_stuff['dkrcmd'].cmdresult)
-            self.logdebug(self.sub_stuff['dkrcmd'].cmdresult)
+        dockercmd = self.sub_stuff['dkrcmd']
+        OutputGood(dockercmd.cmdresult)
+        expected = self.config['exit_status']
+        self.failif(dockercmd.exit_status != expected,
+                    "Exit status %d, expected %d"
+                    % (dockercmd.exit_status, expected))
 
     def cleanup(self):
         super(run_base, self).cleanup()
@@ -72,65 +86,32 @@ class run_base(SubSubtest):
         if self.config['remove_after_test']:
             for cont in self.sub_stuff.get("containers", []):
                 dkrcmd = DockerCmd(self, "rm", ['--volumes', '--force', cont])
-                cmdresult = dkrcmd.execute()
-                msg = (" removed test container: %s" % cont)
-                if cmdresult.exit_status == 0:
-                    self.logdebug("Successfully" + msg)
-                else:
-                    self.logwarning("Failed" + msg)
+                dkrcmd.execute()
             for image in self.sub_stuff.get("images", []):
-                try:
-                    di = DockerImages(self)
-                    self.logdebug("Removing image %s", image)
-                    di.remove_image_by_full_name(image)
-                    self.logdebug("Successfully removed test image: %s",
-                                  image)
-                except error.CmdError, e:
-                    error_text = "tagged in multiple repositories"
-                    if error_text not in e.result_obj.stderr:
-                        raise
+                dkrcmd = DockerCmd(self, "rmi", ['--force', image])
+                dkrcmd.execute()
 
 
-class run_true(run_base):
-    pass  # Only change is in configuration
+# Generate any generic sub-subtests configured 'generate_generic = yes'
+def generic_run_factory(name):
 
+    class GenericRun(run_base):
+        pass
 
-class run_false(run_base):
-    pass  # Only change is in configuration
+    GenericRun.__name__ = name
+    return GenericRun
 
-
-class run_names(run_base):
-    # Verify behavior when multiple --name options passed
-
-    def initialize(self):
-        super(run_names, self).initialize()
-        cont = self.sub_stuff["cont"]
-        names = []
-        for number in xrange(self.config['names_count']):
-            names.append(cont.get_unique_name(suffix=str(number)))
-        subargs = self.sub_stuff['subargs']
-        self.sub_stuff['subargs'] = ["--name %s" % n for n in names] + subargs
-        if self.config['last_name_sticks']:
-            self.sub_stuff['expected_name'] = names[-1]
-        else:
-            self.sub_stuff['expected_name'] = names[0]
-
-    def run_once(self):
-        super(run_names, self).run_once()
-        cid = self.sub_stuff['cid'] = self.sub_stuff['dkrcmd'].stdout.strip()
-        self.sub_stuff['containers'].append(cid)
-        try:
-            self.sub_stuff["cont"].wait_by_long_id(cid)
-        except ValueError:
-            pass  # container already finished and exited
-
-    def postprocess(self):
-        super(run_names, self).postprocess()
-        cont = self.sub_stuff["cont"]
-        json = cont.json_by_long_id(self.sub_stuff['cid'])
-        self.failif(len(json) == 0)
-        # docker sticks a "/" prefix on name (documented?)
-        actual_name = str(json[0]['Name'][1:])
-        self.failif(actual_name != self.sub_stuff['expected_name'],
-                    "Actual name %s != expected name %s"
-                    % (actual_name, self.sub_stuff['expected_name']))
+subname = 'docker_cli/run'
+config = Config()
+subsubnames = get_as_list(config[subname]['subsubtests'])
+ssconfigs = []
+globes = globals()
+for ssname in subsubnames:
+    fullname = '%s/%s' % (subname, ssname)
+    if fullname in config:
+        ssconfig = config[fullname]
+        if ssconfig.get('generate_generic', False):
+            ssconfigs.append(ssconfig)
+            cls = generic_run_factory(ssname)
+            # Inject generated class into THIS module's namespace
+            globes[cls.__name__] = cls
