@@ -1,63 +1,32 @@
-"""
-Test start command "cat, .." which needs stdin open all time.
-"""
-
-import time
 import os
-
 from dockertest.dockercmd import AsyncDockerCmd
-from dockertest.output import OutputGood
 from run import run_base
 
 
 class run_interactive(run_base):
 
-    def run_once(self):
-        self.loginfo("Starting background docker command, timeout %s seconds",
-                     self.config['docker_timeout'])
-
+    def init_dockercmd(self):
         in_pipe_r, in_pipe_w = os.pipe()
-        dkrcmd = AsyncDockerCmd(self, 'run', self.sub_stuff['subargs'],
-                                timeout=self.config['docker_timeout'])
-        dkrcmd.verbose = True
-        dkrcmd.timeout = 10
-        # Runs in background
-        dkrcmd.execute(in_pipe_r)
+        self.sub_stuff['stdin'] = in_pipe_r
+        self.sub_stuff['stdin_write'] = in_pipe_w
+        dkrcmd = AsyncDockerCmd(self, 'run', self.sub_stuff['subargs'])
         self.sub_stuff['dkrcmd'] = dkrcmd
-        wait = self.config['wait_interactive_cmd']
-        icmd = self.config['interactive_cmd'] + "\n"
-        # Allow noticable time difference for date command,
-        # and eat into dkrcmd timeout after receiving signal.
-        time.sleep(wait)
-        os.write(in_pipe_w, icmd)
 
-        self.loginfo("Waiting up to %d seconds for exit",
-                     dkrcmd.timeout)
-        # Throw exception if takes > docker_timeout to exit
-
-        self.loginfo("Container running, waiting %d seconds to finish.", wait)
-        self.logdebug("interactive cmds %s", icmd)
-        time.sleep(wait)
-        os.close(in_pipe_w)
-        dkrcmd.wait()
+    def run_once(self):
+        super(run_interactive, self).run_once()
+        # Not needed anymore
+        os.close(self.sub_stuff['stdin'])
+        # Assume it's line-buffered
+        secret_sauce = '%s\n' % self.config['secret_sauce']
+        os.write(self.sub_stuff['stdin_write'], secret_sauce)
+        # Should cause container to exit
+        os.close(self.sub_stuff['stdin_write'])
+        self.sub_stuff['dkrcmd'].wait()
 
     def postprocess(self):
-        super(run_interactive, self).postprocess()  # Prints out basic info
-        # Fail test if bad command or other stdout/stderr problems detected
-        cmdresult = self.sub_stuff['dkrcmd']
-        OutputGood(cmdresult)
-        expected = self.config['exit_status']
-        self.failif(cmdresult.exit_status != expected,
-                    "Exit status of %s non-zero: %s"
-                    % (cmdresult.command,
-                       cmdresult))
-
-        str_in_output = self.config["check_i_cmd_out"]
-        cmd_stdout = cmdresult.stdout
-
-        self.failif(str_in_output not in cmd_stdout,
-                    "Command %s output must contain %s but doesn't."
-                    " Detail:%s" %
-                    (self.config["interactive_cmd"],
-                     str_in_output,
-                     cmdresult))
+        super(run_interactive, self).postprocess()
+        secret_sauce = self.config['secret_sauce']
+        dkrcmd = self.sub_stuff['dkrcmd']
+        self.failif(dkrcmd.stdout.find(secret_sauce) == -1,
+                    "Expected '%s' in output: %s"
+                    % (secret_sauce, dkrcmd))

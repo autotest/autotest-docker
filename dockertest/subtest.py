@@ -96,7 +96,7 @@ class Subtest(subtestbase.SubBase, test.test):
                     self.config_section = config_section
                     # just in case anything looks
                     self.config['config_section'] = config_section
-            else:
+            if self.version is None:
                 # Version number used by one-time setup() test.test method
                 self.version = version.str2int(self.config['config_version'])
 
