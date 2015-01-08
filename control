@@ -266,11 +266,18 @@ def bugged_subthings(control_ini, subthings, subtest_modules):
     for subthing in subset:
         if subthing in namestobzs:
             check_bzs |= set(namestobzs[subthing])
+    # Need to index numbers for access check (below)
+    check_bzs = list(check_bzs)
     fixed_states_csv = bzopts['bugzilla_fixed_states'].strip()
     fixed_states = [state.strip() for state in fixed_states_csv.split(',')]
     logging.info("Checking status of %d bugs", len(check_bzs))
-    blocker_bzs = set([bug.id for bug in bz.getbugs(check_bzs)
-                       if bug.status not in fixed_states])
+    blocker_bzs = set()
+    for idx, bug in enumerate(bz.getbugs(check_bzs)):
+        if bug is None:
+            logging.warning("Could not access BZ %d", check_bzs[idx])
+            continue
+        if bug.status not in fixed_states:
+            blocker_bzs += bug.id
     noisy_bz()  # Put it back the way it was
     del sys.modules['bugzilla']  # save some memory (maybe)
 
