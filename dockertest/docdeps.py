@@ -84,6 +84,10 @@ class ConfigINIParser(tuple):
     #: String to use for undocumented options
     undoc_option_doc = 'Undocumented Option, please fix!'
 
+    #: New-style string format replacement mapping for descriptions
+    desc_fmt_map = {'n': '\n',
+                    't': '    '}
+
     #: Option-line regular expression.
     # word_chars + opt whitespace + '=' or ':' + opt whitespace + opt value
     cfgoptval_regex = re.compile(r"""(\w+)\s*[=:]{1}\s*(.*)""",
@@ -213,6 +217,8 @@ class ConfigINIParser(tuple):
             else:  # continuing prior option-doc
                 state['desc'] = '%s %s' % (state['desc'],
                                            line[2:].strip())
+            # Perform any substitutions needed on description
+            state['desc'] = state['desc'].format(**cls.desc_fmt_map)
             return result  # state has been updated
         else:  # Line must be junk, an option+value, or value-continuation
             return cls.parse_non_section(line, state)
@@ -224,8 +230,13 @@ class ConfigINIParser(tuple):
         exptd_len = len(DocItem.fields)
         if state_len == exptd_len:
             # No field may be None
-            return all([state[field] is not None
-                        for field in DocItem.fields])
+            if all([state[field] is not None
+                    for field in DocItem.fields]):
+                # Last chance to remove leading/trailing whitespace
+                state['desc'] = state['desc'].strip()
+                return True
+            else:
+                return False
         else:
             return False
 

@@ -191,6 +191,30 @@ class TestConfigINIParser(DocumentationTestBase):
         # This also verifies stripping of line continuation, empty first value
         self.assertEqual(test, expt_test)
 
+    def test_newline_sub(self):
+        test = self.CIP.from_string('[foo]\n'
+                                    '#: line1{n}line2\n'
+                                    'option = value')
+        self.assertEqual(len(test), 1)
+        di = test[0]
+        lines = di.desc.splitlines()
+        self.assertEqual(len(lines), 2)
+
+    def test_tab_sub(self):
+        test = self.CIP.from_string('[foo]\n'
+                                    '#: line1{n}\n'
+                                    '#:     {t}line2{n}\n'
+                                    '#:     {t}line3{n}\n'
+                                    '#:{n}\n'
+                                    '#:\n'
+                                    'option = value')
+        self.assertEqual(len(test), 1)
+        di = test[0]
+        lines = di.desc.splitlines()
+        self.assertEqual(len(lines), 3)
+        self.assertEqual(lines[1], '     line2')
+        self.assertEqual(lines[2], '     line3')
+
 
 class TestDocBase(DocumentationTestBase):
 
