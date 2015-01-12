@@ -1,7 +1,6 @@
-FROM scratch
+FROM stackbrew/centos:centos7
 MAINTAINER cevich@redhat.com
-ADD basic_tree.tar /
-ADD basic_devices.tar /
 ENV PATH /usr/sbin:/usr/bin
-ADD busybox /usr/sbin/
-RUN ["/usr/sbin/busybox", "sh", "-c", "for item in $(busybox --list-full); do busybox ln -s /usr/sbin/busybox $item; done"]
+RUN echo "Schazam!"
+RUN echo "foobar" > /var/tmp/testfile
+RUN cat /var/tmp/testfile
