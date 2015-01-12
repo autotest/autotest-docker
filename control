@@ -277,7 +277,7 @@ def bugged_subthings(control_ini, subthings, subtest_modules):
             logging.warning("Could not access BZ %d", check_bzs[idx])
             continue
         if bug.status not in fixed_states:
-            blocker_bzs += bug.id
+            blocker_bzs.add(bug.id)
     noisy_bz()  # Put it back the way it was
     del sys.modules['bugzilla']  # save some memory (maybe)
 
