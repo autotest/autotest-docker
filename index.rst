@@ -325,6 +325,7 @@ shared element.
 
 Type-conversion
 -----------------------
+
 The config parser will attempt to parse each item in the following order:
 integers, booleans, floats, then strings.
 
@@ -332,6 +333,33 @@ integers, booleans, floats, then strings.
 *  Booleans are in the form 'yes' or 'true', 'no' or 'false' (case insensitive)
 *  Floats are in the form of numbers with decimals eg: "123.456" or "123.0"
 *  All other items will be returned as strings.
+
+Documentation
+----------------------
+
+All configuration options must be documented somewhere at least once.
+Documentated options in ``[DEFAULTS]`` will automatically be documented
+in subtests, no need to re-document.  Similarly, for subtests with
+multiple sub-subtests, options that are overriden by sub-subtests only
+need to be documented in the subtest section.
+
+Configuration options are documented in *ReStructuredText* format
+by prefixing each option with one or more comment lines that begin
+with the special sequence ``#:``.  Regular line comments (beginning
+with just ``#`` are not treated specially).
+
+Documentation comments always and only apply to the next ``option = value``
+sequence encountered and are otherwise ignored.  Further, all lines of
+documentation are concatenated together and stripped of newlines and multiple
+runs of space characters.  This is required to fit every item into a bullet
+list.  Since newlines and indenting is sometimes required
+(for example, a bullet list or table), special substitution sequences may
+be embedded w/in the comment text:
+
+*  Use the [unbroken] sequence ``{n}`` wherever a newline should be inserted.
+*  Use the [unbroken] sequence ``{t}`` wherever a four-space indent should
+   be inserted.
+*  Use the sequence ``{{`` and ``}}`` to escape literal ``{`` and ``}`` characters.
 
 ------------------------
 Autotest Integration
