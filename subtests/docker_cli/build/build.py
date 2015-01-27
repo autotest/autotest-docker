@@ -44,7 +44,8 @@ class build(subtest.SubSubtestCaller):
         self.stuff['dc'] = dcont = DockerContainers(self)
         self.stuff['existing_containers'] = dcont.list_container_ids()
         self.stuff['di'] = dimg = DockerImages(self)
-        self.stuff['existing_images'] = dimg.list_imgs()
+        self.stuff['existing_images'] = ei = dimg.list_imgs()
+        self.logdebug("Existing images: %s", ei)
 
     def reset_build_context(self):
         source_dirs = self.config['source_dirs']
@@ -72,10 +73,12 @@ class build(subtest.SubSubtestCaller):
             for cid in self.stuff['dc'].list_container_ids():
                 if cid in self.stuff['existing_containers']:
                     continue    # don't remove previously existing ones
+                self.logdebug("Remoivng container %s", cid)
                 dcmd = DockerCmd(self, 'rm', ['--force', '--volumes', cid],
                                  verbose=False)
                 dcmd.execute()
             dimg = self.stuff['di']
+            base_repo_fqin = DockerImage.full_name_from_defaults(self.config)
             # Remove all previously non-existing images
             for img in dimg.list_imgs():
                 if img in self.stuff['existing_images']:
@@ -84,6 +87,10 @@ class build(subtest.SubSubtestCaller):
                     thing = img.long_id
                 else:
                     thing = img.full_name
+                    # never ever remove base_repo_fqin under any circumstance
+                    if thing == base_repo_fqin:
+                        continue
+                self.logdebug("Remoivng image %s", img)
                 dcmd = DockerCmd(self, 'rmi', ['--force', thing],
                                  verbose=False)
                 dcmd.execute()
@@ -364,10 +371,12 @@ class build_base(postprocessing, subtest.SubSubtest):
 
     def initialize_utils(self):
         # Get the latest container (remove all newly created in cleanup
-        self.sub_stuff['dc'] = dcont = DockerContainers(self)
-        self.sub_stuff['existing_containers'] = dcont.list_container_ids()
-        self.sub_stuff['di'] = dimg = DockerImages(self)
-        self.sub_stuff['existing_images'] = dimg.list_imgs()
+        self.sub_stuff['dc'] = DockerContainers(self)
+        self.sub_stuff['di'] = DockerImages(self)
+        pec = self.parent_subtest.stuff['existing_containers']
+        self.sub_stuff['existing_containers'] = pec
+        pei = self.parent_subtest.stuff['existing_images']
+        self.sub_stuff['existing_images'] = pei
 
     def make_builds(self, source):
         dimg = self.sub_stuff['di']
@@ -419,10 +428,12 @@ class build_base(postprocessing, subtest.SubSubtest):
             for cid in self.sub_stuff['dc'].list_container_ids():
                 if cid in self.sub_stuff['existing_containers']:
                     continue    # don't remove previously existing ones
+                self.logdebug("Remoivng container %s", cid)
                 dcmd = DockerCmd(self, 'rm', ['--force', '--volumes', cid],
                                  verbose=False)
                 dcmd.execute()
             dimg = self.sub_stuff['di']
+            base_repo_fqin = DockerImage.full_name_from_defaults(self.config)
             # Remove all previously non-existing images
             for img in dimg.list_imgs():
                 if img in self.sub_stuff['existing_images']:
@@ -431,6 +442,10 @@ class build_base(postprocessing, subtest.SubSubtest):
                     thing = img.long_id
                 else:
                     thing = img.full_name
+                    # never ever remove base_repo_fqin under any circumstance
+                    if thing == base_repo_fqin:
+                        continue
+                self.logdebug("Remoivng image %s", img)
                 dcmd = DockerCmd(self, 'rmi', ['--force', thing],
                                  verbose=False)
                 dcmd.execute()

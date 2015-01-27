@@ -1,0 +1,15 @@
+*.sh
+*.py
+*.pyc
+*.yml
+*.rst
+.gitignore
+control
+Makefile
+LICENSE
+subtests
+config_*
+dockertest
+envchecks
+docs_build
+.git
