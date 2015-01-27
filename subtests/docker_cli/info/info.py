@@ -49,10 +49,10 @@ class info(subtest.Subtest):
         info_map = self._build_table(outputgood.stdout_strip)
         # verify each element
         self.verify_pool_name(info_map['Pool Name'])
-        self.verify_sizes(info_map['Data file'],
+        self.verify_sizes(info_map['Data loop file'],
                           info_map['Data Space Used'],
                           info_map['Data Space Total'],
-                          info_map['Metadata file'],
+                          info_map['Metadata loop file'],
                           info_map['Metadata Space Used'],
                           info_map['Metadata Space Total'])
 
