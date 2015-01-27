@@ -85,7 +85,7 @@ class workdir(subtest.Subtest):
             self.failif(self.stuff['cmdresults'][name].exit_status == 0,
                         str(outputgood))
             if self.stuff['cmdresults'][name].exit_status != 0:
-                self.logerror("Intend to fail:\n %s" %
+                self.logdebug("Intend to fail:\n %s" %
                               self.stuff['cmdresults'][name].stderr.strip())
 
     def cleanup(self):
