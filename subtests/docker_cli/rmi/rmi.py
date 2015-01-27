@@ -247,8 +247,8 @@ class with_blocking_container_by_tag(rmi_base):
     def postprocess(self):
         self._common_post()
         im = self.check_image_exists(self.sub_stuff["image_name"])
-        self.failif(im != [], "Tag should be possible delete even if image"
-                              " %s is still used by container." %
+        self.failif(im == [], "Used images [%s] was deleted."
+                              "It shouldn't be possible." %
                     self.sub_stuff["image_name"])
 
 
@@ -257,7 +257,7 @@ class with_blocking_container_by_id(with_blocking_container_by_tag):
     """
     Test output of docker Pull command
 
-    docker rmi full_name
+    docker rmi ID
 
     1. Create new image with full_name (tag) from image (base_image)
     2. Use new image by new container (docker run image...)

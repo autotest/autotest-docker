@@ -141,18 +141,20 @@ class run_attach_base(subtest.SubSubtest):
         self.sub_stuff['dc'] = DockerContainers(self)
         self.sub_stuff['containers'] = []
         self._init_test_depenent()
-        for tty in (True, False):   # generate matrix of tested variants
-            # interactive container
-            cont = self._init_container(tty, 'bash', 'ls /\nexit\n')
-            self.sub_stuff['res_stdin_%s' % tty] = cont
-            # stdout container
-            cont = self._init_container(tty, 'ls /')
-            self.sub_stuff['res_stdout_%s' % tty] = cont
-            # stderr container
-            cont = self._init_container(tty,
-                                        'ls /I/hope/this/does/not/exist/%s'
-                                        % utils.generate_random_string(6))
-            self.sub_stuff['res_stderr_%s' % tty] = cont
+        # TODO: Test w/ tty=True when some DockerCmd class supports pty
+        # for tty in (True, False):   # generate matrix of tested variants
+        tty = False
+        # interactive container
+        cont = self._init_container(tty, 'bash', 'ls /\nexit\n')
+        self.sub_stuff['res_stdin_%s' % tty] = cont
+        # stdout container
+        cont = self._init_container(tty, 'ls /')
+        self.sub_stuff['res_stdout_%s' % tty] = cont
+        # stderr container
+        cont = self._init_container(tty,
+                                    'ls /I/hope/this/does/not/exist/%s'
+                                    % utils.generate_random_string(6))
+        self.sub_stuff['res_stderr_%s' % tty] = cont
 
     def _check_result(self, test, tty):
         def check_output(exps, notexps, act1, act2, result):
@@ -205,10 +207,12 @@ class run_attach_base(subtest.SubSubtest):
     def postprocess(self):
         super(run_attach_base, self).postprocess()
         failures = 0
-        for tty in (True, False):
-            failures += self._check_result('stdin', tty)
-            failures += self._check_result('stdout', tty)
-            failures += self._check_result('stderr', tty)
+        # TODO: Test w/ tty=True when some DockerCmd class supports pty
+        # for tty in (True, False):   # generate matrix of tested variants
+        tty = False
+        failures += self._check_result('stdin', tty)
+        failures += self._check_result('stdout', tty)
+        failures += self._check_result('stderr', tty)
         self.failif(failures, "%s of subtest variants failed, please check "
                     "the log for details." % failures)
 
