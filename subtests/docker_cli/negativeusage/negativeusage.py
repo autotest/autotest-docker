@@ -22,7 +22,7 @@ legend, with a number appended:
 ``op``:
         Omit Positional - leave out a required positional parameter
 ``if``:
-        Invalid Falg - Addition of non-existing flag
+        Invalid Flag - Addition of non-existing flag
 ``ov``:
         Omit Value - Leave out required value to argument (make it like a flag)
 ``iv``:
