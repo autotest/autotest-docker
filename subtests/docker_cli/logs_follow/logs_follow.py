@@ -301,34 +301,34 @@ class simple_base(logs_follow_base):
 
 class simple(simple_base):
 
-    """ Basic version with all streams attached and tty mode """
+    """ Basic version with all streams attached """
 
     def _init_test_specific(self):
-        self.sub_stuff['subargs'] = ['-t', '-i']
+        self.sub_stuff['subargs'] = ['-i']
         self.sub_stuff['stderr'] = False
 
 
 class simple_no_err(simple_base):
 
-    """ Basic version without stderr (logs should contain all) and tty mode """
+    """ Basic version without stderr (logs should contain all) """
 
     def _init_test_specific(self):
-        self.sub_stuff['subargs'] = ['-t', '-i', '-a stdin', '-a stdout']
+        self.sub_stuff['subargs'] = ['-i', '-a stdin', '-a stdout']
         self.sub_stuff['stderr'] = False
 
 
 class simple_no_out(simple_base):
 
-    """ Basic version without stdout (logs should contain all) and tty mode """
+    """ Basic version without stdout (logs should contain all) """
 
     def _init_test_specific(self):
-        self.sub_stuff['subargs'] = ['-t', '-i', '-a stdin', '-a stderr']
+        self.sub_stuff['subargs'] = ['-i', '-a stdin', '-a stderr']
         self.sub_stuff['stderr'] = False
 
 
 class simple_no_tty(simple_base):
 
-    """ Basic version with all streams attached and tty=false """
+    """ Basic version with all streams attached """
 
     def _init_test_specific(self):
         self.sub_stuff['subargs'] = ['-i']
@@ -337,7 +337,7 @@ class simple_no_tty(simple_base):
 
 class simple_no_tty_err(simple_base):
 
-    """ Basic version without stderr (logs should contain all); tty=false """
+    """ Basic version without stderr (logs should contain all) """
 
     def _init_test_specific(self):
         self.sub_stuff['subargs'] = ['-i', '-a stdin', '-a stdout']
@@ -346,7 +346,7 @@ class simple_no_tty_err(simple_base):
 
 class simple_no_tty_out(simple_base):
 
-    """ Basic version without stdout (logs should contain all); tty=false """
+    """ Basic version without stdout (logs should contain all) """
 
     def _init_test_specific(self):
         self.sub_stuff['subargs'] = ['-i', '-a stdin', '-a stderr']
