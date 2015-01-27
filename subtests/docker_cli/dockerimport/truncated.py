@@ -25,7 +25,7 @@ class truncated(empty):
         super(empty, self).cleanup()  # pylint: disable=E1003
         # Fail test if **successful**
         image_name = self.sub_stuff['image_name']  # assume id lookup failed
-        if self.parent_subtest.config['remove_after_test']:
+        if self.parent_subtest.config['try_remove_after_test']:
             dkrcmd = DockerCmd(self, 'rmi', [image_name])
             mustfail(dkrcmd.execute())
 

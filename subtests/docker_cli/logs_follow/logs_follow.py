@@ -301,58 +301,53 @@ class simple_base(logs_follow_base):
 
 class simple(simple_base):
 
-    """ Basic version with all streams attached """
+    """ Basic version with all streams attached and tty mode """
 
     def _init_test_specific(self):
-        self.sub_stuff['subargs'] = ['-i']
+        self.sub_stuff['subargs'] = ['-t', '-i']
         self.sub_stuff['stderr'] = False
 
 
 class simple_no_err(simple_base):
 
-    """ Basic version without stderr (logs should contain all) """
+    """ Basic version without stderr (logs should contain all) and tty mode """
 
     def _init_test_specific(self):
-        # FIXME: These options should not be hard-coded
-        self.sub_stuff['subargs'] = ['-i', '-a stdin', '-a stdout']
+        self.sub_stuff['subargs'] = ['-t', '-i', '-a stdin', '-a stdout']
         self.sub_stuff['stderr'] = False
 
 
 class simple_no_out(simple_base):
 
-    """ Basic version without stdout (logs should contain all) """
+    """ Basic version without stdout (logs should contain all) and tty mode """
 
     def _init_test_specific(self):
-        # FIXME: These options should not be hard-coded
-        self.sub_stuff['subargs'] = ['-i', '-a stdin', '-a stderr']
+        self.sub_stuff['subargs'] = ['-t', '-i', '-a stdin', '-a stderr']
         self.sub_stuff['stderr'] = False
 
 
 class simple_no_tty(simple_base):
 
-    """ Basic version with all streams attached """
+    """ Basic version with all streams attached and tty=false """
 
     def _init_test_specific(self):
-        # FIXME: These options should not be hard-coded
         self.sub_stuff['subargs'] = ['-i']
         self.sub_stuff['stderr'] = True
 
 
 class simple_no_tty_err(simple_base):
 
-    """ Basic version without stderr (logs should contain all) """
+    """ Basic version without stderr (logs should contain all); tty=false """
 
     def _init_test_specific(self):
-        # FIXME: These options should not be hard-coded
         self.sub_stuff['subargs'] = ['-i', '-a stdin', '-a stdout']
         self.sub_stuff['stderr'] = True
 
 
 class simple_no_tty_out(simple_base):
 
-    """ Basic version without stdout (logs should contain all) """
+    """ Basic version without stdout (logs should contain all); tty=false """
 
     def _init_test_specific(self):
-        # FIXME: These options should not be hard-coded
         self.sub_stuff['subargs'] = ['-i', '-a stdin', '-a stderr']
         self.sub_stuff['stderr'] = True

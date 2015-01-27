@@ -374,6 +374,10 @@ class stressed_load(save_load_base):
         for name, res in results.iteritems():
             one_pass = False
             for result in res:
+                # FIXME: Reconsider this check when BZ1132479 is resolved
+                # self.failif(result.exit_status == 0 and one_pass, "Load of "
+                #             "existing tag %s exited with 0\n%s"
+                #             % (name, str_results))
                 if result.exit_status == 0:
                     one_pass = True
             self.failif(one_pass is not True, "None of tags %s were loaded "
