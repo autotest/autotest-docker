@@ -249,7 +249,7 @@ class with_blocking_container_by_tag(rmi_base):
         im = self.check_image_exists(self.sub_stuff["image_name"])
         self.failif(im == [], "Used images [%s] was deleted."
                               "It shouldn't be possible." %
-                              self.sub_stuff["image_name"])
+                    self.sub_stuff["image_name"])
 
 
 class with_blocking_container_by_id(with_blocking_container_by_tag):
@@ -278,7 +278,7 @@ class with_blocking_container_by_id(with_blocking_container_by_tag):
         im = self.check_image_exists_by_id(self.sub_stuff["image_name"])
         self.failif(im == [], "Used images [%s] was deleted."
                               "It shouldn't be possible." %
-                              self.sub_stuff["image_name"])
+                    self.sub_stuff["image_name"])
 
     def check_image_exists_by_id(self, image_id):
         di = DockerImages(self)
