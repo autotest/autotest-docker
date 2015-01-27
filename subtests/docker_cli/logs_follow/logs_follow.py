@@ -313,6 +313,7 @@ class simple_no_err(simple_base):
     """ Basic version without stderr (logs should contain all) """
 
     def _init_test_specific(self):
+        # FIXME: These options should not be hard-coded
         self.sub_stuff['subargs'] = ['-i', '-a stdin', '-a stdout']
         self.sub_stuff['stderr'] = False
 
@@ -322,6 +323,7 @@ class simple_no_out(simple_base):
     """ Basic version without stdout (logs should contain all) """
 
     def _init_test_specific(self):
+        # FIXME: These options should not be hard-coded
         self.sub_stuff['subargs'] = ['-i', '-a stdin', '-a stderr']
         self.sub_stuff['stderr'] = False
 
@@ -331,6 +333,7 @@ class simple_no_tty(simple_base):
     """ Basic version with all streams attached """
 
     def _init_test_specific(self):
+        # FIXME: These options should not be hard-coded
         self.sub_stuff['subargs'] = ['-i']
         self.sub_stuff['stderr'] = True
 
@@ -340,6 +343,7 @@ class simple_no_tty_err(simple_base):
     """ Basic version without stderr (logs should contain all) """
 
     def _init_test_specific(self):
+        # FIXME: These options should not be hard-coded
         self.sub_stuff['subargs'] = ['-i', '-a stdin', '-a stdout']
         self.sub_stuff['stderr'] = True
 
@@ -349,5 +353,6 @@ class simple_no_tty_out(simple_base):
     """ Basic version without stdout (logs should contain all) """
 
     def _init_test_specific(self):
+        # FIXME: These options should not be hard-coded
         self.sub_stuff['subargs'] = ['-i', '-a stdin', '-a stderr']
         self.sub_stuff['stderr'] = True
