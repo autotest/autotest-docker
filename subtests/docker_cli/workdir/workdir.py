@@ -73,13 +73,13 @@ class workdir(subtest.Subtest):
         super(workdir, self).postprocess()
         for name, _dir in self.stuff['good_dirs'].items():
             _command = self.stuff['cmdresults'][name].command
-            self.loginfo("Commands: %s" % _command)
+            self.logdebug("Commands: %s" % _command)
             self.failif(self.stuff['cmdresults'][name].stdout.strip() != _dir,
                         "fail to set workdir %s" % _dir)
-            self.loginfo("workdir %s set successful for container" % _dir)
+            self.logdebug("workdir %s set successful for container" % _dir)
         for name, _dir in self.stuff['bad_dirs'].items():
             _command = self.stuff['cmdresults'][name].command
-            self.loginfo("Commands: %s" % _command)
+            self.logdebug("Commands: %s" % _command)
             outputgood = OutputGood(self.stuff['cmdresults'][name],
                                     ignore_error=True)
             self.failif(self.stuff['cmdresults'][name].exit_status == 0,
