@@ -112,6 +112,19 @@ def compare(lhs, rhs):
         raise ValueError("lhs and rhs must both be string, list, "
                          "tuple, or number")
 
+def get_doc_version():
+    """
+    Parse version string from conf.py module w/o importing it.
+
+    :return: None on error, string version number of success
+    """
+    version = None
+    # Prevent documentation-generation mocks from clashing with testing
+    for line in open(os.path.join(PARENTDIR, 'conf.py'), 'rb'):
+        if line.startswith('version ='):
+            version = line.split("'")[1]
+            return version
+    return None
 
 def check_version(config_section):
     """

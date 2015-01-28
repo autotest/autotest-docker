@@ -68,11 +68,17 @@ class Subtest(subtestbase.SubBase, test.test):
         def _make_cfgsect():
             testpath = os.path.abspath(self.bindir)
             testpath = os.path.normpath(testpath)
-            dirlist = testpath.split('/')  # is there better way?
+            dirlist = testpath.split('/')
             dirlist.reverse()  # pop from the root-down
-            # Throws an IndexError if list becomes empty
-            while dirlist.pop() != 'subtests':
-                pass  # work already done :)
+            try:  # Standard subtest or sub-subtest partition
+                # Throws an IndexError if list becomes empty
+                while dirlist.pop() != 'subtests':
+                    pass  # work already done :)
+            except IndexError:  # must be pre/post/intra test module
+                # Form name from last two path components
+                dirlist = testpath.split('/')
+                return os.path.join(dirlist[-2],
+                                    dirlist[-1])
             dirlist.reverse()  # correct order
             # i.e. docker_cli/run_twice
             return os.path.join(*dirlist)
