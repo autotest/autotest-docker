@@ -62,7 +62,7 @@ class build(subtest.SubSubtestCaller):
             shutil.copytree(src, dst)
 
     def setup(self):
-        super(build, self).reset_build_context()
+        super(build, self).setup()
         self.reset_build_context()
 
     def cleanup(self):
