@@ -113,31 +113,10 @@ class Subtest(subtestbase.SubBase, test.test):
         super(Subtest, self).__init__(*args, **dargs)
         _init_config()
         _init_logging()
-        self.check_disable(self.config_section)
         # Optionally setup different iterations if option exists
         self.iterations = self.config.get('iterations', self.iterations)
         # subclasses can do whatever they like with this
         self.stuff = {}
-
-    @staticmethod
-    def not_disabled(config_dict, config_section):
-        """
-        Return False if config_section (name) is in config_dict[disable]
-        """
-        disable = config_dict.get('disable', '')
-        disabled = [thing.strip() for thing in disable.strip().split(',')]
-        if len(disabled) > 0 and config_section.strip() in disabled:
-            return False
-        return True
-
-    def check_disable(self, config_section):
-        """
-        Raise DockerTestNAError if test disabled on this host/environment
-        """
-        if not self.not_disabled(self.config, config_section):
-            msg = "Subtest disabled in configuration."
-            self.loginfo(msg)
-            raise DockerTestNAError(msg)
 
     def execute(self, *args, **dargs):
         """**Do not override**, needed to pull data from super class"""
@@ -237,7 +216,6 @@ class SubSubtest(subtestbase.SubBase):
         note = {'Configuration_for_Subsubtest': self.config_section}
         self.parent_subtest.write_test_keyval(note)
         self.parent_subtest.write_test_keyval(self.config)
-        self.parent_subtest.check_disable(self.config_section)
         # subclasses can do whatever they like with this
         self.sub_stuff = {}
         self.tmpdir = tempfile.mkdtemp(prefix=classname + '_',
@@ -548,11 +526,6 @@ class SubSubtestCaller(Subtest):
             subsubtest_config = sstc.make_config(all_configs,
                                                  parent_config,
                                                  name)
-        if not self.not_disabled(subsubtest_config, name):
-            self.logdebug("Sub-subtest %s in 'disable' list in config.",
-                          name)
-            return False  # subsubtest in disabled option CSV list
-
         # Also check optional reference control.ini
         control_config = self.control_config
         if control_config != {}:
