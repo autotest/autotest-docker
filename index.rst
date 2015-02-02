@@ -72,7 +72,6 @@ Prerequisites
        unless otherwise noted.
     *  Sufficient available temporary storage for multiple copies of the
        test-related images/container content.
-    *  Access to a remote (to the host) image registry.
 
 *  `Supported Docker OS platform`_
 
@@ -95,7 +94,17 @@ Prerequisites
        upon bug status.  See section `bugzilla_intergration`_
 
 
-*  *Any specific requirements for particular* `subtest modules`_
+*  **Any specific requirements for particular** `subtest modules`_.
+   In particular:
+
+    *  Access to a remote (to the host) image registry via ``docker pull``,
+       ``http``, ``https``, and ``git``.
+    *  External testing dependencies must be usable by tests w/in fixed
+       timeout periods.  If an external resource or connection is too slow,
+       it should be made more network-local to the test host.
+    *  Most tests with external dependencies will have them flagged as
+       values to the special ``__example__`` option.  See `example values`_
+       for more details.
 
 .. _Supported Docker OS platform: https://www.docker.io/gettingstarted/#h_installation
 
@@ -253,7 +262,13 @@ within ``config_custom`` will override all files and sections from
 The subdirectory structure or relative file locations under ``config_custom``
 is irrelevant.  Multiple sections may appear in the same file, even for
 unrelated tests.  The only exception is the ``config_custom/defaults.ini`` file
-and any other files specific to the test control file.
+and the test ``control.ini`` file.
+
+When customizing subtest and sub-subtest configuration options, it is highly
+recommended that you add the option ``config_version`` with the current
+version number, into each section.  This way, you will receive warnings when
+updating Docker Autotest, if the specific custom configuration doesn't match
+the API.  Generally this only happens between major/minor version updates.
 
 Organization
 ==============
