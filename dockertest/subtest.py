@@ -66,19 +66,21 @@ class Subtest(subtestbase.SubBase, test.test):
     def __init__(self, *args, **dargs):
 
         def _make_cfgsect():
+            bases = set(['subtests'])
+            # First gather non-subtests directories if possible
+            cini = self.control_config
+            if cini is not None:  # file is optional
+                # Values are also optional
+                bases.add(cini.get('pretests', 'pretests'))
+                bases.add(cini.get('intratests', 'intratests'))
+                bases.add(cini.get('posttests', 'posttests'))
             testpath = os.path.abspath(self.bindir)
             testpath = os.path.normpath(testpath)
             dirlist = testpath.split('/')
             dirlist.reverse()  # pop from the root-down
-            try:  # Standard subtest or sub-subtest partition
-                # Throws an IndexError if list becomes empty
-                while dirlist.pop() != 'subtests':
-                    pass  # work already done :)
-            except IndexError:  # must be pre/post/intra test module
-                # Form name from last two path components
-                dirlist = testpath.split('/')
-                return os.path.join(dirlist[-2],
-                                    dirlist[-1])
+            # Throws an IndexError if list becomes empty
+            while dirlist.pop() not in bases:
+                pass  # work already done :)
             dirlist.reverse()  # correct order
             # i.e. docker_cli/run_twice
             return os.path.join(*dirlist)
@@ -518,15 +520,6 @@ class SubSubtestCaller(Subtest):
         sstc = subsubtest_class  # save some typing
         # subsubtest name
         name = sstc.make_name(self.config_section).strip()  # classmethod
-        all_configs = config.Config()  # fast, cached in module
-        parent_config = self.config
-        if name not in all_configs:
-            subsubtest_config = copy.deepcopy(parent_config)
-        else:
-            subsubtest_config = sstc.make_config(all_configs,
-                                                 parent_config,
-                                                 name)
-        # Also check optional reference control.ini
         control_config = self.control_config
         if control_config != {}:
             return self.subsub_control_enabled(name, control_config)

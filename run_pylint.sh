@@ -119,10 +119,14 @@ check_subtest() {
 }
 
 check_subtests() {
-    echo -e "\n\n======================================= subtests"
-    find subtests -name '*.py' | while read LINE; do
+    for thing in pretests subtests intratests posttests
+    do
         trap "break" INT
-        check_subtest "${LINE}"
+        echo -e "\n\n======================================= ${thing}"
+        find ${thing} -name '*.py' | while read LINE; do
+            trap "break" INT
+            check_subtest "${LINE}"
+        done
     done
 }
 
@@ -137,6 +141,15 @@ else
         then
             check_dockertest "$THING"
         elif echo "$THING" | grep -q 'subtests'
+        then
+            check_subtest "$THING"
+        elif echo "$THING" | grep -q 'pretests'
+        then
+            check_subtest "$THING"
+        elif echo "$THING" | grep -q 'intratests'
+        then
+            check_subtest "$THING"
+        elif echo "$THING" | grep -q 'posttests'
         then
             check_subtest "$THING"
         else
