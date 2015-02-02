@@ -136,6 +136,18 @@ def get_doc_version():
     return None
 
 
+def check_doc_version():
+    """
+    Compare Dockertest API version to documentation version, fail if greater
+    """
+    doc_version = get_doc_version()
+    msg = ("Dockertest API version %s is greater than "
+           "documentation version %s" % (STRING, doc_version))
+    # OK if docs are later version than API
+    if compare(STRING, doc_version) < 0:
+        raise xceptions.DockerVersionError(msg)
+
+
 def check_version(config_section):
     """
     Simple version check that config version == library version

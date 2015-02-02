@@ -139,6 +139,8 @@ class Subtest(subtestbase.SubBase, test.test):
         version.check_autotest_version(self.config, get_version())
         # Fail test if configuration being used doesn't match dockertest API
         version.check_version(self.config)
+        # Fail test if dockertest API does not match documentation version
+        version.check_doc_version()
 
     def postprocess_iteration(self):
         """
