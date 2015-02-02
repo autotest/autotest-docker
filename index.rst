@@ -72,7 +72,6 @@ Prerequisites
        unless otherwise noted.
     *  Sufficient available temporary storage for multiple copies of the
        test-related images/container content.
-    *  Access to a remote (to the host) image registry.
 
 *  `Supported Docker OS platform`_
 
@@ -95,7 +94,16 @@ Prerequisites
        upon bug status.  See section `bugzilla_intergration`_
 
 
-*  *Any specific requirements for particular* `subtest modules`_
+*  *Any specific requirements for particular* `subtest modules`_.  In particular:
+
+    *  Access to a remote (to the host) image registry via ``docker pull``,
+       ``http``, ``https``, and ``git``.
+    *  External tesitng dependencies must be usable by tests w/in fixed
+       timeout periods.  If an external resource or connection is too slow,
+       it should be made more network-local to the test host.
+    *  Most tests with external dependencies will have them flagged as
+       values to the special ``__example__`` option.  See `example values`_
+       for more details.
 
 .. _Supported Docker OS platform: https://www.docker.io/gettingstarted/#h_installation
 
