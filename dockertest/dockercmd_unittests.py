@@ -247,8 +247,9 @@ class DockerCmdTestBasic(DockerCmdTestBase):
                        self.defaults['docker_options']))
         self.assertTrue(docker_command.command in expected)
         self.assertTrue(expected in str(docker_command))
+        self.assertTrue(docker_command.cmdresult is None)
         cmdresult = docker_command.execute()
-        self.assertTrue(docker_command.executed)
+        self.assertTrue(docker_command.cmdresult is not None)
         self.assertTrue(cmdresult.command in expected)
         # mocked cmdresult has '.dargs' pylint: disable=E1101
         self.assertAlmostEqual(cmdresult.duration, 123)
@@ -257,13 +258,12 @@ class DockerCmdTestBasic(DockerCmdTestBase):
         docker_command.timeout = 0
         docker_command.subcmd = ''
         docker_command.subargs = []
-        self.assertTrue(docker_command.executed)
+        self.assertTrue(docker_command.cmdresult is not None)
         cmdresult = docker_command.execute()
-        self.assertTrue(docker_command.executed)
+        self.assertTrue(docker_command.cmdresult is not None)
         expected = ("%s %s" % (self.defaults['docker_path'],
                                self.defaults['docker_options']))
         self.assertEqual(cmdresult.command, expected)
-        self.assertEqual(docker_command.execute_calls(), 2)
         # mocked cmdresult has '.dargs' pylint: disable=E1101
         self.assertAlmostEqual(cmdresult.duration, 123)
         # pylint: enable=E1101
@@ -313,13 +313,6 @@ class AsyncDockerCmd(DockerCmdTestBase):
         self.assertEqual(docker_cmd.stdout, "STDOUT")
         self.assertEqual(docker_cmd.stderr, "STDERR")
         self.assertEqual(docker_cmd.process_id, -1)
-
-    def test_no_execute_calls(self):
-        docker_cmd = self.dockercmd.AsyncDockerCmd(self.fake_subtest,
-                                                   'fake_subcommand',
-                                                   timeout=123)
-        self.assertRaises(self.xceptions.DockerRuntimeError,
-                          docker_cmd.execute_calls)
 
 
 if __name__ == '__main__':
