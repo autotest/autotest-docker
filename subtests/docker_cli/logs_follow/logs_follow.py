@@ -161,7 +161,7 @@ class logs_follow_base(SubSubtest):
         Destroys all running async processes
         """
         for process in self.sub_stuff.get('async_processes', []):
-            if process.executed and not process.done:
+            if process.cmdresult and not process.done:
                 if hasattr(process, 'close'):
                     process.close()     # close interactive pipes
                 try:
