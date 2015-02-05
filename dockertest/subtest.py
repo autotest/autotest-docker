@@ -131,7 +131,7 @@ class Subtest(subtestbase.SubBase, test.test):
         """
         Called once per version change
         """
-        self.loginfo("setup() for subtest version %s", self.version)
+        self.log_step_msg('setup')
 
     def initialize(self):
         super(Subtest, self).initialize()
@@ -141,13 +141,18 @@ class Subtest(subtestbase.SubBase, test.test):
         version.check_version(self.config)
         # Fail test if dockertest API does not match documentation version
         version.check_doc_version()
+        # These two are unique to subtest & runtime state
+        self.step_log_msgs['setup'] = ("setup() for subtest version %s"
+                                       % self.version)
+        self.step_log_msgs['postprocess_iteration'] = (
+            "postprocess_iteration() #%d of #%d"
+            % (self.iteration, self.iterations))
 
     def postprocess_iteration(self):
         """
         Called for each iteration, used to process results
         """
-        self.loginfo("postprocess_iteration() #%d of #%d",
-                     self.iteration, self.iterations)
+        self.log_step_msg('postprocess_iteration')
 
     @property
     def control_config(self):
@@ -340,6 +345,9 @@ class SubSubtestCaller(Subtest):
             raise DockerTestNAError("Missing|empty 'subsubtests' in config.")
         sst_names = self.config['subsubtests']
         self.subsubtest_names = config.get_as_list(sst_names)
+        self.step_log_msgs['run_once'] = "Running sub-subtests..."
+        self.step_log_msgs['postprocess'] = ("Postprocess sub-subtest "
+                                             "results...")
 
     def try_all_stages(self, name, subsubtest):
         """
@@ -627,18 +635,24 @@ class SubSubtestCallerSimultaneous(SubSubtestCaller):
     def run_once(self):
         # DO NOT CALL superclass run_once() this variation works
         # completely differently!
+        self.log_step_msg('run_once')
         for name, subsubtest in self.run_subsubtests.items():
             try:
                 subsubtest.run_once()
                 # Allow postprocess()
                 self.post_subsubtests[name] = subsubtest
-            except AutotestError, detail:
+            # Catching general exception here, b/c cleanup
+            # step must be guaranteed to run.  Exception
+            # details will be logged instead.
+            # pylint: disable=W0703
+            except Exception, detail:
                 # Log problem, don't add to post_subsubtests
                 self.logtraceback(name, sys.exc_info(), "run_once", detail)
 
     def postprocess(self):
         # DO NOT CALL superclass run_once() this variation works
         # completely differently!
+        self.log_step_msg('postprocess')
         start_subsubtests = set(self.start_subsubtests.keys())
         final_subsubtests = set()
         for name, subsubtest in self.post_subsubtests.items():

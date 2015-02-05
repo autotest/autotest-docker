@@ -39,12 +39,18 @@ class SubBase(object):
     #: Number of additional space/tab characters to prefix when logging
     n_tabs = 1     # one-level
 
+    step_log_msgs = {
+        "initialize": "initialize()",
+        "run_once": "run_once()",
+        "postprocess": "postprocess()",
+        "cleanup": "cleanup()"
+    }
+
     def initialize(self):
         """
         Called every time the test is run.
         """
-
-        self.loginfo("initialize()")
+        self.log_step_msg('initialize')
         # Issue warnings for failed to customize suggested options
         not_customized = self.config.get('__example__', None)
         if not_customized is not None and not_customized is not '':
@@ -64,22 +70,27 @@ class SubBase(object):
         """
         Called once only to exercise subject of sub-subtest
         """
-
-        self.loginfo("run_once()")
+        self.log_step_msg('run_once')
 
     def postprocess(self):
         """
         Called to process results of subject
         """
-
-        self.loginfo("postprocess()")
+        self.log_step_msg('postprocess')
 
     def cleanup(self):
         """
         Always called, before any exceptions thrown are re-raised.
         """
+        self.log_step_msg('cleanup')
 
-        self.loginfo("cleanup()")
+    def log_step_msg(self, stepname):
+        """
+        Send message stored in ``step_log_msgs`` key ``stepname`` to logingo
+        """
+        msg = self.step_log_msgs.get(stepname)
+        if msg:
+            self.loginfo(msg)
 
     @staticmethod
     def failif(condition, reason=None):
