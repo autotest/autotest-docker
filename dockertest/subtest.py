@@ -18,7 +18,6 @@ import imp
 import sys
 import copy
 from ConfigParser import Error
-from autotest.client.shared.error import AutotestError
 from autotest.client.shared.error import TestError
 from autotest.client.shared.version import get_version
 from autotest.client import test
@@ -66,11 +65,12 @@ class Subtest(subtestbase.SubBase, test.test):
     def __init__(self, *args, **dargs):
 
         def _make_cfgsect():
-            bases = set(['subtests'])
+            bases = set()
             # First gather non-subtests directories if possible
             cini = self.control_config
             if cini is not None:  # file is optional
                 # Values are also optional
+                bases.add(cini.get('subtests', 'subtests'))
                 bases.add(cini.get('pretests', 'pretests'))
                 bases.add(cini.get('intratests', 'intratests'))
                 bases.add(cini.get('posttests', 'posttests'))
@@ -357,11 +357,10 @@ class SubSubtestCaller(Subtest):
             self.call_subsubtest_method(subsubtest.postprocess)
             # No exceptions, contribute to subtest success
             self.final_subsubtests.add(name)
-        except AutotestError, detail:
-            self.logtraceback(name,
-                              self.exception_info["exc_info"],
-                              self.exception_info["error_source"],
-                              detail)
+        # Catching general exception to allow logging
+        # logging additional details before raising
+        # more general exception.
+        # pylint: disable=W0703
         except Exception, detail:
             self.logtraceback(name,
                               self.exception_info["exc_info"],
@@ -390,6 +389,10 @@ class SubSubtestCaller(Subtest):
             finally:
                 try:
                     subsubtest.cleanup()
+                # Catching general exception to allow logging
+                # logging additional details before raising
+                # more general exception.
+                # pylint: disable=W0703
                 except Exception, detail:
                     self.logtraceback(name,
                                       sys.exc_info(),
@@ -438,6 +441,9 @@ class SubSubtestCaller(Subtest):
         """
         try:
             method()
+        # Catching general exception to allow printing
+        # additional exception details before re-raising.
+        # pylint: disable=W0703
         except Exception:
             # Log problem, don't add to run_subsubtests
             self.exception_info["error_source"] = method.func_name
@@ -607,7 +613,10 @@ class SubSubtestCallerSimultaneous(SubSubtestCaller):
                     subsubtest.initialize()
                     # Allow run_once() on this subsubtest
                     self.run_subsubtests[name] = subsubtest
-                except AutotestError, detail:
+                # Catching general exception b/c it will be logged and
+                # structure must allow cleanup() method to run.
+                # pylint: disable=W0703
+                except Exception, detail:
                     # Log problem, don't add to run_subsubtests
                     self.logtraceback(name, sys.exc_info(), "initialize",
                                       detail)
@@ -637,7 +646,10 @@ class SubSubtestCallerSimultaneous(SubSubtestCaller):
                 subsubtest.postprocess()
                 # Will form "passed" set
                 final_subsubtests.add(name)
-            except AutotestError, detail:
+            # Catching general exception b/c it will be logged and
+            # structure must allow cleanup() method to run.
+            # pylint: disable=W0703
+            except Exception, detail:
                 # Forms "failed" set by exclusion from final_subsubtests
                 self.logtraceback(name, sys.exc_info(), "postprocess",
                                   detail)
@@ -651,7 +663,11 @@ class SubSubtestCallerSimultaneous(SubSubtestCaller):
         for name, subsubtest in self.start_subsubtests.items():
             try:
                 subsubtest.cleanup()
-            except AutotestError, detail:
+            # Catching general exception to allow logging
+            # logging additional details before raising
+            # more general exception.
+            # pylint: disable=W0703
+            except Exception, detail:
                 cleanup_failures.add(name)
                 self.logtraceback(name, sys.exc_info(), "cleanup",
                                   detail)
