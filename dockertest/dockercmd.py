@@ -249,7 +249,9 @@ class DockerCmdBase(object):
                                   self.subcmd)).strip()
 
 
-class DockerCmd(DockerCmdBase):
+# Normally we need two public methods minimum, however extensions
+# will be made to this class in the future.
+class DockerCmd(DockerCmdBase):  # pylint: disable=R0903
 
     """
     Setup a call docker subcommand as if by CLI w/ subtest config integration

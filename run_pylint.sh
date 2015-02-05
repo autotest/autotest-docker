@@ -55,6 +55,7 @@ check_dockertest() {
     pylint -rn --init-hook="$INIT_HOOK" \
            --disable="$DISABLEMSG" \
            --max-args=6 \
+           --min-public-methods=2\
            --no-docstring-rgx='(__.*__)|(_.*)|(__init__)' \
            --output-format="colorized" \
            --rcfile=/dev/null \
@@ -95,6 +96,7 @@ check_subtest() {
            --disable="$SUBTESTDISABLEMSG" \
            --max-args=8 \
            --max-locals=20 \
+           --min-public-methods=1\
            --output-format="colorized" \
            --rcfile=/dev/null \
            --msg-template="$MSGFMT" "${WHAT}"
