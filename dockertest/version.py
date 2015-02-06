@@ -15,6 +15,8 @@ also match (less the REVIS number).
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
+import sys
+import os.path
 import logging
 # FIXME: incorrectly missing in Travis CI, disable warning until fixed
 from distutils.version import LooseVersion  # pylint: disable=E0611,F0401
@@ -43,6 +45,12 @@ NOVERSIONCHECK = '@!NOVERSIONCHECK!@'
 
 #: If by chance no autotest_version is set, use this value
 AUTOTESTVERSION = '0.16.0'
+
+#: Absolute path to directory containing this module
+MYDIR = os.path.dirname(sys.modules[__name__].__file__)
+
+#: Parent directory of directory containing this module
+PARENTDIR = os.path.dirname(MYDIR)
 
 
 def str2int(version_string):
@@ -111,6 +119,33 @@ def compare(lhs, rhs):
     else:
         raise ValueError("lhs and rhs must both be string, list, "
                          "tuple, or number")
+
+
+def get_doc_version():
+    """
+    Parse version string from conf.py module w/o importing it.
+
+    :return: None on error, string version number of success
+    """
+    version = None
+    # Prevent documentation-generation mocks from clashing with testing
+    for line in open(os.path.join(PARENTDIR, 'conf.py'), 'rb'):
+        if line.startswith('version ='):
+            version = line.split("'")[1]
+            return version
+    return None
+
+
+def check_doc_version():
+    """
+    Compare Dockertest API version to documentation version, fail if greater
+    """
+    doc_version = get_doc_version()
+    msg = ("Dockertest API version %s is greater than "
+           "documentation version %s" % (STRING, doc_version))
+    # OK if docs are later version than API
+    if compare(STRING, doc_version) < 0:
+        raise xceptions.DockerVersionError(msg)
 
 
 def check_version(config_section):

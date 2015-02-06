@@ -18,7 +18,6 @@ import imp
 import sys
 import copy
 from ConfigParser import Error
-from autotest.client.shared.error import AutotestError
 from autotest.client.shared.error import TestError
 from autotest.client.shared.version import get_version
 from autotest.client import test
@@ -66,12 +65,21 @@ class Subtest(subtestbase.SubBase, test.test):
     def __init__(self, *args, **dargs):
 
         def _make_cfgsect():
+            bases = set()
+            # First gather non-subtests directories if possible
+            cini = self.control_config
+            if cini is not None:  # file is optional
+                # Values are also optional
+                bases.add(cini.get('subtests', 'subtests'))
+                bases.add(cini.get('pretests', 'pretests'))
+                bases.add(cini.get('intratests', 'intratests'))
+                bases.add(cini.get('posttests', 'posttests'))
             testpath = os.path.abspath(self.bindir)
             testpath = os.path.normpath(testpath)
-            dirlist = testpath.split('/')  # is there better way?
+            dirlist = testpath.split('/')
             dirlist.reverse()  # pop from the root-down
             # Throws an IndexError if list becomes empty
-            while dirlist.pop() != 'subtests':
+            while dirlist.pop() not in bases:
                 pass  # work already done :)
             dirlist.reverse()  # correct order
             # i.e. docker_cli/run_twice
@@ -107,31 +115,10 @@ class Subtest(subtestbase.SubBase, test.test):
         super(Subtest, self).__init__(*args, **dargs)
         _init_config()
         _init_logging()
-        self.check_disable(self.config_section)
         # Optionally setup different iterations if option exists
         self.iterations = self.config.get('iterations', self.iterations)
         # subclasses can do whatever they like with this
         self.stuff = {}
-
-    @staticmethod
-    def not_disabled(config_dict, config_section):
-        """
-        Return False if config_section (name) is in config_dict[disable]
-        """
-        disable = config_dict.get('disable', '')
-        disabled = [thing.strip() for thing in disable.strip().split(',')]
-        if len(disabled) > 0 and config_section.strip() in disabled:
-            return False
-        return True
-
-    def check_disable(self, config_section):
-        """
-        Raise DockerTestNAError if test disabled on this host/environment
-        """
-        if not self.not_disabled(self.config, config_section):
-            msg = "Subtest disabled in configuration."
-            self.loginfo(msg)
-            raise DockerTestNAError(msg)
 
     def execute(self, *args, **dargs):
         """**Do not override**, needed to pull data from super class"""
@@ -144,7 +131,7 @@ class Subtest(subtestbase.SubBase, test.test):
         """
         Called once per version change
         """
-        self.loginfo("setup() for subtest version %s", self.version)
+        self.log_step_msg('setup')
 
     def initialize(self):
         super(Subtest, self).initialize()
@@ -152,13 +139,20 @@ class Subtest(subtestbase.SubBase, test.test):
         version.check_autotest_version(self.config, get_version())
         # Fail test if configuration being used doesn't match dockertest API
         version.check_version(self.config)
+        # Fail test if dockertest API does not match documentation version
+        version.check_doc_version()
+        # These two are unique to subtest & runtime state
+        self.step_log_msgs['setup'] = ("setup() for subtest version %s"
+                                       % self.version)
+        self.step_log_msgs['postprocess_iteration'] = (
+            "postprocess_iteration() #%d of #%d"
+            % (self.iteration, self.iterations))
 
     def postprocess_iteration(self):
         """
         Called for each iteration, used to process results
         """
-        self.loginfo("postprocess_iteration() #%d of #%d",
-                     self.iteration, self.iterations)
+        self.log_step_msg('postprocess_iteration')
 
     @property
     def control_config(self):
@@ -231,7 +225,6 @@ class SubSubtest(subtestbase.SubBase):
         note = {'Configuration_for_Subsubtest': self.config_section}
         self.parent_subtest.write_test_keyval(note)
         self.parent_subtest.write_test_keyval(self.config)
-        self.parent_subtest.check_disable(self.config_section)
         # subclasses can do whatever they like with this
         self.sub_stuff = {}
         self.tmpdir = tempfile.mkdtemp(prefix=classname + '_',
@@ -352,6 +345,9 @@ class SubSubtestCaller(Subtest):
             raise DockerTestNAError("Missing|empty 'subsubtests' in config.")
         sst_names = self.config['subsubtests']
         self.subsubtest_names = config.get_as_list(sst_names)
+        self.step_log_msgs['run_once'] = "Running sub-subtests..."
+        self.step_log_msgs['postprocess'] = ("Postprocess sub-subtest "
+                                             "results...")
 
     def try_all_stages(self, name, subsubtest):
         """
@@ -369,11 +365,10 @@ class SubSubtestCaller(Subtest):
             self.call_subsubtest_method(subsubtest.postprocess)
             # No exceptions, contribute to subtest success
             self.final_subsubtests.add(name)
-        except AutotestError, detail:
-            self.logtraceback(name,
-                              self.exception_info["exc_info"],
-                              self.exception_info["error_source"],
-                              detail)
+        # Catching general exception to allow logging
+        # logging additional details before raising
+        # more general exception.
+        # pylint: disable=W0703
         except Exception, detail:
             self.logtraceback(name,
                               self.exception_info["exc_info"],
@@ -402,6 +397,10 @@ class SubSubtestCaller(Subtest):
             finally:
                 try:
                     subsubtest.cleanup()
+                # Catching general exception to allow logging
+                # logging additional details before raising
+                # more general exception.
+                # pylint: disable=W0703
                 except Exception, detail:
                     self.logtraceback(name,
                                       sys.exc_info(),
@@ -450,6 +449,9 @@ class SubSubtestCaller(Subtest):
         """
         try:
             method()
+        # Catching general exception to allow printing
+        # additional exception details before re-raising.
+        # pylint: disable=W0703
         except Exception:
             # Log problem, don't add to run_subsubtests
             self.exception_info["error_source"] = method.func_name
@@ -534,20 +536,6 @@ class SubSubtestCaller(Subtest):
         sstc = subsubtest_class  # save some typing
         # subsubtest name
         name = sstc.make_name(self.config_section).strip()  # classmethod
-        all_configs = config.Config()  # fast, cached in module
-        parent_config = self.config
-        if name not in all_configs:
-            subsubtest_config = copy.deepcopy(parent_config)
-        else:
-            subsubtest_config = sstc.make_config(all_configs,
-                                                 parent_config,
-                                                 name)
-        if not self.not_disabled(subsubtest_config, name):
-            self.logdebug("Sub-subtest %s in 'disable' list in config.",
-                          name)
-            return False  # subsubtest in disabled option CSV list
-
-        # Also check optional reference control.ini
         control_config = self.control_config
         if control_config != {}:
             return self.subsub_control_enabled(name, control_config)
@@ -633,7 +621,10 @@ class SubSubtestCallerSimultaneous(SubSubtestCaller):
                     subsubtest.initialize()
                     # Allow run_once() on this subsubtest
                     self.run_subsubtests[name] = subsubtest
-                except AutotestError, detail:
+                # Catching general exception b/c it will be logged and
+                # structure must allow cleanup() method to run.
+                # pylint: disable=W0703
+                except Exception, detail:
                     # Log problem, don't add to run_subsubtests
                     self.logtraceback(name, sys.exc_info(), "initialize",
                                       detail)
@@ -644,18 +635,24 @@ class SubSubtestCallerSimultaneous(SubSubtestCaller):
     def run_once(self):
         # DO NOT CALL superclass run_once() this variation works
         # completely differently!
+        self.log_step_msg('run_once')
         for name, subsubtest in self.run_subsubtests.items():
             try:
                 subsubtest.run_once()
                 # Allow postprocess()
                 self.post_subsubtests[name] = subsubtest
-            except AutotestError, detail:
+            # Catching general exception here, b/c cleanup
+            # step must be guaranteed to run.  Exception
+            # details will be logged instead.
+            # pylint: disable=W0703
+            except Exception, detail:
                 # Log problem, don't add to post_subsubtests
                 self.logtraceback(name, sys.exc_info(), "run_once", detail)
 
     def postprocess(self):
         # DO NOT CALL superclass run_once() this variation works
         # completely differently!
+        self.log_step_msg('postprocess')
         start_subsubtests = set(self.start_subsubtests.keys())
         final_subsubtests = set()
         for name, subsubtest in self.post_subsubtests.items():
@@ -663,7 +660,10 @@ class SubSubtestCallerSimultaneous(SubSubtestCaller):
                 subsubtest.postprocess()
                 # Will form "passed" set
                 final_subsubtests.add(name)
-            except AutotestError, detail:
+            # Catching general exception b/c it will be logged and
+            # structure must allow cleanup() method to run.
+            # pylint: disable=W0703
+            except Exception, detail:
                 # Forms "failed" set by exclusion from final_subsubtests
                 self.logtraceback(name, sys.exc_info(), "postprocess",
                                   detail)
@@ -677,7 +677,11 @@ class SubSubtestCallerSimultaneous(SubSubtestCaller):
         for name, subsubtest in self.start_subsubtests.items():
             try:
                 subsubtest.cleanup()
-            except AutotestError, detail:
+            # Catching general exception to allow logging
+            # logging additional details before raising
+            # more general exception.
+            # pylint: disable=W0703
+            except Exception, detail:
                 cleanup_failures.add(name)
                 self.logtraceback(name, sys.exc_info(), "cleanup",
                                   detail)

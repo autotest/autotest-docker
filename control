@@ -1,75 +1,17 @@
 AUTHOR = "Chris Evich <cevich@redhat.com>"
 DOC = "Runs various tests for Docker"
 NAME = "Docker"
-TIME = "SHORT"
+TIME = "LONG"
 TEST_TYPE = "CLIENT"
 # timeout in seconds
-TIMEOUT = 600
-# Non-standard options (only referenced here)
-CONTROL_INI_DEFAULT = "config_defaults/control.ini"
-CONTROL_INI_CUSTOM = "config_custom/control.ini"
+TIMEOUT = 60 * 60 * 4  # 4 hours, divided amung each subtest step
 
-#
 import sys
-import imp
 import os
 import os.path
 import logging
-import time
-import subprocess
+import collections
 import ConfigParser
-
-
-def get_control_ini(control_path):
-    """
-    Return a SafeConfigParser inst of CONTROL_INI_DEFAULT or CONTROL_INI_CUSTOM
-    """
-    control_ini_default = os.path.join(control_path, CONTROL_INI_DEFAULT)
-    control_ini_custom = os.path.join(control_path, CONTROL_INI_CUSTOM)
-    # ConfigParser defaults dict is not section-name aware
-    opt_sec_map = {'include': 'Control', 'exclude': 'Control',
-                   'subthings': 'Control',
-                   'bugzilla_url': 'Bugzilla',
-                   'bugzilla_fixed_states': 'Bugzilla',
-                   'bugzilla_username': 'Bugzilla',
-                   'bugzilla_password': 'Bugzilla',
-                   'bugzilla_exclude': 'Bugzilla'}
-    control_ini = ConfigParser.SafeConfigParser()
-    for option, section in opt_sec_map.items():
-        try:
-            control_ini.add_section(section)
-        except ConfigParser.DuplicateSectionError:
-            pass  # already existing section
-        control_ini.set(section, option, '')
-    control_ini.optionxform = str  # support case-sensitive options
-    # custom should override default
-    read = control_ini.read([control_ini_default, control_ini_custom])
-    logging.debug("Loaded control configuration from %s", str(read))
-    return control_ini
-
-def x_to_control(token_match, optname, args, control_ini):
-    """
-    Parse token's csv from args, combine with control_ini optname into tuple
-    """
-    try:
-        ini_x_s = control_ini.get('Control', optname).strip()
-    except ConfigParser.NoOptionError:
-        ini_x = []
-    else:
-        if len(ini_x_s) > 1:
-            ini_x = [s.strip() for s in ini_x_s.split(',')]
-        else:
-            ini_x = []
-    arg_x = []
-    rej_x = []  # Rejects not matched by token_match function
-    for arg in args:
-        if token_match(arg):
-            arg_x_s = arg[2:].strip()  # remove token
-            arg_x += [arg_s.strip() for arg_s in arg_x_s.split(',')]
-        else:
-            rej_x.append(arg)
-    # Let caller decide what to do with them
-    return (ini_x, arg_x, rej_x)
 
 def log_list(method, msg, lst):
     """
@@ -79,77 +21,7 @@ def log_list(method, msg, lst):
         method(msg)
         for item in lst:
             method("\t\t'%s'", item)
-
-def include_to_control(args, control_ini):
-    """
-    Parse '--args i=list,of,tests,...' and control_ini 'include' to list
-    """
-    # command line --args i= should override control configuration file
-    ini_include, arg_include, _ = x_to_control(lambda arg: arg.startswith('i='),
-                                               'include', args, control_ini)
-    # Preserve order & don't include items already in ini_include
-    first_include = [include for include in arg_include
-                     if include not in ini_include]
-    include = first_include + ini_include
-    log_list(logging.info, "Subtest/sub-subtest include list:", include)
-    return include
-
-
-def exclude_to_control(args, control_ini):
-    """
-    Parse '--args x=list,of,tests,...' and control_ini 'exclude' to list
-    """
-    # command line --args x= combined with control configuration file
-    ini_exclude, arg_exclude, _ = x_to_control(lambda arg: arg.startswith('x='),
-                                               'exclude', args, control_ini)
-    # excluding more than once has no effect
-    exclude_set = set(ini_exclude) | set(arg_exclude)
-    exclude = list(exclude_set)
-    log_list(logging.info, "Subtest/sub-subtest exclude list:", exclude)
-    return exclude
-
-
-def config_subthings(args, control_ini):
-    """
-    Parse --args list,of,tests and control.ini sub/sub-subtests to consider
-    """
-    # Filter out x= and i=, rejects are subthings to consider
-    tkmtch = lambda arg: arg.startswith('x=') or arg.startswith('i=')
-    ini_subthings, _, not_token_match = x_to_control(tkmtch, 'subthings',
-                                                    args, control_ini)
-    arg_subthings = []
-    for csvitem in not_token_match:
-        for item in csvitem.strip().split(','):
-            arg_subthings.append(item.strip())
-    # Preserve order & don't include items already in ini_subthings
-    prefix = [subthing for subthing in arg_subthings
-              if subthing not in ini_subthings]
-    subthings = prefix + ini_subthings
-    log_list(logging.info, "Subtest/Sub-subtest requested:", subthings)
-    return subthings
-
-def dir_subtests(control_path):
-    """
-    Return list from search for modules matching their directory name.
-    """
-    subtests = []
-    subtest_path = os.path.join(control_path, 'subtests')
-    # All subtest packages located beneath dir holding this control file
-    for dirpath, dirnames, filenames in os.walk(subtest_path):
-        del dirnames  #  Not used
-        # Skip top-level
-        if dirpath == subtest_path:
-            continue
-        # Subtest module must have same name as basename
-        basename = os.path.basename(dirpath)
-        # test.test class must be in module named same as directory
-        modname = basename + '.py'
-        if modname in filenames:
-            # 3rd item is dir relative to subtests subdir
-            subtest = dirpath.partition(subtest_path + '/')[2]
-            subtests.append(subtest)
-    #log_list(logging.debug, "On-disk Subtest modules found", subtests)
-    return subtests
+        method("")  # makes list easier to read
 
 def subtest_of_subsubtest(name, subtest_modules):
     """
@@ -177,44 +49,6 @@ def subtest_of_subsubtest(name, subtest_modules):
                     "under subtests directory.")
     return None
 
-def quiet_bz():
-    """
-    Just as the name says, urllib3 + bugzilla can be very noisy
-    """
-    bzlog = logging.getLogger("bugzilla")
-    bzlog.setLevel(logging.WARNING)
-    urllog = logging.getLogger("urllib3")
-    urllog.setLevel(logging.WARNING)
-
-def noisy_bz():
-    """
-    Undo what quiet_bz did
-    """
-    bzlog = logging.getLogger("bugzilla")
-    bzlog.setLevel(logging.DEBUG)
-    urllog = logging.getLogger("urllib3")
-    urllog.setLevel(logging.DEBUG)
-
-def get_bzobj(bzopts):
-    """Load bugzilla module, return bz obj or None if error"""
-    username = bzopts['bugzilla_username']
-    password = bzopts['bugzilla_password']
-    url = bzopts['bugzilla_url'].strip()
-    if url == '':
-        logging.debug("Bugzilla url empty, exclusion filter disabled")
-        return None
-    try:
-        import bugzilla  # Keep confined to this function
-    except ImportError:
-        logging.warning("Bugzilla status exclusion filter configured "
-                        "but bugzilla python module unavailable.")
-        return None
-    quiet_bz()  # the bugzilla module is very noisy
-    bz = bugzilla.Bugzilla(url=url)
-    if username is not '' and password is not '':
-        bz.login(user=username, password=password)
-    return bz
-
 def subtests_subsubtests(subthing_set, subtest_modules):
     """
     Convert subthing_set into subtest_set mapping to a subsubtest set or None
@@ -236,96 +70,43 @@ def subtests_subsubtests(subthing_set, subtest_modules):
             subtest_to_subsubtest[subtest] = new_subsubtest_set
     return subtest_to_subsubtest
 
-def bugged_subthings(control_ini, subthings, subtest_modules):
+def get_bzobj(bzopts):
+    """Load bugzilla module, return bz obj or None if error"""
+    username = bzopts['bugzilla_username']
+    password = bzopts['bugzilla_password']
+    url = bzopts['bugzilla_url'].strip()
+    if url == '':
+        logging.debug("Bugzilla url empty, exclusion filter disabled")
+        return None
+    try:
+        import bugzilla  # Keep confined to this function
+    except ImportError:
+        logging.warning("Bugzilla status exclusion filter configured "
+                        "but bugzilla python module unavailable.")
+        return None
+    quiet_bz()  # the bugzilla module is very noisy
+    bz = bugzilla.Bugzilla(url=url)
+    if username is not '' and password is not '':
+        bz.login(user=username, password=password)
+    return bz
+
+def quiet_bz():
     """
-    Return dict of subthings that are blocked by one or more BZ's to their #'s
+    Just as the name says, urllib3 + bugzilla can be very noisy
     """
-    # All keys guaranteed to exist in control.ini by get_control_ini()
-    bzopts = dict(control_ini.items('Bugzilla'))
-    bz = get_bzobj(bzopts)
-    if bz is None:
-        return {}
+    bzlog = logging.getLogger("bugzilla")
+    bzlog.setLevel(logging.WARNING)
+    urllog = logging.getLogger("urllib3")
+    urllog.setLevel(logging.WARNING)
 
-    namestobzs = {}  # docker_cli/test/name = 12345,67890,...
-    for name, bzcsv in control_ini.items('NamesToBZs'):
-        namestobzs[name] = [int(bugnum.strip())  # needed by bz.getbugs()
-                            for bugnum in bzcsv.strip().split(',')]
-    # No need to check same subthing more than once
-    subset = set(subthings)
-
-    # Check possibly bugged sub-subtests if parent in subset
-    for subthing in namestobzs:
-        # having parent means subthing must be a sub-subtest
-        parent = subtest_of_subsubtest(subthing, subtest_modules)
-        if parent is not None:
-            if parent in subset:
-                subset.add(subthing)
-
-    # Check each possible blocker bug exactly once
-    check_bzs = set()
-    for subthing in subset:
-        if subthing in namestobzs:
-            check_bzs |= set(namestobzs[subthing])
-    # Need to index numbers for access check (below)
-    check_bzs = list(check_bzs)
-    fixed_states_csv = bzopts['bugzilla_fixed_states'].strip()
-    fixed_states = [state.strip() for state in fixed_states_csv.split(',')]
-    logging.info("Checking status of %d bugs", len(check_bzs))
-    blocker_bzs = set()
-    for idx, bug in enumerate(bz.getbugs(check_bzs)):
-        if bug is None:
-            logging.warning("Could not access BZ %d", check_bzs[idx])
-            continue
-        if bug.status not in fixed_states:
-            blocker_bzs.add(bug.id)
-    noisy_bz()  # Put it back the way it was
-    del sys.modules['bugzilla']  # save some memory (maybe)
-
-    # Filter subthings w/ bugs in blocker_bzs set
-    bug_blocked = {}
-    for subthing in subset:
-        if subthing not in namestobzs:
-            continue  # No bz recorded for it
-        blockers = set(namestobzs[subthing]) & blocker_bzs
-        if len(blockers) > 0:
-            bug_blocked[subthing] = blockers
-
-    log_list(logging.info,
-             "Sub/sub-subtests blocked by bugzillas:",
-             bug_blocked.items())
-    control_ini.set('Bugzilla',
-                    'bugzilla_exclude',
-                    ", ".join(bug_blocked.keys()))
-    return bug_blocked
-
-def inject_subtests(subthing_includes, subtest_modules):
+def noisy_bz():
     """
-    Inject subtest if subsubtest included but not parent
+    Undo what quiet_bz did
     """
-    for index, name in enumerate(list(subthing_includes)): # work on a copy
-        parent_subtest = subtest_of_subsubtest(name, subtest_modules)
-        if parent_subtest is not None:  # name is a sub-subtest
-            if parent_subtest not in subthing_includes:
-                subthing_includes.insert(index - 1, parent_subtest)
-
-def included_subthings(subthing_config, subtest_modules, subthing_include):
-    """
-    Remove command-line or control.ini sub/sub-subtest not in subthing_include
-    """
-    if subthing_config != []:  # specifically requested sub/sub-subthings
-        if subthing_include != []: # only include, requested includes
-            subthings = [subthing for subthing in subthing_config
-                        if subthing in subthing_include]
-        else:  # Empty include means include everything
-            subthings = subthing_config
-    else: # No sub/sub-subthings requested, consider all available
-        if subthing_include != []:  # only include, requested includes
-            subthings = [subtest for subtest in subtest_modules
-                        if subtest in subthing_include]
-        else:  # Empty include means include everything
-            subthings = subtest_modules
-    inject_subtests(subthings, subtest_modules)
-    return subthings
+    bzlog = logging.getLogger("bugzilla")
+    bzlog.setLevel(logging.DEBUG)
+    urllog = logging.getLogger("urllib3")
+    urllog.setLevel(logging.DEBUG)
 
 def filter_bugged(subthings, bug_blocked, subtest_modules):
     """
@@ -345,207 +126,600 @@ def filter_bugged(subthings, bug_blocked, subtest_modules):
             subthings.remove(subtest)
     return None  # mods were done in-place!!!
 
-def only_subtests(subthings, subtest_modules):
-    """
-    Return a list containing only subtests (preserving order)
-    """
-    return [subthing for subthing in subthings
-            if subthing in subtest_modules]
 
-def write_control_ini(control_ini, resultdir,
-                      subthings, subthing_include, subthing_exclude):
+class Singleton(object):
     """
-    Store the possibly modified control.ini file somewhere tests could read.
+    Base class for singleton objects
+    """
 
-    :note: This is optional/advisory behavior, tests must not break if
-           file does not exist, is unreadable, or in unexpected format.
-    """
-    reference_control_ini = os.path.join(resultdir, 'control.ini')
-    logging.debug("Saving control configuration reference copy to %s",
-                  reference_control_ini)
-    subthings_csv = ",".join(subthings)
-    control_ini.set("Control", "subthings", subthings_csv)
-    include_csv = ",".join(subthing_include)
-    control_ini.set("Control", "include", include_csv)
-    exclude_csv = ",".join(subthing_exclude) # + bug_blocked
-    control_ini.set("Control", "exclude", exclude_csv)
-    control_ini.write(open(reference_control_ini, "wb"))
-    return reference_control_ini  # in case it's ever needed
+    # Singleton instance is stored here
+    _singleton = None
 
-def filter_subthings(control_path, args):
-    """
-    Load/report control.ini, return filtered list of sub/sub-subtests
-    """
-    # Creates empty instance if doesn't exist
-    control_ini = get_control_ini(control_path)
-    # Actual on-disk, located subtest modules (excludes sub-subtests)
-    subtest_modules = dir_subtests(control_path)
-    # Command-line and/or control.ini subtests AND sub-subtests
-    subthing_config = config_subthings(args, control_ini)
-    # Requested sub/sub-subtest include/exclude (can contain sub-subtests)
-    subthing_include = include_to_control(args, control_ini)
-    subthing_exclude = exclude_to_control(args, control_ini)
-    # Make sure include list contains parents of sub-subtests
-    inject_subtests(subthing_include, subtest_modules)
-    # Remove all sub/sub-subtests not included (cmd-line & control.ini)
-    included = included_subthings(subthing_config, subtest_modules,
-                                  subthing_include)
-    # Remove all sub/sub-subtests explicitly requested for exclusion
-    subthings = [subthing for subthing in included
-                 if subthing not in subthing_exclude]
-    # Additional exclusions due to unresolved bug
-    bug_blocked = bugged_subthings(control_ini, subthings, subtest_modules)
-    subthing_exclude += bug_blocked.keys()
-    # Log and remove all bug_blocked items from subthings (in-place modify)
-    filter_bugged(subthings, bug_blocked, subtest_modules)
-    # Save as CSV to operational/reference control.ini
-    write_control_ini(control_ini, job.resultdir,
-                      subthings, subthing_include, subthing_exclude)
-    #log_list(logging.info, "Filtered subthing list:", subthings)
-    # Control file can't handle sub-subtests, filter those out
-    return only_subtests(subthings, subtest_modules)
+    def __new__(cls, *args, **dargs):
+        if cls._singleton is None:
+            cls._singleton = super(Singleton, cls).__new__(cls, *args, **dargs)
+        return cls._singleton
 
-def step_init():
+
+class ControlINI(ConfigParser.SafeConfigParser, Singleton):
     """
-    Entry-point from autotest harness to setup subtests/sub-subtests to run
+    Representation of control settings
     """
-    # Several calls need directory containing this control file
+
+    # Default relative locations for control settings files
+    CONTROL_INI_DEFAULT = "config_defaults/control.ini"
+    CONTROL_INI_CUSTOM = "config_custom/control.ini"
+
+    # Mapping of option-name to section name (for generating defaults)
+    OPT_SEC_MAP = {'include': 'Control',
+                   'exclude': 'Control',
+                   'subthings': 'Control',
+                   'pretests': 'Control',
+                   'subtests': 'Control',
+                   'intratests': 'Control',
+                   'posttests': 'Control',
+                   'bugzilla_url': 'Bugzilla',
+                   'bugzilla_fixed_states': 'Bugzilla',
+                   'bugzilla_username': 'Bugzilla',
+                   'bugzilla_password': 'Bugzilla',
+                   'bugzilla_exclude': 'Bugzilla'}
+
+    # Absolute base path where all other relative paths reside
     control_path = os.path.dirname(job.control)
-    you = "BOFH"
-    job.next_step(run_envchecks, control_path, you)
-    # Form and make steps for each subtest uri
-    subthings = filter_subthings(control_path, job.args)
-    # Actual subtest URIs formed by prefixing with relative control path
-    subtest_base = os.path.join(os.path.basename(control_path),
-                                'subtests')
-    subtest_uris = [os.path.join(subtest_base, subtest)
-                    for subtest in subthings]
-    total = len(subtest_uris)
-    # Every step must be pickleable: use wrapper function + arguments
-    for index, uri in enumerate(subtest_uris):
-        logging.info("")  # help destinguish between step-engine noise
-        logging.info("Initializing job step %d for subtest uri: %s",
-                      index + 1, uri)  # already include 1 envcheck step
-        # Subtests could be specified more than once, give each a unique tag
-        tag = "test_%s-of-%s" % (index + 1, total)
-        job.next_step(run_test, control_path, uri, tag, TIMEOUT)
-        job.next_step(run_envchecks, control_path, uri)
-    return None  # End of test
 
-def get_doc_version(control_path):
-    """
-    Parse version string from conf.py module w/o importing it.
-    """
-    version = None
-    # Prevent documentation-generation mocks from clashing with testing
-    for line in open(os.path.join(control_path, 'conf.py'), 'rb'):
-        if line.startswith('version ='):
-            version = line.split("'")[1]
-            return version
-    return None
+    # Default location where write() writes to if no file given
+    write_path = job.resultdir
 
-def run_envchecks(control_path, blame_url):
-    """
-    Execute run_envchecks.py with default configuration files
-    """
-    cmd = ('%s %s %s'
-           % (os.path.join(control_path, 'run_envchecks.py'),
-              os.path.join(control_path, 'config_defaults', 'defaults.ini'),
-              os.path.join(control_path, 'config_custom', 'defaults.ini')))
-    try:
-        subprocess.check_call(cmd, close_fds=True, shell=True)
-    except subprocess.CalledProcessError:
-        # CalledProcessError.__str__ doesn't include a message :(
-        print "Environment checks failed! Blame %s" % blame_url
-    # Keep these non-fatal for now
+    def __init__(self):
+        # Help catch missing options in defaults but not in OPT_SEC_MAP
+        # by making them None instead of ''
+        super(ControlINI, self).__init__(allow_no_value=True)
+        self.optionxform = str  # support case-sensitive options
+        for option, section in self.OPT_SEC_MAP.iteritems():
+            try:
+                self.add_section(section)
+            except ConfigParser.DuplicateSectionError:
+                pass  # already existing section
+            # Empty string is the default value
+            self.set(section, option, '')
+        # These option values default to the option name, look up section
+        for key in ('pretests', 'subtests', 'intratests', 'posttests'):
+            self.set(self.OPT_SEC_MAP[key], key, key)
 
-def subtest_abspath(control_path, url):
-    """
-    Return absolute path to a subtest module url
-    """
-    control_parent = os.path.dirname(control_path)
-    subtest_path = os.path.join(control_parent, url)
-    return os.path.abspath(subtest_path)
+    def read(self, filenames=None):
+        """
+        Read CONTROL_INI_DEFAULT or CONTROL_INI_CUSTOM if filenames is None
+        """
+        if filenames is None:
+            control_ini_default = os.path.join(self.control_path,
+                                               self.CONTROL_INI_DEFAULT)
+            control_ini_custom = os.path.join(self.control_path,
+                                              self.CONTROL_INI_CUSTOM)
+            filenames = [control_ini_default, control_ini_custom]
+        result = super(ControlINI, self).read(filenames)
+        if len(result) == 0:
+            result = ["<ControlINI defaults>"]
+        logging.debug("Loaded control configuration from %s", str(result[-1]))
+        return result
 
-def mangle_syspath(control_path, url):
-    """
-    Allow test url to find modules in it's path first
-    """
-    subtest_path = subtest_abspath(control_path, url)
-    logging.debug("Injecting %s at beginning of module search path",
-                  subtest_path)
-    sys.path.insert(0, subtest_path)
+    def write(self, fileobject=None):
+        """
+        Write to fileobect or resultdir/control.ini if None
 
-def unmangle_syspath(control_path, url):
+        :note: This is optional/advisory behavior, tests must not break if
+               file does not exist, is unreadable, or in unexpected format.
+        """
+        if fileobject is None:
+            fileobject = open(os.path.join(self.write_path,
+                                           'control.ini'), "wb")
+        logging.debug("Saving control configuration reference copy to %s",
+                      fileobject.name)
+        super(ControlINI, self).write(fileobject)
+
+
+    def x_to_control(self, token_match, optname, args):
+        """
+        Parse token's csv from args, combine with control.ini optname into tuple
+        """
+        try:
+            ini_x_s = self.get('Control', optname).strip()
+        except ConfigParser.NoOptionError:
+            ini_x = []
+        else:
+            if len(ini_x_s) > 1:
+                ini_x = [s.strip() for s in ini_x_s.split(',')]
+            else:
+                ini_x = []
+        arg_x = []
+        rej_x = []  # Rejects not matched by token_match function
+        for arg in args:
+            if token_match(arg):
+                arg_x_s = arg[2:].strip()  # remove token
+                arg_x += [arg_s.strip() for arg_s in arg_x_s.split(',')]
+            else:
+                rej_x.append(arg)
+        # Let caller decide what to do with them
+        return (ini_x, arg_x, rej_x)
+
+    def include_to_control(self, args):
+        """
+        Parse '--args i=list,of,tests,...' and self 'include' to list
+        """
+        # command line --args i= should override control configuration file
+        func = lambda arg: arg.startswith('i=')
+        ini_include, arg_include, _ = self.x_to_control(func, 'include', args)
+        # Preserve order & don't include items already in ini_include
+        first_include = [include for include in arg_include
+                         if include not in ini_include]
+        include = first_include + ini_include
+        log_list(logging.info, "Subtest/sub-subtest include list:", include)
+        return include
+
+    def exclude_to_control(self, args, quiet=False):
+        """
+        Parse '--args x=list,of,tests,...' and self 'exclude' to list
+        """
+        # command line --args x= combined with control configuration file
+        func = lambda arg: arg.startswith('x=')
+        ini_exclude, arg_exclude, _ = self.x_to_control(func, 'exclude', args)
+        # excluding more than once has no effect
+        exclude_set = set(ini_exclude) | set(arg_exclude)
+        exclude = list(exclude_set)
+        if not quiet:
+            log_list(logging.info,
+                     "Subtest/sub-subtest exclude list:",
+                     exclude)
+        return exclude
+
+    def config_subthings(self, args):
+        """
+        Parse --args list,of,tests and control.ini sub/sub-subtests to consider
+        """
+        # Filter out x= and i=, rejects are subthings to consider
+        tkmtch = lambda arg: arg.startswith('x=') or arg.startswith('i=')
+        ini_subthings, _, not_token_match = self.x_to_control(tkmtch,
+                                                              'subthings',
+                                                              args)
+        arg_subthings = []
+        for csvitem in not_token_match:
+            for item in csvitem.strip().split(','):
+                arg_subthings.append(item.strip())
+        # Preserve order & don't include items already in ini_subthings
+        prefix = [subthing for subthing in arg_subthings
+                  if subthing not in ini_subthings]
+        subthings = prefix + ini_subthings
+        log_list(logging.info, "Subtest/Sub-subtest requested:", subthings)
+        return subthings
+
+    def dir_tests(self, control_key):
+        """
+        Return list from search for modules matching their directory name.
+        """
+        subdir = self.get('Control', control_key).strip()
+        if subdir is None or subdir == '':
+            return []
+        # Absolute path is needed
+        subtest_path = os.path.join(self.control_path, subdir)
+        subtests = []
+        # All subtest packages located beneath dir holding this control file
+        for dirpath, dirnames, filenames in os.walk(subtest_path):
+            del dirnames  #  Not used
+            # Skip top-level
+            if dirpath == subtest_path:
+                continue
+            # Subtest module must have same name as basename
+            basename = os.path.basename(dirpath)
+            # test.test class must be in module named same as directory
+            modname = basename + '.py'
+            if modname in filenames:
+                # 3rd item is dir relative to subtests subdir
+                subtest = dirpath.partition(subtest_path + '/')[2]
+                subtests.append(subtest)
+        # Handy for debugging
+        # log_list(logging.debug, "On-disk Subtest modules found", subtests)
+        return subtests
+
+    def update_things(self, subthings, subthing_include, subthing_exclude):
+        """
+        Generate CSV and store them as values for each option
+        """
+        subthings_csv = ",".join(subthings)
+        self.set("Control", "subthings", subthings_csv)
+        include_csv = ",".join(subthing_include)
+        self.set("Control", "include", include_csv)
+        exclude_csv = ",".join(subthing_exclude) # + bug_blocked
+        self.set("Control", "exclude", exclude_csv)
+
+    def bugged_subthings(self, subthings, subtest_modules):
+        """
+        Return subthings dict blocked by one or more BZ's to their #'s
+        """
+        # All keys guaranteed to exist in control.ini by get_control_ini()
+        bzopts = dict(self.items('Bugzilla'))
+        bz = get_bzobj(bzopts)
+        if bz is None:
+            return {}
+
+        namestobzs = {}  # docker_cli/test/name = 12345,67890,...
+        for name, bzcsv in self.items('NamesToBZs'):
+            namestobzs[name] = [int(bugnum.strip())  # needed by bz.getbugs()
+                                for bugnum in bzcsv.strip().split(',')]
+        # No need to check same subthing more than once
+        subset = set(subthings)
+
+        # Check possibly bugged sub-subtests if parent in subset
+        for subthing in namestobzs:
+            # having parent means subthing must be a sub-subtest
+            parent = subtest_of_subsubtest(subthing, subtest_modules)
+            if parent is not None and parent in subset:
+                subset.add(subthing)
+
+        # Check each possible blocker bug exactly once
+        check_bzs = set()
+        for subthing in subset:
+            if subthing in namestobzs:
+                check_bzs |= set(namestobzs[subthing])
+        # Need to index numbers for access check (below)
+        check_bzs = list(check_bzs)
+        fixed_states_csv = bzopts['bugzilla_fixed_states'].strip()
+        fixed_states = [state.strip() for state in fixed_states_csv.split(',')]
+        logging.info("Checking status of %d bugs", len(check_bzs))
+        blocker_bzs = set()
+        for idx, bug in enumerate(bz.getbugs(check_bzs)):
+            if bug is None:
+                logging.warning("Could not access BZ %d", check_bzs[idx])
+                continue
+            if bug.status not in fixed_states:
+                blocker_bzs.add(bug.id)
+        noisy_bz()  # Put it back the way it was
+        del sys.modules['bugzilla']  # save some memory (maybe)
+
+        # Filter subthings w/ bugs in blocker_bzs set
+        bug_blocked = {}
+        for subthing in subset:
+            if subthing not in namestobzs:
+                continue  # No bz recorded for it
+            blockers = set(namestobzs[subthing]) & blocker_bzs
+            if len(blockers) > 0:
+                bug_blocked[subthing] = blockers
+
+        log_list(logging.info,
+                 "Sub/sub-subtests blocked by bugzillas:",
+                 bug_blocked.items())
+        self.set('Bugzilla',
+                 'bugzilla_exclude',
+                 ", ".join(bug_blocked.keys()))
+        return bug_blocked
+
+
+
+class Context(Singleton, collections.Sequence):
     """
-    Remove test url from module search path if it's at the beginning
+    Abstract base-class representing overall execution context
     """
-    subtest_path = subtest_abspath(control_path, url)
-    if sys.path[0] == subtest_path:
-        del sys.path[0]
-        logging.debug("Removing %s from module search path",
-                      subtest_path)
-    else:
-        logging.error("Subtest changed module search path: %s",
-                      str(sys.path))
 
-def run_test(control_path, url, tag, timeout):
+    # The timeout value for the next step
+    step_timeout = None
+
+    # Instance of ControlINI
+    control_ini = None
+
+    # Contents of --args parameter from autotest client
+    args = None
+
+    # Cache of length value for quick reference
+    length = None
+
+    # Tuple of items contained in this context
+    items = None
+
+    # Reference to current context item from items
+    item = None
+
+    # Reference to current context item index from items
+    index = None
+
+    def __iter__(self):
+        """
+        Only permit a single caller to iterate
+        """
+        # Only return one iterator at a time
+        if self.item is not None or self.index is not None:
+            return self  # instance is it's own iterator
+        else: # Begin new iteration
+            self.index = -1
+            self.item = "start"
+            return self
+
+    def next(self):
+        """Return the next job Step instance"""
+        def done():
+            """Common local behavior, clear state and signal iteration stop"""
+            self.index = None
+            self.item = None
+            raise StopIteration("No more steps")
+
+        if self.item is None or self.index is None:
+            done()
+        try:  # move on to next item
+            self.index += 1
+            self.item = self.items[self.index]
+            return self.item
+        except IndexError:
+            # At the end
+            done()
+
+    def __contains__(self, item):
+        if int(item) < len(self):
+            return True
+        else:
+            return False
+
+    def __getitem__(self, item):
+        return self.items[item]
+
+    def __len__(self):
+        if self.length is None:
+            self.length = len(self.items)
+        return self.length
+
+
+class Step(collections.Callable):
     """
-    Wrapper function around job.run_test() and setup for subtest namespace.
+    Base class for a callable step with standardized arguments
     """
-    # Threads are/may be in use, so be careful with this stuff...
-    imp.acquire_lock()
-    dockertest = imp.load_module('dockertest',
-                                 *imp.find_module('dockertest', [control_path]))
-    # Hold reference to module so subtests may use it
-    sys.modules['dockertest'] = dockertest  # dockertest deleted below
-    # Modules in packages not automatically loaded
-    version = imp.load_module('dockertest.version',
-                              *imp.find_module('version',
-                              dockertest.__path__))
-    sys.modules['dockertest.version'] = version  # version deleted below
-    imp.release_lock()
 
-    # Get docs version for comparison so modules can be unloaded
-    doc_version = get_doc_version(control_path)
-    api_version = version.STRING
-    # This must happen here since subtests MUST NOT access docs conf.py
-    doc_eq_api = version.compare(api_version, doc_version) == 0
+    # There's going to be a trillion of these
+    __slots__ = ('uri', 'context')
 
-    # Get rid of local references, so they may be cleaned from sys.modules
-    # later
-    imp.acquire_lock()
-    # hold onto sys.modules['dockertest'] for subtest use
-    del dockertest  # not needed here anymore
-    del version     # this one too
-    del sys.modules['dockertest.version'] #  Not needed here anymore
-    imp.release_lock()
+    def __init__(self, uri, context):
+        if not isinstance(context, Context):
+            raise TypeError("Must pass a Context instance as context "
+                            " parameter, not a %s"
+                            % context.__class__.__name__)
+        if not isinstance(uri, basestring):
+            raise TypeError("Must pass a string instance as uri "
+                            " parameter, not a %s"
+                            % uri.__class__.__name__)
+        self.uri = uri
+        self.context = context
 
-    # Docs version mismatch is not fatal, but annoying. Make sure it's
-    # annoying.
-    if not doc_eq_api:
-        logging.error("")
-        logging.error("Test API version %s does not match "
-                      "Documentation version %s.  Update "
-                      "documentation content, then adjust it's "
-                      "version string in '%s' and commit",
-                      api_version, doc_version, 'conf.py')
-        logging.error("")
-        # make sure it error gets read
-        time.sleep(10)
+    def __call__(self):
+        # Append next step first, in case current step crashes and burns
+        try:
+            # Context is it's own iterator
+            step = self.context.next()
+            step.__name__ = 'next_step'
+            _globals = globals()
+            _globals['next_step'] = step
+            job.next_step_append(step)
+        except StopIteration:
+            pass  # all done, current step is the last
+        self._mangle_syspath()
+        job.run_test(url=self.uri, tag=self.tag, timeout=str(self.timeout))
+        self._unmangle_syspath()
 
-    # Run the subtest module through autotest job interface
-    try:
-        mangle_syspath(control_path, url)
-        job.run_test(url=url, tag=tag, timeout=timeout)
-        unmangle_syspath(control_path, url)
-    # Guarantee cleanup of any docker related modules
-    finally:
-        imp.acquire_lock()
-        # Filter by internal module name, not sys.modules key.
-        modnames = [modname for (modname, module) in sys.modules.iteritems()
-                    if (hasattr(module, '__name__') and
-                        module.__name__.count('docker'))]
-        for modname in modnames:
-            del sys.modules[modname]
-        imp.release_lock()
+    @property
+    def tag(self):
+        where = self.context.index
+        try:
+            return "%d-of-%d" % (where, len(self.context.items))
+        except TypeError:
+            # At the end of the list
+            if self.context.item is None and where is None:
+                return "%d-of-%d" % (len(self.context.items),
+                                     len(self.context.items))
+
+    @property
+    def tagp1(self):
+        """
+        Display one more than current index
+        """
+        # TODO: Why do tags count zero-based w/o this method?
+        where = self.context.index + 1
+        return "%d-of-%d" % (where, len(self.context.items))
+
+    @property
+    def timeout(self):
+        """Represent the current timeout value for this step"""
+        return self.context.step_timeout
+
+    @property
+    def control_path(self):
+        """Represent the control file's absolute path"""
+        return self.context.control_ini.control_path
+
+    @property
+    def abspath(self):
+        """
+        Return absolute path for module uri
+        """
+        control_parent = os.path.dirname(self.context.control_ini.control_path)
+        subtest_path = os.path.join(control_parent, self.uri)
+        return os.path.abspath(subtest_path)
+
+    def _mangle_syspath(self):
+        """
+        Allow test url to find modules in it's path first
+        """
+        sys.path.insert(0, self.control_path)
+        sys.path.insert(0, self.abspath)
+
+    def _unmangle_syspath(self):
+        """
+        Remove test url from module search path if it's at the beginning
+        """
+        if sys.path[0] == self.abspath:
+            del sys.path[0]
+        if sys.path[0] == self.control_path:
+            del sys.path[0]
+
+
+class StepInit(Context, collections.Callable):
+    """
+    Context subclass representing all testing steps in execution order
+    """
+
+    def __init__(self):
+        # Step engine requires this for callable instances
+        self.__name__ = "step_init"
+        self.control_ini = ControlINI()
+        self.control_ini.read()
+        self.args = job.args
+        # Actual subtest URIs formed by prefixing relative to control path
+        control_base = os.path.basename(self.control_ini.control_path)
+        pretests_base = os.path.join(control_base,
+                                     self.control_ini.get('Control',
+                                                          'pretests'))
+        subtests_base = os.path.join(control_base,
+                                     self.control_ini.get('Control',
+                                                          'subtests'))
+        intratests_base = os.path.join(control_base,
+                                       self.control_ini.get('Control',
+                                                            'intratests'))
+        posttests_base = os.path.join(control_base,
+                                      self.control_ini.get('Control',
+                                                           'posttests'))
+        # Modify control_ini for sub-subtests and produce list of subtest uri's
+        subtest_uris = [os.path.join(subtests_base, subtest)
+                         for subtest in self.filter_subtests()]
+        # Use modified control_ini to form and make steps for other uris
+        pretest_uris = [os.path.join(pretests_base, pretest)
+                        for pretest in self.filter_simple('pretests')]
+        intratest_uris = [os.path.join(intratests_base, intratest)
+                          for intratest in self.filter_simple('intratests')]
+        posttest_uris = [os.path.join(posttests_base, posttest)
+                         for posttest in self.filter_simple('posttests')]
+        # Create each step instance for each phase
+        pretest_steps = [Step(uri, self) for uri in pretest_uris]
+        subtest_steps = [Step(uri, self) for uri in subtest_uris]
+        intratest_steps = [Step(uri, self) for uri in intratest_uris]
+        posttest_steps = [Step(uri, self) for uri in posttest_uris]
+        # Pre/post go before/after subtests, intratests between each subtest
+        self.items = pretest_steps
+        for subtest_step in subtest_steps:
+            self.items.append(subtest_step)
+            self.items += intratest_steps
+        self.items += posttest_steps
+        # TIMEOUT is a global defined at top of module
+        self.step_timeout = float(TIMEOUT) / float(len(subtest_steps) + 1)
+
+    def __call__(self):
+        """
+        Initialize steps engine starting at the first item
+        """
+        step_msg_list = ["%s.%s" % (step.uri, step.tagp1)
+                         for step in self]
+        log_list(logging.info, "Executing tests:", step_msg_list)
+        try:
+            _globals = globals()
+            _globals['step_iter'] = self.__iter__()
+            _globals['step_iter'].name = 'step_iter'
+            step = _globals['step_iter'].next()
+            step.__name__ = 'next_step'
+            _globals['next_step'] = step
+            # On step call, it will append the following step, if any
+            job.next_step_append(step)
+        except StopIteration:
+            pass  # no steps!
+
+    def filter_simple(self, control_key):
+        """
+        Return list of uri's for simple test modules under control_key path
+        """
+        # Creates empty instance if doesn't exist
+        control_ini = self.control_ini
+        # Actual on-disk, located test modules
+        tests = control_ini.dir_tests(control_key)
+        # Sort by alpha
+        tests.sort()
+        # Requested tests include/exclude (cmd-line & control.ini)
+        tests_include = control_ini.include_to_control(self.args)
+        tests_exclude = control_ini.exclude_to_control(self.args, quiet=True)
+        # Include everything from --args and control.ini
+        included = self.included_subthings([], tests, tests)
+        # Remove all tests excluded
+        tests = [test for test in included if test not in tests_exclude]
+        return self.only_subtests(tests, tests)
+
+    def filter_subtests(self):
+        """
+        Return filtered list of sub/sub-subtests, modify/updating control_ini
+        """
+        # Creates empty instance if doesn't exist
+        control_ini = self.control_ini
+        # Actual on-disk, located subtest modules (excludes sub-subtests)
+        subtest_modules = control_ini.dir_tests('subtests')
+        # Command-line and/or control.ini subtests AND sub-subtests
+        subthing_config = control_ini.config_subthings(self.args)
+        # Requested sub/sub-subtest include/exclude (can contain sub-subtests)
+        subthing_include = control_ini.include_to_control(self.args)
+        subthing_exclude = control_ini.exclude_to_control(self.args)
+        # Make sure include list contains parents of sub-subtests
+        self.inject_subtests(subthing_include, subtest_modules)
+        # Remove all sub/sub-subtests not included (cmd-line & control.ini)
+        included = self.included_subthings(subthing_config, subtest_modules,
+                                           subthing_include)
+        # Remove all sub/sub-subtests explicitly requested for exclusion
+        subthings = [subthing for subthing in included
+                     if subthing not in subthing_exclude]
+        # Additional exclusions due to unresolved bug
+        bug_blocked = control_ini.bugged_subthings(subthings,
+                                                   subtest_modules)
+        subthing_exclude += bug_blocked.keys()
+        # Log and remove all bug_blocked items from subthings (in-place modify)
+        filter_bugged(subthings, bug_blocked, subtest_modules)
+        # Save as CSV to operational/reference control.ini
+        control_ini.update_things(subthings, subthing_include, subthing_exclude)
+        control_ini.write()  # MUST happen here, subthings modified below
+        # Handy for debugging
+        # log_list(logging.info, "Filtered subthing list:", subthings)
+        # Control file can't handle sub-subtests, filter those out
+        return self.only_subtests(subthings, subtest_modules)
+
+    @staticmethod
+    def inject_subtests(subthing_includes, subtest_modules):
+        """
+        Inject subtest if subsubtest included but not parent
+        """
+        for index, name in enumerate(list(subthing_includes)): # work on a copy
+            parent_subtest = subtest_of_subsubtest(name, subtest_modules)
+            if parent_subtest is not None:  # name is a sub-subtest
+                if parent_subtest not in subthing_includes:
+                    subthing_includes.insert(index - 1, parent_subtest)
+
+    @staticmethod
+    def included_subthings(subthing_config, subtest_modules, subthing_include):
+        """
+        Remove command-line or control.ini subthing not in subthing_include
+        """
+        if subthing_config != []:  # specifically requested sub/sub-subthings
+            if subthing_include != []: # only include, requested includes
+                subthings = [subthing for subthing in subthing_config
+                             if subthing in subthing_include]
+            else:  # Empty include means include everything
+                subthings = subthing_config
+        else: # No sub/sub-subthings requested, consider all available
+            if subthing_include != []:  # only include, requested includes
+                subthings = [subtest for subtest in subtest_modules
+                             if subtest in subthing_include]
+            else:  # Empty include means include everything
+                subthings = subtest_modules
+        StepInit.inject_subtests(subthings, subtest_modules)
+        return subthings
+
+    @staticmethod
+    def only_subtests(subthings, subtest_modules):
+        """
+        Return a list containing only subtests (preserving order)
+        """
+        return [subthing for subthing in subthings
+                if subthing in subtest_modules]
+
+
+# Global iterator state for all steps
+steps_iter = NotImplementedError
+# Step engine does global lookups on steps to run, create name to hold it
+next_step = NotImplementedError
+# Entry point into step-engine, job searches for this callable
+step_init = StepInit()

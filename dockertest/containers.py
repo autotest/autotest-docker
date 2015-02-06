@@ -316,6 +316,15 @@ class DockerContainers(object):
         dcl = self.list_containers()
         return [cntr.long_id for cntr in dcl]
 
+    def list_container_names(self):
+        """
+        Return python-list of all container names
+
+        :return:  [Cntr name, Cntr name, ...]
+        """
+        dcl = self.list_containers()
+        return [cntr.container_name for cntr in dcl]
+
     def get_container_metadata(self, long_id):
         """
         Return raw JSON output from docker inspect long_id

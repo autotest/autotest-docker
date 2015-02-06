@@ -311,6 +311,9 @@ class DockerImages(object):
     #: Arguments to use when listing images
     images_args = "--no-trunc"
 
+    #: Extra arguments to use with remove methods
+    remove_args = None
+
     def __init__(self, subtest, timeout=None, verbose=False):
         if timeout is None:
             # Defined in [DEFAULTS] guaranteed to exist
@@ -406,8 +409,7 @@ class DockerImages(object):
         """
         return DockerImage.full_name_from_defaults(self.subtest.config)
 
-    # Not defined static on purpose
-    def get_dockerimages_list(self):    # pylint: disable=R0201
+    def get_dockerimages_list(self):
         """
         Retrieve list of images using docker CLI
 
@@ -546,7 +548,11 @@ class DockerImages(object):
             dkrcmd = self.docker_cmd_check
         else:
             dkrcmd = self.docker_cmd
-        return dkrcmd("rmi %s" % image_id, self.timeout)
+        if self.remove_args is not None:
+            return dkrcmd("rmi %s %s"
+                          % (self.remove_args, image_id), self.timeout)
+        else:
+            return dkrcmd("rmi %s" % image_id, self.timeout)
 
     def remove_image_by_full_name(self, full_name):
         """
@@ -559,7 +565,11 @@ class DockerImages(object):
             dkrcmd = self.docker_cmd_check
         else:
             dkrcmd = self.docker_cmd
-        return dkrcmd("rmi %s" % full_name, self.timeout)
+        if self.remove_args is not None:
+            return dkrcmd("rmi %s %s"
+                          % (self.remove_args, full_name), self.timeout)
+        else:
+            return dkrcmd("rmi %s" % full_name, self.timeout)
 
     def remove_image_by_image_obj(self, image_obj):
         """
