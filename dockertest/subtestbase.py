@@ -46,6 +46,10 @@ class SubBase(object):
         "cleanup": "cleanup()"
     }
 
+    def __init__(self, *args, **dargs):
+        super(SubBase, self).__init__(*args, **dargs)
+        self.step_log_msgs = self.step_log_msgs.copy()
+
     def initialize(self):
         """
         Called every time the test is run.
