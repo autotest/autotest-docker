@@ -9,8 +9,8 @@ Frequently used docker CLI operations/data
 import time
 from autotest.client import utils
 from subtestbase import SubBase
-from xceptions import (DockerNotImplementedError,
-                       DockerRuntimeError, DockerTestError)
+from xceptions import DockerNotImplementedError
+from xceptions import DockerTestError
 
 
 class DockerCmdBase(object):
@@ -26,9 +26,6 @@ class DockerCmdBase(object):
                     None to use 'docker_timeout' config. option.
     :raises DockerTestError: on incorrect usage
     """
-
-    #: Evaluates ``True`` after first time ``execute()`` method is called
-    executed = 0
 
     #: A list of strings containing additional args to subcommand, or None
     subargs = None
@@ -83,14 +80,12 @@ class DockerCmdBase(object):
         """
 
         # No problem including extra details in dict
-        dct = {'exe': self.executed,
-               'to': self.timeout,
+        dct = {'to': self.timeout,
                'suba': self.subargs,
                'subc': self.subcmd,
                'verb': self.verbose}
 
         if self.cmdresult is not None:
-            # Don't assume executed command is current command
             dct['cmd'] = self.cmdresult.command
             dct['exit'] = self.exit_status  # pulls from self.cmdresult
             dct['out'] = self.stdout
@@ -110,13 +105,12 @@ class DockerCmdBase(object):
         """
 
         # If command hasn't executed yet, can be really short string
-        if not self.executed:
+        if self.cmdresult is None:
             fmt = "Command: %(cmd)s"
         else:
             # provide more details
             fmt = ("Command: %(cmd)s\n"
                    "Timeout: %(to)s\n"
-                   "Executed: %(exe)s\n"
                    "Duration: %(dur)s\n"
                    "Exit code: %(exit)s\n"
                    # Make whitespace in output clearly visible
@@ -134,21 +128,10 @@ class DockerCmdBase(object):
         :return: A CmdResult instance
         """
 
-        self.executed += 1
         # Keep pylint quiet
         del stdin
         # This is an abstract method
         raise DockerNotImplementedError
-
-    # Impl. specific stubb, can't be a function
-    def execute_calls(self):  # pylint: disable=R0201
-        """
-        Returns the number of times ``execute()`` has been called
-
-        :raise DockerRuntimeError: if unsupported by subclass
-        """
-
-        raise DockerRuntimeError
 
     @property
     def docker_options(self):
@@ -231,7 +214,7 @@ class DockerCmdBase(object):
         """
 
         if self._cmdresult is None:
-            self._cmdresult = utils.CmdResult(command=self.command)
+            return None
         return self._cmdresult
 
     @cmdresult.setter
@@ -266,7 +249,9 @@ class DockerCmdBase(object):
                                   self.subcmd)).strip()
 
 
-class DockerCmd(DockerCmdBase):
+# Normally we need two public methods minimum, however extensions
+# will be made to this class in the future.
+class DockerCmd(DockerCmdBase):  # pylint: disable=R0903
 
     """
     Setup a call docker subcommand as if by CLI w/ subtest config integration
@@ -295,17 +280,10 @@ class DockerCmd(DockerCmdBase):
         self.cmdresult = utils.run(self.command, timeout=self.timeout,
                                    stdin=stdin, verbose=False,
                                    ignore_status=True)
-        self.executed += 1
         if self.verbose:
             self.subtest.logdebug(str(self))
         # Return value, not reference
         return self.cmdresult
-
-    def execute_calls(self):
-        """
-        Return the number of times ``execute()`` has been called
-        """
-        return self.executed
 
 
 class AsyncDockerCmd(DockerCmdBase):
@@ -342,7 +320,6 @@ class AsyncDockerCmd(DockerCmdBase):
             else:
                 str_stdin = ""
             self.subtest.logdebug("Async-execute: %s%s", str(self), str_stdin)
-        self.executed += 1
         self._async_job = utils.AsyncJob(self.command, verbose=False,
                                          stdin=stdin, close_fds=True)
         return self.cmdresult
@@ -365,15 +342,6 @@ class AsyncDockerCmd(DockerCmdBase):
                                   timeout)
         self._async_job.wait_for(timeout)
         return self.cmdresult
-
-    def update_result(self):
-        """
-        Deprecated, do not use
-
-        :return: Up to date cmdresult value or None if not executed()
-        """
-        self.subtest.logwarning("AsyncDockerCmd.update_result() deprecated, "
-                                "use cmdresult property instead.")
 
     @property
     def done(self):
@@ -408,7 +376,7 @@ class AsyncDockerCmd(DockerCmdBase):
         # FIXME: Can't seem to assign to parent-class property
         #        using private attribute instead, uggg.
         if self._async_job is None:
-            self._cmdresult = utils.CmdResult(command=self.command)
+            return None
         else:
             self._cmdresult = utils.CmdResult(command=self.command,
                                               stdout=self.stdout,

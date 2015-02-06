@@ -192,7 +192,6 @@ class rm_sub_base(SubSubtest):
                      wait_start)
         time.sleep(wait_start)
         dkrcmd = self.sub_stuff['dkrcmd']
-        dkrcmd.update_result()
         self.logdebug("Container status: %s", dkrcmd.cmdresult)
         self.failif(dkrcmd.done, "Container exited before it could be "
                                  "removed.  See debug log for details")

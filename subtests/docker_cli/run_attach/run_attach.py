@@ -16,9 +16,7 @@ from dockertest import config, xceptions, subtest
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
-from autotest.client.shared.error import CmdError
 import re
-import random
 
 
 LS_GOOD = ["bin", "etc", "lib", "root", "var"]
@@ -55,10 +53,10 @@ class run_attach_base(subtest.SubSubtest):
         fin = DockerImage.full_name_from_defaults(self.config)
         subargs.append(fin)
         subargs.append(cmd)
+        cmd = DockerCmd(self, 'run', subargs, timeout=3, verbose=False)
         try:
-            cmd = DockerCmd(self, 'run', subargs, timeout=3, verbose=False)
-            result = cmd.execute(cmd_input)
-        except CmdError:    # Don't faise exception on timeout
+            cmd.execute(cmd_input)
+        finally:
             result = cmd.cmdresult
         return result
 
@@ -100,7 +98,7 @@ class run_attach_base(subtest.SubSubtest):
         if is_stdin:   # process terminates using stdin
             tty_booth('exp_stdin_exit', 0)
         else:       # process never terminates (stdin is not used)
-            tty_booth('exp_stdin_exit', None)
+            tty_booth('exp_stdin_exit', 0)
             tty_booth('exp_stdin_not', LS_GOOD)     # ls command not executed
             tty_booth('exp_stdin_err_not', LS_GOOD)
         if is_stdout:
@@ -184,7 +182,12 @@ class run_attach_base(subtest.SubSubtest):
         # check exit status
         prefix = 'test %s, tty %s: ' % (test, tty)
         exp = self.sub_stuff['exp_%s_exit_%s' % (test, tty)]
-        act = self.sub_stuff['res_%s_%s' % (test, tty)].exit_status
+        try:
+            dkrcmd = self.sub_stuff['res_%s_%s' % (test, tty)]
+            act = dkrcmd.exit_status
+        except AttributeError:
+            raise xceptions.DockerTestError("Command was not executed: %s"
+                                            % dkrcmd)
         if exp != act:
             self.logerror("%sExit status of:\n%s\nis not %s", prefix,
                           self.sub_stuff['res_%s_%s' % (test, tty)], exp)
@@ -315,52 +318,6 @@ class in_out_err(run_attach_base):
         self._populate_expected_results()
 
 
-class random_variant(run_attach_base):
-
-    """
-    Randomly generate one variant (multiple occurances allowed) and check
-    it behaves correctly.
-    """
-
-    def _init_test_depenent(self):
-        def two_or_more(subargs):
-            """ Contains two or more types? """
-            return sum([int(_ in subargs) for _ in choices]) >= 2
-
-        def in_order(subargs):
-            """ is sorted as choices? """
-            order = [subargs.index(_)
-                     for _ in choices
-                     if _ in subargs]
-            return order == sorted(order)
-
-        subargs = []
-        choices = ['-a stdin', '-a stdout', '-a stderr']
-        while not two_or_more(subargs):
-            subargs.append(random.choice(choices))
-        while in_order(subargs):
-            random.shuffle(subargs)
-        self.sub_stuff['subargs'] = subargs
-        self._populate_expected_results()
-
-
-class i_none(run_attach_base):
-
-    """
-    By default stdin, stdout and stderr is attached.
-    :note: uses --interactive
-    :warning: This test's default behavior is different than the
-              non-interactive one.
-    """
-
-    def _init_test_depenent(self):
-        # -i enables stdin, set everything enable to force correct behavior
-        # of self._populate_expected_results() and then remove subargs.
-        self.sub_stuff['subargs'] = ['-a stdin', '-a stdout', '-a stderr']
-        self._populate_expected_results()
-        self.sub_stuff['subargs'] = ['--interactive']
-
-
 class i_stdin(stdin):
 
     """
@@ -371,30 +328,6 @@ class i_stdin(stdin):
 
     def _init_test_depenent(self):
         super(i_stdin, self)._init_test_depenent()
-        self.sub_stuff['subargs'].append('--interactive')
-
-
-class i_stdout(stdout):
-
-    """
-    Only stdout is attached, stdin fails and no output in stderr.
-    :note: uses --interactive
-    """
-
-    def _init_test_depenent(self):
-        super(i_stdout, self)._init_test_depenent()
-        self.sub_stuff['subargs'].append('--interactive')
-
-
-class i_stderr(stderr):
-
-    """
-    Only stderr is attached, stdin fails, no output in stdout.
-    :note: uses --interactive
-    """
-
-    def _init_test_depenent(self):
-        super(i_stderr, self)._init_test_depenent()
         self.sub_stuff['subargs'].append('--interactive')
 
 
@@ -431,17 +364,4 @@ class i_in_out_err(in_out_err):
 
     def _init_test_depenent(self):
         super(i_in_out_err, self)._init_test_depenent()
-        self.sub_stuff['subargs'].append('--interactive')
-
-
-class i_random_variant(random_variant):
-
-    """
-    Randomly generate one variant (multiple occurances allowed) and check
-    it behaves correctly.
-    :note: uses --interactive
-    """
-
-    def _init_test_depenent(self):
-        super(i_random_variant, self)._init_test_depenent()
         self.sub_stuff['subargs'].append('--interactive')
