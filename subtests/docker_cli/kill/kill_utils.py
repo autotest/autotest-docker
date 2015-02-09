@@ -15,7 +15,6 @@ from dockertest.containers import DockerContainers
 from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood, mustpass
-from dockertest.xceptions import DockerExecError
 
 
 SIGNAL_MAP = {1: 'HUP', 2: 'INT', 3: 'QUIT', 4: 'ILL', 5: 'TRAP', 6: 'ABRT',
@@ -237,16 +236,6 @@ class kill_base(subtest.SubSubtest):
             self.failif(kill_result.exit_status != 0, "Exit status of the %s "
                         "command was not 0 (%s)"
                         % (kill_result.command, kill_result.exit_status))
-        # FIXME: Return number of container changed:
-        # with tty=on `docker kill` => 0
-        # with tty=off `docker kill` => 255
-        # bash `kill -9 $cont_pid` => 137
-        # if 'container_results' in self.sub_stuff:
-        #     OutputGood(self.sub_stuff['container_results'])
-        #     self.failif((self.sub_stuff['container_results'].exit_status
-        #                  not in (255, -9)), "Exit status of the docker run "
-        #                 "command wasn't 255, nor -9 (%s)"
-        #                 % self.sub_stuff['container_results'].exit_status)
 
     def pre_cleanup(self):
         """
@@ -269,14 +258,8 @@ class kill_base(subtest.SubSubtest):
             msg = ("Multiple containers matches name %s, not removing any of "
                    "them...", name)
             raise xceptions.DockerTestError(msg)
-        args = ['--force', '--volumes', name]
-        for _ in xrange(3):
-            try:
-                mustpass(DockerCmd(self, 'rm', args).execute())
-                break
-            except DockerExecError, details:
-                self.logwarning("Unable to remove docker container: %s " %
-                                details)
+        mustpass(DockerCmd(self, 'rm', ['--force', '--volumes', name],
+                           verbose=False).execute())
 
     def cleanup(self):
         super(kill_base, self).cleanup()
@@ -342,9 +325,6 @@ class kill_check_base(kill_base):
         """
         Checks that all signals from stopped_log are present in container_out
         """
-        # TODO: Signals 20, 21 and 22 are not reported after SIGCONT
-        #       even thought they are reported when docker is not
-        #       stopped.
         if stopped_log:
             endtime = time.time() + timeout
             _idx = container_out.idx

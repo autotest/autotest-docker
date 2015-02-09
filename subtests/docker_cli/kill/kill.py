@@ -17,10 +17,8 @@ Operational Summary
 #. execute docker kill no_iteration times
 #. analyze results
 """
-from dockertest import subtest, xceptions
+from dockertest import subtest
 from kill_utils import kill_check_base
-import subprocess
-from autotest.client.shared.utils import wait_for
 
 
 class kill(subtest.SubSubtestCaller):
@@ -64,45 +62,6 @@ class random_name(kill_check_base):
     postprocess:
     5) analyze results
     """
-
-
-class go_lang_bad_signals(kill_check_base):
-
-    """
-    Tests signals, which are not forwarded due of outstanding Golang bug.
-
-    initialize:
-    1) start VM with test command
-    run_once:
-    2) execute specific series of kill signals and checks the output
-    postprocess:
-    3) analyze results
-    """
-
-    def _check_signal(self, container_out, _check, signal, timeout):
-        """
-        Inverse container check for $signal check output presence
-        """
-        _idx = container_out.idx
-        check = _check % signal
-        output_matches = lambda: check in container_out.get(_idx)
-        # Wait until the signal gets logged
-        if wait_for(output_matches, timeout, step=0) is not None:
-            msg = ("Signal %s present inside container althought according to"
-                   " documentation it should not be forwarded/handled."
-                   "Container output:\n  %s"
-                   % (signal, "\n  ".join(container_out.get(_idx))))
-            self.logdebug(msg)
-            raise xceptions.DockerTestFail("Signal documented as non-"
-                                           "forwardable present in the output")
-
-    def postprocess(self):
-        super(go_lang_bad_signals, self).postprocess()
-        self.failif(subprocess.call("man docker run | grep -q '%s'"
-                                    % self.config['man_regexp'], shell=True),
-                    "`man docker run` doesn't contain warning about missing "
-                    "signals defined by expr '%s'"
-                    % (self.config['man_regexp']))
 
 
 class run_sigproxy(kill_check_base):

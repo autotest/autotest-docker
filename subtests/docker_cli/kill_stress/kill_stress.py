@@ -148,23 +148,13 @@ class stress_ttyoff(stress):
     tty = False
 
 
-class run_sigproxy_stress(stress):
-
-    """ direct kill variant of the stress test """
-
-
-class run_sigproxy_stress_ttyoff(run_sigproxy_stress):
+class run_sigproxy_stress_ttyoff(stress):
 
     """ non-tty variant of the run_sigproxy_stress test """
     tty = False
 
 
-class attach_sigproxy_stress(stress):
-
-    """ attached container direct kill variant of the stress test """
-
-
-class attach_sigproxy_stress_ttyoff(attach_sigproxy_stress):
+class attach_sigproxy_stress_ttyoff(stress):
 
     """ non-tty variant of the attach_sigproxy_stress test """
     tty = False
