@@ -118,7 +118,7 @@ class run_dns(subtest.Subtest):
         for bad_dns in ("bad.dns", "256.0.0.1", "1.1.1.256", "19216801",
                         "4.2.2.1.1"):
             self._execute_bad([bad_dns], None)
-        for bad_search in ("bad search", "-example", "exam..ple", 'X'*300):
+        for bad_search in ("bad search", "-example", "exam..ple", 'X' * 300):
             self._execute_bad(None, [bad_search])
 
     def generate_ipaddr(self, mask=None):

@@ -2,6 +2,7 @@
 
 TMPFILENAME="/tmp/run_pylint_$RANDOM"
 PEP8=`which pep8`
+PEP8IGNORE='E731'
 MSGFMT='{msg_id}:{line:3d},{column}: {obj}: {msg}'
 # Disable 'line too long' - will be picked up by pep8
 # Check "note" (W0511) separetly
@@ -75,7 +76,7 @@ check_dockertest() {
     fi
     if [ -n "$PEP8" ]
     then
-        $PEP8 "$WHAT"
+        $PEP8 --ignore=$PEP8IGNORE "$WHAT"
         record_return $?
     fi
 }
@@ -115,7 +116,7 @@ check_subtest() {
     fi
     if [ -n "$PEP8" ]
     then
-        $PEP8 "$WHAT"
+        $PEP8 --ignore=$PEP8IGNORE "$WHAT"
         record_return $?
     fi
 }

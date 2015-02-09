@@ -25,6 +25,10 @@ Docker Autotest |version|
    defaults
    subtests
 
+.. contents::
+   :depth: 1
+   :local:
+
 ----------------
 Introduction
 ----------------
@@ -569,6 +573,10 @@ Dockertest |release| API Reference
 
 Covers |release| and all revisions.
 
+.. contents::
+   :depth: 1
+   :local:
+
 Dockertest Package
 ========================
 
@@ -596,7 +604,6 @@ Containers Module
 .. automodule:: dockertest.containers
    :members:
    :no-undoc-members:
-
 
 Environment Module
 ===================
