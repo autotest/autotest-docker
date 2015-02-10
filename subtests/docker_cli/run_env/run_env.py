@@ -49,11 +49,11 @@ from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.output import mustpass
+from dockertest.config import get_as_list
 from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtestCaller, SubSubtest
 
 
-# FIXME: Remove this when BZ1131592 is resolved
 class InteractiveAsyncDockerCmd(AsyncDockerCmd):
 
     """
@@ -70,7 +70,6 @@ class InteractiveAsyncDockerCmd(AsyncDockerCmd):
                                                         subargs, timeout,
                                                         verbose)
         self._stdin = None
-        self._stdout_idx = 0
 
     def execute(self, stdin=None):
         """
@@ -127,6 +126,7 @@ class run_env_base(SubSubtest):
 
     # Note: requires: container, port, data
     python_client = (
+        """import sys\n"""
         """import socket\n"""
         """import os\n"""
         """# run_env_base.get_env() depends on this behavior\n"""
@@ -142,11 +142,12 @@ class run_env_base(SubSubtest):
         """print sock.recv(1024)\n"""
         """sock.close()\n"""
         """\n"""
-        """exit()\n"""
+        """sys.exit(0)\n"""
     )
 
     # Note: requires: port
     python_server = (
+        """import sys\n"""
         """import socket\n"""
         """import os\n"""
         """# run_env_base.get_env() depends on this behavior\n"""
@@ -166,7 +167,7 @@ class run_env_base(SubSubtest):
         """\n"""
         """conn.close()\n"""
         """\n"""
-        """exit()\n"""
+        """sys.exit(0)\n"""
     )
 
     def record_iptables(self, label):
@@ -212,7 +213,9 @@ class run_env_base(SubSubtest):
         fin = DockerImage.full_name_from_defaults(self.config)
         subargs.append(fin)
         subargs.append(cmd)
-        dkrcmd = InteractiveAsyncDockerCmd(self, 'run', subargs, verbose=False)
+        dkrcmd = InteractiveAsyncDockerCmd(self, 'run', subargs)
+        dkrcmd.verbose = True
+        dkrcmd.quiet = False
         return dkrcmd, name
 
     def initialize(self):
@@ -259,19 +262,22 @@ class port_base(run_env_base):
 
     def start_server(self):
         params = self.sub_stuff['params']
-        subargs = ['-i', '-t', '-p %s' % params['port'],
-                   '-e ENV_VARIABLE=%s' % self.sub_stuff['server_env']]
-
-        servercmd, server = self.init_container('server', subargs, 'python')
+        subargs = get_as_list(self.config['server_options'])
+        subargs += ['--publish %s' % params['port'],
+                    '-e ENV_VARIABLE=%s' % self.sub_stuff['server_env']]
+        cmd = 'python ' + ' '.join(get_as_list(self.config['python_options']))
+        servercmd, server = self.init_container('server', subargs, cmd)
         self.sub_stuff['server_name'] = server
         servercmd.execute()
         return servercmd
 
     def start_client(self):
         server_name = self.sub_stuff['server_name']
-        subargs = ['-i', '-t', '--link %s:server' % server_name,
-                   '-e ENV_VARIABLE=%s' % self.sub_stuff['client_env']]
-        clientcmd, client = self.init_container('client', subargs, 'python')
+        subargs = get_as_list(self.config['client_options'])
+        subargs += ['--link %s:server' % server_name,
+                    '--env ENV_VARIABLE=%s' % self.sub_stuff['client_env']]
+        cmd = 'python ' + ' '.join(get_as_list(self.config['python_options']))
+        clientcmd, client = self.init_container('client', subargs, cmd)
         self.sub_stuff['client_name'] = client
         clientcmd.execute()
         return clientcmd
@@ -282,9 +288,13 @@ class port_base(run_env_base):
                                   ['--link=true',
                                    '%s/%s' % (client_name, alias)]).execute())
 
-    def wait_for(self, dkrcmd, what, fail_msg, negative=False):
-        result = utils.wait_for(lambda: dkrcmd.stdout.find(what) > -1,
-                                5, step=0.1)
+    def wait_for(self, dkrcmd, what, fail_msg, negative=False, stderr=False):
+        if stderr:
+            func = lambda: dkrcmd.stderr.find(what) > -1
+        else:
+            func = lambda: dkrcmd.stdout.find(what) > -1
+        result = utils.wait_for(func,
+                                self.config['docker_timeout'], step=0.1)
         if negative is False:  # for clarity
             self.failif(result is None, fail_msg)
         else:
@@ -309,15 +319,23 @@ class port(port_base):
         # Server needs to be listening before client tries to connect
         servercmd = self.start_server()
         # Container running properly when python prompt appears
-        self.wait_for(servercmd, '>>> ', "No python prompt from server")
+        self.wait_for(servercmd,
+                      '>>> ',
+                      "No python prompt from server\n%s" % servercmd,
+                      stderr=True)
         servercmd.stdin = str(self.python_server % params)  # str() for clarity
         # Executed python prints this on stdout
         self.wait_for(servercmd, 'Server Listening', "Server not listening")
         clientcmd = self.start_client()
-        self.wait_for(clientcmd, '>>> ', "No python prompt from client")
+        self.wait_for(clientcmd,
+                      '>>> ',
+                      "No python prompt from client\n%s" % clientcmd,
+                      stderr=True)
         clientcmd.stdin = str(self.python_client % params)
         # Executed python includes printing this on stdout
-        self.wait_for(clientcmd, "Client Connecting", "No client connect")
+        self.wait_for(clientcmd,
+                      "Client Connecting",
+                      "No client connect\n%s" % clientcmd)
         # Client will probably exit first
         self.sub_stuff['client_result'] = clientcmd.wait(5)
         self.sub_stuff['server_result'] = servercmd.wait(5)
@@ -382,10 +400,10 @@ class rm_link(port_base):
     def initialize(self):
         self.record_iptables('initial')
         self.logdebug('Restarting docker daemon w/ --icc=false')
+        daemon_options = get_as_list(self.config['daemon_options'])
+        daemon_options.append('--icc=false')
         self.sub_stuff['dd'] = docker_daemon.start(self.config['docker_path'],
-                                                   ['--selinux-enabled',
-                                                    '--icc=false', '-D', '-d',
-                                                    '--storage-opt dm.fs=xfs'])
+                                                   daemon_options)
         self.failif(not docker_daemon.output_match(self.sub_stuff['dd']))
         super(rm_link, self).initialize()
 
@@ -395,14 +413,19 @@ class rm_link(port_base):
         # Server needs to be listening before client tries to connect
         servercmd = self.start_server()
         # Container running properly when python prompt appears
-        self.wait_for(servercmd, '>>> ', "No python prompt from server")
+        self.wait_for(servercmd,
+                      '>>> ',
+                      "No python prompt from server\n%s" % servercmd,
+                      stderr=True)
         self.logdebug("Executing server code...")
         servercmd.stdin = str(self.python_server % params)  # str() for clarity
-        # Executed python prints this on stdout
-        utils.wait_for(lambda: servercmd.stdout.find("Server Listening") > -1,
-                       5, step=0.1)
+        self.wait_for(servercmd, "Server Listening",
+                      "No 'Server Listenting' found in stdout")
         clientcmd = self.start_client()
-        self.wait_for(clientcmd, '>>> ', "No python prompt from client")
+        self.wait_for(clientcmd,
+                      '>>> ',
+                      "No python prompt from client\n%s" % clientcmd,
+                      stderr=True)
 
         self.record_iptables('before_rmlink')
 
@@ -413,7 +436,9 @@ class rm_link(port_base):
         self.logdebug("Executing client code...")
         clientcmd.stdin = str(self.python_client % params)
         # Executed python includes printing this on stdout
-        self.wait_for(clientcmd, "Client Connecting", "No client connect")
+        self.wait_for(clientcmd,
+                      "Client Connecting",
+                      "No client connect\n%s" % clientcmd)
         msg = ("Negative test, but reply received: '%s'" % clientcmd.stdout)
         self.wait_for(clientcmd, 'RESENDING: ', msg, negative=True)
         self.sub_stuff['client_result'] = clientcmd.wait(5)
