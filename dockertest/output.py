@@ -8,7 +8,7 @@ Handlers for command-line output processing, crash/panic detection, etc.
 import re
 from collections import Mapping, MutableSet, Sequence
 from autotest.client import utils
-
+import subprocess
 import xceptions
 from environment import AllGoodBase
 
@@ -469,9 +469,52 @@ class OutputGood(OutputGoodBase):
         :return: True if 'Error: ' does **not** sppear
         """
         for line in output.splitlines():
-            if line.lower().strip().count('error: '):
-                return False
+            return line.lower().strip().find('error:') == -1
         return True
+
+
+class OutputNotBad(OutputGood):
+    """
+    Same as OutputGood, except skip checking error/usage messages by default
+    """
+
+    #: Full command line that outputs string to search for kernel oopses
+    GET_PANIC_CMD = ('journalctl --no-pager --all --reverse '
+                     '--dmesg --boot --priority=warning')
+
+    #: Kernel oops string to look for
+    OOPS_STRING = 'oops'
+
+    #: Caches output value from running GET_PANIC_CMD, None if Error
+    _dmesg_cache = None
+
+    def __init__(self, cmdresult, ignore_error=False, skip=None):
+        defaults = ['error_check', 'usage_check']
+        if skip is None:
+            skip = defaults
+        else:
+            if isinstance(skip, basestring):
+                skip = defaults + [skip]
+            else:
+                skip = defaults + skip
+        super(OutputNotBad, self).__init__(cmdresult, ignore_error, skip)
+
+    def kernel_panic(self, output):
+        """
+        Checks output from ``GET_PANIC_CMD`` for ``OOPS_STRING``
+        """
+        del output  # not used
+        return self.dmesg.lower().strip().find(self.OOPS_STRING) == -1
+
+    @property
+    def dmesg(self):
+        """
+        Represents (cached) ``GET_PANIC_CMD`` output last obtained.
+        """
+        if self._dmesg_cache is None:
+            self._dmesg_cache = subprocess.check_output(self.GET_PANIC_CMD,
+                                                        shell=True)
+        return self._dmesg_cache
 
 
 def wait_for_output(output_fn, pattern, timeout=60, timestep=0.2):
@@ -506,7 +549,7 @@ def mustpass(cmdresult, failmsg=None):
         details = "%s" % cmdresult
     else:
         details = "%s\n%s" % (failmsg, cmdresult)
-
+    OutputNotBad(cmdresult)
     if cmdresult.exit_status != 0:
         raise xceptions.DockerExecError("Unexpected non-zero exit code,"
                                         " details: %s" % details)
@@ -525,7 +568,8 @@ def mustfail(cmdresult, failmsg=None):
         details = "%s" % cmdresult
     else:
         details = "%s\n%s" % (failmsg, cmdresult)
-
+    if cmdresult is not None:
+        OutputNotBad(cmdresult)
     if cmdresult.exit_status == 0:
         raise xceptions.DockerExecError("Unexpected zero exit code,"
                                         " details: %s" % details)
