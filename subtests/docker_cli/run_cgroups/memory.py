@@ -7,8 +7,7 @@ properly.
 
 from dockertest import xceptions
 from dockertest.dockercmd import DockerCmd
-from dockertest.output import mustpass
-from dockertest.output import mustfail
+from dockertest.output import OutputNotBad
 from dockertest.images import DockerImage
 from cgroups_base import cgroups_base
 
@@ -153,6 +152,7 @@ class memory_base(cgroups_base):
 
         for memory in memory_list:
             name = docker_containers.get_unique_name()
+            self.sub_stuff['mem_cntnr_name'] = name
             if self.config['expect_success'] == "PASS":
                 self.sub_stuff['name'].append(name)
             args.append(self.combine_subargs(name,
@@ -161,61 +161,89 @@ class memory_base(cgroups_base):
                                              '/bin/bash'))
         self.sub_stuff['subargs'] = args
         self.sub_stuff['container_memory'] = memory_list
+        self.sub_stuff['memory_containers'] = []
         self.sub_stuff['cgroup_memory'] = []
-        self.sub_stuff['result'] = []
 
     def run_once(self):
         super(memory_base, self).run_once()
-
+        memory_containers = self.sub_stuff['memory_containers']
         for subargs in self.sub_stuff['subargs']:
-            if self.config['expect_success'] == "PASS":
-                memory_container = mustpass(DockerCmd(self,
-                                                      'run -d -t',
-                                                      subargs).execute())
-                long_id = self.container_json(str(subargs[0]).split('=')[1],
-                                              'Id')
-                memory_arg = self.get_value_from_arg(
-                    self.get_arg_from_arglist(subargs, '-m'), ' ', 1)
-                memory = self.split_unit(memory_arg)
-                memory_value = memory[0]
-                memory_unit = memory[1]
+            dkrcmd = DockerCmd(self, 'run -d -i', subargs)
+            dkrcmd.execute()
+            memory_containers.append(dkrcmd)
 
-                cgpath = self.config['cgroup_path']
-                cgvalue = self.config['cgroup_key_value']
-                cgroup_memory = self.read_cgroup(long_id, cgpath, cgvalue)
-                self.sub_stuff['result'].append(self.check_memory(
-                    memory_value, cgroup_memory, memory_unit))
+    def check_result(self, subargs, long_id):
+        """Return dictionary of results from check_memory()"""
+        arg = self.get_arg_from_arglist(subargs, '-m')
+        memory_arg = self.get_value_from_arg(arg, ' ', 1)
+        memory = self.split_unit(memory_arg)
+        memory_value = memory[0]
+        memory_unit = memory[1]
+        cgpath = self.config['cgroup_path']
+        cgvalue = self.config['cgroup_key_value']
+        cgroup_memory = self.read_cgroup(long_id, cgpath, cgvalue)
+        return self.check_memory(memory_value, cgroup_memory, memory_unit)
+
+    def postprocess_positive(self, this_result, passed):
+        self.failif(not isinstance(this_result, dict))
+        status = this_result.keys().pop()
+        if status is "PASS":
+            self.logdebug(this_result)
+            passed.append(True)
+        elif status is 'FAIL':
+            self.logerror(this_result)
+            passed.append(False)
+        else:
+            raise xceptions.DockerTestError("%s invalid result %s"
+                                            % this_result)
+
+    def postprocess_negative(self, this_result, memory_container, passed):
+        if this_result is not None:  # Verify failed
+            self.failif(not isinstance(this_result, dict))
+            status = this_result.keys().pop()
+            if status is "FAIL":
+                self.logdebug("Expected fail: %s", this_result)
+                passed.append(True)
+            elif status is 'FAIL':
+                self.logerror("Unexpected pass: %s", this_result)
+                passed.append(False)
             else:
-                memory_container = mustfail(DockerCmd(self,
-                                                      'run',
-                                                      subargs))
-                # throws exception if exit_status == 0
-                self.sub_stuff['result'] = memory_container.execute()
+                raise xceptions.DockerTestError("%s invalid result %s"
+                                                % this_result)
+        else:  # cgroups could not be checked
+            cmdresult = memory_container.cmdresult
+            exit_status = cmdresult.exit_status
+            if exit_status is None:
+                self.logerror("Unexpected running container: %s",
+                              memory_container)
+                passed.append(False)
+                return
+            # Verify no crashes or oopses
+            OutputNotBad(cmdresult)
+            # Non-zero exit should produce usage/error message
+            if exit_status == 0:
+                self.logerror("Unexpected success: %s" % cmdresult)
+                passed.append(False)
+            else:
+                self.logdebug("Expected failure: %s" % cmdresult)
+                passed.append(True)
 
     def postprocess(self):
         super(memory_base, self).postprocess()
-        fail_content = []
-        fail_check = 0
-        self.logdebug('Result: %s', self.sub_stuff['result'])
-        clsname = self.__class__.__name__
-
-        if self.config['expect_success'] == "PASS":
-            for result in self.sub_stuff['result']:
-                if list(result.keys())[0] is 'PASS':
-                    self.logdebug(result.values())
-                elif list(result.keys())[0] is 'FAIL':
-                    self.logerror("%s failure result value %s",
-                                  clsname, result.values())
-                    fail_content.append(result.values())
-                    fail_check = True
-                else:
-                    raise xceptions.DockerTestNAError("%s invalid result %s"
-                                                      % (clsname,
-                                                         result.keys()[0]))
-            self.failif(fail_check is True,
-                        "%s memory check mismatch %s"
-                        % (clsname, fail_content))
-        else:
-            self.failif(self.sub_stuff['result'].exit_status == 0,
-                        "%s unexpected zero exit status: %s"
-                        % (clsname, self.sub_stuff['result']))
+        passed = []
+        memory_containers = self.sub_stuff['memory_containers']
+        for index, memory_container in enumerate(memory_containers):
+            subargs = self.sub_stuff['subargs'][index]
+            try:
+                # Throws IndexError
+                long_id = memory_container.stdout.splitlines()[0].strip()
+                # Throws DockerIOError
+                this_result = self.check_result(subargs, long_id)
+            except (IndexError, xceptions.DockerIOError):
+                this_result = None
+            if self.config['expect_success'] == "PASS":
+                self.postprocess_positive(this_result, passed)
+            else:  # self.config['expect_success'] == "FAIL":
+                self.postprocess_negative(this_result,
+                                          memory_container, passed)
+        self.failif(not all(passed), "One or more checks failed")
