@@ -36,6 +36,12 @@ Prerequisites
 ---------------
 
 Docker daemon and host-networking setup to allow ICC between containers.
+If iptables is involved, and bridge-networking is in use, verify these
+sysctl's are set to ``1``:
+
+    * net.bridge.bridge-nf-call-arptables
+    * net.bridge.bridge-nf-call-ip6tables
+    * net.bridge.bridge-nf-call-iptables
 """
 import ast
 import os.path
@@ -43,7 +49,7 @@ import random
 import re
 
 from autotest.client import utils
-from dockertest import config, xceptions
+from dockertest import config
 from dockertest import docker_daemon
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd
@@ -52,6 +58,7 @@ from dockertest.output import mustpass
 from dockertest.config import get_as_list
 from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtestCaller, SubSubtest
+from dockertest.output import wait_for_output
 
 
 class InteractiveAsyncDockerCmd(AsyncDockerCmd):
@@ -229,16 +236,9 @@ class run_env_base(SubSubtest):
         super(run_env_base, self).cleanup()
         if not self.config['remove_after_test']:
             return
-        for name in self.sub_stuff['containers']:
-            conts = self.sub_stuff['dc'].list_containers_with_name(name)
-            if conts == []:
-                self.logdebug("Container %s was already removed",
-                              name)
-                continue  # Docker was already removed
-            elif len(conts) > 1:
-                msg = ("Multiple containers match name '%s', not removing any"
-                       " of them...", name)
-                raise xceptions.DockerTestError(msg)
+        for name in self.sub_stuff.get('containers', []):
+            self.logdebug("Killing %s", name)
+            DockerCmd(self, 'kill', [name]).execute()
             self.logdebug("Removing %s", name)
             DockerCmd(self, 'rm', ['--force', '--volumes', name],
                       verbose=False).execute()
@@ -290,15 +290,10 @@ class port_base(run_env_base):
 
     def wait_for(self, dkrcmd, what, fail_msg, negative=False, stderr=False):
         if stderr:
-            func = lambda: dkrcmd.stderr.find(what) > -1
+            func = lambda: dkrcmd.stderr
         else:
-            func = lambda: dkrcmd.stdout.find(what) > -1
-        result = utils.wait_for(func,
-                                self.config['docker_timeout'], step=0.1)
-        if negative is False:  # for clarity
-            self.failif(result is None, fail_msg)
-        else:
-            self.failif(result > -1, fail_msg)  # negative test!
+            func = lambda: dkrcmd.stdout
+        self.failif(negative == wait_for_output(func, what), fail_msg)
 
 
 class port(port_base):
@@ -319,20 +314,24 @@ class port(port_base):
         # Server needs to be listening before client tries to connect
         servercmd = self.start_server()
         # Container running properly when python prompt appears
+        self.logdebug("Waiting for server's python prompt")
         self.wait_for(servercmd,
                       '>>> ',
                       "No python prompt from server\n%s" % servercmd,
                       stderr=True)
         servercmd.stdin = str(self.python_server % params)  # str() for clarity
         # Executed python prints this on stdout
+        self.logdebug("Waiting for server to start listening")
         self.wait_for(servercmd, 'Server Listening', "Server not listening")
         clientcmd = self.start_client()
+        self.logdebug("Waiting for client's python prompt")
         self.wait_for(clientcmd,
                       '>>> ',
                       "No python prompt from client\n%s" % clientcmd,
                       stderr=True)
         clientcmd.stdin = str(self.python_client % params)
         # Executed python includes printing this on stdout
+        self.logdebug("Waiting for client to connect")
         self.wait_for(clientcmd,
                       "Client Connecting",
                       "No client connect\n%s" % clientcmd)
@@ -413,29 +412,33 @@ class rm_link(port_base):
         # Server needs to be listening before client tries to connect
         servercmd = self.start_server()
         # Container running properly when python prompt appears
+        self.logdebug("Waiting for server's python prompt")
         self.wait_for(servercmd,
                       '>>> ',
                       "No python prompt from server\n%s" % servercmd,
                       stderr=True)
         self.logdebug("Executing server code...")
         servercmd.stdin = str(self.python_server % params)  # str() for clarity
+        self.logdebug("Waiting for server to start listening")
         self.wait_for(servercmd, "Server Listening",
                       "No 'Server Listenting' found in stdout")
         clientcmd = self.start_client()
+        self.logdebug("Waiting for client's python prompt")
         self.wait_for(clientcmd,
                       '>>> ',
                       "No python prompt from client\n%s" % clientcmd,
                       stderr=True)
 
+        # To help troubleshoot iptables related problems
         self.record_iptables('before_rmlink')
 
         self.remove_link(self.sub_stuff['client_name'], 'server')
 
         self.record_iptables('after_rmlink')
 
-        self.logdebug("Executing client code...")
         clientcmd.stdin = str(self.python_client % params)
         # Executed python includes printing this on stdout
+        self.logdebug("Waiting for client to connect")
         self.wait_for(clientcmd,
                       "Client Connecting",
                       "No client connect\n%s" % clientcmd)
