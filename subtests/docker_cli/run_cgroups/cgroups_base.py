@@ -32,9 +32,9 @@ class cgroups_base(SubSubtest):
         """
         cgroup_path = cgroups_base.cgroup_fullpath(long_id, path, content)
         if not os.path.exists(cgroup_path):
-            raise xceptions.DockerTestNAError("Docker cgroup path "
-                                              "doesn't exist: %s"
-                                              % cgroup_path)
+            raise xceptions.DockerIOError("Docker cgroup path "
+                                          "doesn't exist: %s"
+                                          % cgroup_path)
         cgroup_file = open(cgroup_path, 'r')
         try:
             cgroup_value = cgroup_file.read()
@@ -64,5 +64,4 @@ class cgroups_base(SubSubtest):
         super(cgroups_base, self).cleanup()
         if self.config['remove_after_test']:
             for name in self.sub_stuff.get('name', []):
-                DockerCmd(self, 'kill', [name]).execute()
                 DockerCmd(self, 'rm', ['--force', name]).execute()

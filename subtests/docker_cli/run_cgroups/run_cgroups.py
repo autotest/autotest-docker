@@ -41,6 +41,10 @@ class cpu_none(cpu_base):
     pass
 
 
+class cpu_overflow(cpu_base):
+    pass
+
+
 class memory_positive(memory_base):
     pass
 

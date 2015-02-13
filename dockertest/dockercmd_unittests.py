@@ -49,8 +49,8 @@ class FakeCmdResult(object):    # pylint: disable=R0903
 
     """ Just pack whatever args received into attributes """
     duration = 123
-    stdout = None
-    stderr = None
+    stdout = "STDOUT"
+    stderr = "STDERR"
     exit_status = 0
 
     def __init__(self, *args, **dargs):

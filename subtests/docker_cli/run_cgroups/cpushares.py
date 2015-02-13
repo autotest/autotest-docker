@@ -28,6 +28,13 @@ class cpu_base(cgroups_base):
         docker_cpushares = int(docker_cpushares)
         cgroup_cpushares = int(cgroup_cpushares)
         json_cpushares = int(json_cpushares)
+        # Default value is 1024 for any zero values
+        if docker_cpushares == 0:
+            docker_cpushares = 1024
+        if cgroup_cpushares == 0:
+            cgroup_cpushares = 1024
+        if json_cpushares == 0:
+            json_cpushares = 1024
         msg = ("Container cpu shares: %s, "
                "cgroup cpu shares: %s, "
                "inspect cpu shares %s"
@@ -52,7 +59,7 @@ class cpu_base(cgroups_base):
         name = self.sub_stuff['name'] = dc.get_unique_name()
         subargs += ['--name=%s' % name,
                     '--detach',
-                    '--tty',
+                    '-i',
                     image,
                     '/bin/bash']
         self.sub_stuff['subargs'] = subargs
