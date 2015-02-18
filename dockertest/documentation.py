@@ -259,7 +259,7 @@ class SubtestDoc(DocBase):
                          subtest module
     """
 
-    fmt = ("``%(name)s`` Subtest\n"
+    fmt = ("``%(name)s`` %(postfix)s\n"
            "=============================="
            "=============================="
            "========\n\n"
@@ -275,8 +275,13 @@ class SubtestDoc(DocBase):
     #: Default base-path to use for all methods requiring one.
     default_base_path = '.'  # important for unittesting!
 
+    #: Top level directory name base and name postfix for instances.
+    tld_name = 'subtests'
+    name_postfix = 'Subtest'
+
     def __init__(self, subtest_path):
         self.subtest_path = subtest_path
+        self.sub_str = {'postfix': self.name_postfix}
         # Not many keys, use same method and instance attributes
         self.sub_method = {'name': self._subs,
                            'docstring': self._subs,
@@ -337,8 +342,8 @@ class SubtestDoc(DocBase):
         return ast.get_docstring(node)
 
     # new_by_name depends on this being static
-    @staticmethod
-    def name(subtest_path):
+    @classmethod
+    def name(cls, subtest_path):
         """
         Return the standardized name for subtest at ``subtest_path``
 
@@ -349,7 +354,7 @@ class SubtestDoc(DocBase):
         subtest_path = os.path.abspath(subtest_path)
         # Assume subtest module filename is last
         subtest_path = os.path.dirname(subtest_path)
-        subtest_name = subtest_path.partition('subtests')[2]
+        subtest_name = subtest_path.partition(cls.tld_name)[2]
         return subtest_name.lstrip('/')
 
     # Makefile depends on this being a static
@@ -365,7 +370,7 @@ class SubtestDoc(DocBase):
         if base_path is None:
             base_path = cls.default_base_path
         subtests = []
-        subtest_path = os.path.join(os.path.abspath(base_path), 'subtests')
+        subtest_path = os.path.join(os.path.abspath(base_path), cls.tld_name)
         for dirpath, _, filenames in os.walk(subtest_path):
             subtest = os.path.basename(dirpath) + '.py'
             if subtest in filenames:
@@ -403,6 +408,30 @@ class SubtestDoc(DocBase):
                                                   SummaryVisitor))
 
 
+# TODO: Fix this pylint with class factory in base-class?
+# Additional public methods not needed, only attributes needed to
+# differientiate.
+class PretestDoc(SubtestDoc):  # pylint: disable=R0903
+    """Subclass to represent pretest module documentation"""
+    #: Top level directory name base and name postfix for instances.
+    tld_name = 'pretests'
+    name_postfix = 'Pre-test'
+
+
+class IntratestDoc(SubtestDoc):  # pylint: disable=R0903
+    """Subclass to represent intratest module documentation"""
+    #: Top level directory name base and name postfix for instances.
+    tld_name = 'intratests'
+    name_postfix = 'Intra-test'
+
+
+class PosttestDoc(SubtestDoc):  # pylint: disable=R0903
+    """Subclass to represent posttest module documentation"""
+    #: Top level directory name base and name postfix for instances.
+    tld_name = 'posttests'
+    name_postfix = 'Post-test'
+
+
 class SubtestDocs(DocBase):
 
     """
@@ -412,6 +441,7 @@ class SubtestDocs(DocBase):
                       Uses ``self.default_base_path`` if None.
     :param exclude: Customized list of subtests to exclude, None for default
     :param SubtestDocClass: Alternate class to use, None for SubtestDoc
+    :param contents: True to prefix with RST ``...contents::`` block.
     """
 
     #: Class to use for instantiating documentation for each subtest
@@ -424,9 +454,16 @@ class SubtestDocs(DocBase):
     default_base_path = '.'
 
     #: Names of any subtests to exclude from documentation
-    exclude = ['example', 'subexample']
+    exclude = ['example', 'subexample', 'pretest_example',
+               'intratest_example', 'posttest_example']
 
-    def __init__(self, base_path=None, exclude=None, subtestdocclass=None):
+    #: Default contents block to include before all other sections
+    contents = ".. contents::\n   :depth: 1\n   :local:\n\n"
+
+    def __init__(self, base_path=None, exclude=None, subtestdocclass=None,
+                 contents=True):
+        if not contents:
+            self.contents = ''
         if base_path is None:
             self.base_path = os.path.abspath(self.default_base_path)
         else:
@@ -446,8 +483,7 @@ class SubtestDocs(DocBase):
                        for name in self.names_filenames
                        if name not in self.exclude]
         subtest_fmt.sort()
-        contents = ".. contents::\n   :depth: 1\n   :local:\n"
-        return "%s\n%s\n" % (contents, '\n\n'.join(subtest_fmt))
+        return "%s%s\n" % (self.contents, '\n\n'.join(subtest_fmt))
 
     @property
     def sub_str(self):

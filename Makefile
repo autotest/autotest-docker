@@ -13,12 +13,6 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 # the i18n builder cannot share the environment and doctrees with the others
 I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
-GET_SUBTESTS_PY = from dockertest.documentation import SubtestDoc; print ' '.join(SubtestDoc.module_filenames())
-GET_INIFILES_PY = from dockertest.documentation import ConfigDoc; print ' '.join(ConfigDoc.ini_filenames())
-
-SUBTESTS = $(shell python -c "${GET_SUBTESTS_PY}")
-INIFILES = $(shell python -c "${GET_INIFILES_PY}")
-
 .PHONY: help clean html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest gettext
 
 all: html
@@ -48,6 +42,7 @@ help:
 clean:
 	-rm -rf $(BUILDDIR)/*
 	-rm -rf subtests.rst
+	-rm -rf additional.rst
 	-rm -rf defaults.rst
 
 html:
