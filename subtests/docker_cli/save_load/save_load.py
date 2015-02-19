@@ -247,8 +247,8 @@ class stressed_load(save_load_base):
         rand_names = []
         while len(rand_names) < self.config['image_count']:
             name = utils.generate_random_string(8).lower()
-            if (name not in rand_names
-                    and not os.path.exists(os.path.join(self.tmpdir, name))):
+            if (name not in rand_names and not
+                    os.path.exists(os.path.join(self.tmpdir, name))):
                 rand_names.append(name)
                 subargs = [self.config['load_cmd'] % {"image": name,
                                                       "tmpdir": self.tmpdir}]

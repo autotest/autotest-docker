@@ -154,8 +154,8 @@ class Worker(object):
             if self.err:    # Looking for error
                 if self.done():
                     break
-                elif (isinstance(self.err, basestring)
-                      and self.err in self.output()):
+                elif (isinstance(self.err, basestring) and
+                      self.err in self.output()):
                     break
             else:       # Looking for 0th iteration
                 done = self.done()

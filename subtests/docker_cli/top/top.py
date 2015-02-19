@@ -177,8 +177,8 @@ class top(subtest.Subtest):
                     "not of 1 line longer (the ps command). Check the output:"
                     "\ncontainer ps:\n%s\ndocker top:\n%s" % (ps, d_top))
         # each bash script generates additional command in loop.
-        self.failif((len(d_top) - 1 < exp_length
-                     or len(d_top) - 1 > 2 * exp_length),
+        self.failif((len(d_top) - 1 < exp_length or
+                     len(d_top) - 1 > 2 * exp_length),
                     "Number of processes is not "
                     "between expected (%s) and 2xexpected:\n%s"
                     % (exp_length, d_top))

@@ -24,6 +24,7 @@ Docker Autotest |version|
 
    defaults
    subtests
+   additional
 
 .. contents::
    :depth: 1
@@ -499,15 +500,15 @@ provided in ``config_defaults/control.ini``.  Obviously this feature is
 not necessarely applicable for alternative or custom control files.
 
 If the default control file finds a ``config_custom/control.ini`` it will be
-loaded in preference to ``config_defaults/control.ini``.  The ``jobs.args``
+loaded in preference to ``config_defaults/control.ini``.  The command-line ``--args``
 list of sub/sub-subtests to consider will augment any also provided by
-the ``subthings`` option value.  Similarly, The ``x=`` and ``i=``
-sub-options in ``jobs.args`` (if found) will augment the ``include``
-and ``exclude`` option values.  Command-line (``jobs.args``) values
+the ``subthings`` option value.  Similarly, any ``x=`` and ``i=``
+sub-options to ``--args`` will augment the ``include``
+and ``exclude`` option values respectively.  Command-line (``--args``) values
 always take precedence over control configuration values.
 
 After parsing all command-line and static ``control.ini`` options,
-a reference copy is stored in ``job.resultdir`` by the control file.
+a reference copy is stored in the autotest results directory for reference.
 The operational list of sub/sub-subtests (after include/exclude/bugzilla
 filtering) is supplied in the ``subtests`` option value.
 
@@ -534,6 +535,19 @@ skip sub/sub-subtests linked to one or more outstanding bugs.  The mapping
 of sub/sub-subtest to bugzilla list is specified in the ``control.ini``
 file under the ``NamesToBZs`` section.  The results of querying bugzilla
 are evaluated last, after the normal include/exclude lists.
+
+Additional Test Trees
+----------------------
+
+The ``control.ini`` file may list relative directory names to be used for
+test modules at different stages.  The ``subtests`` option specifies the
+subdirectory that contains the main tree of tests.  Additional trees can be
+named for executing test modules before, between, and after all subtest
+modules.  They are named ``pretests``, ``intratests``, and ``posttests``.
+
+:note: The include/exclude rules are simplified for additional trees.  Namely
+       they are not filtered by bugzilla, and are susceptible to name collision with
+       the other trees.  Care must be taken in naming modules to avoid collisions.
 
 ------------------------
 Versioning Requirements
@@ -566,6 +580,17 @@ The following sections detail specific sub-tests, their configuration
 and any prerequisites or setup requirements.
 
 .. include:: subtests.rst
+
+
+-------------------------
+Additional Test Modules
+-------------------------
+
+The following section details included ``pretests``, ``intratests``, and ``posttests``
+modules and any prerequisites or setup requirements.
+
+.. include:: additional.rst
+
 
 -------------------------------------
 Dockertest |release| API Reference

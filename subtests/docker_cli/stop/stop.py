@@ -133,8 +133,8 @@ class stop_base(SubSubtest):
             if not container_cmd.done:
                 utils.signal_pid(container_cmd.process_id, 9)
 
-        if (self.config.get('remove_after_test')
-                and self.sub_stuff.get('container_name')):
+        if (self.config.get('remove_after_test') and
+                self.sub_stuff.get('container_name')):
             args = ['--force', '--volumes', self.sub_stuff['container_name']]
             cmdrslt = DockerCmd(self, 'rm', args).execute()
             if cmdrslt.exit_status != 0:

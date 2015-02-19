@@ -298,10 +298,21 @@ mock('autotest.client.shared.utils')
 mock('autotest.client.shared.job')
 mock('autotest.client.job')
 
-# -- Build subtests.rst and defaults.rst ---------------
+# -- Build subtests.rst, additional.rst, and defaults.rst ---------------
 
 from dockertest.documentation import DefaultDoc
 from dockertest.documentation import SubtestDocs
+from dockertest.documentation import PretestDoc
+from dockertest.documentation import IntratestDoc
+from dockertest.documentation import PosttestDoc
 open('defaults.rst', 'w+').write(str(DefaultDoc('config_defaults/defaults.ini')))
 open('subtests.rst', 'w+').write(str(SubtestDocs()))
-
+additional = open('additional.rst', 'w+')
+# Only include contents block once for all three types
+include_contents = True
+for cls in (PretestDoc, IntratestDoc, PosttestDoc):
+    additional.write(str(SubtestDocs(subtestdocclass=cls,
+                                     contents=include_contents)))
+    additional.write('\n\n')
+    if include_contents:
+        include_contents = False
