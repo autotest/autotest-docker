@@ -155,8 +155,8 @@ class sigproxy_base(SubSubtest):
         failures = []
         container_cmd = self.sub_stuff.get('container_cmd')
         # container_cmd might be temporarily mustpassDockerCmd
-        if (container_cmd and hasattr(container_cmd, 'done')
-                and not container_cmd.done):
+        if (container_cmd and hasattr(container_cmd, 'done') and not
+                container_cmd.done):
             utils.signal_pid(container_cmd.process_id, 15)
             if not container_cmd.done:
                 utils.signal_pid(container_cmd.process_id, 9)
