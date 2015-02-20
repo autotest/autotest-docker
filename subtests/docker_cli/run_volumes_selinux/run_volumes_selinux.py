@@ -16,13 +16,15 @@ Operational Summary
 6.  Verify (only) all created files are present
 """
 import os
-import re
 import shutil
 import tempfile
-import time
-
 from autotest.client.shared import utils
-from dockertest import config, xceptions, subtest, dockercmd, environment
+from dockertest import config
+from dockertest import xceptions
+from dockertest import subtest
+from dockertest import dockercmd
+from dockertest import environment
+from dockertest.output import wait_for_output
 from dockertest.containers import DockerContainers
 from dockertest.images import DockerImage
 
@@ -35,104 +37,11 @@ def set_selinux_context(pwd, context=None, recursive=True):
 def get_selinux_context(pwd):
     """ Wrapper around ls to get selinux context """
     out = utils.run("ls -d --scontext %s" % pwd,
-                    10).stdout.strip().splitlines()
+                    10, verbose=False).stdout.strip().splitlines()
     if len(out) != 1:
         raise ValueError("Unable to get %s scontext, multiple dirs match:\n%s"
                          % (pwd, out))
     return out[0].split()[0]
-
-
-class InteractiveAsyncDockerCmd(dockercmd.AsyncDockerCmd):
-
-    """
-    Execute docker command as asynchronous background process on ``execute()``
-    with PIPE as stdin and allows use of stdin(data) to interact with process.
-    """
-
-    def __init__(self, subbase, subcmd, subargs=None, timeout=None,
-                 verbose=True):
-        super(InteractiveAsyncDockerCmd, self).__init__(subbase, subcmd,
-                                                        subargs, timeout,
-                                                        verbose)
-        self._stdin = None
-        self._stdout_idx = 0
-
-    def execute(self, stdin=None):
-        """
-        Start execution of asynchronous docker command
-        """
-        ps_stdin, self._stdin = os.pipe()
-        ret = super(InteractiveAsyncDockerCmd, self).execute(ps_stdin)
-        os.close(ps_stdin)
-        if stdin:
-            for line in stdin.splitlines(True):
-                self.stdin(line)
-        return ret
-
-    def stdin(self, data):
-        """
-        Sends data to stdin (partial send is possible!)
-        :param data: Data to be send
-        :return: Number of written data
-        """
-        return os.write(self._stdin, data)
-
-    def close(self):
-        """
-        Close the pipes (when opened)
-        """
-        if self._stdin:
-            os.close(self._stdin)
-            self._stdin = None
-
-    def __del__(self):
-        """ In case someone forget to run self.close()... """
-        self.close()
-
-
-class Output(object):
-
-    """
-    Wraps object with `.stdout` method and returns only new chars out of it
-    """
-
-    def __init__(self, stuff, idx=None):
-        self.stuff = stuff
-        if idx is None:
-            self.idx = len(stuff.stdout.splitlines())
-        else:
-            self.idx = idx
-
-    def get(self, idx=None):
-        """
-        :param idx: Override last index
-        :return: Output of stuff.stdout from idx (or last read)
-        """
-        if idx is None:
-            idx = self.idx
-        out = self.stuff.stdout.splitlines()
-        self.idx = len(out)
-        return out[idx:]
-
-    def read_until_regexp(self, regexp, timeout=60):
-        """
-        Read until regexp matches the output line (only single line!)
-        :param regexp: re.compile() version of regexp
-        :param timeout: timeout
-        """
-        idx = self.idx
-        end = time.time() + timeout
-        while True:
-            out = self.get()    # Get only new input
-            for line in out:
-                if regexp.match(line):
-                    match = regexp.match(line).groups()
-                    return match, "\n".join(self.get(idx))    # Get full output
-            time.sleep(0.1)
-            if time.time() > end:
-                break
-        raise IOError("Timeout while looking for %s. Output so far:\n%s"
-                      % (regexp.pattern, out))
 
 
 class run_volumes_selinux(subtest.SubSubtestCaller):
@@ -157,15 +66,13 @@ class selinux_base(subtest.SubSubtest):
         self.sub_stuff['dc'] = DockerContainers(self)
         self.sub_stuff['containers'] = []
         self.sub_stuff['volumes'] = set()
+        self.sub_stuff['fds'] = []
 
-    def _init_container(self, volume=False, volumes_from=False):
+    def init_container(self, volume=None, volumes_from=None):
         """
         Starts container
-        :warning: When dkrcmd_cls is of Async type, there is no guarrantee
-                  that it is going to be up&running after return.
         """
-        subargs = [arg for arg in
-                   self.config['run_options_csv'].split(',')]
+        subargs = config.get_as_list(self.config['run_options_csv'])
         if volume:
             subargs.append("--volume %s" % volume)
         if volumes_from:
@@ -176,26 +83,44 @@ class selinux_base(subtest.SubSubtest):
         fin = DockerImage.full_name_from_defaults(self.config)
         subargs.append(fin)
         subargs.append("sh")
-        dkrcmd = InteractiveAsyncDockerCmd(self, 'run', subargs)
-        dkrcmd.execute()
-        return dkrcmd, Output(dkrcmd), name
+        read_fd, write_fd = os.pipe()
+        self.sub_stuff['fds'].append(write_fd)
+        self.sub_stuff['fds'].append(read_fd)
+        dkrcmd = dockercmd.AsyncDockerCmd(self, 'run', subargs)
+        # TODO: Fix use of dkrcmd.stdin when appropriate class mech. available
+        dkrcmd.execute(read_fd)
+        dkrcmd.stdin = write_fd
+        os.close(read_fd)  # no longer needed
+        os.write(write_fd, 'echo "Started"\n')
+        self.failif(not wait_for_output(lambda: dkrcmd.stdout,
+                                        'Started',
+                                        timeout=20),
+                    "Error starting container %s: %s" % (name, dkrcmd))
+        return dkrcmd
 
-    def _check_context_recursive(self, path, context):
+    def check_context_recursive(self, path, context):
         """ Check all files in given $path have the context $context """
         for pwd, _, filenames in os.walk(path):
             for filename in filenames:
                 act = get_selinux_context("%s/%s" % (pwd, filename))
+                self.logdebug("File %s Context: %s",
+                              os.path.join(pwd, filename),
+                              act)
                 self.failif(act != context, "Context of file %s is not %s (%s)"
                             % ("%s/%s" % (pwd, filename), context, act))
 
-    def _init_volume(self, context):
+    def init_volume(self, context):
         """
         Create new dir on host, put a file in it, set $context context
         recursively and check it was set properly.
         :param context: Desired volume context
         :return: path to new directory
         """
-        volume = tempfile.mkdtemp(prefix='volume', dir=self.tmpdir)
+        if self.config['use_system_tmp']:
+            tmp = '/var/tmp'
+        else:
+            tmp = self.tmpdir
+        volume = tempfile.mkdtemp(prefix=self.__class__.__name__, dir=tmp)
         self.sub_stuff['volumes'].add(volume)
         host_file = os.path.join(volume, "hostfile")
         open(host_file, 'w').write("01")
@@ -203,16 +128,16 @@ class selinux_base(subtest.SubSubtest):
         _context = get_selinux_context(volume)
         self.failif(context not in _context, "Newly set context was not set "
                     "properly (set %s, get %s)" % (context, _context))
-        self._check_context_recursive(volume, _context)
+        self.check_context_recursive(volume, _context)
         return volume
 
-    def _touch_and_check(self, cont, volume, filename, context_pre,
-                         should_fail, context_eq):
+    def touch_and_check(self, cont, volume, filename, context_pre,
+                        should_fail, context_eq):
         """
         Touch file $filename using $cont, check it passed/fail and then verify
         context is (not) the same as $context_pre. Also verify all files have
         the same context.
-        :param cont: (dkrcmd, dkrcmd_output, container_name)
+        :param cont: dkrcmd instance
         :param volume: Path to shared volume (on host)
         :param filename: filename to touch on guest (relative to shared volume)
         :param context_pre: Reference context
@@ -220,27 +145,32 @@ class selinux_base(subtest.SubSubtest):
         :param context_eq: Should the context be equal to reference one?
         :return: new context
         """
-        time.sleep(0.5)
-        self.logdebug("Touching /tmp/test/%s in container %s"
-                      % (filename, cont[2]))
-        cont[0].stdin("touch /tmp/test/%s\necho RET: $?\n" % filename)
-        match, out = cont[1].read_until_regexp(re.compile(r'RET: (\d+)$'))
+        self.logdebug("Volume: %s Context: %s", volume,
+                      get_selinux_context(volume))
+        self.logdebug("Touching /tmp/test/%s in container"
+                      % filename)
+        os.write(cont.stdin, "touch /tmp/test/%s\necho RET: $?\n" % filename)
+        match = wait_for_output(lambda: cont.stdout, r'RET:\s+0$', timeout=10)
         if should_fail:
-            self.failif(not int(match[0]), "File creation passed unexpectedly:"
-                        "\n%s" % out)
+            self.failif(match, "File creation passed unexpectedly:"
+                               "\n%s" % cont.stdout)
         else:
-            self.failif(int(match[0]), "Unable to create file:\n%s" % out)
+            self.failif(not match,
+                        "Unable to create file:\n%s"
+                        % cont.stdout)
         context_post = get_selinux_context(volume)
         if context_eq:
-            self.failif(context_pre != context_post, "Selinux context is not"
+            self.failif(context_pre != context_post,
+                        "Selinux context is not"
                         "%s (%s)" % (context_pre, context_post))
         else:
-            self.failif(context_pre == context_post, "Selinux context had not "
+            self.failif(context_pre == context_post,
+                        "Selinux context had not "
                         "change (%s)." % context_post)
-        self._check_context_recursive(volume, context_post)
+        self.check_context_recursive(volume, context_post)
         return context_post
 
-    def _check_all_files(self, volume, exp_files):
+    def check_all_files(self, volume, exp_files):
         """
         Check only exp_files are present in volume
         :param volume: path to shared volume dir (on host)
@@ -256,80 +186,69 @@ class selinux_base(subtest.SubSubtest):
                     % (exp_files.symmetric_difference(act_files), act_files,
                        exp_files))
 
-    def _cleanup_containers(self):
-        """ Cleanup the container """
-        for name in self.sub_stuff.get('containers', []):
-            conts = self.sub_stuff['dc'].list_containers_with_name(name)
-            if conts == []:
-                return  # Docker was created, but apparently doesn't exist
-            elif len(conts) > 1:
-                msg = ("Multiple containers matches name %s, not removing any "
-                       "of them...", name)
-                raise xceptions.DockerTestError(msg)
-            dockercmd.DockerCmd(self, 'rm', ['--force', '--volumes', name],
-                                verbose=False).execute()
-
-    def _cleanup_volumes(self):
-        """ Remove all used volumes on host """
-        for name in self.sub_stuff.get('volumes', []):
-            if os.path.exists(name):
-                shutil.rmtree(name)
-
     def cleanup(self):
         super(selinux_base, self).cleanup()
-        self._cleanup_containers()
-        self._cleanup_volumes()
+        for fd in self.sub_stuff['fds']:
+            try:
+                os.close(fd)
+            except OSError:
+                pass  # closing was the goal
+        if self.config['remove_after_test']:
+            for name in self.sub_stuff['containers']:
+                dockercmd.DockerCmd(self, 'rm', ['--force', '--volumes', name],
+                                    verbose=False).execute()
+        for name in self.sub_stuff['volumes']:
+            if os.path.exists(name):
+                shutil.rmtree(name)
 
 
 class shared(selinux_base):
 
     """
-    Uses flags ``rwz``, which should share volume along all conts
+    Uses flags ``z``, which should share volume along all conts
     """
 
     def run_once(self):
         super(shared, self).run_once()
         # Prepare a volume
-        volume_dir = self._init_volume(self.config['selinux_host'])
+        volume_dir = self.init_volume(self.config['selinux_host'])
         context0 = get_selinux_context(volume_dir)
         # Start first container
-        volume = "%s:/tmp/test:rwz" % volume_dir
-        cont1 = self._init_container(volume)
-        context1 = self._touch_and_check(cont1, volume_dir, 'guest1', context0,
-                                         False, False)
+        cont1 = self.init_container("%s:/tmp/test:z" % volume_dir)
+        context1 = self.touch_and_check(cont1, volume_dir, 'guest1', context0,
+                                        False, False)
         # Start second container
-        cont2 = self._init_container(None, cont1[2])
-        context2 = self._touch_and_check(cont2, volume_dir, 'guest2', context1,
-                                         False, True)
+        cont2 = self.init_container("%s:/tmp/test" % volume_dir)
+        context2 = self.touch_and_check(cont2, volume_dir, 'guest2', context1,
+                                        False, True)
         # Create another one from first container
-        self._touch_and_check(cont1, volume_dir, 'guest1_2', context2,
-                              False, True)
-        self._check_all_files(volume_dir, ('hostfile', 'guest1', 'guest2',
-                                           'guest1_2'))
+        self.touch_and_check(cont1, volume_dir, 'guest1_2', context2,
+                             False, True)
+        self.check_all_files(volume_dir, ('hostfile', 'guest1', 'guest2',
+                                          'guest1_2'))
 
 
 class private(selinux_base):
 
     """
-    Uses flags ``rwZ``, which should restrict volume only to the last created
+    Uses flags ``Z``, which should restrict volume only to the last created
     container
     """
 
     def run_once(self):
         super(private, self).run_once()
         # Prepare a volume
-        volume_dir = self._init_volume(self.config['selinux_host'])
+        volume_dir = self.init_volume(self.config['selinux_host'])
         context0 = get_selinux_context(volume_dir)
         # Start first container
-        volume = "%s:/tmp/test:rwZ" % volume_dir
-        cont1 = self._init_container(volume)
-        context1 = self._touch_and_check(cont1, volume_dir, 'guest1', context0,
-                                         False, False)
+        cont1 = self.init_container("%s:/tmp/test:Z" % volume_dir)
+        context1 = self.touch_and_check(cont1, volume_dir, 'guest1', context0,
+                                        False, False)
         # Start second container
-        cont2 = self._init_container(None, cont1[2])
-        context2 = self._touch_and_check(cont2, volume_dir, 'guest2', context1,
-                                         False, False)
+        cont2 = self.init_container("%s:/tmp/test" % volume_dir)
+        self.touch_and_check(cont2, volume_dir, 'guest2', context1,
+                             True, True)
         # Create another one from first container
-        self._touch_and_check(cont1, volume_dir, 'guest1_2', context2,
-                              True, True)
-        self._check_all_files(volume_dir, ('hostfile', 'guest1', 'guest2'))
+        self.touch_and_check(cont1, volume_dir, 'guest1_2', context1,
+                             False, True)
+        self.check_all_files(volume_dir, ('hostfile', 'guest1', 'guest1_2'))
