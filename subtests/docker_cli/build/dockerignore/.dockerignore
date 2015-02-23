@@ -1,0 +1,5 @@
+Dockerfile
+.dockerignore
+ignored_file
+ignored_dir
+not_ignored_dir/ignored_file

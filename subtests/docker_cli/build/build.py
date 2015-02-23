@@ -149,7 +149,13 @@ class postprocessing(object):
             'img_exst': self.created_image_postprocess,
             '!img_exst': self.created_image_postprocess,
             'intr_exst': self.intermediate_exist_postprocess,
-            '!intr_exst': self.intermediate_exist_postprocess
+            '!intr_exst': self.intermediate_exist_postprocess,
+            'dir_exist': self.filedir_contents_postprocess,
+            '!dir_exist': self.filedir_contents_postprocess,
+            'file_exist': self.filedir_contents_postprocess,
+            '!file_exist': self.filedir_contents_postprocess,
+            'rx_file': self.filedir_contents_postprocess,
+            '!rx_file': self.filedir_contents_postprocess,
         }
 
     def parse_postprocess_commands(self, build_def):
@@ -332,6 +338,42 @@ class postprocessing(object):
         self.logdebug("%s() Last container accounted for", command)
         return True  # pass
 
+    def filedir_contents_postprocess(self, build_def, command, parameter):
+        bad_command = [command.find('file_exist') < 0,
+                       command.find('dir_exist') < 0,
+                       command.find('rx_file') < 0]
+        if all(bad_command):
+            raise DockerTestError('Command error: %s' % command)
+
+        positive = command[0] != '!'
+        # Need a character unlikely in file name
+        params = get_as_list(parameter, ':')
+        path = params[0]
+        try:
+            regex = re.compile(''.join(params[1:]))
+        except IndexError:  # parameter not specified
+            regex = None
+
+        # Only cmd differs between all commands (file, dir, rx).
+        if command.find('file') > -1:
+            cmd = 'cat "%s"' % path
+        else:
+            cmd = 'ls -la "%s"' % path
+        subargs = ['--rm', '--attach', 'stdout', build_def.image_name, cmd]
+        dkrcmd = DockerCmd(self, 'run', subargs, verbose=False)
+        dkrcmd.quiet = True
+        dkrcmd.execute()
+        exists = dkrcmd.exit_status == 0
+        self.logdebug('%s(%s) exists: %s', command, path, exists)
+        if command.find('exist') > -1:
+            return positive == exists
+        if not exists:
+            return False  # guaranteed failure, don't bother searching
+        contents = dkrcmd.stdout.strip()
+        mobj = regex.search(contents)
+        self.logdebug('%s(%s) matches: %s', command, regex.pattern, bool(mobj))
+        return positive == bool(mobj)
+
 
 class build_base(postprocessing, subtest.SubSubtest):
 
@@ -495,3 +537,7 @@ class cache(build_base):
                 del second[key]  # remove 2 key
         super_make_builds = super(cache, self).make_builds
         return super_make_builds(first) + super_make_builds(second)
+
+
+class dockerignore(build_base):
+    pass
