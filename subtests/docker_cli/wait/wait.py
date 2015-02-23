@@ -26,9 +26,8 @@ from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
+from dockertest.output import OutputNotBad
 from dockertest.subtest import SubSubtest
-from dockertest.xceptions import DockerTestFail
-from dockertest.xceptions import DockerOutputError
 from dockertest.xceptions import DockerTestError
 from dockertest.xceptions import DockerTestNAError
 
@@ -95,15 +94,24 @@ class wait_base(SubSubtest):
         cont['test_cmd'] = AsyncDockerCmd(self, "attach", [cont_id])
         cont['test_cmd_stdin'] = cmd
 
-    def init_use_names(self, use_names=False):
-        if use_names:
+    def init_use_names(self, use_names='IDS'):
+        if use_names == 'IDS':  # IDs are already set
+            return
+        else:
+            if use_names == 'RANDOM':    # log the current seed
+                try:
+                    seed = self.config["random_seed"]
+                except ValueError:
+                    seed = random.random()
+                self.logdebug("Using random seed: %s", seed)
+                rand = random.Random(seed)
             conts = self.sub_stuff['containers']
             containers = DockerContainers(self)
             containers = containers.list_containers()
             cont_ids = [cont['id'] for cont in conts]
             for cont in containers:
                 if cont.long_id in cont_ids:
-                    if use_names is not True and random.choice((True, False)):
+                    if use_names == 'RANDOM' and rand.choice((True, False)):
                         continue    # 50% chance of using id vs. name
                     # replace the id with name
                     cont_idx = cont_ids.index(cont.long_id)
@@ -127,8 +135,7 @@ class wait_base(SubSubtest):
                 wait_duration = max(wait_duration, cont['sleep_time'])
             else:
                 subargs.append(cont[1:])
-                msg = ("Error response from daemon: wait: No such container: "
-                       "%s" % cont[1:])
+                msg = self.config['missing_stderr'] % cont[1:]
                 wait_stderr.append(msg)
                 end = True
         self.sub_stuff['wait_stdout'] = '\n'.join(wait_stdout)
@@ -187,14 +194,11 @@ class wait_base(SubSubtest):
                     "Expected: \n%s\n"
                     "in stderr:\n%s" % (self.sub_stuff['wait_stderr'],
                                         result.stderr))
+        OutputNotBad(result)
         if self.sub_stuff['wait_should_fail']:
-            try:
-                OutputGood(result)
-                raise DockerTestFail("Wait command should have failed but "
-                                     "passed instead: %s" % result)
-            except DockerOutputError:
-                self.failif(result.exit_status == 0, "Wait exit_status should "
-                            "be non-zero, but in fact is 0")
+            self.failif(result.exit_status == 0,
+                        "Wait command should have failed but "
+                        "passed instead: %s" % result)
         else:
             OutputGood(result)
             self.failif(result.exit_status != 0, "Wait exit_status should be "
