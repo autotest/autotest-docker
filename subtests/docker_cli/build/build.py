@@ -48,6 +48,9 @@ class build(subtest.SubSubtestCaller):
         self.logdebug("Existing images: %s", ei)
 
     def reset_build_context(self):
+        """
+        Fixup source dir at end of testing to leave it clean for next time.
+        """
         source_dirs = self.config['source_dirs']
         for dir_path in get_as_list(source_dirs):
             # bindir is location of this module
