@@ -528,6 +528,8 @@ class bad_force_rm(build_base):  # negative test
 class rm_false(build_base):
     pass
 
+class jsonvol(build_base):
+    pass
 
 class cache(build_base):
 
