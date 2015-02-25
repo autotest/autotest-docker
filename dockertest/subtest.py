@@ -390,17 +390,19 @@ class SubSubtestCaller(Subtest):
         :raise DockerTestError: On subsubtest ``cleanup()`` failures **only**
         """
         if subsubtest is not None:
+            # Catching general exceptions to allow logging
+            # logging additional details before raising
+            # more general exception.
+            # pylint: disable=W0703
             # Guarantee cleanup() runs even if autotest exception
             self.start_subsubtests[name] = subsubtest
             try:
                 self.try_all_stages(name, subsubtest)
+            except Exception:
+                pass  # Logging error is good enough
             finally:
                 try:
                     subsubtest.cleanup()
-                # Catching general exception to allow logging
-                # logging additional details before raising
-                # more general exception.
-                # pylint: disable=W0703
                 except Exception, detail:
                     self.logtraceback(name,
                                       sys.exc_info(),
