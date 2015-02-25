@@ -404,15 +404,20 @@ class build_base(postprocessing, subtest.SubSubtest):
             # else, fall through, return un-modified dir_path
         return dir_path
 
-    def dockerfile_repo_replace(self, dockerfile_path, with_repo):
+    def dockerfile_replace_line(self, dockerfile_path, from_regex, with_str):
         dockerfile = ''
         with open(dockerfile_path, 'r') as dockerfile_old:
             dockerfile = dockerfile_old.read()
-        dockerfile = self.FROM_REGEX.sub('FROM %s' % with_repo, dockerfile)
+        dockerfile = from_regex.sub(with_str, dockerfile)
         with open(dockerfile_path, 'w+b') as dockerfile_new:
             dockerfile_new.write(dockerfile)
         self.logdebug("Updated Dockerfile:")
         self.logdebug(dockerfile)
+
+    def dockerfile_repo_replace(self, dockerfile_path, with_repo):
+        with_str = ('FROM %s' % with_repo)
+        self.dockerfile_replace_line(dockerfile_path,
+                                     self.FROM_REGEX, with_str)
 
     def initialize_utils(self):
         # Get the latest container (remove all newly created in cleanup
