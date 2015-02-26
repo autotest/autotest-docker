@@ -389,6 +389,7 @@ class build_base(postprocessing, subtest.SubSubtest):
                            'dockercmd',            # Execution state
                            'use_config_repo',      # True/False
                            'dockerfile_dir_path',  # path / url / git repo
+                           'minus_eff',            # None, or ``-f`` opt. val.
                            'base_repo_fqin',       # Substitute for FROM
                            'postproc_cmd_csv'])    # CSV of postprocess steps
 
@@ -411,7 +412,8 @@ class build_base(postprocessing, subtest.SubSubtest):
         dockerfile = from_regex.sub(with_str, dockerfile)
         with open(dockerfile_path, 'w+b') as dockerfile_new:
             dockerfile_new.write(dockerfile)
-        self.logdebug("Updated Dockerfile:")
+        file_name = os.path.basename(dockerfile_path)
+        self.logdebug("Updated %s:", file_name)
         self.logdebug(dockerfile)
 
     def dockerfile_repo_replace(self, dockerfile_path, with_repo):
@@ -438,22 +440,38 @@ class build_base(postprocessing, subtest.SubSubtest):
         # Only replace w/ abs-path if dockerfile_dir_path starts with '/'
         # and if the abs-path points to an existing directory
         dockerfile_dir_path = self.dockerfile_dir_path(dockerfile_dir_path)
+        # Use default 'Dockerfile' or custom -f option
+        minus_eff = source['minus_eff']
+        if minus_eff is not None and minus_eff.strip() != '':
+            minus_eff = minus_eff.strip()
+        else:
+            minus_eff = None
         if use_config_repo:  # Indicates NOT a url / git repo
+            if minus_eff is not None:
+                dockerfile = minus_eff
+            else:
+                dockerfile = 'Dockerfile'
             # Form full path including "Dockerfile"
             full_dockerfile_path = os.path.join(dockerfile_dir_path,
-                                                'Dockerfile')
+                                                dockerfile)
             self.dockerfile_repo_replace(full_dockerfile_path,
                                          base_repo_fqin)
         # else:  dockerfile_dir_path is a url or git repo, read-only
         docker_build_options = source['docker_build_options'].strip()
-        subargs = get_as_list(docker_build_options) + ["-t", image_name,
-                                                       dockerfile_dir_path]
+        docker_build_options = get_as_list(docker_build_options)
+        if minus_eff is not None:
+            docker_build_options += ['-f', minus_eff]
+            #  Workaround BZ 1196814 - CWD must == context with -f option
+            os.chdir(dockerfile_dir_path)
+        subargs = docker_build_options + ["-t", image_name,
+                                          dockerfile_dir_path]
         dockercmd = DockerCmd(self, 'build', subargs, verbose=True)
         # Pass as keywords allows ignoring parameter order
         return [self.BuildDef(image_name=image_name,
                               dockercmd=dockercmd,
                               use_config_repo=use_config_repo,
                               dockerfile_dir_path=dockerfile_dir_path,
+                              minus_eff=minus_eff,
                               base_repo_fqin=base_repo_fqin,
                               postproc_cmd_csv=postproc_cmd_csv)]
 
