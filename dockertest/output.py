@@ -472,6 +472,17 @@ class OutputGood(OutputGoodBase):
             return line.lower().strip().find('error:') == -1
         return True
 
+    @staticmethod
+    def fata_check(output):
+        """
+        Return False if 'FATA[xxxx]' pattern found in output
+
+        :param output: Stripped output string
+        :return: True if 'Error: ' does **not** sppear
+        """
+        regex = re.compile(r'FATA\[\d+')
+        return not bool(regex.search(output))
+
 
 class OutputNotBad(OutputGood):
     """

@@ -36,7 +36,8 @@ class ContainerPort(object):
 
     #: Regex to help extract components from string of format
     #: <host IP>:<host port>->
-    port_split_p = re.compile(r"(\d\.\d\.\d\.\d):(\d+)->(\d+)/([a-z]+)")
+    port_split_p = re.compile(r"\s*(\d\.\d\.\d\.\d):(\d+)\s*"
+                              r"->\s*(\d+)/([a-z]+)\s*")
 
     def __init__(self, container_port, host_port=None,
                  host_ip="0.0.0.0", protocol="tcp"):
@@ -138,3 +139,45 @@ class ContainerPort(object):
         :return: True/False on equality
         """
         return self.portstr == portstr
+
+
+# TODO: Add unittest for PortContainer
+class PortContainer(ContainerPort):
+    """Parser of port string output from port command"""
+
+    port_split_p = re.compile(r"\s*(\d+)/([a-z]+)\s*"
+                              r"->\s*(\d\.\d\.\d\.\d):(\d+)\s*")
+
+    @staticmethod
+    def split_to_component(portstr):
+        """
+        Split published into separate component strings/numbers
+
+        :param portstr: Port info string
+        :return: Iterable of container_port, host_ip, host_port, protocol
+        """
+        try:
+            cppsm = PortContainer.port_split_p.match
+            (host_port, protocol,
+             host_ip, container_port) = cppsm(portstr).groups()
+        except:
+            raise ValueError("port string '%s' doesn't match "
+                             "expected format" % portstr)
+        return int(container_port), int(host_port), host_ip, protocol
+
+    @staticmethod
+    def portstr_from_component(container_port, host_port=None,
+                               host_ip="0.0.0.0", protocol="tcp"):
+        """
+        Port name string from individual components.
+
+        :param container_port: Port number visible inside the container
+        :param host_port: Port number on host container_Port maps to
+        :param host_ip: Host interface IP host_port maps to
+        :param protocol: Name of protocol (i.e. ``tcp`` or ``udp``)
+        :return: port string
+        """
+        if container_port is None:
+            container_port = host_port
+        return ("%d/%s -> %s:%d" % (host_port, protocol,
+                                    host_ip, container_port))
