@@ -6,6 +6,7 @@ Handlers for command-line output processing, crash/panic detection, etc.
 # pylint: disable=W0403
 
 import re
+import datetime
 from collections import Mapping, MutableSet, Sequence
 from autotest.client import utils
 import subprocess
@@ -585,3 +586,94 @@ def mustfail(cmdresult, failmsg=None):
         raise xceptions.DockerExecError("Unexpected zero exit code,"
                                         " details: %s" % details)
     return cmdresult
+
+
+# This class inherits a LOT of public methods, but most of what
+# appears here is all 'behind the scenes' stuff for producing
+# imutable instances.
+class DockerTime(datetime.datetime):  # pylint: disable=R0903
+    """
+    Imutable Docker specialized zulu-time representation
+
+    :note: value is undefined when instance == instance.tzinfo.EPOCH.
+           For example, the FinishedAt time of a still-running container
+    :param isostr: ISO 8601 format string
+    :param sep: Optional separation character ('T' by default)
+    :raise: DockerValueError if isostr is unparseable
+    """
+
+    class UTC(datetime.tzinfo):
+        """Singleton representation of UTC timezone and epoch point"""
+
+        #: Zero timedelta offset
+        ZERO = datetime.timedelta(0)
+
+        #: Representation of the beginning of time, created in __new__()
+        EPOCH = datetime.datetime(year=1, month=1, day=1,
+                                  hour=0, minute=0, second=0,
+                                  microsecond=0)
+
+        #: Reference to the singleton instance
+        singleton = None
+
+        def __new__(cls):
+            if cls.singleton is None:
+                cls.singleton = super(DockerTime.UTC, cls).__new__(cls)
+                cls.EPOCH = cls.EPOCH.replace(tzinfo=cls.singleton)
+                # Not an invalid attribute name, this is a constant
+                # value that requires one update to reach it's final
+                # form.
+                cls.singleton.EPOCH = cls.EPOCH  # pylint: disable=C0103
+            return cls.singleton
+
+        @classmethod
+        def utcoffset(cls, dt):
+            del dt  # not needed
+            return cls.ZERO
+
+        @classmethod
+        def tzname(cls, dt):
+            del dt  # not needed
+            return "UTC"
+
+        @classmethod
+        def dst(cls, dt):
+            del dt  # not needed
+            return cls.ZERO
+
+    def __new__(cls, isostr, sep=None):
+        if sep is None:
+            sep = 'T'
+        # datetime can output zulu time but not consume it.
+        base = "%s%s%s" % (r"(\d{4})-(\d{2})-(\d{2})",
+                           sep,
+                           r"(\d{2}):(\d{2}):(\d{2})")
+        regex = re.compile(base + "Z")
+        keys = ('year', 'month', 'day',
+                'hour', 'minute', 'second')
+        mobj = regex.search(isostr)
+        if bool(mobj):
+            values = list(mobj.groups())
+        else:  # Try with interpreted microseconds
+            regex = re.compile(base + r"\.(\d+)")
+            keys = keys + ('microsecond',)
+            mobj = regex.search(isostr)
+            if bool(mobj):
+                values = list(mobj.groups())
+                # Convert seconds decimal fraction into microseconds
+                sec_frac = float("0.%s" % values[-1])
+                values[-1] = int(sec_frac * 1000000)
+            else:
+                raise xceptions.DockerValueError("Malformed zulu string %s"
+                                                 % isostr)
+        # Regex groups are all strings, convert to integers
+        values = [int(value) for value in values]
+        dargs = dict(zip(keys, tuple(values)))
+        dargs['tzinfo'] = cls.UTC()
+        return super(DockerTime, cls).__new__(cls, **dargs)
+
+    def is_undefined(self):
+        """
+        Return True if this instance represents an undefined date & time
+        """
+        return self == self.UTC.EPOCH

@@ -322,5 +322,79 @@ class WaitForOutput(unittest.TestCase):
         pass
 
 
+class TestDtFromIso(unittest.TestCase):
+
+    def setUp(self):
+        import output
+        self.utc = output.DockerTime.UTC()
+        self.dockertime = output.DockerTime
+        from datetime import datetime
+        self.datetime = datetime
+
+    def test_zero(self):
+        epoch_str = "0001-01-01T00:00:00Z"
+        epoch_dt = self.dockertime(epoch_str)
+        expected = self.datetime(year=1, month=1, day=1,
+                                 hour=0, minute=0, second=0,
+                                 tzinfo=self.utc)
+        self.assertEqual(epoch_dt, expected)
+
+    def test_zero_point_zero(self):
+        import datetime
+        epoch_str = "0001-01-01T00:00:00.0Z"
+        epoch_dt = self.dockertime(epoch_str)
+        expected = epoch_dt.tzinfo.EPOCH
+        self.assertEqual(epoch_dt, expected)
+
+
+    def test_sometime(self):
+        import datetime
+        epoch_str = "2015-03-02T17:04:20Z"
+        epoch_dt = self.dockertime(epoch_str)
+        expected = self.datetime(year=2015, month=3, day=2,
+                                 hour=17, minute=4, second=20,
+                                 tzinfo=self.utc)
+        self.assertEqual(epoch_dt, expected)
+
+    def test_sometime_point(self):
+        import datetime
+        epoch_str = "2015-03-02T17:04:20.569502125Z"
+        epoch_dt = self.dockertime(epoch_str)
+        expected = self.datetime(year=2015, month=3, day=2,
+                                 hour=17, minute=4, second=20,
+                                 microsecond=569502, tzinfo=self.utc)
+        self.assertEqual(epoch_dt, expected)
+
+    def test_sometime_point_less(self):
+        import datetime
+        epoch_str = "2015-03-02T17:04:20.569Z"
+        epoch_dt = self.dockertime(epoch_str)
+        expected = self.datetime(year=2015, month=3, day=2,
+                                 hour=17, minute=4, second=20,
+                                 microsecond=569000, tzinfo=self.utc)
+        self.assertEqual(epoch_dt, expected)
+
+    def test_sometime_point_more(self):
+        import datetime
+        epoch_str = "2015-03-02T17:04:20.12345678901234567890Z"
+        epoch_dt = self.dockertime(epoch_str)
+        expected = self.datetime(year=2015, month=3, day=2,
+                                 hour=17, minute=4, second=20,
+                                 microsecond=123456, tzinfo=self.utc)
+        self.assertEqual(epoch_dt, expected)
+
+
+    def test_is_undefined(self):
+        dt = self.dockertime("0001-01-01T00:00:00Z")
+        self.assertTrue(dt.is_undefined)
+
+    def test_isoformat(self):
+        # Have to normalize representation first for comparison
+        dt = self.dockertime("2015-03-02T17:04:20.12345678901234567890Z")
+        normalized_isoformat = dt.isoformat()
+        dt = self.dockertime(normalized_isoformat)
+        test_isoformat = dt.isoformat()
+        self.assertEqual(normalized_isoformat, test_isoformat)
+
 if __name__ == '__main__':
     unittest.main()
