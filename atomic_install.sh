@@ -33,11 +33,11 @@ cp ${DOCKER_AUTOTEST_DIR}/config_defaults/defaults.ini ${HOST}${CONFDIR}/${NAME}
 
 for ini in $(grep --files-with-matches -r __example__ \
                   --exclude defaults.ini \
+                  --exclude subtests/example.ini \
                   ${DOCKER_AUTOTEST_DIR}/config_defaults)
 do
-    echo "$ini" > /dev/stderr
-    cat $ini > /dev/stdout
+    cat $ini
     echo
-done > ${HOST}${CONFDIR}/${NAME}/config.ini
+done >> ${HOST}${CONFDIR}/${NAME}/config.ini
 
 echo -e "\nDone.  Start testing with 'atomic run docker_autotest'"
