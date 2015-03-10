@@ -91,5 +91,4 @@ RUN chmod +x ${DOCKER_AUTOTEST_DIR}/config_value.py && \
 RUN export
 # Setup harness versions the moment before execution but allow additional
 # command line options from docker run
-ENTRYPOINT ["/bin/sh","-c", \
-            "git reset --hard `cat .autotest_version` && cd tests/docker && git reset --hard `cat .dockertest_version` && cd ${AUTOTEST_PATH}/client && ./autotest-local run docker"]
+ENTRYPOINT git reset --hard `cat .autotest_version` && cd tests/docker && git reset --hard `cat .dockertest_version` && cd ${AUTOTEST_PATH}/client && ./autotest-local run docker
