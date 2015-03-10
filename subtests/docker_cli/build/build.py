@@ -59,8 +59,10 @@ class build(subtest.SubSubtestCaller):
             dst = os.path.join(self.srcdir, dir_path)
             src = os.path.abspath(src)
             dst = os.path.abspath(dst)
-            assert len(dst) > 5   # some minor protection
-            assert len(src) > 5
+            self.failif(len(dst) < 5,
+                        "Destination dir %s seems too short" % dst)
+            self.failif(len(src) < 5,
+                        "Source dir %s seems too short" % src)
             shutil.rmtree(dst, ignore_errors=True)
             shutil.copytree(src, dst)
 
