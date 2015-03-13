@@ -33,7 +33,7 @@ sys.path.insert(0, os.path.abspath('dockertest'))
 # -- General configuration -----------------------------------------------------
 
 #: If your documentation needs a minimal Sphinx version, state it here.
-# needs_sphinx = '1.0'
+needs_sphinx = '1.2'
 
 #: Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
@@ -116,7 +116,7 @@ html_theme_path = []
 
 #: The name for this set of Sphinx documents.  If None, it defaults to
 #: "<project> v<release> documentation".
-html_title = None
+html_title = "Docker Autotest Documentation"
 
 #: A shorter title for the navigation bar.  Default is the same as html_title.
 html_short_title = None
