@@ -21,7 +21,7 @@ before_script:
     - sudo apt-get -y --force-yes install autotest
 
 install:
-    - pip install Pylint Pep8 Sphinx
+    - pip install Pylint==1.4.1 Pep8==1.6.2 Sphinx==1.2.2
 
 script:
     - SPHINXOPTS="-W" make
