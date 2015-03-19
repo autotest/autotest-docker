@@ -546,3 +546,36 @@ class DockerContainers(object):
                              % name)
         else:
             raise ValueError("Multiple containers found with name: %s" % cnts)
+
+    def clean_all(self, containers):
+        """
+        Remove all containers not configured to preserve
+
+        :param containers: Iterable sequence of container **names**
+        """
+        if not hasattr(containers, "__iter__"):
+            raise TypeError("clean_all() called with non-iterable.")
+        if isinstance(containers, basestring):
+            raise TypeError("clean_all() called with a string, "
+                            "instead of an interable of strings.")
+        preserve_cnames = self.subtest.config.get('preserve_cnames')
+        if preserve_cnames is not None and preserve_cnames.strip() != '':
+            preserve_cnames = get_as_list(preserve_cnames)
+        else:
+            preserve_cnames = []
+        preserve_cnames = set(preserve_cnames)
+        # TODO: Set non-verbose once code stabalized
+        self.verbose = True
+        try:
+            for name in containers:
+                name = name.strip()
+                if name in preserve_cnames:
+                    continue
+                try:
+                    self.subtest.logdebug("Cleaning %s", name)
+                    self.docker_cmd("rm --force --volumes %s" % name,
+                                    self.timeout)
+                except error.CmdError:
+                    continue
+        finally:
+            self.verbose = DockerContainers.verbose

@@ -23,7 +23,6 @@ from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtest
 from dockertest.output import mustpass
 from dockertest.dockercmd import DockerCmd
-from dockertest.xceptions import DockerExecError
 
 
 class restart(subtest.SubSubtestCaller):
@@ -153,27 +152,10 @@ class restart_base(SubSubtest):
                                                            check))
 
     def cleanup(self):
-        # Removes the docker safely
         super(restart_base, self).cleanup()
-        if self.sub_stuff.get('container_id') is None:
-            return  # Docker was not created, we are clean
-        containers = DockerContainers(self)
-        cont_id = self.sub_stuff['container_id']
-        conts = containers.list_containers_with_cid(cont_id)
-        if conts == []:
-            return  # Container created, but doesn't exist.  Desired end-state.
-        elif len(conts) > 1:
-            msg = ("Multiple containers matches id %s, not removing any of "
-                   "them...", cont_id)
-            raise xceptions.DockerTestError(msg)
-        args = ['--force', '--volumes', cont_id]
-        for _ in xrange(3):
-            try:
-                mustpass(DockerCmd(self, 'rm', args).execute())
-                break
-            except DockerExecError, details:
-                self.logwarning("Unable to remove docker container: %s " %
-                                details)
+        if self.config['remove_after_test']:
+            dc = DockerContainers(self)
+            dc.clean_all([self.sub_stuff.get('container_id')])
 
 
 class nice(restart_base):

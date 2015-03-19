@@ -88,11 +88,11 @@ class create_base(SubSubtest):
     def cleanup(self):
         super(create_base, self).cleanup()
         if self.config['remove_after_test']:
+            preserve_cnames = get_as_list(self.config['preserve_cnames'])
             # One last cleanup try based on what is known
-            if self.sub_stuff['dkrcmd'] is not None:
-                DockerCmd(self, 'rm',
-                          ['--force', '--volumes',
-                           self.sub_stuff['name']]).execute()
+            if self.sub_stuff['name'] not in preserve_cnames:
+                DockerCmd(self, 'rm', ['--force', '--volumes',
+                                       self.sub_stuff['name']]).execute()
 
 
 class create_true(create_base):
@@ -101,7 +101,3 @@ class create_true(create_base):
 
 class create_false(create_base):
     pass  # Only change is in configuration
-
-
-# TODO: Add test to check created container is never running w/in some timeout
-# TODO: Add test to check container creat w/ output never produce on stdout

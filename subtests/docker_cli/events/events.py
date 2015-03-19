@@ -33,7 +33,6 @@ from dockertest.output import mustpass
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.xceptions import DockerValueError
 
-# TODO: Turn this into a general module?
 cid_regex = re.compile(r'\s+([a-z0-9]{64})\:\s+')
 dt_regex = re.compile(r'(\d{4})-(\d{2})-(\d{2})\S+'  # date part
                       r'(\d{2}):(\d{2}):(\d{2})\S+'  # time part
@@ -87,7 +86,6 @@ def event_operation(line):
 
 
 def event_details(line):
-    # TODO: An event class object?
     return {'datetime': event_dt(line),
             'source': event_source(line),
             'operation': event_operation(line)}
@@ -261,10 +259,4 @@ class events(Subtest):
         super(events, self).cleanup()
         if self.config['remove_after_test']:
             cid = self.stuff['nfdc_cid']
-            dc = self.stuff['dc']
-            try:
-                dc.kill_container_by_long_id(cid)
-            except ValueError:
-                pass  # container isn't running, this is fine.
-            dcmd = DockerCmd(self, 'rm', ['--force', '--volumes', cid])
-            dcmd.execute()  # don't care if this fails
+            DockerCmd(self, 'rm', ['--force', '--volumes', cid]).execute()

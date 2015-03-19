@@ -11,13 +11,11 @@ Operational Summary
 #. try to kill nonexisting container
 """
 import time
-from dockertest import config, xceptions, subtest
+from dockertest import config, subtest
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd, AsyncDockerCmd
 from dockertest.output import mustfail
-from dockertest.output import mustpass
 from dockertest.images import DockerImage
-from dockertest.xceptions import DockerExecError
 
 
 class kill_bad(subtest.SubSubtestCaller):
@@ -88,33 +86,11 @@ class kill_bad_base(subtest.SubSubtest):
         """
         super(kill_bad_base, self).postprocess()
 
-    def _cleanup_container(self):
-        """
-        Cleanup the container
-        """
-        if self.sub_stuff.get('container_name') is None:
-            return  # Docker was not created, we are clean
-        containers = DockerContainers(self)
-        name = self.sub_stuff['container_name']
-        conts = containers.list_containers_with_name(name)
-        if conts == []:
-            return  # Docker was created, but apparently doesn't exist, clean
-        elif len(conts) > 1:
-            msg = ("Multiple containers matches name %s, not removing any of "
-                   "them...", name)
-            raise xceptions.DockerTestError(msg)
-        args = ['--force', '--volumes', name]
-        for _ in xrange(3):
-            try:
-                mustpass(DockerCmd(self, 'rm', args).execute())
-                break
-            except DockerExecError, details:
-                self.logwarning("Unable to remove docker container: %s " %
-                                details)
-
     def cleanup(self):
         super(kill_bad_base, self).cleanup()
-        self._cleanup_container()
+        if self.config['remove_after_test']:
+            dc = DockerContainers(self)
+            dc.clean_all([self.sub_stuff.get("container_name")])
 
 
 class bad(kill_bad_base):

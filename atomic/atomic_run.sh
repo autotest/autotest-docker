@@ -24,12 +24,12 @@ REVORDER=$(for TARGET in ${MNTORDER}; do echo ${TARGET}; done | sort -r)
 
 MOUNTS=""
 cleanup() {
-    umount ${ROOT}${DOCKER_BIN_PATH} &> /dev/null
+    umount ${ROOT}${DOCKER_BIN_PATH}
     for TARGET in $REVORDER
     do
         if echo "$TARGET" | egrep -q "(/proc)|(/dev)|(/run)|(/sys)"
         then
-            umount ${ROOT}${TARGET} &> /dev/null
+            umount ${ROOT}${TARGET}
         fi
     done
 }
@@ -59,5 +59,7 @@ export PATH="/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/
 export LC_ALL="C"
 echo -e "\nAutotest args: $@\n"
 /sbin/chroot "${ROOT}" ${AUTOTEST_PATH}/client/autotest-local run docker $@
+echo -e "\nWaiting for all autotest threads to terminate..."
+sleep 5s
 echo -e "\nAutotest exit: $?\n"
-echo -e "\nResults are in: ${ROOT}${AUTOTEST_PATH}/client/results/\n"
+echo -e "\nResults are in: ${ROOT}/results\n"

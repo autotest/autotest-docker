@@ -21,6 +21,7 @@ Prerequisites
 
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import mustpass
+from dockertest.config import get_as_list
 from dockertest.images import DockerImage
 from dockertest.containers import DockerContainers
 from dockertest.subtest import SubSubtest
@@ -71,8 +72,10 @@ class diff_base(SubSubtest):
     def cleanup(self):
         super(diff_base, self).cleanup()
         if self.config['remove_after_test']:
-            dkrcmd = DockerCmd(self, 'rm', [self.sub_stuff['name']])
-            dkrcmd.execute()
+            preserve_cnames = get_as_list(self.config['preserve_cnames'])
+            if self.sub_stuff['name'] not in preserve_cnames:
+                DockerCmd(self, 'rm', ['--force', '--volumes',
+                                       self.sub_stuff['name']]).execute()
 
 
 class diff_add(diff_base):

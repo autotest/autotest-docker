@@ -17,8 +17,8 @@ Operational Summary
 
 import time
 from autotest.client import utils
-from autotest.client.shared import error
 from dockertest.subtest import SubSubtest
+from dockertest.containers import DockerContainers
 from dockertest.images import DockerImages
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
@@ -118,28 +118,13 @@ class commit_base(SubSubtest):
 
     def cleanup(self):
         super(commit_base, self).cleanup()
-        # Auto-converts "yes/no" to a boolean
-        if (self.config['remove_after_test'] and
-                'image_list' in self.sub_stuff):
-            dkrcmd = DockerCmd(self, "rm", ['--volumes', '--force',
-                                            self.sub_stuff["container"]])
-            cmdresult = dkrcmd.execute()
-            msg = (" removed test container: %s" % self.sub_stuff["container"])
-            if cmdresult.exit_status == 0:
-                self.loginfo("Successfully" + msg)
-            else:
-                self.logwarning("Failed" + msg)
-            for image in self.sub_stuff["image_list"]:
-                try:
-                    di = DockerImages(self)
-                    self.logdebug("Removing image %s", image.full_name)
-                    di.remove_image_by_full_name(image.full_name)
-                    self.loginfo("Successfully removed test image: %s",
-                                 image.full_name)
-                except error.CmdError, e:
-                    error_text = "tagged in multiple repositories"
-                    if error_text not in e.result_obj.stderr:
-                        raise
+        if self.config['remove_after_test']:
+            dc = DockerContainers(self)
+            dc.clean_all(self.sub_stuff.get("container", []))
+            di = di = DockerImages(self)
+            images = [img.full_name
+                      for img in self.sub_stuff.get("image_list", [])]
+            di.clean_all(images)
 
     def check_file_in_image(self):
         commit_changed_files = self.config["commit_changed_files"]

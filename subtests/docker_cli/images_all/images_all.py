@@ -19,13 +19,12 @@ Operational Summary
 *  Between steps 4-7 verify `docker images` and `docker history`
 """
 
-from dockertest import config, xceptions
+from dockertest import config
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import mustpass
 from dockertest.images import DockerImage, DockerImages
 from dockertest.subtest import SubSubtestCaller, SubSubtest
-from autotest.client.shared import error
 
 
 class images_all(SubSubtestCaller):
@@ -144,44 +143,13 @@ class images_all_base(SubSubtest):
                                 "\n%s\n%s" % (parent, image[0], history,
                                               err_str()))
 
-    def _cleanup_containers(self):
-        """
-        Cleanup the containers defined in self.sub_stuff['containers']
-        """
-        for name in self.sub_stuff['containers']:
-            # This test might set this to True, ensure it's false
-            self.sub_stuff['dc'].get_size = False
-            conts = self.sub_stuff['dc'].list_containers_with_name(name)
-            if conts == []:
-                return  # Docker was already removed
-            elif len(conts) > 1:
-                msg = ("Multiple containers match name '%s', not removing any"
-                       " of them...", name)
-                raise xceptions.DockerTestError(msg)
-            DockerCmd(self, 'rm', ['--force', '--volumes', name],
-                      verbose=False).execute()
-
-    def _cleanup_images(self):
-        """
-        Cleanup the images defined in self.sub_stuff['images']
-        """
-        images = self.sub_stuff['di']
-        for image in self.sub_stuff["images"]:
-            all_imgs = (images.list_imgs_full_name() +
-                        images.list_imgs_ids())
-            if image not in all_imgs:
-                continue    # Image already removed
-            try:
-                images.remove_image_by_full_name(image)
-            except error.CmdError, exc:
-                error_text = "tagged in multiple repositories"
-                if error_text not in exc.result_obj.stderr:
-                    raise
-
     def cleanup(self):
         super(images_all_base, self).cleanup()
-        self._cleanup_containers()
-        self._cleanup_images()
+        if self.config['remove_after_test']:
+            dc = self.sub_stuff['dc']
+            dc.clean_all(self.sub_stuff.get("containers"))
+            di = self.sub_stuff['di']
+            di.clean_all(self.sub_stuff.get("images"))
 
 
 class two_images_with_parents(images_all_base):

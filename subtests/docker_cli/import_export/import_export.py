@@ -66,29 +66,11 @@ class import_export_base(SubSubtest):
 
     def cleanup(self):
         super(import_export_base, self).cleanup()
-        # Auto-converts "yes/no" to a boolean
         if self.config['remove_after_test']:
-            for cont in self.sub_stuff["containers"]:
-                dkrcmd = DockerCmd(self, "rm", ['--volumes', '--force', cont])
-                cmdresult = dkrcmd.execute()
-                msg = (" removed test container: %s" % cont)
-                if cmdresult.exit_status == 0:
-                    self.logdebug("Successfully" + msg)
-                else:
-                    self.logwarning("Failed" + msg)
-            for image in self.sub_stuff["images"]:
-                try:
-                    di = DockerImages(self)
-                    self.logdebug("Removing image %s", image)
-                    di.remove_image_by_full_name(image)
-                    self.logdebug("Successfully removed test image: %s",
-                                  image)
-                except xceptions.DockerCommandError, e:
-                    error_text = "tagged in multiple repositories"
-                    if error_text not in e.result_obj.stderr:
-                        raise
-                except xceptions.DockerTestError:
-                    pass  # best effort removal, maybe image wasn't there
+            dc = DockerContainers(self)
+            dc.clean_all(self.sub_stuff.get("containers"))
+            di = DockerImages(self)
+            di.clean_all(self.sub_stuff.get("images"))
 
 
 class simple(import_export_base):

@@ -12,8 +12,8 @@ import hashlib
 import os.path
 from autotest.client import utils
 from dockertest.dockercmd import AsyncDockerCmd
-from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
+from dockertest.containers import DockerContainers
 from run_volumes import volumes_base
 
 
@@ -28,7 +28,7 @@ class volumes_one_source(volumes_base):
         cntr_path = self.config['cntr_path']
         host_path = self.tmpdir
         self.set_selinux_context(self, host_path)
-        vols = ['--volume="%s:%s"' % (host_path, cntr_path)]
+        vols = ['--volume="%s:%s:Z"' % (host_path, cntr_path)]
         fqin = [DockerImage.full_name_from_defaults(self.config)]
         for _ in range(num_containers):
             name = utils.generate_random_string(12)
@@ -72,6 +72,5 @@ class volumes_one_source(volumes_base):
     def cleanup(self):
         super(volumes_one_source, self).cleanup()
         if self.config['remove_after_test']:
-            for name in self.sub_stuff['names']:
-                dkrcmd = DockerCmd(self, 'rm', [name])
-                dkrcmd.execute()
+            dc = DockerContainers(self)
+            dc.clean_all(self.sub_stuff.get("names"))

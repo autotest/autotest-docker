@@ -39,12 +39,9 @@ class pull_base(SubSubtest):
     def initialize(self):
         super(pull_base, self).initialize()
         config.none_if_empty(self.config)
-        # Private to this instance, outside of __init__
 
     def run_once(self):
         super(pull_base, self).run_once()
-        # 1. Run with no options
-
         dkrcmd = AsyncDockerCmd(self, 'pull',
                                 self.complete_docker_command_line(),
                                 self.config['docker_pull_timeout'])
@@ -85,16 +82,11 @@ class pull_base(SubSubtest):
 
     def cleanup(self):
         super(pull_base, self).cleanup()
-        # Auto-converts "yes/no" to a boolean
-        if (self.config['remove_after_test'] and
-                'image_list' in self.sub_stuff):
-            for image in self.sub_stuff["image_list"]:
-                try:
-                    di = DockerImages(self)
-                    di.remove_image_by_image_obj(image)
-                    self.loginfo("Successfully removed test image")
-                except error.CmdError:
-                    self.logwarning("Image not exist.")
+        if self.config['remove_after_test']:
+            di = DockerImages(self)
+            images = [image.full_name
+                      for image in self.sub_stuff.get("image_list", [])]
+            di.clean_all(images)
 
 
 def check_registry(registry_addr):

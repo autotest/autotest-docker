@@ -8,6 +8,7 @@ from dockertest.output import mustpass
 from dockertest.dockercmd import DockerCmd
 from dockertest.containers import DockerContainers
 from dockertest.subtest import SubSubtest
+from dockertest.config import get_as_list
 
 
 class cgroups_base(SubSubtest):
@@ -63,5 +64,7 @@ class cgroups_base(SubSubtest):
     def cleanup(self):
         super(cgroups_base, self).cleanup()
         if self.config['remove_after_test']:
+            preserve_cnames = get_as_list(self.config['preserve_cnames'])
             for name in self.sub_stuff.get('name', []):
-                DockerCmd(self, 'rm', ['--force', name]).execute()
+                if name not in preserve_cnames:
+                    DockerCmd(self, 'rm', ['--force', name]).execute()

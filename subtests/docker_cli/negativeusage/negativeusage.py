@@ -71,10 +71,15 @@ class negativeusage(subtest.SubSubtestCaller):
         # Cannot predict what images/containers will be created
         # clean everything not existing in initialize()
         super(negativeusage, self).cleanup()
+        if not self.config['remove_after_test']:
+            return
+        preserve_fqins = config.get_as_list(self.config['preserve_fqins'])
+        preserve_cnames = config.get_as_list(self.config['preserve_cnames'])
         dc = self.stuff['dc']
-        ecs = self.stuff['existing_containers']
+        ecs = self.stuff['existing_containers'] + preserve_cnames
         di = self.stuff['di']
         eis = self.stuff['existing_images'] + [di.default_image]
+        eis += preserve_fqins
         for cid in dc.list_container_ids():
             if cid not in ecs:
                 # Sub-subtests should have cleaned up for themselves
@@ -186,6 +191,8 @@ class Base(subtest.SubSubtest):
 
     def cleanup(self):
         super(Base, self).cleanup()
+        if not self.config['remove_after_test']:
+            return
         if len(self.sub_stuff.get('RUNCNTR', [])):
             dockercmd.DockerCmd(self, 'kill',
                                 [self.sub_stuff['RUNCNTR']]).execute()

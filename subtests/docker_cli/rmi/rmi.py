@@ -26,8 +26,8 @@ from dockertest.output import DockerVersion
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import mustpass
-from dockertest.xceptions import DockerCommandError
 from dockertest.xceptions import DockerTestNAError
+from dockertest.containers import DockerContainers
 
 
 class rmi(subtest.SubSubtestCaller):
@@ -47,7 +47,6 @@ class rmi_base(SubSubtest):
     def initialize(self):
         super(rmi_base, self).initialize()
         config.none_if_empty(self.config)
-
         self.sub_stuff["image_name"] = None
         self.sub_stuff["containers"] = []
 
@@ -114,23 +113,13 @@ class rmi_base(SubSubtest):
         super(rmi_base, self).cleanup()
         di = DockerImages(self)
         # Auto-converts "yes/no" to a boolean
-        if (self.config['remove_after_test'] and
-                'image_list' in self.sub_stuff):
-            for cont in self.sub_stuff["containers"]:
-                clean_cont = DockerCmd(self, "rm", ['--force', cont],
-                                       self.config['docker_rmi_timeout'])
-                mustpass(clean_cont.execute())
-            for image in self.sub_stuff["image_list"]:
-                # If removal by name fails, try id
-                try:
-                    try:
-                        di.remove_image_by_full_name(image.full_name)
-                    except DockerCommandError:
-                        di.remove_image_by_id(image.long_id)
-                except DockerCommandError:
-                    self.logwarning("Image not exist or failed"
-                                    " to remove image.")
-                self.loginfo("Successfully removed test image")
+        if self.config['remove_after_test']:
+            dc = DockerContainers(self)
+            dc.clean_all(self.sub_stuff.get("containers"))
+            di = DockerImages(self)
+            imgs = [img.full_name
+                    for img in self.sub_stuff.get("image_list", [])]
+            di.clean_all(imgs)
 
     def check_image_exists(self, full_name):
         di = DockerImages(self)

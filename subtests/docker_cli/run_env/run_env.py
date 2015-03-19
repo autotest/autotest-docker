@@ -214,7 +214,8 @@ class run_env_base(SubSubtest):
         :return: tuple(dkrcmd, name)
         """
         name = self.sub_stuff['dc'].get_unique_name(prefix)
-        subargs.append("--name %s" % name)
+        subargs.append("--name")
+        subargs.append(name)
         self.logdebug("Queuing container %s for removal", name)
         self.sub_stuff['containers'].append(name)
         fin = DockerImage.full_name_from_defaults(self.config)
@@ -234,14 +235,9 @@ class run_env_base(SubSubtest):
 
     def cleanup(self):
         super(run_env_base, self).cleanup()
-        if not self.config['remove_after_test']:
-            return
-        for name in self.sub_stuff.get('containers', []):
-            self.logdebug("Killing %s", name)
-            DockerCmd(self, 'kill', [name]).execute()
-            self.logdebug("Removing %s", name)
-            DockerCmd(self, 'rm', ['--force', '--volumes', name],
-                      verbose=False).execute()
+        if self.config['remove_after_test']:
+            dc = DockerContainers(self)
+            dc.clean_all(self.sub_stuff.get("containers", []))
 
 
 class port_base(run_env_base):
@@ -493,7 +489,7 @@ class rm_link(port_base):
 
     def cleanup(self):
         self.record_iptables('final')
+        super(rm_link, self).cleanup()
         if self.sub_stuff.get('dd') is not None:
             self.logdebug('Recovering docker daemon to original state')
             docker_daemon.restart_service(self.sub_stuff['dd'])
-        super(rm_link, self).cleanup()

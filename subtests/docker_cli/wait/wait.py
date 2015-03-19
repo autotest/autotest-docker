@@ -122,7 +122,7 @@ class wait_base(SubSubtest):
             raise DockerTestNAError("No container specified in config. to "
                                     "wait_for.")
         conts = self.sub_stuff['containers']
-        end = False
+        end = self.config['invert_missing']
         wait_duration = 0
         wait_stdout = []
         wait_stderr = []
@@ -135,11 +135,11 @@ class wait_base(SubSubtest):
                 wait_duration = max(wait_duration, cont['sleep_time'])
             else:
                 subargs.append(cont[1:])
-                msg = self.config['missing_stderr'] % cont[1:]
-                wait_stderr.append(msg)
+                regex = self.config['missing_stderr'] % cont[1:]
+                wait_stderr.append(regex)
                 end = True
-        self.sub_stuff['wait_stdout'] = '\n'.join(wait_stdout)
-        self.sub_stuff['wait_stderr'] = '\n'.join(wait_stderr)
+        self.sub_stuff['wait_stdout'] = wait_stdout
+        self.sub_stuff['wait_stderr'] = wait_stderr
         self.sub_stuff['wait_should_fail'] = end
         self.sub_stuff['wait_duration'] = wait_duration
         self.sub_stuff['wait_cmd'] = DockerCmd(self, 'wait', subargs,
@@ -175,8 +175,8 @@ class wait_base(SubSubtest):
             self.logdebug("Executing %s, stdin %s", cont['test_cmd'],
                           cont['test_cmd_stdin'])
             cont['test_cmd'].execute(cont['test_cmd_stdin'] + "\n")
-        result = self.sub_stuff['wait_cmd'].execute()
-        self.sub_stuff['wait_results'] = result
+        self.sub_stuff['wait_cmd'].execute()
+        self.sub_stuff['wait_results'] = self.sub_stuff['wait_cmd'].cmdresult
         self.logdebug("Wait finished, sleeping for %ss for non-tested "
                       "containers to finish.", self.sub_stuff['sleep_after'])
         time.sleep(self.sub_stuff['sleep_after'])
@@ -184,31 +184,49 @@ class wait_base(SubSubtest):
     def postprocess(self):
         # Check if execution took the right time (SIGTERM 0s vs. SIGKILL 10s)
         super(wait_base, self).postprocess()
-        result = self.sub_stuff['wait_results']
+        wait_results = self.sub_stuff['wait_results']
 
-        self.failif(self.sub_stuff['wait_stdout'] not in result.stdout,
-                    "Expected: \n%s\n"
-                    "in stdout:\n%s" % (self.sub_stuff['wait_stdout'],
-                                        result.stdout))
-        self.failif(self.sub_stuff['wait_stderr'] not in result.stderr,
-                    "Expected: \n%s\n"
-                    "in stderr:\n%s" % (self.sub_stuff['wait_stderr'],
-                                        result.stderr))
-        OutputNotBad(result)
+        for stdio_name in ('stdout', 'stderr'):
+            result = getattr(wait_results, stdio_name)
+            one_matched = False
+            paterns = self.sub_stuff['wait_%s' % stdio_name]
+            if not paterns:
+                continue
+            for pattern in paterns:
+                regex = re.compile(pattern, re.MULTILINE)
+                if bool(regex.search(result)):
+                    one_matched = True
+                    break
+            if self.sub_stuff['wait_should_fail']:
+                condition = one_matched
+            else:
+                condition = not one_matched
+            self.failif(condition,
+                        "Expected %s match one of '%s' in %s:\n%s"
+                        % (condition,
+                           self.sub_stuff['wait_%s' % stdio_name],
+                           stdio_name, result))
+        OutputNotBad(wait_results)
         if self.sub_stuff['wait_should_fail']:
-            self.failif(result.exit_status == 0,
+            self.failif(wait_results.exit_status == 0,
                         "Wait command should have failed but "
-                        "passed instead: %s" % result)
+                        "passed instead: %s" % wait_results)
         else:
-            OutputGood(result)
-            self.failif(result.exit_status != 0, "Wait exit_status should be "
-                        "zero, but is %s instead" % result.exit_status)
+            OutputGood(wait_results)
+            self.failif(wait_results.exit_status != 0,
+                        "Wait exit_status should be "
+                        "zero, but is %s instead" % wait_results.exit_status)
         exp = self.sub_stuff['wait_duration']
-        self.failif(result.duration > exp + 3, "Execution of wait took longer,"
-                    " than expected. (%s %s+-3s)" % (result.duration, exp))
-        self.failif(result.duration < exp - 3, "Execution of wait took less, "
-                    "than expected. (%s %s+-3s)" % (result.duration, exp))
-        for cmd in (cont['test_cmd'] for cont in self.sub_stuff['containers']):
+        self.failif(wait_results.duration > exp + 3,
+                    "Execution of wait took longer,"
+                    " than expected. (%s %s+-3s)"
+                    % (wait_results.duration, exp))
+        self.failif(wait_results.duration < exp - 3,
+                    "Execution of wait took less, "
+                    "than expected. (%s %s+-3s)"
+                    % (wait_results.duration, exp))
+        for cmd in (cont['test_cmd']
+                    for cont in self.sub_stuff['containers']):
             self.failif(not cmd.done, "Wait passed even thought one of the "
                         "test commands execution did not finish...\n%s")
             OutputGood(cmd.wait(0))

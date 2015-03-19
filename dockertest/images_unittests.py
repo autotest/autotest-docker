@@ -36,9 +36,18 @@ class FakeCmdResult(object):
         for key, val in dargs.items():
             setattr(self, key, val)
 
+RUN_CACHE = []
+def get_run_cache():
+    global RUN_CACHE
+    return RUN_CACHE
+
+def kill_run_cache():
+    global RUN_CACHE
+    RUN_CACHE = []
 
 def run(command, *args, **dargs):
     command = "%s" % (command)
+    get_run_cache().append({'command':command, 'args':args, 'dargs':dargs})
     return FakeCmdResult(command=command.strip(),
                          stdout="""
 REPOSITORY                    TAG                 IMAGE ID                                                           CREATED             VIRTUAL SIZE
@@ -156,7 +165,9 @@ class ImageTestBase(unittest.TestCase):
 class DockerImageTestBasic(ImageTestBase):
 
     defaults = {'docker_path': '/foo/bar', 'docker_options': '--not_exist',
-                'docker_timeout': 60.0}
+                'docker_timeout': 60.0, 'docker_repo_name': 'fedora',
+                'docker_repo_tag': 'latest', 'docker_registry_host':'192.168.122.245:5000',
+                'docker_registry_user': '', 'preserve_fqins': 'fedora:32, fedora:heisenbug'}
     customs = {}
     config_section = "Foo/Bar/Baz"
 
@@ -332,6 +343,26 @@ class DockerImageTestBasic(ImageTestBase):
         self.assertEqual(images.docker_cmd("command_pass").command,
                          '/foo/bar command_pass')
 
+    def test_clean_all(self):
+        d = self.images.DockerImages(self.fake_subtest)
+        names = set(d.list_imgs_full_name())
+        # staticly set in fake config, REMOVE names to be preserved
+        preserve = set(['fedora:heisenbug',
+                        'fedora:32',
+                        '192.168.122.245:5000/fedora:latest'])
+        expected = names - preserve
+        kill_run_cache()
+        d.clean_all(names)
+        pfx = '/foo/bar rmi --force '
+        cutlen = len(pfx)
+        cleaned_names = set()
+        for item in get_run_cache():
+            command = item['command']
+            self.assertTrue(command.startswith(pfx))
+            cleaned_names.add(command[cutlen:])
+        # no preserved names should be in either list
+        self.assertEqual(cleaned_names, expected)
+        self.assertTrue(cleaned_names.isdisjoint(preserve))
 
 if __name__ == '__main__':
     unittest.main()

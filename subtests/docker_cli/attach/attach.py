@@ -15,16 +15,12 @@ Operational Summary
 
 import time
 import os
-from autotest.client import utils
-from autotest.client.shared import error
 from dockertest.subtest import SubSubtest
 from dockertest.containers import DockerContainers
 from dockertest.images import DockerImages
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
-from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
-from dockertest.output import mustpass
-from dockertest.xceptions import DockerExecError
+from dockertest.dockercmd import AsyncDockerCmd
 from dockertest import subtest
 
 
@@ -54,35 +50,18 @@ class attach_base(SubSubtest):
 
     def cleanup(self):
         super(attach_base, self).cleanup()
-        # Auto-converts "yes/no" to a boolean
         if self.config['remove_after_test']:
-            for cont in self.sub_stuff["containers"]:
-                args = ['--force', '--volumes', cont]
-                for _ in xrange(3):
-                    try:
-                        mustpass(DockerCmd(self, 'rm', args).execute())
-                        break
-                    except DockerExecError, details:
-                        self.logwarning("Unable to remove docker"
-                                        " container: %s " % details)
-            for image in self.sub_stuff["images"]:
-                try:
-                    di = DockerImages(self)
-                    self.logdebug("Removing image %s", image)
-                    di.remove_image_by_full_name(image)
-                    self.logdebug("Successfully removed test image: %s",
-                                  image)
-                except error.CmdError, e:
-                    error_text = "tagged in multiple repositories"
-                    if error_text not in e.result_obj.stderr:
-                        raise
+            dc = self.sub_stuff["cont"]
+            di = di = DockerImages(self)
+            dc.clean_all(self.sub_stuff["containers"])
+            di.clean_all(self.sub_stuff["images"])
 
 
 class simple_base(attach_base):
 
     def initialize(self):
         super(simple_base, self).initialize()
-        rand_name = utils.generate_random_string(8)
+        rand_name = self.sub_stuff['cont'].get_unique_name()
         self.sub_stuff["rand_name"] = rand_name
         self.sub_stuff["subargs"].insert(0, "--name=\"%s\"" % rand_name)
 
@@ -179,16 +158,16 @@ class simple_base(attach_base):
         self.verify_output()
 
     def cleanup(self):
-        super(simple_base, self).cleanup()
         for fd in self.sub_stuff["file_desc"]:
             os.close(fd)
+        super(simple_base, self).cleanup()
 
 
 class sig_proxy_off_base(attach_base):
 
     def initialize(self):
         super(sig_proxy_off_base, self).initialize()
-        rand_name = utils.generate_random_string(8)
+        rand_name = self.sub_stuff['cont'].get_unique_name()
 
         self.sub_stuff["rand_name"] = rand_name
         self.sub_stuff["subargs"].insert(0, "--name=\"%s\"" % rand_name)
@@ -255,6 +234,6 @@ class sig_proxy_off_base(attach_base):
         self.check_containers(containers)
 
     def cleanup(self):
-        super(sig_proxy_off_base, self).cleanup()
         for fd in self.sub_stuff["file_desc"]:
             os.close(fd)
+        super(sig_proxy_off_base, self).cleanup()

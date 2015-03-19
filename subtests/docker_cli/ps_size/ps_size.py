@@ -11,7 +11,7 @@ Operational Summary
 #.  Execute docker ps -a --size
 #.  Check the sizes are in given limit ($size; 1mb + $limit_per_mb * $size)
 """
-from dockertest import config, xceptions
+from dockertest import config
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import mustpass
@@ -49,26 +49,13 @@ class ps_size_base(SubSubtest):
         self.sub_stuff['dc'] = DockerContainers(self)
         self.sub_stuff['containers'] = []
 
-    def _cleanup_containers(self):
+    def cleanup(self):
         """
         Cleanup the containers defined in self.sub_stuff['containers']
         """
-        for name in self.sub_stuff['containers']:
-            # This test might set this to True, ensure it's false
-            self.sub_stuff['dc'].get_size = False
-            conts = self.sub_stuff['dc'].list_containers_with_name(name)
-            if conts == []:
-                return  # Docker was already removed
-            elif len(conts) > 1:
-                msg = ("Multiple containers match name '%s', not removing any"
-                       " of them...", name)
-                raise xceptions.DockerTestError(msg)
-            DockerCmd(self, 'rm', ['--force', '--volumes', name],
-                      verbose=False).execute()
-
-    def cleanup(self):
-        super(ps_size_base, self).cleanup()
-        self._cleanup_containers()
+        if self.config['remove_after_test']:
+            dc = DockerContainers(self)
+            dc.clean_all(self.sub_stuff.get("containers"))
 
 
 class simple(ps_size_base):

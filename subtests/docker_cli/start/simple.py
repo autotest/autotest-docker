@@ -13,12 +13,11 @@ postprocess:
 7) analyze results
 """
 
-from dockertest import config, subtest, xceptions
+from dockertest import config, subtest
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
 from dockertest.output import mustpass, mustfail
 from dockertest.images import DockerImage
-from dockertest.xceptions import (DockerCommandError, DockerExecError)
 from autotest.client.shared import utils
 
 
@@ -89,15 +88,6 @@ class simple(subtest.SubSubtest):
 
     def cleanup(self):
         super(simple, self).cleanup()
-        cleanup_log = []
         name = self.sub_stuff.get('container_name')
         if name and self.config.get('remove_after_test'):
-            try:
-                mustpass(DockerCmd(self, 'rm',
-                                   ['--force', '--volumes', name]).execute())
-            except (DockerCommandError, DockerExecError), details:
-                cleanup_log.append("docker rm failed: %s" % details)
-        if cleanup_log:
-            msg = "Cleanup failed:\n%s" % "\n".join(cleanup_log)
-            self.logerror(msg)  # message is not logged nicely in exc
-            raise xceptions.DockerTestError(msg)
+            DockerContainers(self).clean_all([name])

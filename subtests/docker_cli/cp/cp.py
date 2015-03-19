@@ -58,8 +58,8 @@ class CpBase(SubSubtest):
         remove_after_test = self.config['remove_after_test']
         # Due to problem with selinux it is necessary to check container_name.
         if remove_after_test and 'container_name' in self.sub_stuff:
-            DockerCmd(self, 'rm',
-                      ["--force", self.sub_stuff['container_name']]).execute()
+            dc = self.sub_stuff['dc']
+            dc.clean_all([self.sub_stuff['container_name']])
 
 
 class simple(CpBase):

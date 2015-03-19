@@ -4,17 +4,21 @@ Utils for ``docker kill`` related tests.
           ``kill,kill_stopped,kill_stress,kill_parallel_stress``
 """
 
+# This library is symlinked for use by several subtests which
+# should eventually be combined.  Ignore unused imports errors for now:
+# pylint: disable=W0611
+
 import itertools
 import os
 import random
 import time
-
 from autotest.client.shared.utils import wait_for
 from dockertest import config, subtest, xceptions
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
-from dockertest.images import DockerImage
+from dockertest.images import DockerImages
 from dockertest.output import OutputGood, mustpass
+from dockertest.images import DockerImage
 
 
 SIGNAL_MAP = {1: 'HUP', 2: 'INT', 3: 'QUIT', 4: 'ILL', 5: 'TRAP', 6: 'ABRT',
@@ -237,44 +241,11 @@ class kill_base(subtest.SubSubtest):
                         "command was not 0 (%s)"
                         % (kill_result.command, kill_result.exit_status))
 
-    def pre_cleanup(self):
-        """
-        Executed before cleanup
-        """
-        pass
-
-    def container_cleanup(self):
-        """
-        Cleanup the container
-        """
-        if self.sub_stuff.get('container_name') is None:
-            return  # Docker was not created, we are clean
-        containers = DockerContainers(self)
-        name = self.sub_stuff['container_name']
-        conts = containers.list_containers_with_name(name)
-        if conts == []:
-            return  # Docker was created, but apparently doesn't exist, clean
-        elif len(conts) > 1:
-            msg = ("Multiple containers matches name %s, not removing any of "
-                   "them...", name)
-            raise xceptions.DockerTestError(msg)
-        mustpass(DockerCmd(self, 'rm', ['--force', '--volumes', name],
-                           verbose=False).execute())
-
     def cleanup(self):
         super(kill_base, self).cleanup()
-        cleanup_log = []
-        for method in ('pre_cleanup', 'container_cleanup'):
-            try:
-                getattr(self, method)()
-            except (xceptions.AutotestError, xceptions.DockerExecError,
-                    xceptions.DockerTestError, KeyError, ValueError,
-                    IOError), details:
-                cleanup_log.append("%s failed: %s" % (method, details))
-        if cleanup_log:
-            msg = "Cleanup failed:\n%s" % "\n".join(cleanup_log)
-            self.logerror(msg)  # message is not logged nicely in exc
-            raise xceptions.DockerTestError(msg)
+        if self.config['remove_after_test']:
+            dc = DockerContainers(self)
+            dc.clean_all([self.sub_stuff.get("container_name")])
 
 
 class kill_check_base(kill_base):

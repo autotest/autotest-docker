@@ -71,7 +71,7 @@ if [ "$?" -ne 0 ]; then exit 1; fi
 echo -e "\nCreating symlink from:\n${HRN}${DOCKER_AUTOTEST_PATH}\nto:\n${HRN}/docker\n"
 cd ${HOST}${HRN}
 ln -s $(echo "${DOCKER_AUTOTEST_PATH}" | cut -c 2-) "docker"
-
+ln -s $(echo "${AUTOTEST_PATH}/client/results/default" | cut -c 2-) "results"
 echo -e "\nSetting up Docker Autotest Configuration..."
 # Setup basic configuration if doesn't exist
 if [ -f "${CONFIGCUSTOM}/control.ini" ]
@@ -80,21 +80,6 @@ then
 else
     echo -e "\nCopying control config to ${HRN}/docker/config_custom/control.ini"
     cp ${CONFIGDEFAULTS}/control.ini ${CONFIGCUSTOM}
-    if [ "$?" -ne 0 ]; then exit 1; fi
-fi
-
-if [ -f "${CONFIGCUSTOM}/defaults.ini" ]
-then
-    echo -e "\nNot overwriting existing defaults.ini"
-else
-    echo -e "\nBuilding env. config ${HRN}/docker/config_custom/defaults.ini"
-    # Test image name was not known until this script
-    sed -re "
-s|docker_path =.*|docker_path = ${DOCKER_BIN_PATH}|
-s|docker_repo_name =.*|docker_repo_name = ${IMAGE}|
-s|docker_registry_host =.*|docker_registry_host =|
-s|docker_registry_user =.*|docker_registry_user =|
-    " ${CONFIGDEFAULTS}/defaults.ini > ${CONFIGCUSTOM}/defaults.ini
     if [ "$?" -ne 0 ]; then exit 1; fi
 fi
 
@@ -115,18 +100,34 @@ else
     if [ "$?" -ne 0 ]; then exit 1; fi
 fi
 
-if [ -f "${CONFIGCUSTOM}/intratests.ini" ]
+if [ -f "${CONFIGCUSTOM}/defaults.ini" ]
 then
-    echo -e "\nNot overwriting existing intratests.ini"
+    echo -e "\nNot overwriting existing defaults.ini"
 else
-    echo -e "\nBuilding inttra-test config. ${HRN}/docker/config_custom/intratests.ini"
+    echo -e "\nBuilding env. config ${HRN}/docker/config_custom/defaults.ini"
+    # Docker autotest does not assume "latest", be explicit:
+    if ! echo -n "${IMAGE}" | grep -q ':'
+    then
+        TEST_IMAGE="${IMAGE}:latest"
+    else
+        TEST_IMAGE="${IMAGE}"
+    fi
+    # These seem to frequently change from relase to release
+    DAEMON_PID=$(cat /run/docker.pid)
+    DAEMON_OPTIONS=$(cat /proc/${DAEMON_PID}/cmdline | tr '\000' ',' | cut -d, -f 2-)
     sed -re "
-s|remove_garbage =.*|remove_garbage = yes|
-s|fail_on_unremoved =.*|fail_on_unremoved = yes|
-s|\s+ATOMIC_DOCKER_AUTOTEST|           ${IMAGE},${PROTECT_IMAGES}|
-s|ignore_cnames =.*|ignore_cnames = ${PROTECT_CONTAINERS}|
-    " ${CONFIGDEFAULTS}/intratests.ini > ${CONFIGCUSTOM}/intratests.ini
+s|docker_path =.*|docker_path = ${DOCKER_BIN_PATH}|
+s|daemon_options =.*|daemon_options = ${DAEMON_OPTIONS}|
+s|docker_repo_name =.*|docker_repo_name = ${IMAGE}|
+s|docker_repo_tag =.*|docker_repo_tag = latest|
+s|docker_registry_host =.*|docker_registry_host =|
+s|docker_registry_user =.*|docker_registry_user =|
+s|^( +)ATOMIC_SUBSTITUTIONS|\1${TEST_IMAGE},\n\1${PROTECT_IMAGES}|
+s|preserve_cnames =.*|preserve_cnames = ${PROTECT_CONTAINERS}|
+    " ${CONFIGDEFAULTS}/defaults.ini > ${CONFIGCUSTOM}/defaults.ini
     if [ "$?" -ne 0 ]; then exit 1; fi
 fi
 
-echo -e "\nDone. Start testing with: atomic run ${IMAGE}"
+echo -e "\nDone."
+echo -e "\nPlease verify 'preserve_images' and 'preserve_cnames' in above env. config."
+echo -e "\nExecute tests with: atomic run ${IMAGE}"

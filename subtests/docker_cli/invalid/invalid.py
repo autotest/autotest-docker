@@ -19,6 +19,7 @@ Operational Summary
 from dockertest import subtest
 from dockertest import config
 from dockertest.dockercmd import DockerCmd
+from dockertest.containers import DockerContainers
 from dockertest.images import DockerImage
 from autotest.client import utils
 
@@ -92,7 +93,7 @@ class invalid_base(subtest.SubSubtest):
             cmdresult = nfdc.execute()
 
             cmdresults.append(cmdresult)
-            self.sub_stuff['container_names'].append(container_name)
+            self.sub_stuff['container_names'].append(container_name[0])
 
         return cmdresults
 
@@ -156,6 +157,6 @@ class invalid_base(subtest.SubSubtest):
 
     def cleanup(self):
         super(invalid_base, self).cleanup()
-        for container in self.sub_stuff['container_names']:
-            cm = DockerCmd(self, "rm", container)
-            cm.execute()
+        if self.config['remove_after_test']:
+            dc = DockerContainers(self)
+            dc.clean_all(self.sub_stuff.get("container_names"))

@@ -11,7 +11,8 @@ ENV VERBOSE="yes" \
     REPO_INSTALL="yum install -y \
 http://linux.mirrors.es.net/fedora-epel/7/x86_64/e/epel-release-7-5.noarch.rpm" \
     INSTALL_RPMS="procps tar findutils bzip2 gdb bridge-utils \
-nfs-utils git glibc-devel python-sphinx python-bugzilla" \
+nfs-utils git glibc-devel python-sphinx python-bugzilla which pylint \
+make python-pep8 python-sphinxcontrib-httpdomain" \
     AUTOTEST_PATH="/usr/local/autotest" \
     DOCKER_AUTOTEST_PATH="/usr/local/autotest/client/tests/docker" \
     DOCKER_BIN_PATH="/usr/bin/docker"
@@ -22,6 +23,7 @@ RUN yum --disablerepo="*-eus-*" --disablerepo="*-htb-*" --disablerepo="*-ha-*" \
         install -y deltarpm yum-utils && \
     yum-config-manager --disable "*-eus-*" "*-htb-*" "*-ha-*" "*-rt-*" \
         "*-lb-*" "*-rs-*" "*-sap-*" "*beta*" &> /dev/null && \
+    yum-config-manager --enable "*-optional-rpms" &> /dev/null && \
     yum update -y && \
     ${REPO_INSTALL} && \
     yum install -y ${INSTALL_RPMS} && \
