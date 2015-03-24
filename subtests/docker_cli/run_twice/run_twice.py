@@ -18,6 +18,7 @@ from dockertest.output import mustpass
 from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
+from dockertest.config import get_as_list
 
 
 class run_twice(subtest.Subtest):
@@ -61,5 +62,8 @@ class run_twice(subtest.Subtest):
     def cleanup(self):
         super(run_twice, self).cleanup()
         if self.config['remove_after_test']:
-            dkrcmd = DockerCmd(self, 'rm', [self.stuff['container_name']])
-            dkrcmd.execute()
+            preserve_cnames = get_as_list(self.config['preserve_cnames'])
+            cname = self.stuff['container_name']
+            if cname not in preserve_cnames:
+                DockerCmd(self, 'rm',
+                          ['--force', '--volumes', cname]).execute()

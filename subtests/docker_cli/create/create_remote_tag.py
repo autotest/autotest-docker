@@ -64,9 +64,12 @@ class create_remote_tag(create_base):
     def cleanup(self):
         # Be certain any containers are removed
         super(create_remote_tag, self).cleanup()
-        # if remote image downloaded, remove it
-        DockerCmd(self, 'rmi',
-                  [self.config["remote_image_fqin"]], verbose=False).execute()
+        if self.config['remove_after_test']:
+            preserve_fqins = get_as_list(self.config['preserve_fqins'])
+            if self.config["remote_image_fqin"] not in preserve_fqins:
+                DockerCmd(self, 'rmi',
+                          ['--force',
+                           self.config["remote_image_fqin"]]).execute()
         # recover original images that had same id
         si = self.sub_stuff['saved_images']
         if si is not None:

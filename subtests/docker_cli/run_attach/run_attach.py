@@ -219,24 +219,11 @@ class run_attach_base(subtest.SubSubtest):
         self.failif(failures, "%s of subtest variants failed, please check "
                     "the log for details." % failures)
 
-    def _cleanup_containers(self):
-        """
-        Cleanup the container
-        """
-        for name in self.sub_stuff['containers']:
-            conts = self.sub_stuff['dc'].list_containers_with_name(name)
-            if conts == []:
-                return  # Docker was already removed
-            elif len(conts) > 1:
-                msg = ("Multiple containers match name '%s', not removing any"
-                       " of them...", name)
-                raise xceptions.DockerTestError(msg)
-            DockerCmd(self, 'rm', ['--force', '--volumes', name],
-                      verbose=False).execute()
-
     def cleanup(self):
         super(run_attach_base, self).cleanup()
-        self._cleanup_containers()
+        if self.config['remove_after_test']:
+            dc = DockerContainers(self)
+            dc.clean_all(self.sub_stuff.get("containers"))
 
 
 class none(run_attach_base):

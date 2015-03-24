@@ -44,9 +44,12 @@ class Base(SubSubtest):
     def cleanup(self):
         super(Base, self).cleanup()
         if self.config['remove_after_test']:
+            preserve_cnames = get_as_list(self.config['preserve_cnames'])
             for cntnr_name in self.sub_stuff['cntnr_names']:
-                DockerCmd(self, 'rm', ['--force', cntnr_name],
-                          verbose=False).execute()
+                if cntnr_name in preserve_cnames:
+                    continue
+                DockerCmd(self, 'rm',
+                          ['--force', cntnr_name]).execute()
 
     @staticmethod
     def scrape_name(subargs):

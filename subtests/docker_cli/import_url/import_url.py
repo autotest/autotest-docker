@@ -21,6 +21,7 @@ from os.path import join
 from hashlib import md5
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
+from dockertest.config import get_as_list
 from dockertest.containers import DockerContainers
 from dockertest.images import DockerImages
 from dockertest.dockercmd import DockerCmd
@@ -64,12 +65,15 @@ class base(SubSubtest):
 
     def cleanup(self):
         super(base, self).cleanup()
-        if not self.config['remove_after_test']:
-            return
-        try:
-            DockerCmd(self, 'rm', [self.sub_stuff['run_name']]).execute()
-        finally:
-            DockerCmd(self, 'rmi', [self.sub_stuff['import_repo']]).execute()
+        if self.config['remove_after_test']:
+            preserve_fqins = get_as_list(self.config['preserve_fqins'])
+            preserve_cnames = get_as_list(self.config['preserve_cnames'])
+            if self.sub_stuff['import_repo'] not in preserve_fqins:
+                DockerCmd(self, 'rmi',
+                          [self.sub_stuff['import_repo']]).execute()
+            if self.sub_stuff['run_name'] not in preserve_cnames:
+                DockerCmd(self, 'rm',
+                          [self.sub_stuff['run_name']]).execute()
 
 
 class md5sum(base):

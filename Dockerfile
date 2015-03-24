@@ -6,15 +6,32 @@ MAINTAINER cevich@redhat.com
 ENV VERBOSE="yes" \
     HOST_ROOT="/var/lib" \
     AUTOTEST_URL="https://github.com/autotest/autotest.git" \
-    DOCKER_AUTOTEST_URL="https://github.com/autotest/autotest-docker.git" \
-    DOCKER_AUTOTEST_BRANCH="master" \
+    PROTECT_IMAGES="stackbrew/centos:7, stackbrew/centos:latest" \
+    PROTECT_CONTAINERS="" \
     REPO_INSTALL="yum install -y \
 http://linux.mirrors.es.net/fedora-epel/7/x86_64/e/epel-release-7-5.noarch.rpm" \
-    INSTALL_RPMS="procps tar findutils bzip2 gdb bridge-utils coreutils \
-nfs-utils git glibc-devel python-sphinx python-bugzilla" \
+    INSTALL_RPMS="procps tar findutils bzip2 gdb bridge-utils \
+nfs-utils git glibc-devel python-sphinx python-bugzilla which pylint \
+make python-pep8 python-sphinxcontrib-httpdomain" \
     AUTOTEST_PATH="/usr/local/autotest" \
     DOCKER_AUTOTEST_PATH="/usr/local/autotest/client/tests/docker" \
     DOCKER_BIN_PATH="/usr/bin/docker"
+################################################################################
+RUN yum --disablerepo="*-eus-*" --disablerepo="*-htb-*" --disablerepo="*-ha-*" \
+        --disablerepo="*-rt-*" --disablerepo="*-lb-*" --disablerepo="*-rs-*" \
+        --disablerepo="*-sap-*" --disablerepo="*beta*" \
+        install -y deltarpm yum-utils && \
+    yum-config-manager --disable "*-eus-*" "*-htb-*" "*-ha-*" "*-rt-*" \
+        "*-lb-*" "*-rs-*" "*-sap-*" "*beta*" &> /dev/null && \
+    yum-config-manager --enable "*-optional-rpms" &> /dev/null && \
+    yum update -y && \
+    ${REPO_INSTALL} && \
+    yum install -y ${INSTALL_RPMS} && \
+    yum clean all && \
+    rm -rf /usr/share/doc/* && \
+    rm -rf /usr/share/man/*
+RUN git clone --single-branch ${AUTOTEST_URL} ${AUTOTEST_PATH}
+WORKDIR ${AUTOTEST_PATH}/client
 ################################################################################
 LABEL INSTALL="/usr/bin/docker run \
 --interactive \
@@ -31,20 +48,11 @@ LABEL INSTALL="/usr/bin/docker run \
 --volume /var/log:/var/log \
 --volume /:/host \
 IMAGE \
-tests/docker/atomic/atomic_install.sh"
+/usr/local/autotest/client/tests/docker/atomic/atomic_install.sh"
 ################################################################################
-RUN yum --disablerepo="*-eus-*" --disablerepo="*-htb-*" --disablerepo="*-ha-*" \
-        --disablerepo="*-rt-*" --disablerepo="*-lb-*" --disablerepo="*-rs-*" \
-        --disablerepo="*-sap-*" --disablerepo="*beta*" \
-        install -y deltarpm yum-utils && \
-    yum-config-manager --disable "*-eus-*" "*-htb-*" "*-ha-*" "*-rt-*" \
-        "*-lb-*" "*-rs-*" "*-sap-*" "*beta*" &> /dev/null && \
-    yum update -y && \
-    ${REPO_INSTALL} && \
-    yum install -y ${INSTALL_RPMS} && \
-    yum clean all
-RUN git clone --single-branch ${AUTOTEST_URL} ${AUTOTEST_PATH}
-WORKDIR ${AUTOTEST_PATH}/client
-RUN git clone --single-branch --branch ${DOCKER_AUTOTEST_BRANCH} \
-        ${DOCKER_AUTOTEST_URL} ${DOCKER_AUTOTEST_PATH} && \
-    echo -e "\nBuild complete, install with: atomic install <image>"
+ADD / /${DOCKER_AUTOTEST_PATH}/
+RUN git reset --hard $(${DOCKER_AUTOTEST_PATH}/atomic/config_value.py \
+                       DEFAULTS autotest_version \
+                       ${DOCKER_AUTOTEST_PATH}/config_defaults/defaults.ini \
+                       ${DOCKER_AUTOTEST_PATH}/config_custom/defaults.ini) && \
+    echo -e "\nComplete installation with 'atomic install IMAGE'\n"

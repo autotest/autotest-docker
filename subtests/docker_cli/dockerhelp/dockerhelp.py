@@ -63,7 +63,6 @@ class help_base(SubSubtest):
 
     def postprocess(self):
         super(help_base, self).postprocess()  # Prints out basic info
-        # TODO: stdout help changes in Docker 1.4.1 and later, version detect
         for cmdresult in self.sub_stuff["success_cmdresults"]:
             no_usage = cmdresult.stdout.lower().find('usage:') == -1
             self.failif(no_usage, "Did not return usage help on stdout for: "

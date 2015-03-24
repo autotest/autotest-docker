@@ -15,10 +15,10 @@ Operational Summary
 
 import time
 from autotest.client import utils
-from autotest.client.shared import error
 from dockertest.subtest import SubSubtest
 from dockertest.images import DockerImages
 from dockertest.images import DockerImage
+from dockertest.containers import DockerContainers
 from dockertest.output import OutputGood
 from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
 from dockertest import subtest
@@ -111,27 +111,11 @@ class history_base(SubSubtest):
 
     def cleanup(self):
         super(history_base, self).cleanup()
-        # Auto-converts "yes/no" to a boolean
         if self.config['remove_after_test']:
-            for cont in self.sub_stuff["containers"]:
-                dkrcmd = DockerCmd(self, "rm", ['--volumes', '--force', cont])
-                cmdresult = dkrcmd.execute()
-                msg = (" removed test container: %s" % cont)
-                if cmdresult.exit_status == 0:
-                    self.logdebug("Successfully" + msg)
-                else:
-                    self.logwarning("Failed" + msg)
-            for image in self.sub_stuff["images"]:
-                try:
-                    di = DockerImages(self)
-                    self.logdebug("Removing image %s", image)
-                    di.remove_image_by_full_name(image)
-                    self.logdebug("Successfully removed test image: %s",
-                                  image)
-                except error.CmdError, e:
-                    error_text = "tagged in multiple repositories"
-                    if error_text not in e.result_obj.stderr:
-                        raise
+            dc = DockerContainers(self)
+            dc.clean_all(self.sub_stuff.get("containers"))
+            di = DockerImages(self)
+            di.clean_all(self.sub_stuff.get("images"))
 
     def create_image(self, old_name, new_name, cmd):
         prep_changes = DockerCmd(self, "run",

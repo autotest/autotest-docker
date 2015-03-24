@@ -36,8 +36,7 @@ class run_user(subtest.SubSubtestCaller):
         subargs.append(fin)
         subargs.append("cat /etc/passwd")
         cmd = DockerCmd(self, 'run', subargs, verbose=False)
-        # FIXME: Remove '\n' when BZ1113085 is resolved
-        result = cmd.execute('\n')
+        result = cmd.execute()
         self.failif(result.exit_status != 0,
                     "Failed to get container's /etc/passwd. Exit status is !0"
                     "\n%s" % result)
@@ -54,16 +53,9 @@ class run_user(subtest.SubSubtestCaller):
         Cleanup the container
         """
         super(run_user, self).cleanup()
-        name = self.stuff['container']
-        conts = self.stuff['dc'].list_containers_with_name(name)
-        if conts == []:
-            return  # Docker was already removed
-        elif len(conts) > 1:
-            msg = ("Multiple containers match name '%s', not removing any"
-                   " of them...", name)
-            raise xceptions.DockerTestError(msg)
-        DockerCmd(self, 'rm', ['--force', '--volumes', name],
-                  verbose=False).execute()
+        if self.config['remove_after_test']:
+            dc = DockerContainers(self)
+            dc.clean_all([self.stuff.get("container")])
 
 
 class run_user_base(subtest.SubSubtest):
@@ -111,8 +103,7 @@ class run_user_base(subtest.SubSubtest):
         Execute docker and store the results
         """
         super(run_user_base, self).run_once()
-        # FIXME: Remove '\n' when BZ1113085 is resolved
-        self.sub_stuff['result'] = self.sub_stuff['cmd'].execute('\n')
+        self.sub_stuff['result'] = self.sub_stuff['cmd'].execute()
 
     def postprocess(self):
         super(run_user_base, self).postprocess()
@@ -154,24 +145,14 @@ class run_user_base(subtest.SubSubtest):
                     "whoami check line '%s' not present in the container "
                     "output:\n%s" % (self.sub_stuff['whoami_check'], result))
 
-    def _cleanup_container(self):
+    def cleanup(self):
         """
         Cleanup the container
         """
-        name = self.sub_stuff['container']
-        conts = self.sub_stuff['dc'].list_containers_with_name(name)
-        if conts == []:
-            return  # Docker was already removed
-        elif len(conts) > 1:
-            msg = ("Multiple containers match name '%s', not removing any"
-                   " of them...", name)
-            raise xceptions.DockerTestError(msg)
-        DockerCmd(self, 'rm', ['--force', '--volumes', name],
-                  verbose=False).execute()
-
-    def cleanup(self):
         super(run_user_base, self).cleanup()
-        self._cleanup_container()
+        if self.config['remove_after_test']:
+            dc = DockerContainers(self)
+            dc.clean_all([self.sub_stuff.get("container")])
 
 
 class default(run_user_base):

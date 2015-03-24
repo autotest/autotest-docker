@@ -20,7 +20,7 @@ from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
 from dockertest.output import mustpass
 from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtest
-from dockertest.xceptions import DockerTestFail, DockerExecError
+from dockertest.xceptions import DockerTestFail
 
 
 # Okay to be less-strict for these cautions/warnings in subtests
@@ -151,24 +151,9 @@ class sigproxy_base(SubSubtest):
 
     def cleanup(self):
         super(sigproxy_base, self).cleanup()
-        # In case of internal failure the running container might not finish.
-        failures = []
-        container_cmd = self.sub_stuff.get('container_cmd')
-        # container_cmd might be temporarily mustpassDockerCmd
-        if (container_cmd and hasattr(container_cmd, 'done') and not
-                container_cmd.done):
-            utils.signal_pid(container_cmd.process_id, 15)
-            if not container_cmd.done:
-                utils.signal_pid(container_cmd.process_id, 9)
-        if self.sub_stuff.get('container_name'):
-            args = ['--force', '--volumes', self.sub_stuff['container_name']]
-            try:
-                mustpass(DockerCmd(self, 'rm', args).execute())
-            except DockerExecError, details:
-                failures.append("Remove after test failed: %s" % details)
-                for _ in xrange(3):
-                    DockerCmd(self, 'rm', args).execute()
-        self.failif(failures, "\n".join(failures))
+        if self.config['remove_after_test']:
+            dc = DockerContainers(self)
+            dc.clean_all([self.sub_stuff.get("container_name")])
 
 
 class sigproxy_disabled_base(sigproxy_base):

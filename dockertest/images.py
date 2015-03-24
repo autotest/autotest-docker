@@ -26,7 +26,9 @@ Note: As in other places, the terms 'repo' and 'image' are used
 # pylint: disable=W0403
 
 import re
+from autotest.client.shared import error
 from config import none_if_empty
+from config import get_as_list
 from autotest.client import utils
 from output import OutputGood
 from output import TextTable
@@ -578,3 +580,35 @@ class DockerImages(object):
         :return: Same as remove_image_by_full_name()
         """
         return self.remove_image_by_full_name(image_obj.full_name)
+
+    def clean_all(self, fqins):
+        """
+        Remove all image fqins not configured to preserve
+
+        :param fqins: Iterable sequence of image **fqins**
+        """
+        if not hasattr(fqins, "__iter__"):
+            raise TypeError("clean_all() called with non-iterable.")
+        if isinstance(fqins, basestring):
+            raise ValueError("clean_all() called with a string, "
+                             "instead of an interable of strings.")
+        preserve_fqins = self.subtest.config.get('preserve_fqins')
+        if preserve_fqins is not None and preserve_fqins.strip() != '':
+            preserve_fqins = get_as_list(preserve_fqins)
+        else:
+            preserve_fqins = []
+        preserve_fqins.append(
+            DockerImage.full_name_from_defaults(self.subtest.config))
+        preserve_fqins = set(preserve_fqins)
+        self.verbose = True
+        try:
+            for name in fqins:
+                if name in preserve_fqins:
+                    continue
+                try:
+                    self.subtest.logdebug("Cleaning %s", name)
+                    self.docker_cmd("rmi --force %s" % name, self.timeout)
+                except error.CmdError:
+                    continue
+        finally:
+            self.verbose = DockerImages.verbose

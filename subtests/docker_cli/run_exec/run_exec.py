@@ -116,11 +116,10 @@ class exec_base(SubSubtest):
             except OSError:
                 pass
         if self.config['remove_after_test']:
-            for cntnr in self.sub_stuff['containers']:
-                DockerCmd(self, 'kill', [cntnr]).execute()
-                DockerCmd(self, 'rm', [cntnr]).execute()
-            for image in self.sub_stuff['images']:
-                DockerCmd(self, 'rmi', [image])
+            dc = DockerContainers(self)
+            dc.clean_all(self.sub_stuff.get("containers"))
+            di = DockerImages(self)
+            di.clean_all(self.sub_stuff.get("images"))
 
 
 class exec_true(exec_base):

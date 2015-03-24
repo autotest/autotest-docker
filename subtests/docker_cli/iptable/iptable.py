@@ -23,6 +23,7 @@ Prerequisites
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import mustpass
 from dockertest.containers import DockerContainers
+from dockertest.config import get_as_list
 from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCallerSimultaneous
@@ -113,9 +114,12 @@ class iptable_base(SubSubtest):
     def cleanup(self):
         super(iptable_base, self).cleanup()
         if self.config['remove_after_test']:
-            dcmd = DockerCmd(self, 'rm',
-                             ['--force', '--volumes', self.sub_stuff['name']])
-            dcmd.execute()
+            preserve_cnames = get_as_list(self.config['preserve_cnames'])
+            if self.sub_stuff['name'] in preserve_cnames:
+                return
+            DockerCmd(self, 'rm',
+                      ['--force', '--volumes',
+                       self.sub_stuff['name']]).execute()
 
 
 class iptable_remove(iptable_base):

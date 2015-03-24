@@ -29,34 +29,10 @@ from dockertest import environment
 
 
 class rm(SubSubtestCaller):
-    config_section = 'docker_cli/rm'
 
     def initialize(self):
-        # Fail if any containers are running
-        dc = self.stuff['dc'] = DockerContainers(self)
-        for cntr in dc.list_containers():
-            if cntr.status is None:
-                cntr.status = "None"
-            self.failif('exit' not in cntr.status.lower(),
-                        "Container %s found running before test!"
-                        % cntr.container_name)
         super(rm, self).initialize()
-        # Static data for subtests to use
         self.stuff['init_time'] = int(time.time())
-
-    def postprocess(self):
-        super(rm, self).postprocess()
-        dc = self.stuff['dc']
-        for cntr in dc.list_containers():
-            self.failif('Exit' not in cntr.status,
-                        "Container %s did not exit!" % cntr.container_name)
-
-    def cleanup(self):
-        dc = self.stuff['dc']
-        dc.remove_args = '--force --volumes'
-        for cnt in dc.list_containers():
-            self.logwarning("Removing leftover container: %s", cnt)
-            dc.remove_by_obj(cnt)
 
 
 class rm_sub_base(SubSubtest):
@@ -169,7 +145,7 @@ class rm_sub_base(SubSubtest):
 
     def initialize(self):
         super(rm_sub_base, self).initialize()
-        self.sub_stuff['dc'] = self.parent_subtest.stuff['dc']
+        self.sub_stuff['dc'] = DockerContainers(self)
         self.sub_stuff['init_time'] = self.parent_subtest.stuff['init_time']
         self.sub_stuff['volume'] = None  # host-path to volume
         self.sub_stuff['start_filename'] = None  # volume content filename
@@ -242,6 +218,11 @@ class rm_sub_base(SubSubtest):
         self.verify_output()
         self.verify_start()
         self.verify_stop()
+
+    def cleanup(self):
+        if self.config['remove_after_test']:
+            dc = DockerContainers(self)
+            dc.clean_all([self.sub_stuff.get('cntr_name')])
 
 
 class finished(rm_sub_base):

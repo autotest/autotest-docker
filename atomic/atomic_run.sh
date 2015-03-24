@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Needed to locate installed location
-NAME="$1"
+NAME="$(echo $1 | tr ':' '-')"
 shift
 AUTOTEST_PATH="$1"
 shift
@@ -24,8 +24,7 @@ REVORDER=$(for TARGET in ${MNTORDER}; do echo ${TARGET}; done | sort -r)
 
 MOUNTS=""
 cleanup() {
-    umount ${ROOT}/usr/bin/docker
-    rm ${ROOT}/usr/bin/docker
+    umount ${ROOT}${DOCKER_BIN_PATH}
     for TARGET in $REVORDER
     do
         if echo "$TARGET" | egrep -q "(/proc)|(/dev)|(/run)|(/sys)"
@@ -33,10 +32,9 @@ cleanup() {
             umount ${ROOT}${TARGET}
         fi
     done
-    echo -e "\nResults are in: ${ROOT}${AUTOTEST_PATH}/client/results/"
 }
 
-trap cleanup EXIT
+trap cleanup EXIT INT
 
 echo "${MNTPAIRS}" | while read MNTPAIR
 do
@@ -59,4 +57,9 @@ mount --bind ${DOCKER_BIN_PATH} ${ROOT}${DOCKER_BIN_PATH}
 
 export PATH="/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin"
 export LC_ALL="C"
+echo -e "\nAutotest args: $@\n"
 /sbin/chroot "${ROOT}" ${AUTOTEST_PATH}/client/autotest-local run docker $@
+echo -e "\nWaiting for all autotest threads to terminate..."
+sleep 5s
+echo -e "\nAutotest exit: $?\n"
+echo -e "\nResults are in: ${ROOT}/results\n"

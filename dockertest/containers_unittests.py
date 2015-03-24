@@ -132,9 +132,18 @@ class FakeCmdResult(object):
         for key, val in dargs.items():
             setattr(self, key, val)
 
+RUN_CACHE = []
+def get_run_cache():
+    global RUN_CACHE
+    return RUN_CACHE
+
+def kill_run_cache():
+    global RUN_CACHE
+    RUN_CACHE = []
 
 # Don't actually run anything!
 def run(command, *_args, **_dargs):
+    get_run_cache().append({'command':command, 'args':_args, 'dargs':_dargs})
     command = str(command)
     if 'inspect' in command:
         return FakeCmdResult(command=command.strip(),
@@ -155,7 +164,7 @@ def run(command, *_args, **_dargs):
                          stdout=r"""
 CONTAINER ID                                                       IMAGE                             COMMAND                                            CREATED             STATUS              PORTS                                            NAMES                                                       SIZE
 ac8c9fa367f96e10cbfc7927dd4048d7db3e6d240d201019c5d4359795e3bcbe   busybox:latest                    "/bin/sh -c echo -ne "hello world\n"; sleep 10m"   5 minutes ago       Up 79 seconds                                                        cocky_albattani                                             77 B
-ef0fe72271778aefcb5cf6015f30067fbe01f05996a123037f65db0b82795915   busybox:latest                    "/bin/sh -c echo -ne "world hello\n"; sleep 10m"   82 seconds ago      Up 61 seconds       4.3.2.1:4321->1234/bar, 1.2.3.4:1234->4321/foo   berserk_bohr                                                55 B
+ef0fe72271778aefcb5cf6015f30067fbe01f05996a123037f65db0b82795915   busybox:latest                    "/bin/sh -c echo -ne "world hello\n"; sleep 10m"   82 seconds ago      Up 61 seconds       4.3.2.1:4321->1234/bar, 1.2.3.4:1234->4321/foo   berserk_asdf                                                55 B
 849915d551d80edce7698de91852c06bbbb7a67fe0968a3c0c246e6f25f81017   busybox:latest                    "/bin/sh -c echo -ne "hello world\n"; sleep 10m"   28 seconds ago      Up 16 seconds       1.2.3.4:1234->4321/foo, 0.0.0.0:5678->8765/tcp   berserk_bohr                                                77 B
 c0c35064e4d2bdcf86e6fd83e0de2e599473c12a6599415a9a021bdf382a3589   busybox:latest                    "/bin/sh -c echo -ne "hello world\n""              5 minutes ago       Exit 0                                                               lonely_poincare                                             77 B
 3723b1b0abd7be84316ce7824e68cb7af090416296c539a28d169495f44a6319   busybox:latest                    "/bin/bash -c echo -ne "hello world\n""            6 minutes ago       Exit 1                                                               clever_brattain                                             77 B
@@ -190,7 +199,9 @@ import version
 class DockerContainersTestBase(ContainersTestBase):
 
     defaults = {'docker_path': '/foo/bar', 'docker_options': '--not_exist',
-                'docker_timeout': 60.0, 'config_version': '0.3.1'}
+                'docker_timeout': 60.0, 'config_version': '0.3.1',
+                 'preserve_cnames': '\ncocky_albattani,   '
+                                     'lonely_poincare \n  '}
     customs = {}
     config_section = "Foo/Bar/Baz"
 
@@ -349,6 +360,24 @@ class DockerContainersTest(DockerContainersTestBase):
         self.assertEqual(len(dcntr.list_container_ids()), 8)
         for exp in expected:
             self.assertTrue(exp in dcntr.list_container_ids())
+
+    def test_clean_all(self):
+        dcntr = self.containers.DockerContainers(self.fake_subtest)
+        names = set(dcntr.list_container_names())
+        # staticly set in fake config
+        preserve = set(['cocky_albattani', 'lonely_poincare'])
+        expected = names - preserve
+        kill_run_cache()
+        dcntr.clean_all(names)
+        pfx = '/foo/bar rm --force --volumes '
+        cutlen = len(pfx)
+        cleaned_names = set()
+        for item in get_run_cache():
+            command = item['command']
+            self.assertTrue(command.startswith(pfx))
+            cleaned_names.add(command[cutlen:])
+        self.assertEqual(cleaned_names, expected)
+        self.assertTrue(cleaned_names.isdisjoint(preserve))
 
 if __name__ == '__main__':
     unittest.main()

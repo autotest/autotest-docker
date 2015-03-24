@@ -124,9 +124,9 @@ class inspect_base(SubSubtest):
 
     def cleanup(self):
         super(inspect_base, self).cleanup()
-        if self.config['remove_after_test'] and self.sub_stuff['containers']:
-            dkrcmd = DockerCmd(self, 'rm', self.sub_stuff['containers'])
-            dkrcmd.execute()
+        if self.config['remove_after_test']:
+            dc = DockerContainers(self)
+            dc.clean_all(self.sub_stuff.get('containers'))
 
 
 class inspect_container_simple(inspect_base):

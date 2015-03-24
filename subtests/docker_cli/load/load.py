@@ -15,6 +15,7 @@ Operational Summary
 from dockertest import subtest
 from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImages
+from dockertest.config import get_as_list
 from dockertest.output import mustpass
 from dockertest.output import OutputGood
 import os
@@ -58,5 +59,9 @@ class load(subtest.Subtest):
 
     def cleanup(self):
         super(load, self).cleanup()
-        img_id = self.config['test_id']
-        DockerCmd(self, 'rmi', [img_id]).execute()
+        if self.config['remove_after_test']:
+            preserve_fqins = get_as_list(self.config['preserve_fqins'])
+            test_fqin = self.config['test_fqin']
+            if test_fqin in preserve_fqins:
+                return
+            DockerCmd(self, 'rmi', ['--force', test_fqin]).execute()

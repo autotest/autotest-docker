@@ -19,6 +19,7 @@ Operational Summary
 from dockertest import subtest
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import mustfail
+from dockertest.config import get_as_list
 from dockertest.images import DockerImage
 from dockertest.containers import DockerContainers
 
@@ -62,5 +63,8 @@ class flag(subtest.Subtest):
     def cleanup(self):
         super(flag, self).cleanup()
         if self.config["remove_after_test"]:
-            dkrcmd = DockerCmd(self, "rm", [self.stuff["containter_name"]])
-            dkrcmd.execute()
+            preserve_cnames = get_as_list(self.config['preserve_cnames'])
+            cntnr = self.stuff["containter_name"]
+            if cntnr not in preserve_cnames:
+                DockerCmd(self, "rm",
+                          ['--force', '--volumes', cntnr]).execute()

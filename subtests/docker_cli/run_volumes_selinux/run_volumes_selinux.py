@@ -188,15 +188,14 @@ class selinux_base(subtest.SubSubtest):
 
     def cleanup(self):
         super(selinux_base, self).cleanup()
-        for fd in self.sub_stuff['fds']:
+        for fd in self.sub_stuff.get('fds', []):
             try:
                 os.close(fd)
             except OSError:
                 pass  # closing was the goal
         if self.config['remove_after_test']:
-            for name in self.sub_stuff['containers']:
-                dockercmd.DockerCmd(self, 'rm', ['--force', '--volumes', name],
-                                    verbose=False).execute()
+            dc = DockerContainers(self)
+            dc.clean_all(self.sub_stuff.get("containers", []))
         for name in self.sub_stuff['volumes']:
             if os.path.exists(name):
                 shutil.rmtree(name)

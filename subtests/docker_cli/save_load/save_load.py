@@ -14,10 +14,9 @@ Operational Summary
 
 from autotest.client import utils
 from autotest.client.shared import error
-from dockertest import subtest, xceptions
+from dockertest import subtest
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd
-from dockertest.output import mustpass
 from dockertest.images import DockerImage, DockerImages
 from dockertest.output import OutputGood
 from dockertest.subtest import SubSubtest
@@ -63,31 +62,11 @@ class save_load_base(SubSubtest):
     def cleanup(self):
         super(save_load_base, self).cleanup()
         # Auto-converts "yes/no" to a boolean
-        containers = self.sub_stuff['cont']
         if self.config['remove_after_test']:
-            for cont in self.sub_stuff["containers"]:
-                conts = containers.list_containers_with_name(cont)
-                if conts == []:
-                    break  # container doesn't exist, clean
-                elif len(conts) > 1:
-                    msg = ("Multiple containers matches name %s, not "
-                           "removing any of them...", cont)
-                    raise xceptions.DockerTestError(msg)
-                mustpass(DockerCmd(self, 'rm', ['--force', '--volumes', cont],
-                                   verbose=False).execute())
-            for image in self.sub_stuff["images"]:
-                try:
-                    dkrimg = self.sub_stuff['img']
-                    if dkrimg.list_imgs_with_image_id(image) == []:
-                        break
-                    self.logdebug("Removing image %s", image)
-                    dkrimg.remove_image_by_full_name(image)
-                    self.logdebug("Successfully removed test image: %s",
-                                  image)
-                except error.CmdError, exc:
-                    error_text = "tagged in multiple repositories"
-                    if error_text not in exc.result_obj.stderr:
-                        raise
+            dc = self.sub_stuff['cont']
+            dc.clean_all(self.sub_stuff["containers"])
+            di = self.sub_stuff['img']
+            di.clean_all(self.sub_stuff["images"])
 
 
 class simple(save_load_base):
@@ -143,18 +122,12 @@ class simple(save_load_base):
         dkrcmd = DockerCmd(self, 'save',
                            [self.sub_stuff['save_ar']],
                            verbose=True)
-        dkrcmd.verbose = True
         self.sub_stuff['cmdresult_save'] = dkrcmd.execute()
-
-        if self.sub_stuff['cmdresult_save'].exit_status != 0:
-            # Pass error to postprocess
-            return
 
         # Delete image
         dkrcmd = DockerCmd(self, 'rmi',
                            [self.sub_stuff["rand_name"]],
                            verbose=True)
-        # Runs in background
         self.sub_stuff['cmdresult_del'] = dkrcmd.execute()
 
         # Load image

@@ -36,7 +36,8 @@ class check_default_cmd(commit_base):
                     "Failed to look up committed image ")
         self.check_file_in_image()
         # Check if is possible start image with default command.
-        dc = DockerCmd(self, "run", [self.sub_stuff['image_list'][0].long_id],
+        dc = DockerCmd(self, "run", ['--rm',
+                                     self.sub_stuff['image_list'][0].long_id],
                        timeout=self.config['docker_timeout'])
         results = dc.execute()
 

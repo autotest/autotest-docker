@@ -17,7 +17,7 @@ Operational Summary
 import os
 
 from autotest.client.shared import utils
-from dockertest import config, xceptions, subtest, dockercmd
+from dockertest import config, subtest, dockercmd
 from dockertest.containers import DockerContainers
 from dockertest.images import DockerImage
 from dockertest.output import mustfail
@@ -71,23 +71,6 @@ class InteractiveAsyncDockerCmd(dockercmd.AsyncDockerCmd):
     def __del__(self):
         """ In case someone forget to run self.close()... """
         self.close()
-
-
-# FIXME: Remove this when BZ1131592 is resolved
-def bz1113085_wait_for_cont_finish(dkrcmd, timeout):
-    """ Workaround BZ1113085 """
-    endtime = time.time() + timeout
-    while time.time() < endtime:
-        if not dkrcmd.done:
-            try:
-                dkrcmd.stdin("\n")
-            except OSError:
-                pass
-        else:
-            break
-    else:
-        raise xceptions.DockerExecError("Cmd %s didn't finish in %ss"
-                                        % (dkrcmd, timeout))
 
 
 class run_cidfile(subtest.SubSubtestCaller):
@@ -156,7 +139,6 @@ class basic(subtest.SubSubtest):
         self._check_failure_cidfile_present(containers[-1])
         # cidfile already exists (exited container)
         containers[0].stdin("exit\n")
-        bz1113085_wait_for_cont_finish(containers[0], 10)
         containers[0].wait(10)
         containers[0].close()
         containers.append(self._init_container(subargs, cidfile, 'true',
@@ -207,21 +189,6 @@ class basic(subtest.SubSubtest):
         self.failif(long_id != act, "Cidfile output (%s) doesn't match "
                     "expected long_id (%s)" % (act, long_id))
 
-    def _cleanup_containers(self):
-        """
-        Cleanup the container
-        """
-        for name in self.sub_stuff.get('containers', []):
-            conts = self.sub_stuff['dc'].list_containers_with_name(name)
-            if conts == []:
-                return  # Docker was created, but apparently doesn't exist
-            elif len(conts) > 1:
-                msg = ("Multiple containers matches name %s, not removing any "
-                       "of them...", name)
-                raise xceptions.DockerTestError(msg)
-            dockercmd.DockerCmd(self, 'rm', ['--force', '--volumes', name],
-                                verbose=False).execute()
-
     def _cleanup_cidfiles(self):
         """ Unlink all used cidfiles """
         for name in self.sub_stuff.get('cidfiles', []):
@@ -230,5 +197,7 @@ class basic(subtest.SubSubtest):
 
     def cleanup(self):
         super(basic, self).cleanup()
-        self._cleanup_containers()
-        self._cleanup_cidfiles()
+        if self.config['remove_after_test']:
+            self._cleanup_cidfiles()
+            dc = DockerContainers(self)
+            dc.clean_all(self.sub_stuff.get('containers', []))

@@ -82,14 +82,11 @@ class run_base(SubSubtest):
 
     def cleanup(self):
         super(run_base, self).cleanup()
-        # Auto-converts "yes/no" to a boolean
         if self.config['remove_after_test']:
-            for cont in self.sub_stuff.get("containers", []):
-                dkrcmd = DockerCmd(self, "rm", ['--volumes', '--force', cont])
-                dkrcmd.execute()
-            for image in self.sub_stuff.get("images", []):
-                dkrcmd = DockerCmd(self, "rmi", ['--force', image])
-                dkrcmd.execute()
+            dc = DockerContainers(self)
+            dc.clean_all(self.sub_stuff.get("containers"))
+            di = DockerImages(self)
+            di.clean_all(self.sub_stuff.get("images"))
 
 
 # Generate any generic sub-subtests configured 'generate_generic = yes'

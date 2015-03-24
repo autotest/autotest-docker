@@ -59,10 +59,9 @@ class empty(SubSubtest):
     def cleanup(self):
         super(empty, self).cleanup()
         if self.parent_subtest.config['remove_after_test']:
-            dkrcmd = DockerCmd(self, 'rmi', [self.sub_stuff['image_name_tag']])
-            cmdresult = dkrcmd.execute()
-            if cmdresult.exit_status != 0:
-                self.logwarning("Cleanup command failed: %s" % cmdresult)
+            di = DockerImages(self)
+            image = self.sub_stuff['image_name_tag']
+            di.clean_all([image])
 
     def run_tar(self, tar_command, dkr_command):
         command = "%s | %s" % (tar_command, dkr_command)
