@@ -94,29 +94,6 @@ class wait_base(SubSubtest):
         cont['test_cmd'] = AsyncDockerCmd(self, "attach", [cont_id])
         cont['test_cmd_stdin'] = cmd
 
-    def init_use_names(self, use_names='IDS'):
-        if use_names == 'IDS':  # IDs are already set
-            return
-        else:
-            if use_names == 'RANDOM':    # log the current seed
-                try:
-                    seed = self.config["random_seed"]
-                except ValueError:
-                    seed = random.random()
-                self.logdebug("Using random seed: %s", seed)
-                rand = random.Random(seed)
-            conts = self.sub_stuff['containers']
-            containers = DockerContainers(self)
-            containers = containers.list_containers()
-            cont_ids = [cont['id'] for cont in conts]
-            for cont in containers:
-                if cont.long_id in cont_ids:
-                    if use_names == 'RANDOM' and rand.choice((True, False)):
-                        continue    # 50% chance of using id vs. name
-                    # replace the id with name
-                    cont_idx = cont_ids.index(cont.long_id)
-                    conts[cont_idx]['id'] = cont.container_name
-
     def init_wait_for(self, wait_for, subargs):
         if not wait_for:
             raise DockerTestNAError("No container specified in config. to "
@@ -160,11 +137,19 @@ class wait_base(SubSubtest):
         config.none_if_empty(self.config)
         self.init_substuff()
 
-        # Container
+        # Creates and runs containers
         for name in self.config['containers'].split():
             self.init_container(name)
 
-        self.init_use_names(self.config.get('use_names', False))
+        conts = self.sub_stuff['containers']
+        containers = DockerContainers(self)
+        containers = containers.list_containers()
+        cont_ids = [cont['id'] for cont in conts]
+        for cont in containers:
+            if cont.long_id in cont_ids:
+                # replace the id with name
+                cont_idx = cont_ids.index(cont.long_id)
+                conts[cont_idx]['id'] = cont.container_name
 
         # Prepare the "wait" command
         self.prep_wait_cmd(self.config.get('wait_options_csv'))
