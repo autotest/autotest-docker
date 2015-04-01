@@ -58,7 +58,7 @@ class SubBase(object):
         # Issue warnings for failed to customize suggested options
         not_customized = self.config.get('__example__', None)
         if not_customized is not None and not_customized is not '':
-            self.logwarning("WARNING: Recommended options not customized:")
+            self.logdebug("WARNING: Recommended options not customized:")
             for nco in get_as_list(not_customized):
                 self.logwarning("WARNING: %s" % nco)
             self.logwarning("WARNING: Test results may be externaly "
