@@ -641,39 +641,102 @@ class DockerTime(datetime.datetime):  # pylint: disable=R0903
             del dt  # not needed
             return cls.ZERO
 
+
+    class UTCOffset(datetime.tzinfo):
+        """Fixed offset in hours and minutes from UTC."""
+
+        def __init__(self, offset_string):
+            numbers = offset_string.split(':')
+            hours = int(numbers[0])
+            minutes = int(numbers[1])
+            self.__offset = datetime.timedelta(hours=hours, minutes=minutes)
+            self.__name = "UTC%s" % offset_string
+
+        def utcoffset(self, dt):
+            return self.__offset
+
+        def tzname(self, dt):
+            return self.__name
+
+        def dst(self, dt):
+            return UTC.ZERO
+
+
     def __new__(cls, isostr, sep=None):
         if sep is None:
             sep = 'T'
         # datetime can output zulu time but not consume it.
-        base = "%s%s%s" % (r"(\d{4})-(\d{2})-(\d{2})",
+        base = "^%s%s%s" % (r"(\s*\d{4})-(\d{2})-(\d{2})",
                            sep,
                            r"(\d{2}):(\d{2}):(\d{2})")
-        regex = re.compile(base + "Z")
-        keys = ('year', 'month', 'day',
-                'hour', 'minute', 'second')
-        mobj = regex.search(isostr)
-        if bool(mobj):
-            values = list(mobj.groups())
-        else:  # Try with interpreted microseconds
-            regex = re.compile(base + r"\.(\d+)")
-            keys = keys + ('microsecond',)
-            mobj = regex.search(isostr)
-            if bool(mobj):
-                values = list(mobj.groups())
-                # Convert seconds decimal fraction into microseconds
-                sec_frac = float("0.%s" % values[-1])
-                values[-1] = int(sec_frac * 1000000)
-            else:
-                raise xceptions.DockerValueError("Malformed zulu string %s"
-                                                 % isostr)
-        # Regex groups are all strings, convert to integers
-        values = [int(value) for value in values]
-        dargs = dict(zip(keys, tuple(values)))
-        dargs['tzinfo'] = cls.UTC()
+        keys = ['year', 'month', 'day',
+                'hour', 'minute', 'second']
+        values = []
+        # Order is significant, some parsers depend on one-another
+        parsers = [cls.__new_tzoffset__, cls.__new_zulu__, cls.__new_us__]
+        for parser in parsers:
+            if parser(isostr, base, values, keys, cls.UTC()):
+                break;  # Parsers return True on success
+        if values == []:  # No parser was succesful
+            raise xceptions.DockerValueError("Malformed date time string %s"
+                                             % isostr)
+        # Convert any strings into integers
+        for index, value in enumerate(values):
+            if isinstance(value, basestring):
+                values[index] = int(value)
+        dargs = dict(zip(tuple(keys), tuple(values)))
         return super(DockerTime, cls).__new__(cls, **dargs)
+
+    @classmethod
+    def __new_zulu__(cls, isostr, base, values, keys, tz):
+        # Zulu-time means UTC base
+        if isostr[-1].lower() == "z":
+            isostr = isostr[0:-1]
+        # may or may not have fractional seconds
+        has_us = cls.__new_us__(isostr, base, values, keys, tz)
+        if has_us:
+            return True
+        else:
+            regex = re.compile(base)
+            mobj = regex.search(isostr)
+            if mobj:
+                values += list(mobj.groups())
+                keys.append('tzinfo')
+                values.append(tz)
+                return True
+            return False
+
+    @classmethod
+    def __new_us__(cls, isostr, base, values, keys, tz):
+        # Try with interpreted microseconds
+        regex = re.compile(base + r"\.(\d+)$")
+        mobj = regex.search(isostr)
+        if mobj:
+            values += list(mobj.groups())
+            # Convert seconds decimal fraction into microseconds
+            sec_frac = float("0.%s" % values[-1])
+            values[-1] = int(sec_frac * 1000000)
+            keys.append('microsecond')
+            values.append(tz)
+            keys.append('tzinfo')
+            return True
+        return False
+
+    @classmethod
+    def __new_tzoffset__(cls, isostr, base, values, keys, tz):
+        # Check if ends with +/-00:00 timezone offset, optional
+        # non-capturing seconds-fraction parsed by __new_us__()
+        regex = re.compile(base + r"(?:\.(\d+))?([+-]{1}\d{2}:\d{2})$")
+        mobj = regex.search(isostr)
+        if mobj:
+            tz = cls.UTCOffset(mobj.group(8))
+            # Remove timezone from string, attempt parsing with __new_us__
+            isostr = isostr[0:len(isostr) - len(mobj.group(8))]
+            return cls.__new_us__(isostr, base, values, keys, tz)
+        return False
 
     def is_undefined(self):
         """
         Return True if this instance represents an undefined date & time
         """
-        return self == self.UTC.EPOCH
+        return self - self.UTC.singleton.EPOCH == self.UTC.ZERO
