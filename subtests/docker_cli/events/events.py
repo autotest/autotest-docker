@@ -24,8 +24,8 @@ Prerequisites
 import re
 from string import Template
 import time
-import datetime
 from dockertest.subtest import Subtest
+from dockertest.output import DockerTime
 from dockertest.containers import DockerContainers
 from dockertest.images import DockerImage
 from dockertest.dockercmd import DockerCmd
@@ -33,28 +33,17 @@ from dockertest.output import mustpass
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.xceptions import DockerValueError
 
+
 cid_regex = re.compile(r'\s+([a-z0-9]{64})\:\s+')
-dt_regex = re.compile(r'(\d{4})-(\d{2})-(\d{2})\S+'  # date part
-                      r'(\d{2}):(\d{2}):(\d{2})\S+'  # time part
-                      r'([+-]\d{2}):(\d{2})\s+')  # UTC offset part
+fqin_regex = DockerImage.repo_split_p
 source_regex = re.compile(r'\s+\(from\s+\S+\)\s+')
 operation_regex = re.compile(r'\s+(\w+)$')  # final word chars
 
 
 def event_dt(line):
     try:
-        (year, month, day,
-         hour, minute, second,
-         o_hour, o_minutes) = dt_regex.search(line).groups()
-
-        # utc offset
-        utc_offset = datetime.timedelta(hours=int(o_hour),
-                                        minutes=int(o_minutes))
-        dt = datetime.datetime(int(year), int(month), int(day),
-                               int(hour), int(minute), int(second))
-        dt += utc_offset
-        return dt
-    except (AttributeError, TypeError, ValueError):  # regex.search() failed
+        return DockerTime(line)
+    except (AttributeError, TypeError, ValueError):  # failed
         return None
 
 
@@ -62,6 +51,14 @@ def event_cid(line):
     mobj = cid_regex.search(line)
     if mobj is not None:
         return mobj.group(1)
+    else:
+        return None
+
+
+def event_fqin(line):
+    mobj = fqin_regex.search(line)
+    if mobj is not None:
+        return mobj.group(0)
     else:
         return None
 
@@ -103,17 +100,19 @@ def is_dupe_event(needle, haystack):
 
 def parse_event(line):
     """
-    Return tuple(CID, {DETAILS}) from parsing line
+    Return tuple(CID/FQIN, {DETAILS}) from parsing line
 
     :param line: String-like containing a single event line
-    :returns: tuple(CID, {DETAILS}) from parsing line or None if unparseable
+    :returns: (CID/FQIN, {DETAILS}) from parsing line or None if unparseable
     """
-    cid = event_cid(line)
+    identifier = event_cid(line)
+    if identifier is None:
+        identifier = event_fqin(line)
     details = event_details(line)
-    if cid is None or details['datetime'] is None:
+    if identifier is None or details['datetime'] is None:
         return None  # unparseable line
     else:
-        return (cid, details)
+        return (identifier, details)
 
 
 def parse_events(lines, slop=None):
@@ -148,22 +147,22 @@ def parse_events(lines, slop=None):
     return result
 
 
-def events_by_cid(events_list, previous=None):
+def events_by_id(events_list, previous=None):
     """
-    Return a dictionary, mapping of cid to de-duplicated event-details list
+    Return a dictionary, mapping of CID or FQIN to de-duplicated details list
 
-    :param events_list: List of tuple(CID, {DETAILS}) from parse_events()
-    :param previous: Possibly overlapping prior result from events_by_cid()
-    :returns: dict-like mapping cid to de-duplicated event-details list
+    :param events_list: List of tuple(CID/FQIN, {DETAILS}) from parse_events()
+    :param previous: Possibly overlapping prior result from events_by_id()
+    :returns: dict-like mapping CID/FQIN to de-duplicated event-details list
     """
     if previous is None:
         dct = {}
     else:
         dct = previous  # in-place update
-    for cid, details in events_list:
-        previous_events = dct.get(cid)
+    for _id, details in events_list:
+        previous_events = dct.get(_id)
         if previous_events is None:
-            previous_events = dct[cid] = []  # in-place update (below)
+            previous_events = dct[_id] = []  # in-place update (below)
         if not is_dupe_event(details, previous_events):
             # don't assume it belongs at end
             previous_events.append(details)
@@ -237,7 +236,7 @@ class events(Subtest):
         # one-line (about) minimum
         self.failif(len(stdout) < 80, "Output too short: '%s'" % stdout)
         all_events = parse_events(stdout)
-        cid_events = events_by_cid(all_events)
+        cid_events = events_by_id(all_events)
         cid = self.stuff['nfdc_cid']
         self.failif(cid not in cid_events,
                     'Test container cid %s does not appear in events' % cid)

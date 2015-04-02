@@ -406,5 +406,28 @@ class TestDtFromIso(unittest.TestCase):
                                      microsecond=569000, tzinfo=tz)
         self.assertEqual(dt, expected)
 
+    def test_in_junk(self):
+        import datetime
+        isostr = "  2015-03-02T17:04:20.569+12:34 ahhhh! 2015-03-02T 17:04:20"
+        dt = self.dockertime(isostr)
+        tz = self.dockertime.UTCOffset("+12:34")
+        expected = datetime.datetime(year=2015, month=3, day=2,
+                                     hour=17, minute=4, second=20,
+                                     microsecond=569000, tzinfo=tz)
+        self.assertEqual(dt, expected)
+
+    def test_in_other_junk(self):
+        import datetime
+        isostr = "  ahhhh!2015-03-02T17:04:20z2015-03-02 17:04:20"
+        dt = self.dockertime(isostr)
+        tz = self.dockertime.UTC()
+        expected = datetime.datetime(year=2015, month=3, day=2,
+                                     hour=17, minute=4, second=20,
+                                     tzinfo=tz)
+        self.assertEqual(dt, expected)
+
+    def test_unparsable(self):
+        self.assertRaises(ValueError, self.dockertime, "2015-03-02 17:04:20z")
+
 if __name__ == '__main__':
     unittest.main()
