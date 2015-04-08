@@ -2,327 +2,237 @@ r"""
 Summary
 ---------
 
-Test usage of docker 'wait' command
+Test the docker wait operation on containers in various states
 
 Operational Summary
 ----------------------
 
-#. starts all containers defined in containers
-#. prepares the wait command
-#. prepares the expected results
-#. executes the test command in all containers
-#. executes the wait command
-#. waits until all containers should be finished
-#. analyze results
+#. Prepare wait target container
+#. Execute docker wait on container
+#. Verify results
 """
-import random
+
 import re
-import time
-
-from dockertest import config
-from dockertest import subtest
-from dockertest.containers import DockerContainers
-from dockertest.dockercmd import AsyncDockerCmd
-from dockertest.dockercmd import DockerCmd
-from dockertest.images import DockerImage
-from dockertest.output import OutputGood
-from dockertest.output import OutputNotBad
+from collections import namedtuple
+from collections import OrderedDict
 from dockertest.subtest import SubSubtest
-from dockertest.xceptions import DockerTestError
-from dockertest.xceptions import DockerTestNAError
+from dockertest.subtest import SubSubtestCaller
+from dockertest.images import DockerImages
+from dockertest.containers import DockerContainers
+from dockertest.output import OutputGood
+from dockertest.dockercmd import DockerCmd
+from dockertest.dockercmd import AsyncDockerCmd
+from dockertest.config import Config
+from dockertest.config import get_as_list
 
 
-class wait(subtest.SubSubtestCaller):
-
-    """ Subtest caller """
-    config_section = 'docker_cli/wait'
+class wait(SubSubtestCaller):
+    pass
 
 
-class wait_base(SubSubtest):
+Target = namedtuple('Target', ['name', 'fqin', 'setup', 'wait', 'sleep'])
 
-    """ Base class """
-    re_sleep = re.compile(r'sleep (\d+)')
-    re_exit = re.compile(r'exit (\d+)')
 
-    # TODO: Check other tests/upcoming tests, add to config module?
-    def get_object_config(self, obj_name, key, default=None):
-        return self.config.get(key + '_' + obj_name,
-                               self.config.get(key, default))
+class WaitBase(SubSubtest):
+
+    def init_utils(self):
+        sss = self.sub_stuff
+        sss['dc'] = DockerContainers(self)
+        sss['di'] = DockerImages(self)
 
     def init_substuff(self):
-        # sub_stuff['containers'] is list of dicts containing:
-        # 'result' - DockerCmd process (detached)
-        # 'id' - id or name of the container
-        # 'exit_status' - expected exit code after test command
-        # 'test_cmd' - AsyncDockerCmd of the test command (attach ps)
-        # 'test_cmd_stdin' - stdin used by 'test_cmd'
-        # 'sleep_time' - how long it takes after test_cmd before exit
-        self.sub_stuff['containers'] = []
-        self.sub_stuff['wait_cmd'] = None
-        self.sub_stuff['wait_stdout'] = None    # Expected wait stdout output
-        self.sub_stuff['wait_stderr'] = None    # Expected wait stderr output
-        self.sub_stuff['wait_result'] = None
-        self.sub_stuff['wait_duration'] = None  # Wait for tested conts
-        self.sub_stuff['wait_should_fail'] = None   # Expected wait failure
-        # Sleep after wait finishes (for non-tested containers to finish
-        self.sub_stuff['sleep_after'] = None
+        self.sub_stuff['targets'] = OrderedDict()
+        self.sub_stuff['dkrcmd'] = None
 
-    def init_container(self, name):
-        subargs = self.get_object_config(name, 'run_options_csv')
-        if subargs:
-            subargs = [arg for arg in
-                       self.config['run_options_csv'].split(',')]
+    def target_dkrcmd(self, target):
+        # Validate setup command
+        if target.setup == 'none':
+            return None
+        elif target.setup == 'run':
+            command = 'run'
+        elif target.setup == 'create':
+            command = 'create'
         else:
-            subargs = []
-        image = DockerImage.full_name_from_defaults(self.config)
-        subargs.append(image)
-        subargs.append("bash")
-        cont = {'result': DockerCmd(self, 'run', subargs, 10)}
-        self.sub_stuff['containers'].append(cont)
-        cont_id = cont['result'].execute().stdout.strip()
-        cont['id'] = cont_id
+            raise ValueError("Unsupported target setup string: "
+                             "%s" % target.setup)
+        subargs = get_as_list(self.config['target_run'])
+        subargs.append('--name')
+        subargs.append(target.name)
+        subargs.append(target.fqin)
+        target_cmd = self.config['target_cmd'].replace('@SLEEP@',
+                                                       str(target.sleep))
+        subargs += get_as_list(target_cmd)
+        timeout = self.config['target_timeout']
+        return DockerCmd(self, command, subargs,
+                         verbose=self.config['target_verbose'],
+                         timeout=timeout)
 
-        # Cmd must contain one "exit $exit_status"
-        cmd = self.get_object_config(name, 'exec_cmd')
-        cont['exit_status'] = self.re_exit.findall(cmd)[0]
-        sleep = self.re_sleep.findall(cmd)
-        if sleep:
-            sleep = int(sleep[0])
-            cont['sleep_time'] = sleep
+    def target_wait_dkrcmd(self, name, fqin, setup, wait_opr, sleep):
+        del sleep  # not used for now
+        del setup  # not used for now
+        del fqin   # not used for now
+        if wait_opr == 'stop':
+            cmd = 'stop'
+            subargs = [name]
+        elif wait_opr == 'kill':
+            cmd = 'kill'
+            subargs = [name]
+        elif wait_opr == 'remv':
+            cmd = 'rm'
+            subargs = ['--force', '--volumes', name]
+        elif wait_opr == 'none':
+            return None
+        elif wait_opr.isdigit():
+            cmd = 'kill'
+            subargs = ['--signal', wait_opr, name]
         else:
-            cont['sleep_time'] = 0
-        cont['test_cmd'] = AsyncDockerCmd(self, "attach", [cont_id])
-        cont['test_cmd_stdin'] = cmd
+            raise ValueError("Unsupported target_wait %s for target %s"
+                             % (wait_opr, name))
+        return AsyncDockerCmd(self, cmd, subargs,
+                              self.config['target_verbose'])
 
-    def init_wait_for(self, wait_for, subargs):
-        if not wait_for:
-            raise DockerTestNAError("No container specified in config. to "
-                                    "wait_for.")
-        conts = self.sub_stuff['containers']
-        end = self.config['invert_missing']
-        wait_duration = 0
-        wait_stdout = []
-        wait_stderr = []
+    def init_targets(self):
+        sss = self.sub_stuff
+        target_setups = get_as_list(self.config['target_setups'])
+        # Single values will auto-convert to int's, convert back to string
+        target_waits = get_as_list(str(self.config['target_waits']))
+        target_sleeps = get_as_list(str(self.config['target_sleeps']))
+        fqin = sss['di'].full_name_from_defaults()
+        for index, setup in enumerate(target_setups):
+            name = sss['dc'].get_unique_name(setup)
+            sleep = float(target_sleeps[index])
+            wait_opr = target_waits[index].lower()
+            wait_dkr = self.target_wait_dkrcmd(name, fqin,
+                                               setup, wait_opr.lower(), sleep)
+            target = Target(name=name, fqin=fqin,
+                            setup=setup.lower(),
+                            wait=wait_dkr, sleep=sleep)
+            sss['targets'][target] = self.target_dkrcmd(target)
 
-        for cont in wait_for.split(' '):  # digit or _$STRING
-            if cont.isdigit():
-                cont = conts[int(cont)]
-                subargs.append(cont['id'])
-                wait_stdout.append(cont['exit_status'])
-                wait_duration = max(wait_duration, cont['sleep_time'])
-            else:
-                subargs.append(cont[1:])
-                regex = self.config['missing_stderr'] % cont[1:]
-                wait_stderr.append(regex)
-                end = True
-        self.sub_stuff['wait_stdout'] = wait_stdout
-        self.sub_stuff['wait_stderr'] = wait_stderr
-        self.sub_stuff['wait_should_fail'] = end
-        self.sub_stuff['wait_duration'] = wait_duration
-        self.sub_stuff['wait_cmd'] = DockerCmd(self, 'wait', subargs,
-                                               wait_duration + 20)
-        max_duration = max(conts, key=lambda x: x['sleep_time'])['sleep_time']
-        self.sub_stuff['sleep_after'] = max(0, max_duration - wait_duration)
+    def execute_targets(self):
+        for dkrcmd in self.sub_stuff['targets'].itervalues():
+            dkrcmd.execute()  # blocking + detached
 
-    def prep_wait_cmd(self, wait_options_csv=None):
-        if wait_options_csv is not None:
-            subargs = [arg for arg in
-                       self.config['wait_options_csv'].split(',')]
-        else:
-            subargs = []
-        self.init_wait_for(self.config['wait_for'], subargs)
+    def execute_target_waits(self):
+        for target in self.sub_stuff['targets']:
+            if target.wait is not None:
+                self.logdebug("Target %s", target.name)
+                target.wait.execute()  # async
+
+    def finish_target_waits(self):
+        for target in self.sub_stuff['targets']:
+            if target.wait is not None:
+                target.wait.wait(self.config['target_timeout'])
+            if self.config['target_verbose']:
+                self.logdebug("Final target %s details: %s",
+                              target.name, target.wait)
 
     def initialize(self):
-        super(wait_base, self).initialize()
-        config.none_if_empty(self.config)
+        super(WaitBase, self).initialize()
+        self.init_utils()
         self.init_substuff()
-
-        # Creates and runs containers
-        for name in self.config['containers'].split():
-            self.init_container(name)
-
-        conts = self.sub_stuff['containers']
-        containers = DockerContainers(self)
-        containers = containers.list_containers()
-        cont_ids = [cont['id'] for cont in conts]
-        for cont in containers:
-            if cont.long_id in cont_ids:
-                # replace the id with name
-                cont_idx = cont_ids.index(cont.long_id)
-                conts[cont_idx]['id'] = cont.container_name
-
-        # Prepare the "wait" command
-        self.prep_wait_cmd(self.config.get('wait_options_csv'))
+        self.init_targets()
 
     def run_once(self):
-        super(wait_base, self).run_once()
-        for cont in self.sub_stuff['containers']:
-            self.logdebug("Executing %s, stdin %s", cont['test_cmd'],
-                          cont['test_cmd_stdin'])
-            cont['test_cmd'].execute(cont['test_cmd_stdin'] + "\n")
-        self.sub_stuff['wait_cmd'].execute()
-        self.sub_stuff['wait_results'] = self.sub_stuff['wait_cmd'].cmdresult
-        self.logdebug("Wait finished, sleeping for %ss for non-tested "
-                      "containers to finish.", self.sub_stuff['sleep_after'])
-        time.sleep(self.sub_stuff['sleep_after'])
+        super(WaitBase, self).run_once()
+        sss = self.sub_stuff
+        subargs = [target.name for target in sss['targets']]
+        # timeout set automatically from docker_timeout
+        sss['dkrcmd'] = AsyncDockerCmd(self, 'wait', subargs,
+                                       verbose=self.config['wait_verbose'])
+        self.execute_targets()
+        sss['dkrcmd'].execute()
+        self.execute_target_waits()
+        sss['dkrcmd'].wait(self.config['docker_timeout'])
+        self.finish_target_waits()
+
+    def pproc_outputgood(self):
+        self.logdebug("Checking output sanity")
+        OutputGood(self.sub_stuff['dkrcmd'].cmdresult)
+
+    def pproc_exit(self):
+        self.logdebug("Checking wait exit code")
+        _exit = self.config['exit']
+        if not str(_exit).isdigit():
+            return
+        dkrcmd_exit = self.sub_stuff['dkrcmd'].exit_status
+        expect_exit = int(_exit)
+        self.failif(dkrcmd_exit != expect_exit,
+                    "Wait exit %d != %d" % (dkrcmd_exit, expect_exit))
+
+    def pproc_stdio(self, which):
+        stdio = self.config[which]
+        if not isinstance(stdio, basestring) or stdio == '':
+            self.logdebug("Not checking %s", which)
+            return
+        self.logdebug("Checking %s", which)
+        regex = re.compile(stdio)
+        dkrcmd_stdio = getattr(self.sub_stuff['dkrcmd'], which)
+        self.failif(not regex.search(dkrcmd_stdio),
+                    "Wait %s didn't match regex %s in %s"
+                    % (which, stdio, dkrcmd_stdio))
+
+    def pproc_target(self, target, dkrcmd):
+        self.logdebug("Checking target %s", target.name)
+        exit_status = dkrcmd.exit_status
+        if exit_status != 0:
+            msg = ("Target container %s non-zero exit(%d), "
+                   "see debuglog for details"
+                   % (target.name, exit_status))
+            self.logwarning(msg)
+            self.logdebug(str(dkrcmd))
+
+    def pproc_target_waits(self, target):
+        if target.wait is None:
+            return  # Nothing to check
+        self.logdebug("Checking target %s wait command", target.name)
+        if self.config['target_verbose']:
+            self.logdebug("Details: %s", target.wait)
+        exit_status = target.wait.exit_status
+        if exit_status != 0:
+            msg = ("Target container %s wait command, non-zero exit(%d), "
+                   "see debuglog for details"
+                   % (target.name, exit_status))
+            self.logwarning(msg)
+            self.logdebug(str(target.wait))
 
     def postprocess(self):
-        # Check if execution took the right time (SIGTERM 0s vs. SIGKILL 10s)
-        super(wait_base, self).postprocess()
-        wait_results = self.sub_stuff['wait_results']
-
-        for stdio_name in ('stdout', 'stderr'):
-            result = getattr(wait_results, stdio_name)
-            one_matched = False
-            paterns = self.sub_stuff['wait_%s' % stdio_name]
-            if not paterns:
-                continue
-            for pattern in paterns:
-                regex = re.compile(pattern, re.MULTILINE)
-                if bool(regex.search(result)):
-                    one_matched = True
-                    break
-            if self.sub_stuff['wait_should_fail']:
-                condition = one_matched
-            else:
-                condition = not one_matched
-            self.failif(condition,
-                        "Expected %s match one of '%s' in %s:\n%s"
-                        % (condition,
-                           self.sub_stuff['wait_%s' % stdio_name],
-                           stdio_name, result))
-        OutputNotBad(wait_results)
-        if self.sub_stuff['wait_should_fail']:
-            self.failif(wait_results.exit_status == 0,
-                        "Wait command should have failed but "
-                        "passed instead: %s" % wait_results)
-        else:
-            OutputGood(wait_results)
-            self.failif(wait_results.exit_status != 0,
-                        "Wait exit_status should be "
-                        "zero, but is %s instead" % wait_results.exit_status)
-        exp = self.sub_stuff['wait_duration']
-        self.failif(wait_results.duration > exp + 3,
-                    "Execution of wait took longer,"
-                    " than expected. (%s %s+-3s)"
-                    % (wait_results.duration, exp))
-        self.failif(wait_results.duration < exp - 3,
-                    "Execution of wait took less, "
-                    "than expected. (%s %s+-3s)"
-                    % (wait_results.duration, exp))
-        for cmd in (cont['test_cmd']
-                    for cont in self.sub_stuff['containers']):
-            self.failif(not cmd.done, "Wait passed even thought one of the "
-                        "test commands execution did not finish...\n%s")
-            OutputGood(cmd.wait(0))
+        super(WaitBase, self).postprocess()
+        for target in self.sub_stuff['targets']:
+            self.pproc_target_waits(target)
+        for target, dkrcmd in self.sub_stuff['targets'].iteritems():
+            self.pproc_target(target, dkrcmd)
+        if self.config['wait_verbose']:
+            self.logdebug("Details of wait command: %s",
+                          self.sub_stuff['dkrcmd'])
+        self.pproc_outputgood()
+        self.pproc_exit()
+        self.pproc_stdio('stderr')
+        self.pproc_stdio('stdout')
 
     def cleanup(self):
-        # Removes the docker safely
-        failures = []
-        super(wait_base, self).cleanup()
-        if not self.sub_stuff.get('containers'):
-            return  # Docker was not created, we are clean
-        containers = DockerContainers(self).list_containers()
-        test_conts = self.sub_stuff.get('containers')
-        for cont in test_conts:
-            if 'id' not in cont:  # Execution failed, we don't have id
-                failures.append("Container execution failed, can't verify what"
-                                "/if remained in system: %s"
-                                % cont['result'])
-            if 'test_cmd' in cont:
-                if not cont['test_cmd'].done:
-                    # Actual killing happens below
-                    failures.append("Test cmd %s had to be killed."
-                                    % (cont['test_cmd']))
-        cont_ids = [cont['id'] for cont in test_conts]
-        for cont in containers:
-            if cont.long_id in cont_ids or cont.container_name in cont_ids:
-                cmdresult = DockerCmd(self, 'rm',
-                                      ['--force', '--volumes',
-                                       cont.long_id]).execute()
-                if cmdresult.exit_status != 0:
-                    failures.append("Fail to remove container %s: %s"
-                                    % (cont.long_id, cmdresult))
-        if failures:
-            raise DockerTestError("Cleanup failed:\n%s" % failures)
+        super(WaitBase, self).cleanup()
+        sss = self.sub_stuff
+        self.sub_stuff['dc'].clean_all([target.name
+                                        for target in sss['targets']])
 
 
-class no_wait(wait_base):
+# Generate any generic sub-subtests not found in this or other modules
+def generic_factory(name):
 
-    """
-    Test usage of docker 'wait' command (waits only for containers, which
-    should already exited. Expected execution duration is 0s)
+    class Generic(WaitBase):
+        pass
 
-    initialize:
-    1) starts all containers defined in containers
-    2) prepares the wait command
-    3) prepares the expected results
-    run_once:
-    4) executes the test command in all containers
-    5) executes the wait command
-    6) waits until all containers should be finished
-    postprocess:
-    7) analyze results
-    """
-    pass
+    Generic.__name__ = name
+    return Generic
 
-
-class wait_first(wait_base):
-
-    """
-    Test usage of docker 'wait' command (first container exits after 10s,
-    others immediately. Expected execution duration is 10s)
-
-    initialize:
-    1) starts all containers defined in containers
-    2) prepares the wait command
-    3) prepares the expected results
-    run_once:
-    4) executes the test command in all containers
-    5) executes the wait command
-    6) waits until all containers should be finished
-    postprocess:
-    7) analyze results
-    """
-    pass
-
-
-class wait_last(wait_base):
-
-    """
-    Test usage of docker 'wait' command (last container exits after 10s,
-    others immediately. Expected execution duration is 10s)
-
-    initialize:
-    1) starts all containers defined in containers
-    2) prepares the wait command
-    3) prepares the expected results
-    run_once:
-    4) executes the test command in all containers
-    5) executes the wait command
-    6) waits until all containers should be finished
-    postprocess:
-    7) analyze results
-    """
-    pass
-
-
-class wait_missing(wait_base):
-
-    """
-    Test usage of docker 'wait' command (first and last containers doesn't
-    exist, second takes 10s to finish and the rest should finish immediately.
-    Expected execution duration is 10s with 2 exceptions)
-
-    initialize:
-    1) starts all containers defined in containers
-    2) prepares the wait command
-    3) prepares the expected results
-    run_once:
-    4) executes the test command in all containers
-    5) executes the wait command
-    6) waits until all containers should be finished
-    postprocess:
-    7) analyze results
-    """
-    pass
+subname = 'docker_cli/wait'
+config = Config()
+subsubnames = get_as_list(config[subname]['subsubtests'])
+ssconfigs = []
+globes = globals()
+for ssname in subsubnames:
+    if ssname not in globes:
+        cls = generic_factory(ssname)
+        # Inject generated class into THIS module's namespace
+        globes[cls.__name__] = cls
