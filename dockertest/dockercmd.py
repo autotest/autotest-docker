@@ -276,12 +276,13 @@ class DockerCmd(DockerCmdBase):  # pylint: disable=R0903
                 str_stdin = "  <<< %s" % stdin
             else:                               # Nothing
                 str_stdin = ""
-            self.subtest.logdebug("Execute %s%s", self.command, str_stdin)
+        else:
+            str_stdin = ""
+        if self.verbose:
+            self.subtest.logdebug("Executing %s%s", str(self), str_stdin)
         self.cmdresult = utils.run(self.command, timeout=self.timeout,
                                    stdin=stdin, verbose=False,
                                    ignore_status=True)
-        if self.verbose:
-            self.subtest.logdebug(str(self))
         # Return value, not reference
         return self.cmdresult
 
@@ -319,6 +320,9 @@ class AsyncDockerCmd(DockerCmdBase):
                 str_stdin = "  <<< %s" % stdin
             else:
                 str_stdin = ""
+        else:
+            str_stdin = ""
+        if self.verbose:
             self.subtest.logdebug("Async-execute: %s%s", str(self), str_stdin)
         self._async_job = utils.AsyncJob(self.command, verbose=False,
                                          stdin=stdin, close_fds=True)
