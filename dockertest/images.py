@@ -380,6 +380,12 @@ class DockerImages(object):
         OutputGood(result)
         return result
 
+    def full_name_from_defaults(self):
+        """
+        Return ``DockerImage.full_name_from_defaults(self.subtest.config)``
+        """
+        return DockerImage.full_name_from_defaults(self.subtest.config)
+
     def get_unique_name(self, prefix="", suffix="", length=4):
         """
         Get unique name for a new image
@@ -600,7 +606,7 @@ class DockerImages(object):
         preserve_fqins.append(
             DockerImage.full_name_from_defaults(self.subtest.config))
         preserve_fqins = set(preserve_fqins)
-        self.verbose = True
+        self.verbose = False
         try:
             for name in fqins:
                 if name in preserve_fqins:

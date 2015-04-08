@@ -38,19 +38,14 @@ class iptable(SubSubtestCallerSimultaneous):
 
 class iptable_base(SubSubtest):
 
-    def _init_stuff(self):
-        """
-        Initialize stuff parameters
-        """
+    def init_stuff(self):
         self.sub_stuff['subargs'] = None
-        self.sub_stuff['rule'] = []
-        self.sub_stuff['result'] = True
-        self.sub_stuff['result_info'] = []
         self.sub_stuff['name'] = None
-        self.sub_stuff['net_device_list'] = self.read_veth_device()
-        self.sub_stuff['net_device'] = None
+        self.sub_stuff['rules_before'] = []
+        self.sub_stuff['rules_during'] = []
+        self.sub_stuff['rules_after'] = []
 
-    def _init_subargs(self):
+    def init_subargs(self):
         """
         Initialize basic arguments that will use for start container
         Will return a list 'args'
@@ -60,66 +55,92 @@ class iptable_base(SubSubtest):
         name = docker_containers.get_unique_name()
         self.sub_stuff['name'] = name
         bash_cmd = self.config['bash_cmd']
-        args = ["--name=%s" % name,
-                image,
-                bash_cmd]
-
+        args = ["--name=%s" % name]
+        args += get_as_list(self.config['run_args_csv'])
+        args += [image, bash_cmd]
         return args
 
-    @staticmethod
-    def read_veth_device():
+    def cntnr_veth_map(self):
         """
-        Temp method to get container net device name
+        Return mapping of container names to veth* devices
         """
+        # map ifindex's to ``veth*`` names on host
         tmp_cmd = 'brctl show'
-        cmd_result = utils.run(tmp_cmd)
-        vnet = re.findall(r'veth\w+', cmd_result.stdout)
+        cmd_result = utils.run(tmp_cmd, verbose=False)
+        veths = re.findall(r'veth\w+', cmd_result.stdout)
+        ifindex = [int(open('/sys/class/net/%s/ifindex' % veth, 'r').read())
+                   for veth in veths]
+        index_host = dict(zip(ifindex, veths))
+        self.logdebug("Host index to veth: %s", index_host)
 
-        return vnet
+        # map container eth0 ifindex's to names
+        dc = DockerContainers(self)
+        names = dc.list_container_names()
+        jsons = [dc.json_by_name(name)[0] for name in names]
+        njs = dict(zip(names, jsons))
+        result = {}
+        for name in [_name for (_name, json) in njs.iteritems()
+                     if json["NetworkSettings"]["MacAddress"] != ""]:
+            subargs = [name, 'cat', '/sys/class/net/eth0/ifindex']
+            dkrcmd = DockerCmd(self, 'exec', subargs, verbose=False)
+            dkrcmd.execute()
+            if dkrcmd.exit_status == 0:
+                # Host's ifindex always one greater than container's
+                ifindex = int(dkrcmd.stdout) + 1
+                # State could have changed during looping
+                if ifindex in index_host:
+                    result[name] = index_host[ifindex]
+                else:
+                    self.logdebug("Host veth %s dissapeared while mapping %s",
+                                  ifindex, name)
+            else:
+                self.logdebug("Can't examine eth0 for container %s", name)
+        self.logdebug("Container names to veth: %s", result)
+        return result
 
     @staticmethod
-    def read_iptable_rules(vnet):
+    def read_iptable_rules(veth):
         """
-        Find container related iptable rule
-        param vnet: The container's virtual net card, for now
-                    can get it through 'brctl show' after container
-                    started
+        Find container related iptable rules
+
+        param veth: Container's virtual net card, None for all rules
         """
-        tmp_cmd = 'iptables -L -n -v'
-        net_device = vnet
-        container_rule = []
-        tmp_rules = utils.run(tmp_cmd)
-        tmp_rules_list = tmp_rules.stdout.splitlines()
-
-        for rule in tmp_rules_list:
-            if net_device in rule:
-                line = rule
-                container_rule.append(line)
-
-        return container_rule
+        iptables_cmd = 'iptables -L -n -v'
+        iptables_rules = utils.run(iptables_cmd, verbose=False)
+        rules = iptables_rules.stdout.splitlines()
+        if veth is None:
+            return rules
+        return [rule for rule in rules if rule.find(veth) > -1]
 
     def initialize(self):
         super(iptable_base, self).initialize()
-        self._init_stuff()
-        self.sub_stuff['subargs'] = self._init_subargs()
+        self.init_stuff()
+        self.sub_stuff['rules_before'] = self.read_iptable_rules(None)
+        self.logdebug("Rules before:\n%s",
+                      '\n'.join(self.sub_stuff['rules_before']))
+        self.sub_stuff['subargs'] = self.init_subargs()
 
     def run_once(self):
         super(iptable_base, self).run_once()
         subargs = self.sub_stuff['subargs']
-        mustpass(DockerCmd(self, 'run -d -t', subargs, verbose=True).execute())
+        mustpass(DockerCmd(self, 'run -d', subargs, verbose=True).execute())
+        self.sub_stuff['rules_during'] = self.read_iptable_rules(None)
+        self.logdebug("Rules during:\n%s",
+                      '\n'.join(self.sub_stuff['rules_during']))
 
     def postprocess(self):
         super(iptable_base, self).postprocess()
+        name = self.sub_stuff['name']
+        DockerContainers(self).wait_by_name(name)
+
+        self.sub_stuff['rules_after'] = self.read_iptable_rules(None)
+        self.logdebug("Rules after:\n%s",
+                      '\n'.join(self.sub_stuff['rules_after']))
 
     def cleanup(self):
         super(iptable_base, self).cleanup()
         if self.config['remove_after_test']:
-            preserve_cnames = get_as_list(self.config['preserve_cnames'])
-            if self.sub_stuff['name'] in preserve_cnames:
-                return
-            DockerCmd(self, 'rm',
-                      ['--force', '--volumes',
-                       self.sub_stuff['name']]).execute()
+            DockerContainers(self).clean_all([self.sub_stuff['name']])
 
 
 class iptable_remove(iptable_base):
@@ -128,32 +149,38 @@ class iptable_remove(iptable_base):
     Test if container iptable rules are removed after stopped
     """
 
+    def init_stuff(self):
+        super(iptable_remove, self).init_stuff()
+        self.sub_stuff['cntnr_before'] = set()
+        self.sub_stuff['cntnr_during'] = set()
+
+    def initialize(self):
+        super(iptable_remove, self).initialize()
+        name = self.sub_stuff['name']
+        veth = self.cntnr_veth_map().get(name)
+        if veth is not None:
+            self.sub_stuff['cntnr_before'] = set(self.read_iptable_rules(veth))
+
     def run_once(self):
         super(iptable_remove, self).run_once()
-        before_net = set(self.sub_stuff['net_device_list'])
-        after_net = set(self.read_veth_device())
-        net_device_list = list(after_net.difference(before_net))
-
-        self.failif(len(net_device_list) != 1,
-                    "Can't obtain network device of the tested container,"
-                    "difference of list of net devices before/after is %s"
-                    % net_device_list)
-        self.sub_stuff['net_device'] = net_device_list.pop()
+        name = self.sub_stuff['name']
+        veth = self.cntnr_veth_map().get(name)
+        if veth is not None:
+            self.sub_stuff['cntnr_during'] = set(self.read_iptable_rules(veth))
 
     def postprocess(self):
-        net_device = self.sub_stuff['net_device']
-        container_rules = lambda: self.read_iptable_rules(net_device)
-        added_rules = utils.wait_for(container_rules, 10, step=0.1)
-        self.failif(not added_rules, "No rules added when container started.")
-        self.loginfo("Container %s\niptable rule list %s:" %
-                     (self.sub_stuff['name'], added_rules))
-
-        mustpass(DockerCmd(self, 'stop',
-                           ["-t 0", self.sub_stuff['name']]).execute())
-
-        container_rules = lambda: not self.read_iptable_rules(net_device)
-        removed_rules = utils.wait_for(container_rules, 10, step=0.1)
-        self.failif(not removed_rules, "Container %s iptable rules not "
-                    "removed in 10s after stop. Rules:\n%s"
-                    % (self.sub_stuff['name'],
-                       self.read_iptable_rules(net_device)))
+        super(iptable_remove, self).postprocess()
+        name = self.sub_stuff['name']
+        try:
+            DockerContainers(self).remove_by_name(name)
+        except ValueError:
+            pass  # already removed
+        cntnr_before = self.sub_stuff['cntnr_before']
+        cntnr_during = self.sub_stuff['cntnr_during']
+        veth = self.cntnr_veth_map().get(name)
+        if veth is not None:
+            cntnr_after = set(self.read_iptable_rules(veth))
+        self.failif(cntnr_before, "Rules found before run")
+        self.failif(not cntnr_during, "No rules were added")
+        self.failif(cntnr_after & cntnr_during,
+                    "Rules left over after removal")

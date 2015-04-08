@@ -62,9 +62,10 @@ class simple(subtest.SubSubtest):
         err_msg = ("Start of the %s container failed, but '%s' message is not "
                    "in the output:\n%s")
         # Nonexisting container
+        missing_msg = self.config['missing_msg']
         result = mustfail(DockerCmd(self, "start", [name]).execute())
-        self.failif("No such container" not in str(result), err_msg
-                    % ("non-existing", 'No such container', result))
+        self.failif(missing_msg not in str(result), err_msg
+                    % ("non-existing", missing_msg, result))
 
         # Running container
         self._start_container(name)

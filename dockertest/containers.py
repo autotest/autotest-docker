@@ -564,8 +564,7 @@ class DockerContainers(object):
         else:
             preserve_cnames = []
         preserve_cnames = set(preserve_cnames)
-        # TODO: Set non-verbose once code stabalized
-        self.verbose = True
+        self.verbose = False
         try:
             for name in containers:
                 name = name.strip()

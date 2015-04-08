@@ -8,11 +8,11 @@ Operational Summary
 --------------------
 
 #. Make new image name.
-#. Make changes in image by docker run [dockerand_data_prepare_cmd].
+#. Make changes in image by docker run.
 #. commit changes.
 #. check if committed image exists.
 #. check if values in changed files for image are correct.
-#. remote committed image from local repo.
+#. remove committed image from local repo.
 """
 
 import time
@@ -65,7 +65,6 @@ class commit_base(SubSubtest):
     def complete_docker_command_line(self):
         c_author = self.config["commit_author"]
         c_msg = self.config["commit_message"]
-        run_params = self.config["commit_run_params"]
         repo_addr = self.sub_stuff["new_image_name"]
 
         cmd = []
@@ -73,8 +72,6 @@ class commit_base(SubSubtest):
             cmd.append("-a %s" % c_author)
         if c_msg:
             cmd.append("-m %s" % c_msg)
-        if run_params:
-            cmd.append("--run=%s" % run_params)
 
         cmd.append(self.sub_stuff["container"])
         cmd.append(repo_addr)

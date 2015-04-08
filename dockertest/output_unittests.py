@@ -343,7 +343,7 @@ class TestDtFromIso(unittest.TestCase):
         import datetime
         epoch_str = "0001-01-01T00:00:00.0Z"
         epoch_dt = self.dockertime(epoch_str)
-        expected = epoch_dt.tzinfo.EPOCH
+        expected = self.dockertime.UTC.EPOCH
         self.assertEqual(epoch_dt, expected)
 
 
@@ -386,7 +386,7 @@ class TestDtFromIso(unittest.TestCase):
 
     def test_is_undefined(self):
         dt = self.dockertime("0001-01-01T00:00:00Z")
-        self.assertTrue(dt.is_undefined)
+        self.assertTrue(dt.is_undefined())
 
     def test_isoformat(self):
         # Have to normalize representation first for comparison
@@ -395,6 +395,39 @@ class TestDtFromIso(unittest.TestCase):
         dt = self.dockertime(normalized_isoformat)
         test_isoformat = dt.isoformat()
         self.assertEqual(normalized_isoformat, test_isoformat)
+
+    def test_offset_point_some(self):
+        import datetime
+        isostr = "2015-03-02T17:04:20.569+12:34"
+        dt = self.dockertime(isostr)
+        tz = self.dockertime.UTCOffset("+12:34")
+        expected = datetime.datetime(year=2015, month=3, day=2,
+                                     hour=17, minute=4, second=20,
+                                     microsecond=569000, tzinfo=tz)
+        self.assertEqual(dt, expected)
+
+    def test_in_junk(self):
+        import datetime
+        isostr = "  2015-03-02T17:04:20.569+12:34 ahhhh! 2015-03-02T 17:04:20"
+        dt = self.dockertime(isostr)
+        tz = self.dockertime.UTCOffset("+12:34")
+        expected = datetime.datetime(year=2015, month=3, day=2,
+                                     hour=17, minute=4, second=20,
+                                     microsecond=569000, tzinfo=tz)
+        self.assertEqual(dt, expected)
+
+    def test_in_other_junk(self):
+        import datetime
+        isostr = "  ahhhh!2015-03-02T17:04:20z2015-03-02 17:04:20"
+        dt = self.dockertime(isostr)
+        tz = self.dockertime.UTC()
+        expected = datetime.datetime(year=2015, month=3, day=2,
+                                     hour=17, minute=4, second=20,
+                                     tzinfo=tz)
+        self.assertEqual(dt, expected)
+
+    def test_unparsable(self):
+        self.assertRaises(ValueError, self.dockertime, "2015-03-02 17:04:20z")
 
 if __name__ == '__main__':
     unittest.main()
