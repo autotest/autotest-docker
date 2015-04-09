@@ -117,7 +117,9 @@ class commit_base(SubSubtest):
         super(commit_base, self).cleanup()
         if self.config['remove_after_test']:
             dc = DockerContainers(self)
-            dc.clean_all(self.sub_stuff.get("container", []))
+            container = self.sub_stuff.get("container")
+            if container:
+                dc.clean_all([container])
             di = di = DockerImages(self)
             images = [img.full_name
                       for img in self.sub_stuff.get("image_list", [])]
@@ -140,3 +142,7 @@ class commit_base(SubSubtest):
                             " test initialization: %s != %s" %
                             (results.stdout.strip(),
                              self.sub_stuff["rand_data"]))
+
+
+class good(commit_base):
+    pass
