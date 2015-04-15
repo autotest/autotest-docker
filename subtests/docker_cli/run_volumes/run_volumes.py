@@ -28,10 +28,8 @@ Prerequisites
 *  Containers have access to read & write files w/in mountpoints
 """
 
-import time
 import os.path
 import hashlib
-
 from autotest.client import utils
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd
@@ -40,6 +38,7 @@ from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
 from dockertest.xceptions import DockerTestNAError
 from dockertest import environment
+from dockertest.config import get_as_list
 
 
 class run_volumes(SubSubtestCaller):
@@ -72,22 +71,21 @@ class volumes_base(SubSubtest):
                 'write_hash': None,  # Filled in after execute()
                 'host_path': host_path, 'cntr_path': cntr_path}
 
-    @staticmethod
-    def init_path_info(path_info, host_paths, cntr_paths, tmpdir):
+    def init_path_info(self, path_info, host_paths, cntr_paths, tmpdir):
         # create template-substitution dicts for each container
         for host_path, cntr_path in zip(host_paths, cntr_paths):
             # check for a valid host path for the test
             if not os.path.isdir(host_path):
-                raise DockerTestNAError("Configured host_path '%s' invalid."
-                                        % host_path)
+                raise DockerTestNAError("Configured host_path '%s' is not a "
+                                        "directory." % host_path)
             if not cntr_path or len(cntr_path) < 4:
-                raise DockerTestNAError("Configured cntr_path '%s' invalid."
-                                        % cntr_path)
+                raise DockerTestNAError("Configured cntr_path '%s' is not a "
+                                        "directory." % cntr_path)
             # keys must coorespond with those used in *_template strings
-            args = volumes_base.make_test_files(os.path.abspath(host_path))
+            args = self.make_test_files(os.path.abspath(host_path))
             args += (host_path, cntr_path)
             # list of dicts {'read_fn', 'write_fn', 'read_data', ...}
-            test_dict = volumes_base.make_test_dict(*args)
+            test_dict = self.make_test_dict(*args)
             # unique cidfile for each container
             hpr = host_path.replace('/', '@')
             uniq = os.path.join(tmpdir,
@@ -107,7 +105,7 @@ class volumes_base(SubSubtest):
     def make_dockercmd(subtest, dockercmd_class, fqin,
                        run_template, cmd_tmplate, test_dict):
         # safe_substutute ignores unknown tokens
-        subargs = str(run_template % test_dict).strip().split(',')
+        subargs = get_as_list(str(run_template % test_dict))
         subargs.append(fqin)
         subargs.append(cmd_tmplate % test_dict)
         return dockercmd_class(subtest, 'run', subargs)
@@ -169,13 +167,26 @@ class volumes_base(SubSubtest):
                 os.unlink(read_path)
                 subtest.logdebug("Removed %s", read_path)
 
+    def cleanup_cntnrs(self):
+        if self.config['remove_after_test']:
+            cmdresults = self.sub_stuff.get('cmdresults', [])
+            for index, cmdresult in enumerate(cmdresults):
+                cidfilename = self.sub_stuff['path_info'][index]['cidfile']
+                try:
+                    self.try_kill(self, cidfilename, cmdresult)
+                    self.try_rm(self, cidfilename, cmdresult)
+                except ValueError, detail:
+                    self.logwarning("Cleanup problem detected: ValueError: %s",
+                                    str(detail))
+                    continue
+
 
 class volumes_rw(volumes_base):
 
     def initialize(self):
         super(volumes_rw, self).initialize()
-        host_paths = self.config['host_paths'].strip().split(',')
-        cntr_paths = self.config['cntr_paths'].strip().split(',')
+        host_paths = get_as_list(self.config['host_paths'])
+        cntr_paths = get_as_list(self.config['cntr_paths'])
         if len(host_paths) != len(cntr_paths):
             raise DockerTestNAError("Configuration option host_paths CSV list "
                                     "must exactly match length of cntr_paths. "
@@ -184,23 +195,18 @@ class volumes_rw(volumes_base):
             raise DockerTestNAError("Configuration options host_paths and "
                                     "cntr_paths CSV lists are empty")
         # list of substitution dictionaries for each container
-        path_info = self.sub_stuff['path_info'] = []
+        path_info = self.sub_stuff['path_info']
         # Throws DockerTestNAError if any host_paths is bad
         self.init_path_info(path_info, host_paths, cntr_paths, self.tmpdir)
-        dockercmds = self.sub_stuff['dockercmds'] = []
+        dockercmds = self.sub_stuff['dockercmds']
         # Does not execute()
         self.init_dkrcmds(self, path_info, dockercmds)
-        self.sub_stuff['cmdresults'] = []
-        self.sub_stuff['cids'] = []
 
     def run_once(self):
         super(volumes_rw, self).run_once()
         for dockercmd in self.sub_stuff['dockercmds']:
             # Also updates self.sub_stuff['cids']
             self.sub_stuff['cmdresults'].append(dockercmd.execute())
-        wait_stop = self.config['wait_stop']
-        self.loginfo("Waiting %d seconds for docker to catch up", wait_stop)
-        time.sleep(wait_stop)
         for test_dict in self.sub_stuff['path_info']:
             host_path = test_dict['host_path']
             write_fn = test_dict['write_fn']
@@ -235,18 +241,6 @@ class volumes_rw(volumes_base):
             self.failif(wh != rh, msg)
 
     def cleanup(self):
-        super(volumes_rw, self).cleanup()
         self.cleanup_test_dict(self, self.sub_stuff['path_info'])
-        if self.config['remove_after_test']:
-            if self.sub_stuff.get('cmdresults') is None:
-                self.logdebug("No commands ran, nothing to clean up")
-                return  # no commands ran
-            for index, cmdresult in enumerate(self.sub_stuff['cmdresults']):
-                cidfilename = self.sub_stuff['path_info'][index]['cidfile']
-                try:
-                    self.try_kill(self, cidfilename, cmdresult)
-                    self.try_rm(self, cidfilename, cmdresult)
-                except ValueError, detail:
-                    self.logwarning("Cleanup problem detected: ValueError: %s",
-                                    str(detail))
-                    continue
+        self.cleanup_cntnrs()
+        super(volumes_rw, self).cleanup()
