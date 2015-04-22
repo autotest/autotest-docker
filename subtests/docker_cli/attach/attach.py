@@ -36,10 +36,32 @@ class attach_base(SubSubtest):
                      % wait)
         time.sleep(wait)
 
+    def image_exist(self, image_name):
+        di = DockerImages(self)
+        image_list = di.get_dockerimages_list()
+        exist_status = DockerImages.filter_list_full_name(image_list,
+                                                          image_name)
+        return exist_status
+
+    def pull_image(self, image_name):
+        dkrcmd = AsyncDockerCmd(self, 'pull', [image_name],
+                                self.config['docker_timeout'],
+                                verbose=True)
+        self.loginfo("Executing background command: %s" % dkrcmd)
+        dkrcmd.execute()
+        while not dkrcmd.done:
+            self.loginfo("Pulling...")
+            time.sleep(3)
+        self.failif(dkrcmd.exit_status != 0,
+                    "Fail to download image %s"
+                    % image_name)
+
     def initialize(self):
         super(attach_base, self).initialize()
         self.sub_stuff['subargs'] = self.config['run_options_csv'].split(',')
         fin = DockerImage.full_name_from_defaults(self.config)
+        if self.image_exist(fin) == []:
+            self.pull_image(fin)
         self.sub_stuff['subargs'].append(fin)
         self.sub_stuff['subargs'] += self.config['bash_cmd'].split(',')
         self.sub_stuff['subargs'].append(self.config['cmd'])
