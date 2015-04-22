@@ -56,16 +56,31 @@ class pull_base(SubSubtest):
         registry_addr = self.config["docker_registry_host"]
         self.check_registry(registry_addr)
 
-    def initialize(self):
-        super(pull_base, self).initialize()
-        self.sub_stuff['di'] = di = DockerImages(self)
+    def init_image_fn(self):
+        di = self.sub_stuff['di']
         image_fn = di.full_name_from_defaults()
         self.sub_stuff["image_fn"] = image_fn
+        return image_fn
+
+    def clean_all(self):
+        di = self.sub_stuff['di']
+        flbc = di.filter_list_by_components
+        image_list = flbc(di.list_imgs(),
+                          repo=self.config['docker_repo_name'])
+        remove = [img.full_name for img in image_list]
+        DockerImages(self).clean_all(remove)
+
+    def initialize(self):
+        super(pull_base, self).initialize()
+        self.sub_stuff['di'] = DockerImages(self)
+        image_fn = self.init_image_fn()
         # set by run_once()
         self.sub_stuff['image_list'] = []
         dkrcmd = AsyncDockerCmd(self, 'pull',
-                                [image_fn])
+                                [image_fn], verbose=True)
+        dkrcmd.quiet = False
         self.sub_stuff['dkrcmd'] = dkrcmd
+        self.clean_all()
 
     def run_once(self):
         super(pull_base, self).run_once()
@@ -111,17 +126,8 @@ class pull_base(SubSubtest):
 
     def cleanup(self):
         super(pull_base, self).cleanup()
-        image_list = self.sub_stuff['image_list']
-        if self.config['remove_after_test'] and image_list != []:
-            test_id = None
-            remove = []
-            # 2x loop: ID for test image, all names matching ID
-            for img in image_list * 2:
-                if img.full_name == self.sub_stuff['image_fn']:
-                    test_id = img.long_id
-                if test_id is not None and img.long_id == test_id:
-                    remove.append(img.full_name)
-            DockerImages(self).clean_all(remove)
+        if self.config['remove_after_test']:
+            self.clean_all()
 
 
 class good(pull_base):
