@@ -9,7 +9,7 @@ docker commit full_name
 4. Try to start default command.
 5. Check results of default command.
 6. Kill container started with default command.
-3. Remote image from local repository
+7. Remove image from local repository
 """
 
 from commit import commit_base
@@ -59,6 +59,6 @@ class check_default_cmd(commit_base):
                     "Non-zero commit exit status: %s"
                     % results)
 
-        self.failif(not self.config['check_results_contain'] in results.stdout,
-                    "Unable to start image with default command: %s"
-                    % results)
+        self.failif(not self.sub_stuff['rand_data'] in results.stdout,
+                    "Unexpected command result: %s"
+                    % results.stdout)
