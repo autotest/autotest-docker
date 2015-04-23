@@ -73,7 +73,7 @@ class simple(CpBase):
         contents = utils.generate_random_string(12)
         self.sub_stuff['file_contents'] = contents
         # /tmp file inside container
-        cpfile = '/tmp/' + utils.generate_random_string(8)
+        cpfile = utils.generate_random_string(8)
         self.sub_stuff['cpfile'] = cpfile
         cmd = '\'echo "%s" > %s && md5sum %s\'' % (contents, cpfile, cpfile)
         subargs.append(cmd)
@@ -169,6 +169,10 @@ class every_last(CpBase):
         super(every_last, self).run_once()
         total = len(self.sub_stuff['lastfiles'])
         self.sub_stuff['expected_total'] = total
+        self.failif(total < self.config['max_files'],
+                    "Max files number expected : %d,"
+                    "exceeds container total has : %d"
+                    % (self.config['max_files'], total))
         self.loginfo("Testing copy of %d files from container" % total)
         self.sub_stuff['results'] = {}  # cont_path -> cmdresult
         # Avoid excessive logging
@@ -177,7 +181,7 @@ class every_last(CpBase):
         nfiles = 0
         for index, srcfile in enumerate(self.sub_stuff['lastfiles']):
             if index % 100 == 0:
-                self.loginfo("Copied %d of %d", index, total)
+                self.loginfo("Copied %d of %d", nfiles, total)
             cont_path = "%s:%s" % (self.sub_stuff['container_name'], srcfile)
             host_path = self.tmpdir
             host_fullpath = os.path.join(host_path, os.path.basename(srcfile))
@@ -186,5 +190,22 @@ class every_last(CpBase):
             self.failif(not os.path.isfile(host_fullpath),
                         "Not a file: '%s'" % host_fullpath)
             nfiles += 1
+            self.sub_stuff['nfiles'] = nfiles
             if nfiles >= self.config['max_files']:
+                self.loginfo("Configuration max %d, Copied %d of %d"
+                             % (self.config['max_files'], nfiles, total))
                 break
+
+    def postprocess(self):
+        super(every_last, self).postprocess()
+        self.verify_files_number(self.sub_stuff['nfiles'],
+                                 self.config['max_files'])
+
+    def verify_files_number(self, copied_number, expected_number):
+        self.failif(copied_number < expected_number,
+                    "copied %d files not equal max files %d"
+                    % (copied_number, expected_number))
+
+        self.loginfo("Success, copied %d files from container, "
+                     "expected number from configuration %d"
+                     % (copied_number, expected_number))
