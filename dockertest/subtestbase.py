@@ -60,9 +60,9 @@ class SubBase(object):
         if not_customized is not None and not_customized is not '':
             self.logdebug("WARNING: Recommended options not customized:")
             for nco in get_as_list(not_customized):
-                self.logwarning("WARNING: %s" % nco)
+                self.logdebug("WARNING: %s" % nco)
             self.logwarning("WARNING: Test results may be externaly "
-                            "dependent!")
+                            "dependent! (See debug log for details)")
         msg = "%s configuration:\n" % self.__class__.__name__
         for key, value in self.config.items():
             if key == '__example__' or key.startswith('envcheck'):
