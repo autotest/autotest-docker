@@ -1,10 +1,10 @@
-FROM stackbrew/centos:7
+FROM docker.io/stackbrew/centos:7
 MAINTAINER cevich@redhat.com
 ################################################################################
 # Configuration Options
 ################################################################################
-ENV VERBOSE="yes" \
-    HOST_ROOT="/var/lib" \
+ENV AUTOTEST_PATH="/usr/local/autotest" \
+    DOCKER_AUTOTEST_PATH="/usr/local/autotest/client/tests/docker" \
     AUTOTEST_URL="https://github.com/autotest/autotest.git" \
     PROTECT_IMAGES="stackbrew/centos:7, stackbrew/centos:latest" \
     PROTECT_CONTAINERS="" \
@@ -13,9 +13,31 @@ http://linux.mirrors.es.net/fedora-epel/7/x86_64/e/epel-release-7-5.noarch.rpm" 
     INSTALL_RPMS="procps tar findutils bzip2 gdb bridge-utils \
 nfs-utils git glibc-devel python-sphinx python-bugzilla which pylint \
 make python-pep8 python-sphinxcontrib-httpdomain" \
-    AUTOTEST_PATH="/usr/local/autotest" \
-    DOCKER_AUTOTEST_PATH="/usr/local/autotest/client/tests/docker" \
-    DOCKER_BIN_PATH="/usr/bin/docker"
+    SWITCH_VERSION="yes" \
+    TESTS_CONFIG="yes" \
+    DEFAULTS_CONFIG="yes" \
+    LC_ALL="C" \
+    PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin"
+################################################################################
+LABEL INSTALL="/usr/bin/docker run \
+--interactive \
+--rm \
+--privileged \
+--net=host \
+--ipc=host \
+--pid=host \
+--env HOST=/host \
+--env NAME=NAME \
+--env IMAGE=IMAGE \
+--volume /run:/run \
+--volume /var/log:/var/log \
+--volume /:/host \
+--read-only \
+--name NAME \
+IMAGE \
+/usr/local/autotest/client/tests/docker/atomic/atomic_install.sh"
+LABEL RUN="/usr/local/autotest/client/autotest-local run docker"
+LABEL UNINSTALL="rm -rf /usr/local/autotest"
 ################################################################################
 RUN yum --disablerepo="*-eus-*" --disablerepo="*-htb-*" --disablerepo="*-ha-*" \
         --disablerepo="*-rt-*" --disablerepo="*-lb-*" --disablerepo="*-rs-*" \
@@ -31,28 +53,7 @@ RUN yum --disablerepo="*-eus-*" --disablerepo="*-htb-*" --disablerepo="*-ha-*" \
     rm -rf /usr/share/doc/* && \
     rm -rf /usr/share/man/*
 RUN git clone --single-branch ${AUTOTEST_URL} ${AUTOTEST_PATH}
-WORKDIR ${AUTOTEST_PATH}/client
-################################################################################
-LABEL INSTALL="/usr/bin/docker run \
---interactive \
---tty \
---rm \
---privileged \
---net=host \
---ipc=host \
---pid=host \
---env HOST=/host \
---env NAME=NAME \
---env IMAGE=IMAGE \
---volume /run:/run \
---volume /var/log:/var/log \
---volume /:/host \
-IMAGE \
-/usr/local/autotest/client/tests/docker/atomic/atomic_install.sh"
 ################################################################################
 ADD / /${DOCKER_AUTOTEST_PATH}/
-RUN git reset --hard $(${DOCKER_AUTOTEST_PATH}/atomic/config_value.py \
-                       DEFAULTS autotest_version \
-                       ${DOCKER_AUTOTEST_PATH}/config_defaults/defaults.ini \
-                       ${DOCKER_AUTOTEST_PATH}/config_custom/defaults.ini) && \
-    echo -e "\nComplete installation with 'atomic install IMAGE'\n"
+WORKDIR ${AUTOTEST_PATH}/client
+RUN echo -e "\nComplete installation with 'atomic install IMAGE'\n"
