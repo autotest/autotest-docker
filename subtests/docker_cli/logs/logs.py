@@ -17,7 +17,7 @@ Operational Summary
 Prerequisites
 ---------------------------------------------
 *  Host clock is accurate, local timezone setup properly.
-*  Host clock does not change drastically during test
+*  Host clock does not change drastically during test (e.g. from ntpdate)
 *  Starting and executing the test container takes under one minute
 """
 
