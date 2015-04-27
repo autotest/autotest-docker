@@ -135,7 +135,7 @@ class images(Base):
         di.remove_args = '--force=true'
         for name in existing_images - preserve_fqins:
             # another sub-subtest will take care of <none> images
-            if name == '':
+            if name == '' or name is None:
                 continue
             if not self.config['remove_garbage']:
                 continue
