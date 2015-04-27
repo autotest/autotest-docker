@@ -564,6 +564,8 @@ class DockerContainers(object):
         else:
             preserve_cnames = []
         preserve_cnames = set(preserve_cnames)
+        preserve_cnames.discard(None)
+        preserve_cnames.discard('')
         self.verbose = False
         try:
             for name in containers:

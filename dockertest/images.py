@@ -27,6 +27,7 @@ Note: As in other places, the terms 'repo' and 'image' are used
 
 import re
 from autotest.client.shared import error
+from config import Config
 from config import none_if_empty
 from config import get_as_list
 from autotest.client import utils
@@ -121,8 +122,8 @@ class DockerImage(object):  # pylint: disable=R0902
         """
         return "DockerImage(%s)" % str(self)
 
-    @staticmethod
-    def split_to_component(full_name):
+    @classmethod
+    def split_to_component(cls, full_name):
         """
         Split full_name FQIN string into separate component strings
 
@@ -136,7 +137,7 @@ class DockerImage(object):  # pylint: disable=R0902
             return None, None, None, None
         try:
             (repo_addr, _, user,  # ignore optional port sub-group value
-             repo, tag) = DockerImage.repo_split_p.match(full_name).groups()
+             repo, tag) = cls.repo_split_p.match(full_name).groups()
             if repo_addr:
                 repo_addr = repo_addr[:-1]  # remove trailing slash
             if user:
@@ -147,8 +148,9 @@ class DockerImage(object):  # pylint: disable=R0902
             raise DockerFullNameFormatError(full_name)
         return repo, tag, repo_addr, user
 
-    @staticmethod
-    def full_name_from_component(repo, tag=None, repo_addr=None, user=None):
+    @classmethod
+    def full_name_from_component(cls, repo, tag=None,
+                                 repo_addr=None, user=None):
         """
         Fully form a name (FQIN) based on individual components.
 
@@ -163,8 +165,8 @@ class DockerImage(object):  # pylint: disable=R0902
                         (repo_addr, user, repo, tag))
         return "".join([c % v for c, v in component if v is not None])
 
-    @staticmethod
-    def full_name_from_defaults(config, min_length=4):
+    @classmethod
+    def full_name_from_defaults(cls, config, min_length=4):
         """
         Return the FQIN based on '[DEFAULT]' options
 
@@ -181,7 +183,7 @@ class DockerImage(object):  # pylint: disable=R0902
         for key in ('docker_repo_name', 'docker_repo_tag',
                     'docker_registry_host', 'docker_registry_user'):
             none_if_empty(config, key)
-        fqin = DockerImage.full_name_from_component(
+        fqin = cls.full_name_from_component(
             config['docker_repo_name'],
             config['docker_repo_tag'],
             config['docker_registry_host'],
@@ -298,6 +300,9 @@ class DockerImages(object):
     :param verbose: A boolean, cause internal operations to make more noise.
     """
 
+    #: Allow switching out the class used by items
+    DICLS = DockerImage
+
     #: Operational timeout, may be overridden by subclasses and/or parameters.
     timeout = 60.0
 
@@ -334,15 +339,15 @@ class DockerImages(object):
             self.subtest = subtest
 
     # private methods don't need docstrings
-    @staticmethod
-    def _di_from_row(row):  # pylint: disable=C0111
+    @classmethod
+    def _di_from_row(cls, row):  # pylint: disable=C0111
         # Translate from row dictionary, to DockerImage parameters
         repo = row['REPOSITORY']
         tag = row['TAG']
         long_id = row['IMAGE ID']
         created = row['CREATED']
         size = row['VIRTUAL SIZE']
-        return DockerImage(repo, tag, long_id, created, size)
+        return cls.DICLS(repo, tag, long_id, created, size)
 
     # private methods don't need docstrings
     def _parse_colums(self, stdout_strip):  # pylint: disable=C0111
@@ -383,8 +388,11 @@ class DockerImages(object):
     def full_name_from_defaults(self):
         """
         Return ``DockerImage.full_name_from_defaults(self.subtest.config)``
+
+        **Warning:** This may not be the name from [DEFAULTS] section!
+                     for that guarantee, use ``default_image`` attribute
         """
-        return DockerImage.full_name_from_defaults(self.subtest.config)
+        return self.DICLS.full_name_from_defaults(self.subtest.config)
 
     def get_unique_name(self, prefix="", suffix="", length=4):
         """
@@ -410,12 +418,17 @@ class DockerImages(object):
             if name not in all_images:
                 return name
 
+    # Tests may subclass and override this to be stateful, therefor
+    # it cannot be defined as a static or class method.
     @property
-    def default_image(self):
+    def default_image(self):  # pylint: disable=R0201
         """
-        Represent the default test image FQIN based on subtest configuration
+        Represent the default test image FQIN (guaranteed) from [DEFAULTS]
         """
-        return DockerImage.full_name_from_defaults(self.subtest.config)
+        cfg = Config()
+        defaults = cfg['DEFAULTS']
+        # DICLS may have overriden this method
+        return DockerImage.full_name_from_defaults(defaults)
 
     def get_dockerimages_list(self):
         """
@@ -603,9 +616,10 @@ class DockerImages(object):
             preserve_fqins = get_as_list(preserve_fqins)
         else:
             preserve_fqins = []
-        preserve_fqins.append(
-            DockerImage.full_name_from_defaults(self.subtest.config))
+        preserve_fqins.append(self.default_image)
         preserve_fqins = set(preserve_fqins)
+        preserve_fqins.discard(None)
+        preserve_fqins.discard('')
         self.verbose = False
         try:
             for name in fqins:
@@ -617,4 +631,4 @@ class DockerImages(object):
                 except error.CmdError:
                     continue
         finally:
-            self.verbose = DockerImages.verbose
+            self.verbose = self.__class__.verbose
