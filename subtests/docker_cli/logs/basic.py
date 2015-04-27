@@ -6,6 +6,7 @@
 #. Verify produced output with expected output
 """
 
+from time import sleep
 from logs import Base
 from datetime import datetime
 
@@ -26,7 +27,7 @@ class basic(Base):
 
     def run_once(self):
         super(basic, self).run_once()
-        cntnr = self.create_cntnr('date', '+%H')
+        cntnr = self.create_cntnr('date', '"+foobar: %H"')
         name = self.scrape_name(cntnr.subargs)
 
         logs_cmd = self.sub_stuff['logs_cmd']
@@ -34,8 +35,16 @@ class basic(Base):
 
         cntnr = self.start_cntnr(name)  # blocking on exit
         now = datetime.now()
+        # Most likely failure at hour-increment
+        if now.second > 58:  # allow 2 second window for docker start
+            sleep(3)
+            now = datetime.now()
         #  minute-level accuracy: only hour is important
-        hour_s = str(now.hour)
+        magic = 'foobar:'
+        if now.hour < 10:
+            hour_s = '%s 0%s' % (magic, str(now.hour))
+        else:
+            hour_s = '%s %s' % (magic, str(now.hour))
         self.sub_stuff['expected_stdout']['after_start'] = hour_s
         logs_cmd['after_start'] = self.logs_cmd(name)
 
@@ -47,4 +56,5 @@ class basic(Base):
             stdout = logs_cmd[key].stdout.strip()
             expected = expected_stdout[key].strip()
             self.failif(stdout != expected,
-                        '"%s" != "%s"' % (stdout, expected))
+                        'Logs command output "%s" != Expected "%s"'
+                        % (stdout, expected))
