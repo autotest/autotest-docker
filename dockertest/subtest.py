@@ -345,6 +345,31 @@ class SubSubtestCaller(Subtest):
             raise DockerTestNAError("Missing|empty 'subsubtests' in config.")
         sst_names = self.config['subsubtests']
         self.subsubtest_names = config.get_as_list(sst_names)
+        # Make sure every control-config referenced sub-subtest exists
+        # in subsubtests option
+        fullnames = [os.path.join(self.config_section, ssn)
+                     for ssn in self.subsubtest_names]
+        if self.control_config is not None:
+            includes = config.get_as_list(self.control_config['include'])
+            exclude = config.get_as_list(self.control_config['exclude'])
+            subthings = config.get_as_list(self.control_config['subthings'])
+            # filter out all names not a subsubtest of this test
+            for testlist in (includes, exclude, subthings):
+                remove = []
+                for testname in testlist:
+                    if testname == self.config_section:
+                        remove.append(testname)
+                    if not testname.startswith(self.config_section):
+                        remove.append(testname)
+                for item in remove:
+                    testlist.remove(item)
+                # Verify all runtime subsubtests are defined
+                for item in testlist:
+                    if item not in fullnames:
+                        msg = ("Sub-subtest %s referenced by control "
+                               "but not defined in subsubtests option"
+                               % item)
+                        raise DockerTestError(msg)
         self.step_log_msgs['run_once'] = "Running sub-subtests..."
         self.step_log_msgs['postprocess'] = ("Postprocess sub-subtest "
                                              "results...")
@@ -493,12 +518,12 @@ class SubSubtestCaller(Subtest):
         include_csv = control_config.get('include', '')
         if subthings_csv != '':
             subthings = [subthing.strip()
-                         for subthing in subthings_csv.strip().split(',')]
+                         for subthing in config.get_as_list(subthings_csv)]
         else:
             return False  # nothing is suppose to run?!?!?!?!?
         if exclude_csv != '':
             excludes = [exclude.strip()
-                        for exclude in exclude_csv.strip().split(',')]
+                        for exclude in config.get_as_list(exclude_csv)]
             if name in excludes:
                 return False
             # else more checking reqired
@@ -506,7 +531,7 @@ class SubSubtestCaller(Subtest):
             excludes = []  # exclude nothing
         if include_csv != '':
             includes = [include.strip()
-                        for include in include_csv.strip().split(',')]
+                        for include in config.get_as_list(include_csv)]
             # Can't use self.config['subsubtests'] b/c initialize() could
             # have modified/augmented it.
             specifics = self.subsubtests_in_list(self.subsubtest_names,

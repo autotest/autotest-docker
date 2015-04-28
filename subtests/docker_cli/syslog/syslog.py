@@ -19,18 +19,23 @@ Prerequisites
 """
 
 import os
+import os.path
 import datetime
 from dockertest.subtest import Subtest
 from dockertest.output import mustpass
 from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
 from dockertest.containers import DockerContainers
+from dockertest.xceptions import DockerTestNAError
 
 
 class syslog(Subtest):
 
     def initialize(self):
         super(syslog, self).initialize()
+        if not os.path.isfile(self.config['syslogfile']):
+            raise DockerTestNAError("Couldn't find system log: %s"
+                                    % self.config['syslogfile'])
         dc = DockerContainers(self)
         name = self.stuff["container_name"] = dc.get_unique_name()
         self.stuff['name'] = '--name=%s' % name
@@ -61,7 +66,7 @@ class syslog(Subtest):
         self.failif(not _check, "syslog test failed")
 
     def verify_message_logged(self):
-        with open("/var/log/messages") as f:
+        with open(self.config['syslogfile']) as f:
             f.seek(-4096, os.SEEK_END)
             for line in f:
                 if line.strip().endswith(self.stuff["msg"]):
