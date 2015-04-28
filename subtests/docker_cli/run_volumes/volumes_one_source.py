@@ -28,7 +28,7 @@ class volumes_one_source(volumes_base):
         cntr_path = self.config['cntr_path']
         host_path = self.tmpdir
         self.set_selinux_context(self, host_path)
-        vols = ['--volume="%s:%s:Z"' % (host_path, cntr_path)]
+        vols = ['--volume="%s:%s:z"' % (host_path, cntr_path)]
         fqin = [DockerImage.full_name_from_defaults(self.config)]
         for _ in range(num_containers):
             name = utils.generate_random_string(12)
