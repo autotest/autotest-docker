@@ -155,18 +155,19 @@ class volumes_base(SubSubtest):
         except IOError:
             subtest.logdebug("Container never ran for %s", cmdresult)
 
-    def cleanup(self):
-        for test_data in self.sub_stuff['path_info']:
+    @staticmethod
+    def cleanup_test_dict(subtest, path_info):
+        for test_data in path_info:
             write_path = os.path.join(test_data['host_path'],
                                       test_data['write_fn'])
             read_path = os.path.join(test_data['host_path'],
                                      test_data['read_fn'])
             if write_path is not None and os.path.isfile(write_path):
                 os.unlink(write_path)
-                self.logdebug("Removed %s", write_path)
+                subtest.logdebug("Removed %s", write_path)
             if read_path is not None and os.path.isfile(read_path):
                 os.unlink(read_path)
-                self.logdebug("Removed %s", read_path)
+                subtest.logdebug("Removed %s", read_path)
 
 
 class volumes_rw(volumes_base):
@@ -234,6 +235,8 @@ class volumes_rw(volumes_base):
             self.failif(wh != rh, msg)
 
     def cleanup(self):
+        super(volumes_rw, self).cleanup()
+        self.cleanup_test_dict(self, self.sub_stuff['path_info'])
         if self.config['remove_after_test']:
             if self.sub_stuff.get('cmdresults') is None:
                 self.logdebug("No commands ran, nothing to clean up")
@@ -247,4 +250,3 @@ class volumes_rw(volumes_base):
                     self.logwarning("Cleanup problem detected: ValueError: %s",
                                     str(detail))
                     continue
-        super(volumes_rw, self).cleanup()
