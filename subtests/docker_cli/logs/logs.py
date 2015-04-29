@@ -97,7 +97,7 @@ class Base(SubSubtest):
         :return: A new DockerCmd instance
         """
         subargs = get_as_list(self.config['extra_start_args']) + [name]
-        dockercmd = cls(self, 'start', subargs, verbose=False)
+        dockercmd = cls(self, 'start', subargs, verbose=True)
         dockercmd.quiet = True
         if execute:
             dockercmd.execute()

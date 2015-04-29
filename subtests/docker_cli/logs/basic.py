@@ -27,18 +27,18 @@ class basic(Base):
 
     def run_once(self):
         super(basic, self).run_once()
-        cntnr = self.create_cntnr('date', '"+foobar: %H"')
+        cntnr = self.create_cntnr('date -u', '"+foobar: %H"')
         name = self.scrape_name(cntnr.subargs)
 
         logs_cmd = self.sub_stuff['logs_cmd']
         logs_cmd['before_start'] = self.logs_cmd(name)
 
         cntnr = self.start_cntnr(name)  # blocking on exit
-        now = datetime.now()
+        now = datetime.utcnow()
         # Most likely failure at hour-increment
         if now.second > 58:  # allow 2 second window for docker start
             sleep(3)
-            now = datetime.now()
+            now = datetime.utcnow()
         #  minute-level accuracy: only hour is important
         magic = 'foobar:'
         if now.hour < 10:
