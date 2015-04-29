@@ -195,10 +195,11 @@ class volumes_rw(volumes_base):
             raise DockerTestNAError("Configuration options host_paths and "
                                     "cntr_paths CSV lists are empty")
         # list of substitution dictionaries for each container
-        path_info = self.sub_stuff['path_info']
+        path_info = self.sub_stuff['path_info'] = []
         # Throws DockerTestNAError if any host_paths is bad
         self.init_path_info(path_info, host_paths, cntr_paths, self.tmpdir)
-        dockercmds = self.sub_stuff['dockercmds']
+        dockercmds = self.sub_stuff['dockercmds'] = []
+        self.sub_stuff['cmdresults'] = []
         # Does not execute()
         self.init_dkrcmds(self, path_info, dockercmds)
 
