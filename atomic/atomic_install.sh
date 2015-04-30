@@ -47,11 +47,11 @@ then
     if [ "$?" -ne 0 ]; then exit 1; fi
 fi
 
-if [ -n "$DEFAULTS_CONFIG" ]
-then
-    ${AUTOTEST_PATH}/client/tests/docker/atomic/defaults_config.sh $DEST $ATD_IMAGE $ATD_TAG "$PROTECT_IMAGES"
-    if [ "$?" -ne 0 ]; then exit 1; fi
-fi
+${AUTOTEST_PATH}/client/tests/docker/atomic/defaults_config.sh $DEST $ATD_IMAGE $ATD_TAG "$PROTECT_IMAGES"
+if [ "$?" -ne 0 ]; then exit 1; fi
+
+${AUTOTEST_PATH}/client/tests/docker/atomic/control_config.sh $DEST
+if [ "$?" -ne 0 ]; then exit 1; fi
 
 echo -e "\nExecute tests with: atomic run ${IMAGE}"
 echo -e "or"
