@@ -8,6 +8,7 @@ TIMEOUT = 60 * 60 * 4  # 4 hours, divided amung each subtest step
 
 import sys
 import os
+import re
 import os.path
 import logging
 import collections
@@ -43,10 +44,10 @@ def subtest_of_subsubtest(name, subtest_modules):
             return name  # Must be parent
     # This is a problem
     logging.error("Name '%s' does not match (with) any "
-                    "known subtest modules.", name)
+                  "known subtest modules.", name)
     logging.error("Subtest modules checked from command-line --args, "
-                    "control.ini, 'subthings', and all subtest modules "
-                    "under subtests directory.")
+                  "control.ini, 'subthings', and all subtest modules "
+                  "under subtests directory.")
     return None
 
 def subtests_subsubtests(subthing_set, subtest_modules):
@@ -72,9 +73,9 @@ def subtests_subsubtests(subthing_set, subtest_modules):
 
 def get_bzobj(bzopts):
     """Load bugzilla module, return bz obj or None if error"""
-    username = bzopts['bugzilla_username']
-    password = bzopts['bugzilla_password']
-    url = bzopts['bugzilla_url'].strip()
+    username = bzopts['username']
+    password = bzopts['password']
+    url = bzopts['url'].strip()
     if url == '':
         logging.debug("Bugzilla url empty, exclusion filter disabled")
         return None
@@ -158,11 +159,12 @@ class ControlINI(ConfigParser.SafeConfigParser, Singleton):
                    'subtests': 'Control',
                    'intratests': 'Control',
                    'posttests': 'Control',
-                   'bugzilla_url': 'Bugzilla',
-                   'bugzilla_fixed_states': 'Bugzilla',
-                   'bugzilla_username': 'Bugzilla',
-                   'bugzilla_password': 'Bugzilla',
-                   'bugzilla_exclude': 'Bugzilla'}
+                   'url': 'Bugzilla',
+                   'username': 'Bugzilla',
+                   'password': 'Bugzilla',
+                   'excluded': 'Bugzilla',
+                   'key_field': 'Bugzilla',
+                   'key_match': 'Bugzilla',}
 
     # Absolute base path where all other relative paths reside
     control_path = os.path.dirname(job.control)
@@ -330,49 +332,71 @@ class ControlINI(ConfigParser.SafeConfigParser, Singleton):
         exclude_csv = ",".join(subthing_exclude) # + bug_blocked
         self.set("Control", "exclude", exclude_csv)
 
+    def bz_query(self, bz):
+        """
+        Return Bugzilla.build_query() keyword dictionary
+        """
+        key_field = self.get('Bugzilla', 'key_field').strip()
+        key_match = self.get('Bugzilla', 'key_match').strip()
+        query = {key_field: key_match}
+        query.update(dict(self.items('Query')))
+        return bz.build_query(**query)
+
+    def subthings_to_bugs(self, bz, bugs):
+        """
+        Return mapping of subthing names to list of bug numbers.
+        """
+        result = {}
+        regex = re.compile('%s%s' % (self.get('Bugzilla', 'key_match'),
+                                     r':([0-9\.]+:)?([a-zA-Z][a-zA-Z0-9_/]+)'))
+        key_field = self.get('Bugzilla', 'key_field').strip()
+        for bug in bugs:
+            field_value = getattr(bug, key_field)
+            mobj = regex.search(field_value)
+            if mobj is None:
+                continue
+            version, subthing = mobj.groups()
+            # Version is optional (and not currently used) but
+            # contains a trailing ':' that needs pruning
+            version = version[:-1]
+            # Multiple bugs may be associated with a subthing
+            bzs = result.get(subthing, [])
+            bzs.append(bug.bug_id)
+            result[subthing] = bzs
+        return result
+
     def bugged_subthings(self, subthings, subtest_modules):
         """
         Return subthings dict blocked by one or more BZ's to their #'s
         """
         # All keys guaranteed to exist in control.ini by get_control_ini()
-        bzopts = dict(self.items('Bugzilla'))
-        bz = get_bzobj(bzopts)
+        bz = get_bzobj(dict(self.items('Bugzilla')))
         if bz is None:
             return {}
 
-        namestobzs = {}  # docker_cli/test/name = 12345,67890,...
-        for name, bzcsv in self.items('NamesToBZs'):
-            namestobzs[name] = [int(bugnum.strip())  # needed by bz.getbugs()
-                                for bugnum in bzcsv.strip().split(',')]
+        logging.info("Searching for docker-autotest bugs")
+        bugs = bz.query(self.bz_query(bz))
+        namestobzs = self.subthings_to_bugs(bz, bugs)
+        noisy_bz()  # Put it back the way it was
+        del bugs # save some memory
+        del bz
+        del sys.modules['bugzilla']
+
         # No need to check same subthing more than once
         subset = set(subthings)
-
-        # Check possibly bugged sub-subtests if parent in subset
+        # Check possibly bugged sub-subtests if parent in subthings
         for subthing in namestobzs:
-            # having parent means subthing must be a sub-subtest
             parent = subtest_of_subsubtest(subthing, subtest_modules)
+            # having parent means subthing must be a sub-subtest
             if parent is not None and parent in subset:
-                subset.add(subthing)
+                subset.add(subthing)  # bug in parent means bug in child
 
         # Check each possible blocker bug exactly once
-        check_bzs = set()
+        blocker_bzs = set()
         for subthing in subset:
             if subthing in namestobzs:
-                check_bzs |= set(namestobzs[subthing])
-        # Need to index numbers for access check (below)
-        check_bzs = list(check_bzs)
-        fixed_states_csv = bzopts['bugzilla_fixed_states'].strip()
-        fixed_states = [state.strip() for state in fixed_states_csv.split(',')]
-        logging.info("Checking status of %d bugs", len(check_bzs))
-        blocker_bzs = set()
-        for idx, bug in enumerate(bz.getbugs(check_bzs)):
-            if bug is None:
-                logging.warning("Could not access BZ %d", check_bzs[idx])
-                continue
-            if bug.status not in fixed_states:
-                blocker_bzs.add(bug.id)
-        noisy_bz()  # Put it back the way it was
-        del sys.modules['bugzilla']  # save some memory (maybe)
+                # May be more than one bug
+                blocker_bzs |= set(namestobzs[subthing])
 
         # Filter subthings w/ bugs in blocker_bzs set
         bug_blocked = {}
@@ -386,8 +410,7 @@ class ControlINI(ConfigParser.SafeConfigParser, Singleton):
         log_list(logging.info,
                  "Sub/sub-subtests blocked by bugzillas:",
                  bug_blocked.items())
-        self.set('Bugzilla',
-                 'bugzilla_exclude',
+        self.set('Bugzilla', 'exclude',
                  ", ".join(bug_blocked.keys()))
         return bug_blocked
 
@@ -582,7 +605,7 @@ class StepInit(Context, collections.Callable):
                                                            'posttests'))
         # Modify control_ini for sub-subtests and produce list of subtest uri's
         subtest_uris = [os.path.join(subtests_base, subtest)
-                         for subtest in self.filter_subtests()]
+                        for subtest in self.filter_subtests()]
         # Use modified control_ini to form and make steps for other uris
         pretest_uris = [os.path.join(pretests_base, pretest)
                         for pretest in self.filter_simple('pretests')]
@@ -634,7 +657,7 @@ class StepInit(Context, collections.Callable):
         # Sort by alpha
         tests.sort()
         # Requested tests include/exclude (cmd-line & control.ini)
-        tests_include = control_ini.include_to_control(self.args)
+        #tests_include = control_ini.include_to_control(self.args)
         tests_exclude = control_ini.exclude_to_control(self.args, quiet=True)
         # Include everything from --args and control.ini
         included = self.included_subthings([], tests, tests)
