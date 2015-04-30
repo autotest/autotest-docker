@@ -23,5 +23,5 @@ AUTOTEST_VERSION=$(tests/docker/atomic/config_value.py \
                    DEFAULTS autotest_version \
                    tests/docker/config_defaults/defaults.ini \
                    tests/docker/config_custom/defaults.ini)
-echo -e ""\nSwitching Autotest to version $AUTOTEST_VERSION"
+echo -e "\nSwitching Autotest to version $AUTOTEST_VERSION"
 git reset --hard "$AUTOTEST_VERSION"
