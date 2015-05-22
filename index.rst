@@ -194,6 +194,8 @@ Quickstart
        be fully-qualified.  e.g. ``docker_cli/version`` refers to the subtest module
        ``subtests/docker_cli/version/version.py``.
 
+.. _subtests:
+
 -----------------
 Subtests
 -----------------
