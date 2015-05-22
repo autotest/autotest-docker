@@ -320,6 +320,8 @@ more horizontal-whitespace characters with a newline.  For example:
 In this case, the runs of multiple whitespace following the newline will
 be folded into a single space, and combined with the previous line.
 
+.. _example values:
+
 Example Values
 ------------------
 
@@ -491,6 +493,9 @@ use of the ``jobs.args`` attribute value in the following way:
        and an empty list means *include* everything.  Items also appearing
        in include set, will be excluded.
 
+
+.. _control configuration:
+
 Control Configuration
 ----------------------
 
@@ -573,6 +578,8 @@ Documentation versioning is similarly tied to changes in the API version.  While
 non-fatal, it will introduce a delay in subtest execution.  This signal is intended
 to alert developers a documentation-update pass is required to reflect changes
 in the API.
+
+.. _subtest modules:
 
 ------------------
 Subtest Modules
