@@ -255,6 +255,8 @@ affected if it is or becomes unavailable.  Individual subtests may require
 specific additional images or content.  If so, this will be noted
 in the subtest documentation's *Prerequesites* section.
 
+.. _configuration:
+
 --------------------
 Configuration
 --------------------
