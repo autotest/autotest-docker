@@ -545,6 +545,8 @@ of sub/sub-subtest to bugzilla list is specified in the ``control.ini``
 file under the ``NamesToBZs`` section.  The results of querying bugzilla
 are evaluated last, after the normal include/exclude lists.
 
+.. _additional_test_trees:
+
 Additional Test Trees
 ----------------------
 
