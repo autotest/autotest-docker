@@ -37,10 +37,8 @@ class truncated(empty):
         command = "%s --file='%s'" % (tar_command, _fn)
         # Rely on any exceptions to propigate up
         utils.run(command, verbose=False)
-        stats = os.stat(_fn)
-        truncate_percent = self.config['truncate_percent'] / 100.0
-        length = int(stats.st_size * truncate_percent)
-        os.ftruncate(_fd, length)
+        truncate_at = int(self.config['truncate_at'])
+        os.ftruncate(_fd, truncate_at)
         os.close(_fd)
         command = "cat %s | %s" % (_fn, dkr_command)
         # instance-specific namespace
