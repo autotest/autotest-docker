@@ -3,7 +3,9 @@ Summary
 ---------
 
 Test output of docker info command and verifies it against
-values obtained from userspace tools.
+values obtained from userspace tools.  Currently only supports
+loop-back files for comparing on-disk size. Other setups
+just check pool name.
 
 Operational Summary
 ----------------------
@@ -40,21 +42,34 @@ class info(subtest.Subtest):
         out = cli_output.split('\n')
         out = [x.split(':', 1) for x in out if x]
         keys = [x[0].strip() for x in out]
-        vals = [x[1].strip() for x in out]
+        vals = []
+        for x in out:
+            try:
+                vals.append(x[1].strip())
+            except IndexError:
+                vals.append(None)
         return dict(zip(keys, vals))
 
     def postprocess(self):
         # Raise exception on Go Panic or usage help message
         outputgood = OutputGood(self.stuff['cmdresult'])
         info_map = self._build_table(outputgood.stdout_strip)
+        self.failif(info_map['Storage Driver'].lower() != 'devicemapper')
         # verify each element
         self.verify_pool_name(info_map['Pool Name'])
-        self.verify_sizes(info_map['Data loop file'],
-                          info_map['Data Space Used'],
-                          info_map['Data Space Total'],
-                          info_map['Metadata loop file'],
-                          info_map['Metadata Space Used'],
-                          info_map['Metadata Space Total'])
+        data_name = 'Data loop file'
+        metadata_name = 'Metadata loop file'
+        if data_name in info_map:
+            self.verify_sizes(info_map[data_name],
+                              info_map['Data Space Used'],
+                              info_map['Data Space Total'],
+                              info_map[metadata_name],
+                              info_map['Metadata Space Used'],
+                              info_map['Metadata Space Total'])
+        else:
+            data_name = 'Data file'
+            metadata_name = 'Metadata file'
+            # TODO: Checks based oninfo_map['Backing Filesystem:']
 
     def verify_pool_name(self, docker_pool_name):
         read_pool_names = utils.run("dmsetup ls | grep 'docker.*pool'")
@@ -91,7 +106,7 @@ class info(subtest.Subtest):
 
     def in_range(self, name, expected, reported):
         error = float(expected) * self.config['%s_error' % name]
-        min_size = min([0.0, expected - error])
+        min_size = max([0.0, expected - error])
         max_size = expected + error
         msg = ("Docker info reported %s size %s, on disk size %s, "
                "acceptable range %s - %s"
