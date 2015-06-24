@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+"""Simple utility to extract a value from a set of ini-files"""
+
 import sys
 from ConfigParser import SafeConfigParser
 
