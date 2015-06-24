@@ -27,7 +27,7 @@ script:
     - SPHINXOPTS="-W" make
     - ./run_checkdocs.py
     - ./run_unittests.sh
-    - ./run_pylint.sh
+    - ./run_pylint.sh --FF
 
 # TODO: Do we need notifications?
 #notifications:

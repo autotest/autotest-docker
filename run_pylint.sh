@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# Optional fast-fail on first error encountered
+if [ "$#" -gt "0" ] && [ "$1" == "--FF" ]
+then
+    FF=1
+    shift
+    echo "Fast-failing on first error encountered"
+else
+    FF=0
+fi
+
 TMPFILENAME="/tmp/run_pylint_$RANDOM"
 PEP8=`which pep8`
 PEP8IGNORE='E731'
@@ -62,7 +72,10 @@ check_dockertest() {
            --rcfile=/dev/null \
            --msg-template="$MSGFMT" "${WHAT}"
     RET="$?"
-    if [ "$RET" -ne "0" ]
+    if [ "$RET" -ne "0" ] && [ "$FF" -eq "1" ]
+    then
+        return $RET
+    elif [ "$RET" -ne "0" ]
     then
         record_return 1
     else
@@ -77,7 +90,14 @@ check_dockertest() {
     if [ -n "$PEP8" ]
     then
         $PEP8 --ignore=$PEP8IGNORE "$WHAT"
-        record_return $?
+        RET="$?"
+        if [ "$RET" -ne "0" ] && [ "$FF" -eq "1" ]
+        then
+            return $RET
+        elif [ "$RET" -ne "0" ]
+        then
+            record_return 1
+        fi
     fi
 }
 
@@ -87,6 +107,11 @@ check_dockertests() {
     while read LINE; do
         trap "break" INT
         check_dockertest "${LINE}"
+        RET="$?"
+        if [ "$RET" -ne "0" ] && [ "$FF" -eq "1" ]
+        then
+            return $RET
+        fi
     done
 }
 
@@ -102,7 +127,10 @@ check_subtest() {
            --rcfile=/dev/null \
            --msg-template="$MSGFMT" "${WHAT}"
     RET="$?"
-    if [ "$RET" -ne "0" ]
+    if [ "$RET" -ne "0" ] && [ "$FF" -eq "1" ]
+    then
+        return $RET
+    elif [ "$RET" -ne "0" ]
     then
         record_return 1
     else
@@ -117,7 +145,14 @@ check_subtest() {
     if [ -n "$PEP8" ]
     then
         $PEP8 --ignore=$PEP8IGNORE "$WHAT"
-        record_return $?
+        RET="$?"
+        if [ "$RET" -ne "0" ] && [ "$FF" -eq "1" ]
+        then
+            return $RET
+        elif [ "$RET" -ne "0" ]
+        then
+            record_return 1
+        fi
     fi
 }
 
@@ -129,6 +164,11 @@ check_subtests() {
         find ${thing} -name '*.py' | while read LINE; do
             trap "break" INT
             check_subtest "${LINE}"
+            RET="$?"
+            if [ "$RET" -ne "0" ] && [ "$FF" -eq "1" ]
+            then
+                return $RET
+            fi
         done
     done
 }
@@ -136,25 +176,20 @@ check_subtests() {
 if [ "$#" -eq "0" ]
 then
     check_dockertests
+    [ "$?" -eq "0" ] || exit 1
     check_subtests
+    [ "$?" -eq "0" ] || exit 1
 else
     for THING in $@
     do
         if echo "$THING" | grep -q 'dockertest'
         then
             check_dockertest "$THING"
-        elif echo "$THING" | grep -q 'subtests'
+            [ "$?" -eq "0" ] || exit 1
+        elif echo "$THING" | grep -q 'tests'
         then
             check_subtest "$THING"
-        elif echo "$THING" | grep -q 'pretests'
-        then
-            check_subtest "$THING"
-        elif echo "$THING" | grep -q 'intratests'
-        then
-            check_subtest "$THING"
-        elif echo "$THING" | grep -q 'posttests'
-        then
-            check_subtest "$THING"
+            [ "$?" -eq "0" ] || exit 1
         else
             echo "Ignoring $THING"
         fi
