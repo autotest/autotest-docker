@@ -527,7 +527,7 @@ class Step(collections.Callable):
         except StopIteration:
             pass  # all done, current step is the last
         self._mangle_syspath()
-        job.run_test(url=self.uri, tag=self.tag, timeout=str(self.timeout))
+        job.run_test(url=self.uri, tag=self.tag, timeout=int(self.timeout))
         self._unmangle_syspath()
 
     @property
