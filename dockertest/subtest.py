@@ -340,39 +340,45 @@ class SubSubtestCaller(Subtest):
         attribute ``subsubtest_names`` (list).
         """
         super(SubSubtestCaller, self).initialize()
+        self.step_log_msgs['run_once'] = "Running sub-subtests..."
+        self.step_log_msgs['postprocess'] = ("Postprocess sub-subtest "
+                                             "results...")
         # Private to this instance, outside of __init__
         if self.config.get('subsubtests') is None:
             raise DockerTestNAError("Missing|empty 'subsubtests' in config.")
         sst_names = self.config['subsubtests']
         self.subsubtest_names = config.get_as_list(sst_names)
-        # Make sure every control-config referenced sub-subtest exists
-        # in subsubtests option
-        fullnames = [os.path.join(self.config_section, ssn)
-                     for ssn in self.subsubtest_names]
         if self.control_config is not None:
-            includes = config.get_as_list(self.control_config['include'])
-            exclude = config.get_as_list(self.control_config['exclude'])
-            subthings = config.get_as_list(self.control_config['subthings'])
-            # filter out all names not a subsubtest of this test
-            for testlist in (includes, exclude, subthings):
-                remove = []
-                for testname in testlist:
-                    if testname == self.config_section:
-                        remove.append(testname)
-                    if not testname.startswith(self.config_section):
-                        remove.append(testname)
-                for item in remove:
-                    testlist.remove(item)
-                # Verify all runtime subsubtests are defined
-                for item in testlist:
-                    if item not in fullnames:
-                        msg = ("Sub-subtest %s referenced by control "
-                               "but not defined in subsubtests option"
-                               % item)
-                        raise DockerTestError(msg)
-        self.step_log_msgs['run_once'] = "Running sub-subtests..."
-        self.step_log_msgs['postprocess'] = ("Postprocess sub-subtest "
-                                             "results...")
+            subthings = set(
+                config.get_as_list(self.control_config['subthings'],
+                                   omit_empty=True))
+            includes = set(
+                config.get_as_list(self.control_config['include'],
+                                   omit_empty=True))
+            exclude = set(
+                config.get_as_list(self.control_config['exclude'],
+                                   omit_empty=True))
+            allem = subthings | exclude | includes
+            if len(allem) < 1:
+                return  # Empty set implies ALL
+            # Make sure every control-config referenced sub-subtest exists
+            # in subsubtests option
+            fullnames = set([os.path.join(self.config_section, ssn)
+                             for ssn in self.subsubtest_names])
+            children = set()
+            # filter out all names not a subsubtest of this subtest
+            for testname in allem:
+                if testname.startswith(self.config_section + '/'):
+                    children.add(testname)
+            if len(children) < 1:
+                return  # No children specified
+            # Any children NOT listed in fullnames are 'undefined'
+            if children - fullnames:
+                msg = ("Sub-subtest(s) %s referenced in control include, "
+                       "exclude, and/or subthings but not defined in "
+                       "subsubtests configuration option: %s"
+                       % (children - fullnames, self.subsubtest_names))
+                raise DockerTestError(msg)
 
     def try_all_stages(self, name, subsubtest):
         """

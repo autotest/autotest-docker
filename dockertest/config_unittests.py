@@ -331,5 +331,26 @@ class TestUtilities(ConfigTestBase):
         self.config.none_if_empty(test_dict, 'baz')
         self.assertEqual(test_dict, {'foo': 0, 'bar': None, 'baz': None})
 
+    def test_getaslist_1(self):
+        testvalue = '  one, two \n\n,\nthree'
+        testlist = self.config.get_as_list(testvalue)
+        self.assertEqual(testlist, ['one','two','three'])
+
+    def test_getaslist_2(self):
+        testvalue = ''
+        testlist = self.config.get_as_list(testvalue)
+        self.assertEqual(testlist, [''])
+
+    def test_getaslist_3(self):
+        testvalue = ''
+        testlist = self.config.get_as_list(testvalue, omit_empty=True)
+        self.assertEqual(testlist, [])
+
+    def test_getaslist_4(self):
+        testvalue = 'one,,two,,three,,'
+        testlist = self.config.get_as_list(testvalue, omit_empty=False)
+        self.assertEqual(testlist, ['one', '', 'two', '', 'three', '',''])
+
+
 if __name__ == '__main__':
     unittest.main()
