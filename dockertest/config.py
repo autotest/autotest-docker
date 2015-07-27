@@ -480,13 +480,18 @@ class Config(dict):
         return the_copy
 
 
-def get_as_list(value, sep=","):
+def get_as_list(value, sep=",", omit_empty=False):
     """
     Return config value as list separated by sep.
-    value = "a,b , c, dd"
-    return ["a","b","c","dd"]
+
+    :param value: Some string or string-like iterable to parse
+    :param sep: The character or item to seperate value around
+    :param omit_empty: When true, skip items that evaluate false
+    :return: List of items from value excluding sep
     """
-    return [val.strip() for val in value.split(sep)]
+    return [val.strip()
+            for val in value.split(sep)
+            if bool(val.strip()) or not omit_empty]
 
 
 def none_if_empty(dict_like, key_name=None):
