@@ -28,23 +28,7 @@ from dockertest import subtest
 from dockertest import config
 
 
-class DockerContainersWithOutSize(DockerContainers):
-
-    """
-    DockerContainersWithOutSize remove size checking from
-    DockerContainers for cmd time reduction.
-    """
-
-    #: This is probably test-subject related, be a bit more noisy
-    verbose = True
-
-    # private methods don't need docstrings
-    def _get_container_list(self):  # pylint: disable=C0111
-        return self.docker_cmd("ps -a --no-trunc",
-                               self.timeout)
-
-
-class DockerContainersRunOnly(DockerContainersWithOutSize):
+class DockerContainersRunOnly(DockerContainers):
 
     """
     DockerContainers remove size checking from DockerContainers.
@@ -69,7 +53,7 @@ class start_base(SubSubtest):
     def initialize(self):
         super(start_base, self).initialize()
         config.none_if_empty(self.config)
-        dc = DockerContainersWithOutSize(self)
+        dc = DockerContainers(self)
         self.sub_stuff["conts_obj"] = dc
         dc = DockerContainersRunOnly(self)
         self.sub_stuff["con_ro_obj"] = dc
@@ -150,9 +134,7 @@ class short_term_app(start_base):
     def initialize(self):
         super(short_term_app, self).initialize()
 
-        docker_name = DockerImage.full_name_from_component(
-            self.config["docker_repo_name"],
-            self.config["docker_repo_tag"])
+        docker_name = DockerImage.full_name_from_defaults(self.config)
         # Private to this instance, outside of __init__
         prep_changes = DockerCmd(self, "run",
                                  ["-d", docker_name, self.config["run_cmd"]],
