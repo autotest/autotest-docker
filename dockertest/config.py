@@ -455,11 +455,13 @@ class Config(dict):
         if self.__class__.configs_ is None:
             self.__class__.configs_ = {'DEFAULTS': self.defaults}
             # Overwrite section-by-section from customs after loading defaults
-            for dirpath, dirnames, filenames in os.walk(CONFIGDEFAULT):
+            for dirpath, dirnames, filenames in os.walk(CONFIGDEFAULT,
+                                                        followlinks=True):
                 del dirnames  # not needed
                 self.load_config_dir(dirpath, filenames,
                                      self.__class__.configs_, self.defaults)
-            for dirpath, dirnames, filenames in os.walk(CONFIGCUSTOMS):
+            for dirpath, dirnames, filenames in os.walk(CONFIGCUSTOMS,
+                                                        followlinks=True):
                 del dirnames  # not needed
                 self.load_config_dir(dirpath, filenames,
                                      self.__class__.configs_, self.defaults)

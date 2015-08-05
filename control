@@ -304,7 +304,8 @@ class ControlINI(ConfigParser.SafeConfigParser, Singleton):
         subtest_path = os.path.join(self.control_path, subdir)
         subtests = []
         # All subtest packages located beneath dir holding this control file
-        for dirpath, dirnames, filenames in os.walk(subtest_path):
+        for dirpath, dirnames, filenames in os.walk(subtest_path,
+                                            followlinks=True):
             del dirnames  #  Not used
             # Skip top-level
             if dirpath == subtest_path:
