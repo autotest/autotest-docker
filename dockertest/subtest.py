@@ -344,10 +344,14 @@ class SubSubtestCaller(Subtest):
         self.step_log_msgs['postprocess'] = ("Postprocess sub-subtest "
                                              "results...")
         # Private to this instance, outside of __init__
-        if self.config.get('subsubtests') is None:
+        if (self.config.get('subsubtests') is None and
+                len(self.subsubtest_names) == 0):
             raise DockerTestNAError("Missing|empty 'subsubtests' in config.")
-        sst_names = self.config['subsubtests']
-        self.subsubtest_names = config.get_as_list(sst_names)
+        if len(self.subsubtest_names) == 0:
+            sst_names = self.config['subsubtests']
+            self.subsubtest_names = config.get_as_list(sst_names)
+        else:
+            sst_names = self.subsubtest_names
         if self.control_config is not None:
             subthings = set(
                 config.get_as_list(self.control_config['subthings'],
