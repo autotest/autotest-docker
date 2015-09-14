@@ -337,14 +337,13 @@ class ControlINI(ConfigParser.SafeConfigParser, Singleton):
         """
         Return Bugzilla.build_query() keyword dictionary
         """
-        from bugzilla import Fault
         key_field = self.get('Bugzilla', 'key_field').strip()
         key_match = self.get('Bugzilla', 'key_match').strip()
         query = {key_field: key_match}
         query.update(dict(self.items('Query')))
         return bz.build_query(**query)
 
-    def subthings_to_bugs(self, bz, bugs):
+    def subthings_to_bugs(self, bugs):
         """
         Return mapping of subthing names to list of bug numbers.
         """
@@ -380,7 +379,7 @@ class ControlINI(ConfigParser.SafeConfigParser, Singleton):
         from bugzilla import Fault
         try:
             bugs = bz.query(self.bz_query(bz))
-            namestobzs = self.subthings_to_bugs(bz, bugs)
+            namestobzs = self.subthings_to_bugs(bugs)
         except Fault, xcept:
             logging.warning("Ignoring BZ query exception: %s", xcept)
             return {}
