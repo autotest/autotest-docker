@@ -337,14 +337,13 @@ class ControlINI(ConfigParser.SafeConfigParser, Singleton):
         """
         Return Bugzilla.build_query() keyword dictionary
         """
-        from bugzilla import Fault
         key_field = self.get('Bugzilla', 'key_field').strip()
         key_match = self.get('Bugzilla', 'key_match').strip()
         query = {key_field: key_match}
         query.update(dict(self.items('Query')))
         return bz.build_query(**query)
 
-    def subthings_to_bugs(self, bz, bugs):
+    def subthings_to_bugs(self, bugs):
         """
         Return mapping of subthing names to list of bug numbers.
         """
@@ -380,7 +379,7 @@ class ControlINI(ConfigParser.SafeConfigParser, Singleton):
         from bugzilla import Fault
         try:
             bugs = bz.query(self.bz_query(bz))
-            namestobzs = self.subthings_to_bugs(bz, bugs)
+            namestobzs = self.subthings_to_bugs(bugs)
         except Fault, xcept:
             logging.warning("Ignoring BZ query exception: %s", xcept)
             return {}
@@ -425,7 +424,7 @@ class ControlINI(ConfigParser.SafeConfigParser, Singleton):
 
 
 
-class Context(Singleton, collections.Sequence):
+class Context(Singleton):
     """
     Abstract base-class representing overall execution context
     """
@@ -439,61 +438,11 @@ class Context(Singleton, collections.Sequence):
     # Contents of --args parameter from autotest client
     args = None
 
-    # Cache of length value for quick reference
-    length = None
-
     # Tuple of items contained in this context
     items = None
 
-    # Reference to current context item from items
-    item = None
-
-    # Reference to current context item index from items
-    index = None
-
-    def __iter__(self):
-        """
-        Only permit a single caller to iterate
-        """
-        # Only return one iterator at a time
-        if self.item is not None or self.index is not None:
-            return self  # instance is it's own iterator
-        else: # Begin new iteration
-            self.index = -1
-            self.item = "start"
-            return self
-
-    def next(self):
-        """Return the next job Step instance"""
-        def done():
-            """Common local behavior, clear state and signal iteration stop"""
-            self.index = None
-            self.item = None
-            raise StopIteration("No more steps")
-
-        if self.item is None or self.index is None:
-            done()
-        try:  # move on to next item
-            self.index += 1
-            self.item = self.items[self.index]
-            return self.item
-        except IndexError:
-            # At the end
-            done()
-
-    def __contains__(self, item):
-        if int(item) < len(self):
-            return True
-        else:
-            return False
-
-    def __getitem__(self, item):
-        return self.items[item]
-
-    def __len__(self):
-        if self.length is None:
-            self.length = len(self.items)
-        return self.length
+    # Current test index
+    index = 0
 
 
 class Step(collections.Callable):
@@ -502,9 +451,9 @@ class Step(collections.Callable):
     """
 
     # There's going to be a trillion of these
-    __slots__ = ('uri', 'context')
+    __slots__ = ('uri', 'context', 'tag')
 
-    def __init__(self, uri, context):
+    def __init__(self, uri, context, advance=True):
         if not isinstance(context, Context):
             raise TypeError("Must pass a Context instance as context "
                             " parameter, not a %s"
@@ -515,41 +464,20 @@ class Step(collections.Callable):
                             % uri.__class__.__name__)
         self.uri = uri
         self.context = context
+        if advance:
+            self.context.index += 1
+        self.tag = str(self.context.index)
 
     def __call__(self):
-        # Append next step first, in case current step crashes and burns
-        try:
-            # Context is it's own iterator
-            step = self.context.next()
-            step.__name__ = 'next_step'
-            _globals = globals()
-            _globals['next_step'] = step
-            job.next_step_append(step)
-        except StopIteration:
-            pass  # all done, current step is the last
         self._mangle_syspath()
+        self.context.index += 1
         job.run_test(url=self.uri, tag=self.tag, timeout=int(self.timeout))
         self._unmangle_syspath()
 
-    @property
-    def tag(self):
-        where = self.context.index
-        try:
-            return "%d-of-%d" % (where, len(self.context.items))
-        except TypeError:
-            # At the end of the list
-            if self.context.item is None and where is None:
-                return "%d-of-%d" % (len(self.context.items),
-                                     len(self.context.items))
+    def __str__(self):
+        return "%s_%s" % (os.path.basename(self.uri), self.tag)
 
-    @property
-    def tagp1(self):
-        """
-        Display one more than current index
-        """
-        # TODO: Why do tags count zero-based w/o this method?
-        where = self.context.index + 1
-        return "%d-of-%d" % (where, len(self.context.items))
+    __repr__ = __str__
 
     @property
     def timeout(self):
@@ -622,38 +550,31 @@ class StepInit(Context, collections.Callable):
                           for intratest in self.filter_simple('intratests')]
         posttest_uris = [os.path.join(posttests_base, posttest)
                          for posttest in self.filter_simple('posttests')]
-        # Create each step instance for each phase
-        pretest_steps = [Step(uri, self) for uri in pretest_uris]
-        subtest_steps = [Step(uri, self) for uri in subtest_uris]
-        intratest_steps = [Step(uri, self) for uri in intratest_uris]
-        posttest_steps = [Step(uri, self) for uri in posttest_uris]
-        # Pre/post go before/after subtests, intratests between each subtest
-        self.items = pretest_steps
-        for subtest_step in subtest_steps:
+        # Creation order matters, there are side-effects.
+        self.items = [Step(uri, self) for uri in pretest_uris]
+        for subtest_uri in subtest_uris:
+            subtest_step = Step(subtest_uri, self)
             self.items.append(subtest_step)
-            self.items += intratest_steps
-        self.items += posttest_steps
+            self.items += [Step(uri, self, False) for uri in intratest_uris]
+        self.items += [Step(uri, self) for uri in posttest_uris]
         # TIMEOUT is a global defined at top of module
-        self.step_timeout = float(TIMEOUT) / float(len(subtest_steps) + 1)
+        self.step_timeout = float(TIMEOUT) / float(len(subtest_uris) + 1)
+        # This is incremented by steps, reset for execution
+        self.index = 0
 
     def __call__(self):
         """
-        Initialize steps engine starting at the first item
+        Initialize steps engine, defining globals for all steps
         """
-        step_msg_list = ["%s.%s" % (step.uri, step.tagp1)
-                         for step in self]
+        step_msg_list = ["%s.%s" % (step.uri, step.tag)
+                         for step in self.items]
         log_list(logging.info, "Executing tests:", step_msg_list)
-        try:
-            _globals = globals()
-            _globals['step_iter'] = self.__iter__()
-            _globals['step_iter'].name = 'step_iter'
-            step = _globals['step_iter'].next()
-            step.__name__ = 'next_step'
-            _globals['next_step'] = step
-            # On step call, it will append the following step, if any
-            job.next_step_append(step)
-        except StopIteration:
-            pass  # no steps!
+        _globals = globals()
+        for item in self.items:
+            # Callable's name must match global name
+            item.__name__ = str(item)
+            _globals[str(item)] = item
+            job.next_step_append(item)
 
     def filter_simple(self, control_key):
         """
@@ -749,9 +670,5 @@ class StepInit(Context, collections.Callable):
                 if subthing in subtest_modules]
 
 
-# Global iterator state for all steps
-steps_iter = NotImplementedError
-# Step engine does global lookups on steps to run, create name to hold it
-next_step = NotImplementedError
 # Entry point into step-engine, job searches for this callable
 step_init = StepInit()
