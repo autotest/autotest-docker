@@ -29,6 +29,8 @@ class inspect_all(inspect_base):
         subargs = [self.sub_stuff['name']]
         nfdc = DockerCmd(self, "inspect", subargs)
         self.sub_stuff['cmdresult'] = mustpass(nfdc.execute())
+        # Log details when command is successful
+        self.logdebug(nfdc.cmdresult)
 
     def postprocess(self):
         super(inspect_all, self).postprocess()
