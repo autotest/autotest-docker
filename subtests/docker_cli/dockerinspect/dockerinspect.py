@@ -126,7 +126,7 @@ class inspect_base(SubSubtest):
         super(inspect_base, self).cleanup()
         if self.config['remove_after_test']:
             dc = DockerContainers(self)
-            dc.clean_all(self.sub_stuff.get('containers'))
+            dc.clean_all(self.sub_stuff.get('containers', []))
 
 
 class inspect_container_simple(inspect_base):
@@ -140,6 +140,8 @@ class inspect_container_simple(inspect_base):
         subargs = [self.sub_stuff['name']]
         nfdc = DockerCmd(self, "inspect", subargs)
         self.sub_stuff['cmdresult'] = mustpass(nfdc.execute())
+        # Log details when command is successful
+        self.logdebug(nfdc.cmdresult)
 
     def postprocess(self):
         super(inspect_container_simple, self).postprocess()

@@ -27,6 +27,8 @@ class inspect_keys(inspect_base):
     def inspect_and_parse(self, subargs):
         nfdc = DockerCmd(self, "inspect", subargs)
         cmdresult = mustpass(nfdc.execute())
+        # Log details when command is successful
+        self.logdebug(nfdc.cmdresult)
         return self.parse_cli_output(cmdresult.stdout)
 
     def run_once(self):
