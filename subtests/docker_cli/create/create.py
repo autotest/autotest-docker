@@ -11,7 +11,7 @@ Operational Summary
 #.  Create container with ``/bin/true`` command verify zero-exit status
 #.  Create container with ``/bin/false`` command verify **zero** exit status
 #.  Create container from image that doesn't exist locally
-#.  Create container, send signal to created container.
+#.  Create container, send signal to created container, expect failure.
 """
 
 from dockertest.subtest import SubSubtest
@@ -52,7 +52,11 @@ class create_base(SubSubtest):
             dkrcmd = self.sub_stuff['dkrcmd']
         if dkrcmd is not None:
             lines = dkrcmd.stdout.strip().splitlines()
-            return lines[-1].strip()
+            try:
+                return lines[-1].strip()
+            except IndexError:
+                raise IndexError("Couldn't find cid in output: %s"
+                                 % dkrcmd.stdout)
         else:
             raise DockerTestError("Docker command %s execution state missing"
                                   % dkrcmd)
