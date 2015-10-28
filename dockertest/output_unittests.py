@@ -139,6 +139,42 @@ class DockerVersionTest(unittest.TestCase):
         self.assertEqual(docker_version.client, '0.9.0')
         self.assertEqual(docker_version.server, '0.8.0')
 
+    def test_client_new(self):
+        version_string = (
+            "Client:\n"
+            " Version:      1.8.2\n"
+            "\n"
+            " Built:        \n"
+            "\n"
+            "\n"
+            "Server:\n"
+            "\n"
+            " API version:  1.20\n"
+            " Version:      1.8.2\n"
+            "\n")
+        docker_version = self.output.DockerVersion(version_string)
+        self.assertEqual(docker_version.client, '1.8.2')
+        self.assertEqual(docker_version.server, '1.8.2')
+
+    def test_client_new(self):
+        version_string = (
+            "Client:\n"
+            " Go version:   go1.4.2\n"
+            " OS/Arch:      linux/amd64:special\n"
+            "\n"
+            "Server:\n"
+            " Go version:   go1.2.3\n"
+            " Built:        \n")
+        docker_version = self.output.DockerVersion(version_string)
+        self.assertEqual(docker_version.client_info('OS/Arch'),
+                         'linux/amd64:special')
+        self.assertEqual(docker_version.server_info('bUIlt'),
+                         '')
+        self.assertEqual(docker_version.client_info('Go verSion  '),
+                         'go1.4.2')
+        self.assertEqual(docker_version.server_info('Go verSion  '),
+                         'go1.2.3')
+
 
 class ColumnRangesTest(unittest.TestCase):
 
