@@ -178,16 +178,16 @@ class Base(subtest.SubSubtest):
         expected_exit_status = self.config['extcmd']
         cmdresult = self.sub_stuff['cmdresult']
         self.failif(cmdresult.exit_status != expected_exit_status,
-                    "Exit status was %d not %d"
-                    % (cmdresult.exit_status, expected_exit_status))
+                    "Exit status was not %d:\n%s"
+                    % (expected_exit_status, cmdresult))
         # Same checks for both
         for outtype in ('stdout', 'stderr'):
             if self.sub_stuff[outtype] is not None:
                 regex = self.sub_stuff[outtype]
                 mobj = regex.search(getattr(cmdresult, outtype))
                 self.failif(mobj is None,
-                            "%s did not match regex: '%s'"
-                            % (outtype, regex.pattern))
+                            "%s did not match regex '%s':\n%s"
+                            % (outtype, regex.pattern, cmdresult))
 
     def cleanup(self):
         super(Base, self).cleanup()
