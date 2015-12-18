@@ -20,7 +20,7 @@ before_script:
     - sudo apt-get update -q
 
 install:
-    - pip install Pylint==1.4.1 Pep8==1.6.2 Sphinx==1.2.2
+    - pip install Pylint==1.4.5 Pep8==1.6.2 Sphinx==1.2.2
     - pip install Autotest==0.16.2
 
 script:
