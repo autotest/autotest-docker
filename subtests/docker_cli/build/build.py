@@ -488,6 +488,15 @@ class build_base(postprocessing, subtest.SubSubtest):
         for build_def in self.sub_stuff['builds']:
             build_def.dockercmd.execute()
 
+    def postprocess(self):
+        try:
+            super(build_base, self).postprocess()
+        except:
+            for build_def in self.sub_stuff['builds']:
+                build_def.dockercmd.verbose = True
+                self.logdebug(str(build_def.dockercmd))
+            raise
+
     def cleanup(self):
         super(build_base, self).cleanup()
         # Some of this could have been modified, recover from source
