@@ -28,8 +28,7 @@ class top(SubSubtestCaller):
     pass
 
 
-# This abstract base class is not referenced from this module
-class base(SubSubtest):  # pylint: disable=R0921
+class base(SubSubtest):
 
     def init_run_dkrcmd(self):
         # This should probably be non-blocking

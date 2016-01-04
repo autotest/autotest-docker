@@ -151,7 +151,7 @@ class kill_base(subtest.SubSubtest):
         if not self.config.get('signals_sequence'):
             sequence = []
             signals = [int(sig) for sig in self.config['kill_signals'].split()]
-            signals = range(*signals)   # pylint: disable=W0142
+            signals = range(*signals)
             skipped_signals = (int(_) for _ in
                                self.config.get('skip_signals', "").split())
             for skipped_signal in skipped_signals:

@@ -16,7 +16,7 @@ PEP8IGNORE='E731'
 MSGFMT='{msg_id}:{line:3d},{column}: {obj}: {msg}'
 # Disable 'line too long' - will be picked up by pep8
 # Check "note" (W0511) separetly
-DISABLEMSG="I0011,R0801,R0904,R0921,R0922,C0301,W0511,W0142"
+DISABLEMSG="I0011,R0801,R0904,R0921,R0922,C0301,W0511"
 INIT_HOOK="
 AP = os.environ.get('AUTOTEST_PATH', '/usr/local/autotest')
 sys.path.append(os.path.abspath(AP + '/..'))
@@ -24,7 +24,7 @@ sys.path.append(os.path.abspath('.'))
 import autotest
 import autotest.common
 "
-SUBTESTDISABLEMSG="I0011,R0801,R0904,E1101,E1002,R0903,F0401,C0103,C0111,W0232,W0142,C0301,W0511"
+SUBTESTDISABLEMSG="I0011,R0801,R0904,E1101,E1002,R0903,F0401,C0103,C0111,W0232,C0301,W0511"
 SUBTESTINIT_HOOK="
 AP = os.environ.get('AUTOTEST_PATH', '/usr/local/autotest')
 sys.path.append(os.path.abspath(AP + '/..'))
