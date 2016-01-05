@@ -6,7 +6,6 @@ properly.
 """
 
 from dockertest import xceptions
-from dockertest.output import mustpass
 from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
 from cgroups_base import cgroups_base
@@ -63,23 +62,29 @@ class cpu_base(cgroups_base):
                     image,
                     '/bin/bash']
         self.sub_stuff['subargs'] = subargs
-        self.sub_stuff['result'] = []
+        self.sub_stuff['dkrcmd'] = DockerCmd(self, 'run', subargs)
+        self.sub_stuff['result'] = {'PASS': None, 'FAIL': None}
 
     def run_once(self):
         super(cpu_base, self).run_once()
-        subargs = self.sub_stuff['subargs']
         dc = self.sub_stuff['docker_containers']
-        mustpass(DockerCmd(self, 'run', subargs).execute())
+        result = self.sub_stuff['result']
+        self.sub_stuff['dkrcmd'].execute()
+        if self.sub_stuff['dkrcmd'].exit_status != 0:
+            result['FAIL'] = self.sub_stuff['dkrcmd'].exit_status
+            result['PASS'] = None
+            return
         cobjs = dc.list_containers_with_name(self.sub_stuff['name'])
         long_id = cobjs[0].long_id
-        json_cpushares = dc.json_by_long_id(long_id)[0]["Config"]["CpuShares"]
+        jzero = dc.json_by_long_id(long_id)[0]
+        json_cpushares = jzero["HostConfig"]["CpuShares"]
         cgpath = self.config['cgroup_path']
         cgvalue = self.config['cgroup_key_value']
         cgroup_cpushares = self.read_cgroup(long_id, cgpath, cgvalue)
         docker_cpushares = self.config.get('cpushares_value', 0)
-        self.sub_stuff['result'] = self.check_cpushares(docker_cpushares,
-                                                        cgroup_cpushares,
-                                                        json_cpushares)
+        result.update(self.check_cpushares(docker_cpushares,
+                                           cgroup_cpushares,
+                                           json_cpushares))
 
     def postprocess(self):
         super(cpu_base, self).postprocess()
