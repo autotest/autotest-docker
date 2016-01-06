@@ -17,12 +17,14 @@ git:
 install:
     - pip install Pylint==1.4.5 Pep8==1.6.2 Sphinx==1.2.2
     - pip install Autotest==0.16.2
+    - pip install inspektor==0.2.0
 
 script:
     - SPHINXOPTS="-W" make
     - ./run_checkdocs.py
     - ./run_unittests.sh
     - ./run_pylint.sh --FF
+    - inspekt style --disable E501,E265,W601,E402,E731
 
 # TODO: Do we need notifications?
 #notifications:
