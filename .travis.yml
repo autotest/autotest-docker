@@ -6,18 +6,13 @@ branches:
     only:
         - master
 
+sudo: false
+
 matrix:
   fast_finish: true
 
 git:
     submodules: false
-
-virtualenv:
-    system_site_packages: true
-
-before_script:
-    - echo "deb http://ppa.launchpad.net/lmr/autotest/ubuntu trusty main" | sudo tee -a /etc/apt/sources.list
-    - sudo apt-get update -q
 
 install:
     - pip install Pylint==1.4.5 Pep8==1.6.2 Sphinx==1.2.2
