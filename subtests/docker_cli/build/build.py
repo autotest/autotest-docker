@@ -35,6 +35,7 @@ from dockertest.xceptions import DockerTestError
 
 
 class build(subtest.SubSubtestCaller):
+
     """
     Setup, Execute, Cleanup all sub-subtests
     """
@@ -102,6 +103,7 @@ class build(subtest.SubSubtestCaller):
 
 
 class postprocessing(object):
+
     """Mixin class for build_base to contain postprocessing methods"""
 
     RE_IMAGES = re.compile(r'\s*-+>\s*(\w{64}|\w{12})', re.MULTILINE)
