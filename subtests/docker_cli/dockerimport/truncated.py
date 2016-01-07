@@ -7,11 +7,8 @@ Sub-subtest module used by dockerimport test
 4. Verify import failed
 """
 
-from autotest.client import utils
-import tempfile
-import os
 import os.path
-import shutil
+from autotest.client import utils
 from empty import empty
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import mustfail
@@ -19,6 +16,8 @@ from dockertest import output
 
 
 class truncated(empty):
+
+    TARFILENAME = 'bad.tar'
 
     def cleanup(self):
         # Call empty parent's cleanup, not empty's.
@@ -30,27 +29,20 @@ class truncated(empty):
             mustfail(dkrcmd.execute())
 
     def run_tar(self, tar_command, dkr_command):
-        self.copy_includes()
-        # Don't feedback the output tar file into itself!
-        _fd, _fn = tempfile.mkstemp(suffix='.tar',
-                                    dir=os.path.dirname(self.tmpdir))
-        command = "%s --file='%s'" % (tar_command, _fn)
-        # Rely on any exceptions to propigate up
-        utils.run(command, verbose=False)
-        truncate_at = int(self.config['truncate_at'])
-        os.ftruncate(_fd, truncate_at)
-        os.close(_fd)
-        command = "cat %s | %s" % (_fn, dkr_command)
-        # instance-specific namespace
+        tarfile = os.path.join(self.parent_subtest.bindir, self.TARFILENAME)
+        command = "cat %s | %s" % (tarfile, dkr_command)
         self.loginfo("Expected to fail: %s", command)
         self.sub_stuff['cmdresult'] = utils.run(command, ignore_status=True,
-                                                verbose=False)
+                                                verbose=True)
 
     def check_output(self):
         outputgood = output.OutputGood(self.sub_stuff['cmdresult'],
                                        ignore_error=True)
+        zeroexit = self.sub_stuff['cmdresult'].exit_status == 0
         # This is SUPPOSE to fail, fail test if it succeeds!
-        self.failif(outputgood, str(outputgood))
+        self.failif(outputgood or zeroexit,
+                    "Unexpected good output: %s or exit_status: %d"
+                    % (outputgood, self.sub_stuff['cmdresult'].exit_status))
 
     def check_status(self):
         successful_exit = self.sub_stuff['cmdresult'].exit_status == 0
@@ -62,11 +54,3 @@ class truncated(empty):
         self.failif(image_id is not None,
                     "Image ID '%s' successfully retrieved after expected "
                     "import failure!" % image_id)
-
-    def copy_includes(self):
-        include_dirs = self.config['include_dirs']
-        for include_dir in include_dirs.split(','):
-            include_dir = include_dir.strip()
-            dest_dir = os.path.join(self.tmpdir, 'junk')
-            self.logdebug('Copying tree at %s to %s', include_dir, dest_dir)
-            shutil.copytree(include_dir, dest_dir, symlinks=True)

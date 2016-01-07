@@ -18,7 +18,8 @@ also match (less the REVIS number).
 import sys
 import os.path
 import logging
-# FIXME: incorrectly missing in Travis CI, disable warning until fixed
+# There is a bug in Pylint + virtualenv that makes this fail in Travis CI
+# https://github.com/PyCQA/pylint/issues/73
 from distutils.version import LooseVersion  # pylint: disable=E0611,F0401
 
 import xceptions
