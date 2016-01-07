@@ -591,7 +591,7 @@ class OutputGood(OutputGoodBase):
         :return: True if 'Error: ' does **not** sppear
         """
         for line in output.splitlines():
-            return line.lower().strip().find('error:') == -1
+            return line.lower().strip().find('error') == -1
         return True
 
     @staticmethod
@@ -600,7 +600,7 @@ class OutputGood(OutputGoodBase):
         Return False if 'FATA[xxxx]' pattern found in output
 
         :param output: Stripped output string
-        :return: True if 'Error: ' does **not** sppear
+        :return: True if 'FATA ' does **not** sppear
         """
         regex = re.compile(r'FATA\[\d+')
         return not bool(regex.search(output))
