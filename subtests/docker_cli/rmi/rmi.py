@@ -13,7 +13,8 @@ Operational Summary
 """
 
 import time
-# FIXME: distutils.version is incorrectly missing in Travis CI, disable warning
+# There is a bug in Pylint + virtualenv that makes this fail in Travis CI
+# https://github.com/PyCQA/pylint/issues/73
 from distutils.version import LooseVersion  # pylint: disable=E0611
 from autotest.client import utils
 from dockertest import subtest
