@@ -37,17 +37,21 @@ class FakeCmdResult(object):
             setattr(self, key, val)
 
 RUN_CACHE = []
+
+
 def get_run_cache():
     global RUN_CACHE
     return RUN_CACHE
+
 
 def kill_run_cache():
     global RUN_CACHE
     RUN_CACHE = []
 
+
 def run(command, *args, **dargs):
     command = "%s" % (command)
-    get_run_cache().append({'command':command, 'args':args, 'dargs':dargs})
+    get_run_cache().append({'command': command, 'args': args, 'dargs': dargs})
     return FakeCmdResult(command=command.strip(),
                          stdout="""
 REPOSITORY                    TAG                 IMAGE ID                                                           CREATED             VIRTUAL SIZE
@@ -166,7 +170,7 @@ class DockerImageTestBasic(ImageTestBase):
 
     defaults = {'docker_path': '/foo/bar', 'docker_options': '--not_exist',
                 'docker_timeout': 60.0, 'docker_repo_name': 'fedora',
-                'docker_repo_tag': 'latest', 'docker_registry_host':'192.168.122.245:5000',
+                'docker_repo_tag': 'latest', 'docker_registry_host': '192.168.122.245:5000',
                 'docker_registry_user': '', 'preserve_fqins': 'fedora:32, fedora:heisenbug'}
     customs = {}
     config_section = "Foo/Bar/Baz"
@@ -208,8 +212,8 @@ class DockerImageTestBasic(ImageTestBase):
         self.assertEqual(images, exp)
 
         act = self.images.DockerImages.filter_list_full_name(all_images,
-                                                                 "fedora:"
-                                                                 "latest")
+                                                             "fedora:"
+                                                             "latest")
         self.assertEqual(str(act), exp)
 
         images = str(d.list_imgs_with_full_name_components(repo_addr="192.168.122.245:5000"))
@@ -217,7 +221,7 @@ class DockerImageTestBasic(ImageTestBase):
                " DockerImage(full_name:192.168.122.245:5000/fedora:latest LONG_ID:58394af373423902a1b97f209a31e3777932d9321ef10e64feaaa7b4df609cf9 CREATED:5 weeks ago SIZE:385.5 MB)]")
         self.assertEqual(images, exp)
         act = self.images.DockerImages.filter_list_by_components(all_images,
-                                                                     repo_addr='192.168.122.245:5000')
+                                                                 repo_addr='192.168.122.245:5000')
         self.assertEqual(str(act), exp)
 
         images = str(d.list_imgs_with_full_name_components(repo_addr="192.168.122.245:5000",
@@ -316,7 +320,7 @@ class DockerImageTestBasic(ImageTestBase):
         test = "bAsTaRd-rEPo.lOcAl_hOsT:1073741824/.b+o-F_H./a.s-d_f:F.d-S_a"
         DI = self.images.DockerImage
         repo, tag, addr, user = DI.split_to_component(test)
-        di = DI(repo, tag, '0'*64, None, None, addr, user)
+        di = DI(repo, tag, '0' * 64, None, None, addr, user)
         self.assertEqual(di.full_name, test)
 
     def test_remove_cli(self):

@@ -437,9 +437,9 @@ try_remove_after_testDeprecated Legacy cleanup options, DO NOT USE FOR NEW TESTS
         self.assertEqual(str(defaultdoc).strip(), self.defaults_rst.strip())
 
     def test_ini_filenames(self):
+        # defaults should not be expressed from ConfigDoc, only DefaultDoc
         self.assertEqual(self.ConfigDoc.ini_filenames(),
-                         tuple())  # defaults should not be expressed
-                                   # from ConfigDoc, only DefaultDoc
+                         tuple())
 
     # FIXME: Need more tests
 

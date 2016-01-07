@@ -47,6 +47,7 @@ def make_SDS(base_class):
             return ','.join(self.sections)
     return SubtestDocSections
 
+
 def make_USCI(base_class):
     # Access undocumented test configuration items from high-level interface
     class UndocSubtestConfigItems(base_class):
@@ -65,6 +66,7 @@ def make_USCI(base_class):
             class ConfigDocCapture(ConfigDoc):
 
                 # This _self is different from outer self on purpose.
+
                 def conv(_self, input_string):
                     # Copy parser state at final output stage
                     self.docitems = _self.docitems

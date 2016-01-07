@@ -607,6 +607,7 @@ class OutputGood(OutputGoodBase):
 
 
 class OutputNotBad(OutputGood):
+
     """
     Same as OutputGood, except skip checking error/usage messages by default
     """
@@ -713,6 +714,7 @@ def mustfail(cmdresult, failmsg=None):
 # appears here is all 'behind the scenes' stuff for producing
 # imutable instances.
 class DockerTime(datetime.datetime):  # pylint: disable=R0903
+
     """
     Imutable Docker specialized zulu-time representation
 
@@ -724,6 +726,7 @@ class DockerTime(datetime.datetime):  # pylint: disable=R0903
     """
 
     class UTC(datetime.tzinfo):
+
         """Singleton representation of UTC timezone and epoch point"""
 
         #: Zero timedelta offset
@@ -763,6 +766,7 @@ class DockerTime(datetime.datetime):  # pylint: disable=R0903
             return cls.ZERO
 
     class UTCOffset(datetime.tzinfo):
+
         """Fixed offset in hours and minutes from UTC."""
 
         def __init__(self, offset_string):

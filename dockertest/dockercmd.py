@@ -257,6 +257,7 @@ class DockerCmd(DockerCmdBase):  # pylint: disable=R0903
     Setup a call docker subcommand as if by CLI w/ subtest config integration
     Execute docker subcommand with arguments and a timeout.
     """
+
     def __init__(self, subtest, subcmd, subargs=None, timeout=None,
                  verbose=True):
         super(DockerCmd, self).__init__(subtest, subcmd, subargs,

@@ -242,11 +242,11 @@ class TestConfig(ConfigTestBase):
         # require override on inherited tEsTOPTioNi from DEFAULTS
         foo.set('testoptionb', 'FAIL!')  # modified from DEFAULTS
         foo.set('testoptionx', 'FAIL!')  # redefined here
-        foo.remove_option('testoptions') # test DEFAULTS __example__ ignored
+        foo.remove_option('testoptions')  # test DEFAULTS __example__ ignored
         foo.merge_write(self.cfgfile)  # update, don't overwrite
 
         # Custom config, modifies tEsTOPTioNi,  TestOptionB, testoptionx
-        osfd, filename = tempfile.mkstemp(suffix='.ini',  #vvvvvvvvvvvv
+        osfd, filename = tempfile.mkstemp(suffix='.ini',  # vvvvvvvvvvvv
                                           dir=self.config.CONFIGCUSTOMS)
         os.close(osfd)
         cfgfile = open(filename, 'wb')
@@ -274,7 +274,7 @@ class TestConfig(ConfigTestBase):
         #                  and defines testoptionx
 
         # Custom config, modifies TestOptionB, testoptionx
-        osfd, filename = tempfile.mkstemp(suffix='.ini',  #vvvvvvvvvvvv
+        osfd, filename = tempfile.mkstemp(suffix='.ini',  # vvvvvvvvvvvv
                                           dir=self.config.CONFIGCUSTOMS)
         os.close(osfd)
         cfgfile = open(filename, 'wb')
@@ -294,7 +294,7 @@ class TestConfig(ConfigTestBase):
         #                  and defines testoptionx
 
         # Custom config, modifies tEsTOPTioNi, TestOptionB, testoptionx
-        osfd, filename = tempfile.mkstemp(suffix='.ini',  #vvvvvvvvvvvv
+        osfd, filename = tempfile.mkstemp(suffix='.ini',  # vvvvvvvvvvvv
                                           dir=self.config.CONFIGCUSTOMS)
         os.close(osfd)
         cfgfile = open(filename, 'wb')
@@ -302,14 +302,14 @@ class TestConfig(ConfigTestBase):
         bar.set('__example__', 'tEsTOPTioNi,  TestOptionB, testoptionx')
         bar.set('TestOptioni', 'Pass!')  # differs from default
         bar.set('testoptionb', 'no')  # unchanged from default config
-        bar.set('testoptionx', 'yes') # this too
+        bar.set('testoptionx', 'yes')  # this too
         bar.write(cfgfile)
         cfgfile.close()
         config = self.config.Config()
         self.assertEqual(len(config), 2)
         testsection = config['TestSection']
         # order doesn't matter
-        examples= set(self.config.get_as_list(testsection['__example__']))
+        examples = set(self.config.get_as_list(testsection['__example__']))
         expected = set(['testoptionb', 'testoptionx'])
         self.assertEqual(examples, expected)
 
@@ -334,7 +334,7 @@ class TestUtilities(ConfigTestBase):
     def test_getaslist_1(self):
         testvalue = '  one, two \n\n,\nthree'
         testlist = self.config.get_as_list(testvalue)
-        self.assertEqual(testlist, ['one','two','three'])
+        self.assertEqual(testlist, ['one', 'two', 'three'])
 
     def test_getaslist_2(self):
         testvalue = ''
@@ -349,7 +349,7 @@ class TestUtilities(ConfigTestBase):
     def test_getaslist_4(self):
         testvalue = 'one,,two,,three,,'
         testlist = self.config.get_as_list(testvalue, omit_empty=False)
-        self.assertEqual(testlist, ['one', '', 'two', '', 'three', '',''])
+        self.assertEqual(testlist, ['one', '', 'two', '', 'three', '', ''])
 
 
 if __name__ == '__main__':

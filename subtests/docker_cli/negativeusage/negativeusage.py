@@ -43,6 +43,7 @@ from dockertest.output import mustpass
 
 
 class NoisyCmd(dockercmd.DockerCmd):
+
     """
     Central to test, guarantee verbose/non-quiet even if defaults change
     """

@@ -143,6 +143,7 @@ class ContainerPort(object):
 
 # TODO: Add unittest for PortContainer
 class PortContainer(ContainerPort):
+
     """Parser of port string output from port command"""
 
     port_split_p = re.compile(r"\s*(\d+)/([a-z]+)\s*"

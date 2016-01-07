@@ -382,7 +382,6 @@ class TestDtFromIso(unittest.TestCase):
         expected = self.dockertime.UTC.EPOCH
         self.assertEqual(epoch_dt, expected)
 
-
     def test_sometime(self):
         import datetime
         epoch_str = "2015-03-02T17:04:20Z"
@@ -418,7 +417,6 @@ class TestDtFromIso(unittest.TestCase):
                                  hour=17, minute=4, second=20,
                                  microsecond=123456, tzinfo=self.utc)
         self.assertEqual(epoch_dt, expected)
-
 
     def test_is_undefined(self):
         dt = self.dockertime("0001-01-01T00:00:00Z")

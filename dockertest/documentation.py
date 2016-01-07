@@ -412,6 +412,7 @@ class SubtestDoc(DocBase):
 # Additional public methods not needed, only attributes needed to
 # differientiate.
 class PretestDoc(SubtestDoc):  # pylint: disable=R0903
+
     """Subclass to represent pretest module documentation"""
     #: Top level directory name base and name postfix for instances.
     tld_name = 'pretests'
@@ -419,6 +420,7 @@ class PretestDoc(SubtestDoc):  # pylint: disable=R0903
 
 
 class IntratestDoc(SubtestDoc):  # pylint: disable=R0903
+
     """Subclass to represent intratest module documentation"""
     #: Top level directory name base and name postfix for instances.
     tld_name = 'intratests'
@@ -426,6 +428,7 @@ class IntratestDoc(SubtestDoc):  # pylint: disable=R0903
 
 
 class PosttestDoc(SubtestDoc):  # pylint: disable=R0903
+
     """Subclass to represent posttest module documentation"""
     #: Top level directory name base and name postfix for instances.
     tld_name = 'posttests'

@@ -133,17 +133,22 @@ class FakeCmdResult(object):
             setattr(self, key, val)
 
 RUN_CACHE = []
+
+
 def get_run_cache():
     global RUN_CACHE
     return RUN_CACHE
+
 
 def kill_run_cache():
     global RUN_CACHE
     RUN_CACHE = []
 
 # Don't actually run anything!
+
+
 def run(command, *_args, **_dargs):
-    get_run_cache().append({'command':command, 'args':_args, 'dargs':_dargs})
+    get_run_cache().append({'command': command, 'args': _args, 'dargs': _dargs})
     command = str(command)
     if 'inspect' in command:
         return FakeCmdResult(command=command.strip(),
@@ -200,8 +205,8 @@ class DockerContainersTestBase(ContainersTestBase):
 
     defaults = {'docker_path': '/foo/bar', 'docker_options': '--not_exist',
                 'docker_timeout': 60.0, 'config_version': '0.3.1',
-                 'preserve_cnames': '\ncocky_albattani,   '
-                                     'lonely_poincare \n  '}
+                'preserve_cnames': '\ncocky_albattani,   '
+                'lonely_poincare \n  '}
     customs = {}
     config_section = "Foo/Bar/Baz"
 
