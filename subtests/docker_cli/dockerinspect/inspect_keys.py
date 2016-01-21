@@ -35,13 +35,25 @@ class inspect_keys(inspect_base):
         super(inspect_keys, self).run_once()
         # inspect a container
         subargs = self.sub_stuff['containers']
-        self.sub_stuff['container_config'] = self.inspect_and_parse(subargs)
+        json = self.inspect_and_parse(subargs)
+        self.sub_stuff['container_config'] = self.filter_keys(json)
 
         # inspect an image
         subargs = [self.sub_stuff['image']]
-        self.sub_stuff['image_config'] = self.inspect_and_parse(subargs)
+        json = self.inspect_and_parse(subargs)
+        self.sub_stuff['image_config'] = self.filter_keys(json)
+
+    @staticmethod
+    def filter_keys(json):
+        # Keys in Labels should not be checked for style
+        try:
+            del json[0]['Config']['Labels']
+        except KeyError:
+            pass
+        return json
 
     def get_keys(self, coll):
+        """Return a list of all dictionary keys, included nested in lists"""
         if isinstance(coll, list):
             return sum([self.get_keys(_) for _ in coll], [])
         if isinstance(coll, dict):
