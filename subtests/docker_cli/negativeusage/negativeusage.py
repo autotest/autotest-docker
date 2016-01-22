@@ -129,6 +129,8 @@ class Base(subtest.SubSubtest):
 
     def init_substitutions(self):
         di = self.sub_stuff['di']
+        dc = self.sub_stuff['dc']
+        self.sub_stuff['NAME'] = dc.get_unique_name()
         self.sub_stuff['FQIN'] = di.default_image
         fqin = di.get_unique_name()
         self.sub_stuff['NOFQIN'] = fqin
