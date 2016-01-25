@@ -18,8 +18,10 @@ Prerequisites
 *  Firewalld daemon is running and does not show any errors about
    fail to add rules (https://bugzilla.redhat.com/show_bug.cgi?id=1101484).
 *  Command iptable and brctl are working well.
+*  sysctl's net.bridge.bridge-nf-call-iptables and -ip6tables are set to 1
 """
 
+from difflib import unified_diff
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import mustpass
 from dockertest.containers import DockerContainers
@@ -28,7 +30,6 @@ from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCallerSimultaneous
 from autotest.client import utils
-import re
 
 
 class iptable(SubSubtestCallerSimultaneous):
@@ -60,46 +61,24 @@ class iptable_base(SubSubtest):
         args += [image, bash_cmd]
         return args
 
-    def cntnr_veth_map(self):
+    def cntnr_ip_map(self):
         """
-        Return mapping of container names to veth* devices
+        Return mapping of container names to IP addresses
         """
-        # map ifindex's to ``veth*`` names on host
-        tmp_cmd = 'brctl show'
-        cmd_result = utils.run(tmp_cmd, verbose=False)
-        veths = re.findall(r'veth\w+', cmd_result.stdout)
-        ifindex = [int(open('/sys/class/net/%s/ifindex' % veth, 'r').read())
-                   for veth in veths]
-        index_host = dict(zip(ifindex, veths))
-        self.logdebug("Host index to veth: %s", index_host)
-
         # map container eth0 ifindex's to names
         dc = DockerContainers(self)
         names = dc.list_container_names()
         jsons = [dc.json_by_name(name)[0] for name in names]
         njs = dict(zip(names, jsons))
         result = {}
-        for name in [_name for (_name, json) in njs.iteritems()
-                     if json["NetworkSettings"]["MacAddress"] != ""]:
-            subargs = [name, 'cat', '/sys/class/net/eth0/ifindex']
-            dkrcmd = DockerCmd(self, 'exec', subargs, verbose=False)
-            dkrcmd.execute()
-            if dkrcmd.exit_status == 0:
-                # Host's ifindex always one greater than container's
-                ifindex = int(dkrcmd.stdout) + 1
-                # State could have changed during looping
-                if ifindex in index_host:
-                    result[name] = index_host[ifindex]
-                else:
-                    self.logdebug("Host veth %s dissapeared while mapping %s",
-                                  ifindex, name)
-            else:
-                self.logdebug("Can't examine eth0 for container %s", name)
-        self.logdebug("Container names to veth: %s", result)
+        for name in [_ for _ in njs
+                     if njs[_]["NetworkSettings"]["IPAddress"] != ""]:
+            result[name] = njs[name]["NetworkSettings"]["IPAddress"]
+            self.logdebug("%s -> %s", name, result[name])
         return result
 
     @staticmethod
-    def read_iptable_rules(veth):
+    def read_iptable_rules(ipaddress):
         """
         Find container related iptable rules
 
@@ -108,16 +87,21 @@ class iptable_base(SubSubtest):
         iptables_cmd = 'iptables -L -n -v'
         iptables_rules = utils.run(iptables_cmd, verbose=False)
         rules = iptables_rules.stdout.splitlines()
-        if veth is None:
+        if ipaddress is None:
             return rules
-        return [rule for rule in rules if rule.find(veth) > -1]
+        return [rule for rule in rules if rule.find(ipaddress) > -1]
+
+    @staticmethod
+    def log_diff(method, before, after, header=None):
+        if header:
+            method(header)
+        for line in unified_diff(before, after):
+            method(line)
 
     def initialize(self):
         super(iptable_base, self).initialize()
         self.init_stuff()
         self.sub_stuff['rules_before'] = self.read_iptable_rules(None)
-        self.logdebug("Rules before:\n%s",
-                      '\n'.join(self.sub_stuff['rules_before']))
         self.sub_stuff['subargs'] = self.init_subargs()
 
     def run_once(self):
@@ -125,8 +109,6 @@ class iptable_base(SubSubtest):
         subargs = self.sub_stuff['subargs']
         mustpass(DockerCmd(self, 'run -d', subargs, verbose=True).execute())
         self.sub_stuff['rules_during'] = self.read_iptable_rules(None)
-        self.logdebug("Rules during:\n%s",
-                      '\n'.join(self.sub_stuff['rules_during']))
 
     def postprocess(self):
         super(iptable_base, self).postprocess()
@@ -134,8 +116,6 @@ class iptable_base(SubSubtest):
         DockerContainers(self).wait_by_name(name)
 
         self.sub_stuff['rules_after'] = self.read_iptable_rules(None)
-        self.logdebug("Rules after:\n%s",
-                      '\n'.join(self.sub_stuff['rules_after']))
 
     def cleanup(self):
         super(iptable_base, self).cleanup()
@@ -157,16 +137,28 @@ class iptable_remove(iptable_base):
     def initialize(self):
         super(iptable_remove, self).initialize()
         name = self.sub_stuff['name']
-        veth = self.cntnr_veth_map().get(name)
-        if veth is not None:
-            self.sub_stuff['cntnr_before'] = set(self.read_iptable_rules(veth))
+        ipaddr = self.cntnr_ip_map().get(name)
+        if ipaddr is not None:
+            self.loginfo("IP before %s run (bad): %s", name, ipaddr)
+            self.sub_stuff['cntnr_before'] = set(
+                self.read_iptable_rules(ipaddr))
+        else:
+            self.loginfo("No IP before %s run (good)", name)
 
     def run_once(self):
         super(iptable_remove, self).run_once()
         name = self.sub_stuff['name']
-        veth = self.cntnr_veth_map().get(name)
-        if veth is not None:
-            self.sub_stuff['cntnr_during'] = set(self.read_iptable_rules(veth))
+        ipaddr = self.cntnr_ip_map().get(name)
+        if ipaddr is not None:
+            self.logwarning("IP while %s run (good): %s", name, ipaddr)
+            self.sub_stuff['cntnr_during'] = set(
+                self.read_iptable_rules(ipaddr))
+        else:
+            self.logwarning("No IP while %s run (bad)", name)
+        self.log_diff(self.logdebug,
+                      self.sub_stuff['rules_before'],
+                      self.sub_stuff['rules_during'],
+                      "iptables rule diff before run -> during run")
 
     def postprocess(self):
         super(iptable_remove, self).postprocess()
@@ -177,9 +169,17 @@ class iptable_remove(iptable_base):
             pass  # already removed
         cntnr_before = self.sub_stuff['cntnr_before']
         cntnr_during = self.sub_stuff['cntnr_during']
-        veth = self.cntnr_veth_map().get(name)
-        if veth is not None:
-            cntnr_after = set(self.read_iptable_rules(veth))
+        ipaddr = self.cntnr_ip_map().get(name)
+        if ipaddr is not None:
+            self.loginfo("IP after %s run (bad): %s", name, ipaddr)
+            cntnr_after = set(self.read_iptable_rules(ipaddr))
+        else:
+            cntnr_after = set()
+            self.logwarning("No IP after %s run (good)", name)
+        self.log_diff(self.logdebug,
+                      self.sub_stuff['rules_during'],
+                      self.sub_stuff['rules_after'],
+                      "iptables rule diff during run -> after run")
         self.failif(cntnr_before, "Rules found before run")
         self.failif(not cntnr_during, "No rules were added")
         self.failif(cntnr_after & cntnr_during,
