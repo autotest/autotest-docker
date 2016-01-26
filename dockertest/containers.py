@@ -180,7 +180,7 @@ class DockerContainers(object):
     """
 
     #: Operational timeout, may be overridden by subclasses and/or parameters.
-    timeout = 60.0
+    timeout = 120
 
     #: Control verbosity level of underlying operations.
     verbose = False
@@ -197,7 +197,7 @@ class DockerContainers(object):
     #: Extra arguments to use with remove methods
     remove_args = None
 
-    def __init__(self, subtest, timeout=120, verbose=False):
+    def __init__(self, subtest, timeout=None, verbose=False):
         if timeout is None:
             # Defined in [DEFAULTS] guaranteed to exist
             self.timeout = subtest.config['docker_timeout']
