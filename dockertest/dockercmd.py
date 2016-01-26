@@ -64,7 +64,9 @@ class DockerCmdBase(object):
             self.subargs = []
         else:
             # Allow consecutive runs with modifications
-            self.subargs = list(subargs)
+            self.subargs = [arg.strip()
+                            for arg in subargs
+                            if arg is not None or arg is not '']
         if timeout is None:
             # Defined in [DEFAULTS] guaranteed to exist
             self.timeout = float(subtest.config['docker_timeout'])
@@ -238,15 +240,18 @@ class DockerCmdBase(object):
         String representation of command + subcommand + args
         """
 
+        if self.docker_command is not None:
+            complete = self.docker_command.strip()
+        else:
+            complete = ""
+        if self.docker_options is not None:
+            complete = "%s %s" % (complete.strip(),
+                                  self.docker_options.strip())
+        if self.subcmd is not None:
+            complete = "%s %s" % (complete.strip(), self.subcmd.strip())
         if len(self.subargs) > 0:
-            return ("%s %s %s %s" % (self.docker_command,
-                                     self.docker_options,
-                                     self.subcmd,
-                                     " ".join(self.subargs))).strip()
-        else:  # Avoid adding extra spaces anywhere in or to command
-            return ("%s %s %s" % (self.docker_command,
-                                  self.docker_options,
-                                  self.subcmd)).strip()
+            complete = "%s %s" % (complete.strip(), " ".join(self.subargs))
+        return complete.strip()
 
 
 # Normally we need two public methods minimum, however extensions
