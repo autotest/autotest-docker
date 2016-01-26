@@ -75,21 +75,19 @@ class simple(ps_size_base):
         super(simple, self).run_once()
         dd_cmd = self.config['dd_cmd']
         for size in (int(size) for size in self.config['dd_sizes'].split()):
-            if size >= 1000:
-                segment = '1G'
-                size = size / 1000
-                self.sub_stuff['sizes'].append(size * 1000)
-            else:
-                segment = "1M"
-                self.sub_stuff['sizes'].append(size)
+            self.loginfo("Testing %d megabytes", size)
+            segment = "1M"
+            self.sub_stuff['sizes'].append(size)
             dkrcmd = self._init_container([], dd_cmd % (segment, size))
             mustpass(dkrcmd.execute())
 
     def postprocess(self):
         def convert_size(size):
             """ Converts the size from docker ps --size format """
-            size, unit = size.split()
-            return float(size) * {'B': 0.001, 'MB': 1, 'GB': 1024}[unit]
+            split_size = size.split()
+            return float(split_size[0]) * {'B': 0.001,
+                                           'MB': 1,
+                                           'GB': 1024}[split_size[1]]
 
         def get_container_size(containers, name):
             """ Returns size of given container from containers list """
@@ -99,6 +97,7 @@ class simple(ps_size_base):
         super(simple, self).postprocess()
         try:
             self.sub_stuff['dc'].get_size = True
+            self.loginfo("Calculating sizes, could take a while...")
             containers = self.sub_stuff['dc'].list_containers()
             created_containers = self.sub_stuff['containers']
             sizes = self.sub_stuff['sizes']
@@ -107,6 +106,7 @@ class simple(ps_size_base):
             for i in xrange(len(sizes)):
                 size = get_container_size(containers, created_containers[i])
                 exp = sizes[i]
+                self.loginfo("Verifying %d", exp)
                 limit = 1 + float(self.config['limit_per_mb']) * int(exp)
                 # range (size; size + limit)
                 if (size > exp + limit) or (size < exp):
