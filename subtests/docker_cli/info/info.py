@@ -26,6 +26,7 @@ from dockertest import subtest
 from dockertest.output import OutputGood
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import mustpass
+from dockertest.images import DockerImages
 import os
 
 
@@ -54,8 +55,24 @@ class info(subtest.Subtest):
         # Raise exception on Go Panic or usage help message
         outputgood = OutputGood(self.stuff['cmdresult'])
         info_map = self._build_table(outputgood.stdout_strip)
-        self.failif(info_map['Storage Driver'].lower() != 'devicemapper')
-        # verify each element
+        # Verify some individual items
+        self.failif(info_map['Storage Driver'].lower() != 'devicemapper',
+                    info_map['Storage Driver'])
+        self.failif(info_map['Data file'].lower() != '',
+                    info_map['Data file'])
+        self.failif(info_map['Metadata file'].lower() != '',
+                    info_map['Metadata file'])
+        di = DockerImages(self)
+        # Make sure nothing is 'hidden'
+        di.images_args = "%s --all" % di.images_args
+        # Possible race-condition here...
+        il = di.list_imgs()
+        # ...with this
+        ic = int(info_map['Images'].lower())
+        self.failif(len(il) != ic,
+                    "More/less images %d than info reported %d"
+                    % (len(il), ic))
+        # verify value of elements
         self.verify_pool_name(info_map['Pool Name'])
         data_name = 'Data loop file'
         metadata_name = 'Metadata loop file'
@@ -76,12 +93,12 @@ class info(subtest.Subtest):
         raw_pools = read_pool_names.stdout.strip()
         pool_names = [x.split()[0] for x in raw_pools.split('\n')]
 
-        # make sure there is only one pool
-        self.failif(len(pool_names) != 1,
-                    "There is more than one docker pool.")
-        self.logdebug("One docker pool found.")
+        # make sure there is at least one pool
+        self.failif(len(pool_names) < 1,
+                    "There are fewer than one docker pools.")
+        self.logdebug("Docker pool found.")
 
-        read_pool_name = pool_names[0]
+        read_pool_name = pool_names[-1]
         # verify pool names
         self.logdebug("Read Pool Name: %s , Docker Pool Name: %s",
                       read_pool_name, docker_pool_name)
