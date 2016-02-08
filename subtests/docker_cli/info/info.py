@@ -66,12 +66,12 @@ class info(subtest.Subtest):
         # Make sure nothing is 'hidden'
         di.images_args = "%s --all" % di.images_args
         # Possible race-condition here...
-        il = di.list_imgs()
+        img_set = set(di.list_imgs_ids())  # don't count multi-tags
         # ...with this
-        ic = int(info_map['Images'].lower())
-        self.failif(len(il) != ic,
+        img_cnt = int(info_map['Images'].lower())
+        self.failif(len(img_set) != img_cnt,
                     "More/less images %d than info reported %d"
-                    % (len(il), ic))
+                    % (len(img_set), img_cnt))
         # verify value of elements
         self.verify_pool_name(info_map['Pool Name'])
         data_name = 'Data loop file'
