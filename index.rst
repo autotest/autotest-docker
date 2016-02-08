@@ -8,7 +8,7 @@
 .. Quick reference for reStructuredText:
    http://docutils.sourceforge.net/docs/user/rst/quickref.html
 
-.. Reference for sphinx.ext.autodoc extenstion:
+.. Reference for sphinx.ext.autodoc extension:
    http://sphinx-doc.org/ext/autodoc.html
 
 
@@ -36,8 +36,8 @@ Introduction
 
 Docker Autotest_ is a sub-framework for standalone testing of docker_.
 It does not depend on docker itself.  Functionally, testing occurs within
-any number of sub-test modules, which in some cases also include further
-nested sub-sub-tests. It is designed to support both extremely simple,
+any number of subtest modules, which in some cases also include further
+nested sub-subtests. It is designed to support both extremely simple,
 linear, and more complex, nested, iterative testing of arbitrary external
 docker commands.
 
@@ -70,7 +70,7 @@ Prerequisites
 *  Docker
 
     *  **Clean** environment, only test-related images, containers
-       and dependant services (besides ``docker -d``) at the start
+       and dependent services (besides ``docker -d``) at the start
        of **every** Autotest run.
     *  Docker installation (with ``docker -d`` running at startup)
     *  Default settings for Docker on your platform/OS,
@@ -86,17 +86,17 @@ Prerequisites
 
 *  Platform Applications/tools
 
-    *  Core-utils or equivalent (i.e. ``cat``, ``mkdir``, ``tee``, etc.)
+    *  Coreutils or equivalent (i.e. ``cat``, ``mkdir``, ``tee``, etc.)
     *  Tar and supported compression programs (``bzip2``, ``gzip``, etc.)
     *  nfs-utils (nfs-server support daemons)
-    *  Git (and basic familiarity with it's operation)
+    *  Git (and basic familiarity with its operation)
     *  Python 2.6 or greater (but not 3.0)
     *  Optional (for building documentation), ``make``, ``python-sphinx``,
        and ``docutils`` or equivalent for your platform.
     *  Autotest 0.16.0 or later, precise, specific version is configurable.
     *  Basic iptables based firewall, no ``firewalld`` or ``libvirtd`` running.
     *  (Optional) python-bugzilla (or equivalent) for test control based
-       upon bug status.  See section `bugzilla_intergration`_
+       upon bug status.  See section `bugzilla_integration`_
 
 
 *  **Any specific requirements for particular** `subtest modules`_.
@@ -157,7 +157,7 @@ Quickstart
 
 #.  Run the autotest standalone client (``autotest-local run docker``).  The
     default behavior is to run all subtests.  However, the example below
-    demonstrates using the ``--args`` parameter to select *only two* sub-tests:
+    demonstrates using the ``--args`` parameter to select *only two* subtests:
 
 ::
 
@@ -190,7 +190,7 @@ Quickstart
 
 (timestamps and extra text removed for clarity)
 
-:Note: Subtest names are all relative to the ``subtests`` sub-directory and must
+:Note: Subtest names are all relative to the ``subtests`` subdirectory and must
        be fully-qualified.  e.g. ``docker_cli/version`` refers to the subtest module
        ``subtests/docker_cli/version/version.py``.
 
@@ -205,7 +205,7 @@ module must have the same name as the directory it is in (minus the ``.py``
 extension).  Other files/directories may exist at that level, but they
 will not be recognized as subtest modules by the Docker client test.  This
 ensures each subtest's code is kept separate from all others.  Finally,
-every subtest is run in it's own process and context.  It does not have
+every subtest is run in its own process and context.  It does not have
 visibility into any other subtest code, configuration, or runtime.
 
 Organization and Naming
@@ -213,7 +213,7 @@ Organization and Naming
 
 The structure/layout of the ``subtest`` directory tree is relevant for
 reference and configuration.  The reference and configuration section names
-for subtests are formed by it's relative location under the ``subtest``
+for subtests are formed by its relative location under the ``subtest``
 directory.  For example, the subtest module ``subtests/docker_cli/version/version.py``
 matches with the ``[docker_cli/version]`` configuration section and
 ``docker_cli/version`` subtest name.
@@ -224,7 +224,7 @@ Static Content Setup
 Subtests may source their own static content from within their directory and below.
 When content needs to be built, or is in some way test-environment specific, the
 ``setup() method`` should be overridden.  Content may be referenced from the subtest's
-directory by using it's ``bindir`` attribute.  A version-specific directory to
+directory by using its ``bindir`` attribute.  A version-specific directory to
 contain build/setup output is available as the ``srcdir`` attribute.  The ``setup()``
 method will ***only*** be called once per version number (including revisions).
 State may be reset by clearing the autotest client ``tmp`` directory.
@@ -237,7 +237,7 @@ Sub-subtests
 ==============
 
 There are provisions for tests that contain, or are composed of multiple child
-tests or dependant operations.  They may share content and code between each other,
+tests or dependent operations.  They may share content and code between each other,
 so long as it lives within the subtest directory or below.  Optionally, they may
 use their own configuration sections, named by appending their class name onto
 the parent subtest's name.  Sub-subtest configuration inherits undefined values
@@ -249,11 +249,11 @@ Images
 --------------------
 
 It is assumed that any images required for testing are available and built
-beforehand.  A default image for testing-purposes is required by most tests.
-It's fully-qualified name is configurable, though test results will be directly
+beforehand.  A default image for testing purposes is required by most tests.
+Its fully-qualified name is configurable, though test results will be directly
 affected if it is or becomes unavailable.  Individual subtests may require
 specific additional images or content.  If so, this will be noted
-in the subtest documentation's *Prerequesites* section.
+in the subtest documentation's *Prerequisites* section.
 
 .. _configuration:
 
@@ -262,9 +262,9 @@ Configuration
 --------------------
 
 The default configuration files are all located under the ``config_defaults``
-sub-directory.  These are intended to be bundled with the autotest docker test.
+subdirectory.  These are intended to be bundled with the autotest docker test.
 To customize any subtest or global default configuration, copies should
-be made manually into the ``config_custom`` sub-directory.  Any content
+be made manually into the ``config_custom`` subdirectory.  Any content
 within ``config_custom`` will override all files and sections from
 ``config_defaults``.
 
@@ -289,7 +289,7 @@ Configuration files use the familiar *ini* style format with separate
 sections (e.g. ``[<section name>]``) preventing option names from colliding.
 All configuration files are loaded into a single name-space, divided by
 each section.   Section names can be arbitrary, however those which exactly
-match a subtest or subsubtest's name, will be automatically loaded (see Subtests_).
+match a subtest or sub-subtest's name, will be automatically loaded (see Subtests_).
 
 .. _default configuration options:
 
@@ -327,10 +327,10 @@ be folded into a single space, and combined with the previous line.
 Example Values
 ------------------
 
-In order to help dockertest operate w/o custimization, many example or demonstration
-value have been configured.  While is fine for development and informal testing
-purposes, it adds external dependencies for production testing. Therefor, every
-option with default, example values should be specified in a
+In order to help dockertest operate w/o customization, many example or demonstration
+value have been configured.  While this is fine for development and informal testing
+purposes, it adds external dependencies for production testing. Therefore every
+option with default example values should be specified in a
 comma-separated list to the special ``__example__`` option.
 
 The ``__example__`` option's value is parsed specially.  It is not inherited from
@@ -364,9 +364,9 @@ Documentation
 ----------------------
 
 All configuration options must be documented somewhere at least once.
-Documentated options in ``[DEFAULTS]`` will automatically be documented
+Documented options in ``[DEFAULTS]`` will automatically be documented
 in subtests, no need to re-document.  Similarly, for subtests with
-multiple sub-subtests, options that are overriden by sub-subtests only
+multiple sub-subtests, options that are overridden by sub-subtests only
 need to be documented in the subtest section.
 
 Configuration options are documented in *ReStructuredText* format
@@ -419,7 +419,7 @@ facilities provided by the job object:
    of the control file currently in use.  Though primarily for
    reference purposes, any use of this by lower-level tests
    can only be on an advisory basis.  There is no way for tests
-   to predict which control file will be in use nor what it's
+   to predict which control file will be in use nor what its
    precise behavior will be.
 
 *  The ``job.args`` attribute contains a list of space-separated
@@ -472,7 +472,7 @@ use of the ``jobs.args`` attribute value in the following way:
     *  It's possible to specify both subtest and sub-subtest names,
        to the ``--args`` option.  However, only job steps will be
        added for subtests since Autotest has no knowledge of
-       sub-subtests.  If a sub-subtest is specified without it's
+       sub-subtests.  If a sub-subtest is specified without its
        parent subtest, the control file will automatically inject
        the parent subtest into the master list, ahead of the sub-subtest
        if it's not already listed.
@@ -486,7 +486,7 @@ use of the ``jobs.args`` attribute value in the following way:
     *  If a ``jobs.args`` sub-option in the form ``i=<thing>,<thing>,...``
        appears, it will be considered as the set of sub/sub-subtest names
        to explicitly **include** from the master list (above).  Unknown
-       any unknown names are ignored, and an empty list means to
+       names are ignored, and an empty list means to
        include everything from the master list.
 
     *  If the sub-option ``x=<thing>,<thing>,...`` appears in ``--args``,
@@ -522,13 +522,13 @@ The operational list of sub/sub-subtests (after include/exclude/bugzilla
 filtering) is supplied in the ``subtests`` option value.
 
 :**Note**:  The results directory's ``control.ini`` may optionally
-            be consulted  by sub/sub-subtests.  However, it's format
+            be consulted  by sub/sub-subtests.  However, its format
             and/or any contained options must always have default
             values in case of format changes or missing values.
             This facility may not be provided at all, or implemented
             differently by other control files.
 
-.. _bugzilla_intergration:
+.. _bugzilla_integration:
 
 Bugzilla Integration
 ---------------------
@@ -536,7 +536,7 @@ Bugzilla Integration
 This feature is only enabled if a bugzilla url option value is provided
 and the ``python-bugzilla`` package is installed.  This package is available
 for Fedora directly, and for Red Hat Enterprise Linux in the EPEL repository.
-Most other distros. Similarly provide a pre-packaged version of this
+Most other distros similarly provide a pre-packaged version of this
 python module.
 
 When enabled in ``control.ini``, this feature helps to automatically
@@ -589,7 +589,7 @@ in the API.
 Subtest Modules
 ------------------
 
-The following sections detail specific sub-tests, their configuration
+The following sections detail specific subtests, their configuration
 and any prerequisites or setup requirements.
 
 .. include:: subtests.rst
