@@ -120,6 +120,8 @@ class spam(SubSubtest):
             if value != compareto[key]:
                 self.logwarning("var %s value %s does not match %s's %s",
                                 value, key, name, compareto[key])
+        # Now fail after checking all the keys/values
+        self.failif(expected != actual)
 
     def initialize(self):
         super(spam, self).initialize()
