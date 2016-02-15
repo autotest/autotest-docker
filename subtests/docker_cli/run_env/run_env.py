@@ -133,7 +133,7 @@ class spam(SubSubtest):
         self.sub_stuff['dkrcmd'].execute()
 
     def postprocess(self):
-        super(spam, self).run_once()
+        super(spam, self).postprocess()
         mustpass(self.sub_stuff['dkrcmd'].cmdresult)
         expected = self.sub_stuff['envd']
         actual = self.retrieve_testdata()
