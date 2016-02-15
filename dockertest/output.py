@@ -300,6 +300,11 @@ class TextTable(MutableSet, Sequence):
     Parser for tabular data with values separated by character offsets
 
     :param table: String of table header, optionally followed by data rows
+    :param columnranges: Optional ColumnRanges instance to use
+    :param header: Optional header to use, instead of first-line,
+                   ignored if columnranges parameter is non-None
+    :param tabledata: Optional lines of data to use, optionally with header
+                      option or columnranges option (but not both).
     :raises TypeError: if table contains less than one line
     :raises ValueError: if key_column is not in table_columns
     """
@@ -316,15 +321,34 @@ class TextTable(MutableSet, Sequence):
     #: internal cache of parsed rows
     _rows = None
 
-    def __init__(self, table):
-        table_lines = table.strip().splitlines()
-        if len(table_lines) < 1:
-            raise TypeError("Table shorter than one line: %s" % table)
-        # First line is header
-        self.columnranges = ColumnRanges(table_lines[0])
+    def __init__(self, table, columnranges=None, header=None, tabledata=None):
+        if columnranges is not None and header is not None:
+            raise ValueError("Cannot specify both columnranges and header "
+                             "parameters")
+
+        if header is None and tabledata is None:
+            table_lines = table.strip().splitlines()
+            if len(table_lines) < 1:
+                # FIXME: This should probably be a ValueError
+                raise TypeError("Table shorter than one line: %s" % table)
+            header, tabledata = self.parseheader(table)
+        elif header is None:
+            # tabledata == tabledata
+            table_lines = tabledata.strip().splitlines()
+            header = table_lines[0]
+        else:  # tabledata == none
+            tabledata = table_lines.strip().splitlines()
+
+        if columnranges is None:
+            # First line is header
+            self.columnranges = ColumnRanges(header)
+        else:
+            if not isinstance(columnranges, ColumnRanges):
+                raise TypeError("columnranges is not a ColumnRanges instance")
+            self.columnranges = columnranges
+
         self._rows = []
-        header, tabledata = self.parseheader(table)
-        self.columnranges = ColumnRanges(header)
+
         if tabledata is not None:
             for line in self.parserows(tabledata):
                 line_strip = line.strip()
@@ -447,21 +471,30 @@ class TextTable(MutableSet, Sequence):
             newdict[colname] = self.value_filter(strippedline[start:end])
         return newdict
 
-    def search(self, col_name, value):
+    def search(self, col_name, value, match_func=None):
         """
         Returns a list of dictionaries containing col_name key with value
+
+        :param col_name: Column name string to use
+        :param value: Value to compare each row's column name to
+        :match_func: If specified, match found when
+                     match_func(col_name, value, row_value) returns True
         """
         result = []
         for row in self._rows:
-            if row.get(col_name) == value:
-                result.append(dict(row))
+            if match_func is None:
+                if row.get(col_name) == value:
+                    result.append(dict(row))
+            else:
+                if match_func(col_name, value, row.get(col_name)):
+                    result.append(dict(row))
         return result
 
-    def find(self, col_name, value):
+    def find(self, col_name, value, match_func=None):
         """
         Return dictionary with key col_name == value raise IndexError if != 1
         """
-        found = self.search(col_name, value)
+        found = self.search(col_name, value, match_func)
         if len(found) != 1:
             raise IndexError("Found %d rows with %s == %s"
                              % (len(found), col_name, value))
