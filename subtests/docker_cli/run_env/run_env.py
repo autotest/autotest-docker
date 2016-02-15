@@ -103,15 +103,11 @@ class spam(SubSubtest):
         self.logdebug("Environment variables NOT included in test: %s", extra)
         return output
 
-    def validate_testdata(self, expected, actual, loop_actual=True):
-        if loop_actual:
-            iterator = actual.iteritems()
-            compareto = expected
-            name = "input"
-        else:
-            iterator = expected.iteritems()
-            compareto = actual
-            name = "output"
+    def validate_testdata(self, expected, actual):
+        # Verify what's expected is valid inside container
+        iterator = expected.iteritems()
+        compareto = actual
+        name = "output"
         # More helpful to debugging if done this way
         for key, value in iterator:
             if key not in compareto:
@@ -120,6 +116,8 @@ class spam(SubSubtest):
             if value != compareto[key]:
                 self.logwarning("var %s value %s does not match %s's %s",
                                 value, key, name, compareto[key])
+        # Now fail after checking all the keys/values
+        self.failif(expected != actual)
 
     def initialize(self):
         super(spam, self).initialize()
@@ -133,9 +131,8 @@ class spam(SubSubtest):
         self.sub_stuff['dkrcmd'].execute()
 
     def postprocess(self):
-        super(spam, self).run_once()
+        super(spam, self).postprocess()
         mustpass(self.sub_stuff['dkrcmd'].cmdresult)
         expected = self.sub_stuff['envd']
         actual = self.retrieve_testdata()
-        for loop_actual in (True, False):
-            self.validate_testdata(expected, actual, loop_actual)
+        self.validate_testdata(expected, actual)
