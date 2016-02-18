@@ -34,8 +34,7 @@ class TestVerifyPoolName(TestCase):
                   'rhel-swap	(253:1)',
                   'rhel-root	(253:0)',
                   'rhel-docker--pool_tdata	(253:3)',
-                  'rhel-docker--pool_tmeta	(253:2)',
-                 ]
+                  'rhel-docker--pool_tmeta	(253:2)']
 
     @staticmethod
     def failif(cond, msg):
