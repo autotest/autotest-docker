@@ -16,7 +16,7 @@
 #
 # Yeah. Sorry. There's indubitably a better way. Please fix if you know how.
 #
-from unittest2 import TestCase, main
+from unittest2 import TestCase, main        # pylint: disable=unused-import
 from mock import Mock, patch
 
 import sys
@@ -24,19 +24,21 @@ sys.path.append('../../../..')
 
 import info
 
+
 class TestVerifyPoolName(TestCase):
     # Standard docker pool name to expect
     docker_pool = 'rhel-docker--pool'
 
     # Typical output from 'dmsetup ls'. Note that order is arbitrary.
-    dmsetup_ls = [ 'rhel-docker--pool	(253:4)',
-                   'rhel-swap	(253:1)',
-                   'rhel-root	(253:0)',
-                   'rhel-docker--pool_tdata	(253:3)',
-                   'rhel-docker--pool_tmeta	(253:2)',
+    dmsetup_ls = ['rhel-docker--pool	(253:4)',
+                  'rhel-swap	(253:1)',
+                  'rhel-root	(253:0)',
+                  'rhel-docker--pool_tdata	(253:3)',
+                  'rhel-docker--pool_tmeta	(253:2)',
                  ]
 
-    def failif(self, cond, msg):
+    @staticmethod
+    def failif(cond, msg):
         if cond:
             raise ValueError(msg)
 
@@ -54,8 +56,9 @@ class TestVerifyPoolName(TestCase):
         with patch('autotest.client.utils.run', Mock(return_value=mockrun)):
             try:
                 info.info.verify_pool_name(mockinfo, pool_name)
-            except Exception, e:
+            except Exception, e:          # pylint: disable=broad-except
                 if expected_exception:
+                    # exception message is a more specific check than type
                     self.assertEqual(e.message, expected_exception)
                     raised = True
                 else:
@@ -70,7 +73,7 @@ class TestVerifyPoolName(TestCase):
     def test_reverse_order(self):
         """Expected pool name is the last line of output"""
         self._run_one_test(self.docker_pool,
-                            reversed(self.dmsetup_ls), None)
+                           reversed(self.dmsetup_ls), None)
 
     def test_empty_dmsetup(self):
         """dmsetup ls produces no output"""
@@ -86,7 +89,7 @@ class TestVerifyPoolName(TestCase):
     def test_pool_missing(self):
         """dmsetup ls contains many lines, but not our desired pool name."""
         incomplete = [x for x in self.dmsetup_ls
-                       if not x.startswith(self.docker_pool + "\t")]
+                      if not x.startswith(self.docker_pool + "\t")]
         self._run_one_test(self.docker_pool, incomplete,
                            "Docker info pool name 'rhel-docker--pool'"
                            " (from docker info) not found in dmsetup ls"
