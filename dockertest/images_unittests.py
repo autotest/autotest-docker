@@ -323,6 +323,24 @@ class DockerImageTestBasic(ImageTestBase):
         di = DI(repo, tag, '0' * 64, None, None, addr, user)
         self.assertEqual(di.full_name, test)
 
+    def test_user_no_addr(self):
+        test = "user/repo:tag"
+        DI = self.images.DockerImage
+        repo, tag, addr, user = DI.split_to_component(test)
+        self.assertEqual(repo, 'repo')
+        self.assertEqual(tag, 'tag')
+        self.assertEqual(user, 'user')
+        self.assertEqual(addr, None)
+
+    def test_addr_no_user(self):
+        test = "address:1234/repo:tag"
+        DI = self.images.DockerImage
+        repo, tag, addr, user = DI.split_to_component(test)
+        self.assertEqual(repo, 'repo')
+        self.assertEqual(tag, 'tag')
+        self.assertEqual(user, None)
+        self.assertEqual(addr, "address:1234")
+
     def test_remove_cli(self):
         d = self.images.DockerImages(self.fake_subtest, 1.0, True)
         self.assertEqual(d.remove_image_by_id('123456789012').command,

@@ -54,8 +54,11 @@ class DockerImage(object):  # pylint: disable=R0902
     #: parsing, spec defined in docker-io documentation.  e.g.
     #: ``[registry_hostname[:port]/][user_name/]
     #: (repository_name[:version_tag])``
-    repo_split_p = re.compile(r"(.+?(:[\d]+?)?/)?([\w\-\.\+]+/)?"
-                              r"([\w\-\.]+)(:[\w\-\.]+)?")
+    repo_split_p = re.compile(r"(?P<repo_addr>.+?"  # optional
+                              r"(?P<repo_addr_port>:[\d]+?)?/)?"  # optional
+                              r"(?P<user>[\w\-\.\+]+/)?"  # optional
+                              r"(?P<repo>[\w\-\.]+)"  # required
+                              r"(?P<tag>:[\w\-\.]+)?")  # optional
 
     # Many arguments are simply required here
     # pylint: disable=R0913
@@ -136,15 +139,26 @@ class DockerImage(object):  # pylint: disable=R0902
         if full_name is None:
             return None, None, None, None
         try:
-            (repo_addr, _, user,  # ignore optional port sub-group value
-             repo, tag) = cls.repo_split_p.match(full_name).groups()
-            if repo_addr:
-                repo_addr = repo_addr[:-1]  # remove trailing slash
-            if user:
-                user = user[:-1]  # remove trailing slash
-            if tag:
-                tag = tag[1:]  # remove beginning colon
-        except TypeError:  # no match
+            full_name = full_name.strip()
+            mobj = cls.repo_split_p.match(full_name)
+            repo_addr = mobj.group('repo_addr')
+            if repo_addr is not None:
+                repo_addr = repo_addr.replace('/', '')
+            user = mobj.group('user')
+            if user is not None:
+                user = user.replace('/', '')
+            repo = mobj.group('repo')
+            tag = mobj.group('tag')
+            if tag is not None:
+                tag = tag.replace(':', '')
+            # Solve the addr/repo vs user/repo case
+            if repo_addr is not None and user is None:
+                if mobj.group('repo_addr_port') is None:
+                    # TODO: try DNS lookup on 'repo_addr' to confirm
+                    if repo_addr.find('.') < 0:
+                        user = repo_addr
+                        repo_addr = None
+        except (TypeError, AttributeError):  # no match
             raise DockerFullNameFormatError(full_name)
         return repo, tag, repo_addr, user
 
