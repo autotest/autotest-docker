@@ -88,23 +88,27 @@ class info(subtest.Subtest):
             metadata_name = 'Metadata file'
             # TODO: Checks based oninfo_map['Backing Filesystem:']
 
-    def verify_pool_name(self, docker_pool_name):
-        read_pool_names = utils.run("dmsetup ls | grep 'docker.*pool'")
+    def verify_pool_name(self, expected_pool_name):
+        """
+        Pool Name reported by docker info should be listed in
+        results from dmsetup ls.
+        """
+        read_pool_names = utils.run("dmsetup ls")
         raw_pools = read_pool_names.stdout.strip()
-        pool_names = [x.split()[0] for x in raw_pools.split('\n')]
+        pool_names = [x.split()[0] for x in raw_pools.split('\n')
+                      if 'pool' in x]
 
         # make sure there is at least one pool
         self.failif(len(pool_names) < 1,
-                    "There are fewer than one docker pools.")
-        self.logdebug("Docker pool found.")
+                    "'dmsetup ls' reports no docker pools.")
+        self.logdebug("Docker pool(s) found: %s" % pool_names)
 
-        read_pool_name = pool_names[-1]
         # verify pool names
-        self.logdebug("Read Pool Name: %s , Docker Pool Name: %s",
-                      read_pool_name, docker_pool_name)
-        self.failif(docker_pool_name != read_pool_name,
-                    "Docker pool name does not mach dmsetup pool.")
-        self.logdebug("Docker pool name matches dmsetup pool.")
+        self.failif(expected_pool_name not in pool_names,
+                    "Docker info pool name '%s' (from docker info)"
+                    " not found in dmsetup ls list '%s'" %
+                    (expected_pool_name, pool_names))
+        self.logdebug("Docker pool name found in dmsetup ls.")
 
     @staticmethod
     def size_bytes(num_str):
