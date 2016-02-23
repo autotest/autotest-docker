@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# FIXME: Replace this whole goddamn thing with something better
+
 # Optional fast-fail on first error encountered
 if [ "$#" -gt "0" ] && [ "$1" == "--FF" ]
 then
@@ -74,6 +76,7 @@ check_dockertest() {
     RET="$?"
     if [ "$RET" -ne "0" ] && [ "$FF" -eq "1" ]
     then
+        record_return 1
         return $RET
     elif [ "$RET" -ne "0" ]
     then
@@ -93,6 +96,7 @@ check_dockertest() {
         RET="$?"
         if [ "$RET" -ne "0" ] && [ "$FF" -eq "1" ]
         then
+            record_return 1
             return $RET
         elif [ "$RET" -ne "0" ]
         then
@@ -129,6 +133,7 @@ check_subtest() {
     RET="$?"
     if [ "$RET" -ne "0" ] && [ "$FF" -eq "1" ]
     then
+        record_return 1
         return $RET
     elif [ "$RET" -ne "0" ]
     then
@@ -148,6 +153,7 @@ check_subtest() {
         RET="$?"
         if [ "$RET" -ne "0" ] && [ "$FF" -eq "1" ]
         then
+            record_return 1
             return $RET
         elif [ "$RET" -ne "0" ]
         then
