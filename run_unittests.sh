@@ -15,6 +15,11 @@ do
     RET=$?
 done
 
+if [ -n "$AUTOTEST_PATH" ]
+then
+    export PYTHONPATH=$(dirname $AUTOTEST_PATH)
+fi
+
 # Unit tests for subtests.
 # FIXME: find a way to have nosetests recurse, or move the tests into
 #        a directory structure that nose can handle.

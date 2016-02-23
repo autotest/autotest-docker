@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# FIXME: Replace this whole goddamn thing with something better
+
 # Optional fast-fail on first error encountered
 if [ "$#" -gt "0" ] && [ "$1" == "--FF" ]
 then
@@ -10,13 +12,23 @@ else
     FF=0
 fi
 
+# Red Hat systems still have W0142, dropped in later upstream versions of pylint
+if [ -e "/etc/redhat-release" ]
+then
+    if grep -iq 'enterprise' '/etc/redhat-release' || \
+       grep -iq 'centos' '/etc/redhat-release'
+    then
+        SPECIALONE=",W0142"
+    fi
+fi
+
 TMPFILENAME="/tmp/run_pylint_$RANDOM"
 PEP8=`which pep8`
 PEP8IGNORE='E731'
-MSGFMT='{msg_id}:{line:3d},{column}: {obj}: {msg}'
+MSGFMT='(pylint) {msg_id}:{line:3d},{column}: {obj}: {msg}'
 # Disable 'line too long' - will be picked up by pep8
 # Check "note" (W0511) separetly
-DISABLEMSG="I0011,R0801,R0904,R0921,R0922,C0301,W0511"
+DISABLEMSG="I0011,R0801,R0904,R0921,R0922,C0301,W0511${SPECIALONE}"
 INIT_HOOK="
 AP = os.environ.get('AUTOTEST_PATH', '/usr/local/autotest')
 sys.path.append(os.path.abspath(AP + '/..'))
@@ -24,7 +36,7 @@ sys.path.append(os.path.abspath('.'))
 import autotest
 import autotest.common
 "
-SUBTESTDISABLEMSG="I0011,R0801,R0904,E1101,E1002,R0903,F0401,C0103,C0111,W0232,C0301,W0511"
+SUBTESTDISABLEMSG="I0011,R0801,R0904,E1101,E1002,R0903,F0401,C0103,C0111,W0232,C0301,W0511,${SPECIALONE}"
 SUBTESTINIT_HOOK="
 AP = os.environ.get('AUTOTEST_PATH', '/usr/local/autotest')
 sys.path.append(os.path.abspath(AP + '/..'))
@@ -74,6 +86,7 @@ check_dockertest() {
     RET="$?"
     if [ "$RET" -ne "0" ] && [ "$FF" -eq "1" ]
     then
+        record_return 1
         return $RET
     elif [ "$RET" -ne "0" ]
     then
@@ -93,6 +106,7 @@ check_dockertest() {
         RET="$?"
         if [ "$RET" -ne "0" ] && [ "$FF" -eq "1" ]
         then
+            record_return 1
             return $RET
         elif [ "$RET" -ne "0" ]
         then
@@ -129,6 +143,7 @@ check_subtest() {
     RET="$?"
     if [ "$RET" -ne "0" ] && [ "$FF" -eq "1" ]
     then
+        record_return 1
         return $RET
     elif [ "$RET" -ne "0" ]
     then
@@ -148,6 +163,7 @@ check_subtest() {
         RET="$?"
         if [ "$RET" -ne "0" ] && [ "$FF" -eq "1" ]
         then
+            record_return 1
             return $RET
         elif [ "$RET" -ne "0" ]
         then

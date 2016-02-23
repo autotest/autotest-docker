@@ -18,10 +18,7 @@
 #
 from unittest2 import TestCase, main        # pylint: disable=unused-import
 from mock import Mock, patch
-
-import sys
-sys.path.append('../../../..')
-
+import autotest  # pylint: disable=unused-import
 import info
 
 

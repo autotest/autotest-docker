@@ -44,19 +44,17 @@ class DockerImageIncomplete(DockerImage):
         dargs['tag'] = tag
         dargs['repo_addr'] = repo_addr
         dargs['user'] = user
-        # These are allowed within tests
-        # pylint: disable=W0142
         super(DockerImageIncomplete, self).__init__(**dargs)
 
     def cmp_id(self, image_id):
-        if self.image_id == self.__class__.UNKNOWN:
+        if self.long_id == self.__class__.UNKNOWN:
             raise RuntimeError("Can't compare unknown image ID to %s"
                                % image_id)
         else:
             return super(DockerImageIncomplete, self).cmp_id(image_id)
 
     def __eq__(self, other):
-        if self.image_id == self.__class__.UNKNOWN:
+        if self.long_id == self.__class__.UNKNOWN:
             return self.cmp_greedy(other.repo, other.tag,
                                    other.repo_addr, other.user)
         else:
