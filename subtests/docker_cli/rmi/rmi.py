@@ -147,10 +147,7 @@ class with_blocking_container_by_tag(rmi_base):
 
     1. Create new image with full_name (tag) from image (base_image)
     2. Use new image by new container (docker run image...)
-    3. Try to remove new image identified by full_name
-    4. Check if command fails
-    5. Check if full_name not exits in images.
-    6. Remove blocking container and created image.
+    3. Try to remove new image identified by full_name; this should fail.
     """
 
     config_section = 'docker_cli/rmi/with_blocking_container_by_tag'
@@ -162,7 +159,7 @@ class with_blocking_container_by_tag(rmi_base):
         self.sub_stuff["rand_data"] = rand_data
 
         di = DockerImages(self)
-        self.sub_stuff["image_name"] = di.get_unique_name(":tag")
+        self.sub_stuff["image_name"] = di.get_unique_name("suffix:tag")
 
         cmd_with_rand = self.config['docker_data_prepare_cmd'] % (rand_data)
 
@@ -195,7 +192,7 @@ class with_blocking_container_by_tag(rmi_base):
 
         prep_changes.execute()
         if prep_changes.cmdresult.exit_status:
-            raise DockerTestNAError(dnamsg % dkrcmd.cmdresult)
+            raise DockerTestNAError(dnamsg % prep_changes.cmdresult)
         else:
             prep_stdout = prep_changes.cmdresult.stdout.strip()
             self.sub_stuff["containers"].append(prep_stdout)
