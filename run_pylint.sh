@@ -27,7 +27,7 @@ PEP8=`which pep8`
 PEP8IGNORE='E731'
 MSGFMT='(pylint) {msg_id}:{line:3d},{column}: {obj}: {msg}'
 # Disable 'line too long' - will be picked up by pep8
-# Check "note" (W0511) separetly
+# Check "note" (W0511) separately
 DISABLEMSG="I0011,R0801,R0904,R0921,R0922,C0301,W0511${SPECIALONE}"
 INIT_HOOK="
 AP = os.environ.get('AUTOTEST_PATH', '/usr/local/autotest')
@@ -72,10 +72,23 @@ record_return() {
     fi
 }
 
+# Run a command, checking exit status.
+# If command fails: if called with --FF, exit immediately. Otherwise,
+# continue but remember to exit with failure at end of tests.
+run_ff() {
+    "$@"
+    if [ $? -ne 0 ]; then
+        if [ $FF -ne 0 ]; then
+            exit 1
+        fi
+        record_return 1
+    fi
+}
+
 check_dockertest() {
     WHAT="$1"
     echo -e "Checking: ${WHAT} "
-    pylint -rn --init-hook="$INIT_HOOK" \
+    run_ff pylint -rn --init-hook="$INIT_HOOK" \
            --disable="$DISABLEMSG" \
            --max-args=6 \
            --min-public-methods=2\
@@ -83,35 +96,16 @@ check_dockertest() {
            --output-format="colorized" \
            --rcfile=/dev/null \
            --msg-template="$MSGFMT" "${WHAT}"
-    RET="$?"
-    if [ "$RET" -ne "0" ] && [ "$FF" -eq "1" ]
-    then
-        record_return 1
-        return $RET
-    elif [ "$RET" -ne "0" ]
-    then
-        record_return 1
-    else
-        # Just print FIXME/TODO warnings, don't fail on them.
-        pylint -rn --init-hook="$INIT_HOOK" \
+    # Just print FIXME/TODO warnings, don't fail on them.
+    pylint -rn --init-hook="$INIT_HOOK" \
                --disable=all \
                --enable=W0511 \
                --output-format="colorized" \
                --rcfile=/dev/null \
                --msg-template="$MSGFMT" "${WHAT}"
-    fi
     if [ -n "$PEP8" ]
     then
-        $PEP8 --ignore=$PEP8IGNORE "$WHAT"
-        RET="$?"
-        if [ "$RET" -ne "0" ] && [ "$FF" -eq "1" ]
-        then
-            record_return 1
-            return $RET
-        elif [ "$RET" -ne "0" ]
-        then
-            record_return 1
-        fi
+        run_ff $PEP8 --ignore=$PEP8IGNORE "$WHAT"
     fi
 }
 
@@ -121,18 +115,13 @@ check_dockertests() {
     while read LINE; do
         trap "break" INT
         check_dockertest "${LINE}"
-        RET="$?"
-        if [ "$RET" -ne "0" ] && [ "$FF" -eq "1" ]
-        then
-            return $RET
-        fi
-    done
+    done || exit 1
 }
 
 check_subtest() {
     WHAT="$1"
     echo -e "Checking: ${WHAT} "
-    pylint -rn --init-hook="$SUBTESTINIT_HOOK" \
+    run_ff pylint -rn --init-hook="$SUBTESTINIT_HOOK" \
            --disable="$SUBTESTDISABLEMSG" \
            --max-args=8 \
            --max-locals=20 \
@@ -140,35 +129,16 @@ check_subtest() {
            --output-format="colorized" \
            --rcfile=/dev/null \
            --msg-template="$MSGFMT" "${WHAT}"
-    RET="$?"
-    if [ "$RET" -ne "0" ] && [ "$FF" -eq "1" ]
-    then
-        record_return 1
-        return $RET
-    elif [ "$RET" -ne "0" ]
-    then
-        record_return 1
-    else
-        # Just print FIXME/TODO warnings, don't fail on them.
-        pylint -rn --init-hook="$SUBTESTINIT_HOOK" \
+    # Just print FIXME/TODO warnings, don't fail on them.
+    pylint -rn --init-hook="$SUBTESTINIT_HOOK" \
                --disable=all \
                --enable=W0511 \
                --output-format="colorized" \
                --rcfile=/dev/null \
                --msg-template="$MSGFMT" "${WHAT}"
-    fi
     if [ -n "$PEP8" ]
     then
-        $PEP8 --ignore=$PEP8IGNORE "$WHAT"
-        RET="$?"
-        if [ "$RET" -ne "0" ] && [ "$FF" -eq "1" ]
-        then
-            record_return 1
-            return $RET
-        elif [ "$RET" -ne "0" ]
-        then
-            record_return 1
-        fi
+        run_ff $PEP8 --ignore=$PEP8IGNORE "$WHAT"
     fi
 }
 
@@ -180,32 +150,23 @@ check_subtests() {
         find ${thing} -name '*.py' | while read LINE; do
             trap "break" INT
             check_subtest "${LINE}"
-            RET="$?"
-            if [ "$RET" -ne "0" ] && [ "$FF" -eq "1" ]
-            then
-                return $RET
-            fi
-        done
+        done || exit 1
     done
 }
 
 if [ "$#" -eq "0" ]
 then
     check_dockertests
-    [ "$?" -eq "0" ] || exit 1
     check_subtests
-    [ "$?" -eq "0" ] || exit 1
 else
     for THING in $@
     do
         if echo "$THING" | grep -q 'dockertest'
         then
             check_dockertest "$THING"
-            [ "$?" -eq "0" ] || exit 1
         elif echo "$THING" | grep -q 'tests'
         then
             check_subtest "$THING"
-            [ "$?" -eq "0" ] || exit 1
         else
             echo "Ignoring $THING"
         fi
