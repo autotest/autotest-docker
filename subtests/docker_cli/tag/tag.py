@@ -39,6 +39,17 @@ class tag_base(SubSubtest):
         super(tag_base, self).__init__(*args, **kwargs)
         self.dkrimg = DockerImages(self)
         self.sub_stuff['tmp_image_list'] = set()
+        self._expect_pass = True
+
+    def expect_pass(self, set_to=None):
+        """
+         Most of the time we expect our 'docker tag' command to succeed.
+         This method can be used (as a setter) to set an explicit expectation
+         or (as a getter) when checking results.
+        """
+        if set_to is not None:
+            self._expect_pass = set_to
+        return self._expect_pass
 
     def get_images_by_name(self, full_name):
         """ :return: List of images with given name """
@@ -71,10 +82,8 @@ class tag_base(SubSubtest):
 
     def complete_docker_command_line(self):
         """ :return: tag subargs using new_image_name """
-        force = self.config["tag_force"]
-
         cmd = []
-        if force:
+        if 'force_tag' in self.sub_stuff and self.sub_stuff['force_tag']:
             cmd.append("-f")
 
         cmd.append(self.sub_stuff["image"])
@@ -89,9 +98,10 @@ class tag_base(SubSubtest):
 
     def postprocess(self):
         super(tag_base, self).postprocess()
-        if self.config["docker_expected_result"] == "PASS":
+        expect_pass = self.expect_pass()
+        OutputGood(self.sub_stuff['cmdresult'], ignore_error=not expect_pass)
+        if expect_pass:
             # Raise exception if problems found
-            OutputGood(self.sub_stuff['cmdresult'])
             self.failif(self.sub_stuff['cmdresult'].exit_status != 0,
                         "Non-zero tag exit status: %s"
                         % self.sub_stuff['cmdresult'])
@@ -100,17 +110,11 @@ class tag_base(SubSubtest):
             # Needed for cleanup
             self.sub_stuff['image_list'] += img
             self.failif(len(img) < 1,
-                        "Failed to look up tagted image ")
+                        "Failed to look up tagged image ")
 
-        elif self.config["docker_expected_result"] == "FAIL":
-            chck = OutputGood(self.sub_stuff['cmdresult'], ignore_error=True)
-            exit_code = self.sub_stuff['cmdresult'].exit_status
-            self.failif(not chck or not exit_code,
-                        "Zero tag exit status: Command should fail due to"
-                        " wrong command arguments.")
         else:
-            self.failif(True, "Improper 'docker_expected_result' value %s"
-                        % self.config["docker_expected_result"])
+            self.failif(self.sub_stuff['cmdresult'].exit_status == 0,
+                        "Was expecting tag command to fail, but it exited OK")
 
     def cleanup(self):
         super(tag_base, self).cleanup()
@@ -126,10 +130,10 @@ class tag_base(SubSubtest):
                         raise
                 self.loginfo("Successfully removed test image: %s",
                              image.full_name)
-            for image in self.sub_stuff['tmp_image_list']:
-                image = self.get_images_by_name(image)
+            for image_name in self.sub_stuff['tmp_image_list']:
+                image = self.get_images_by_name(image_name)
                 if image:
-                    self.logdebug("Removing image %s", image[0].full_name)
+                    self.logdebug("Removing tmp image %s", image[0].full_name)
                     self.dkrimg.remove_image_by_full_name(image[0].full_name)
                     self.loginfo("Successfully removed test image: %s",
                                  image[0].full_name)
@@ -178,12 +182,20 @@ class double_tag(change_tag):
 
     def initialize(self):
         super(double_tag, self).initialize()
-        # Tag it for the first time
+        # Tag it for the first time. This should pass...
         self.sub_stuff['tmp_image_list'].add(self.sub_stuff["new_image_name"])
         mustpass(DockerCmd(self, 'tag', self.complete_docker_command_line(),
-                           verbose=False).execute())
+                           verbose=True).execute())
+        # ...but the actual (second) tag incantation in run_once() should fail.
+        self.expect_pass(False)
 
 
 class double_tag_force(double_tag):
 
     """ Same as ``double_tag`` only this time use `--force` and expect pass """
+
+    def initialize(self):
+        super(double_tag_force, self).initialize()
+        # Difference from parent is that we use --force, and should pass
+        self.sub_stuff['force_tag'] = True
+        self.expect_pass(True)
