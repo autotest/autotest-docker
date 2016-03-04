@@ -28,6 +28,7 @@ Prerequisites
 *  Containers have access to read & write files w/in mountpoints
 """
 
+import os
 import os.path
 import hashlib
 from autotest.client import utils
@@ -37,12 +38,18 @@ from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
 from dockertest.xceptions import DockerTestNAError
+from dockertest.xceptions import DockerTestError
 from dockertest import environment
 from dockertest.config import get_as_list
 
 
 class run_volumes(SubSubtestCaller):
-    config_section = 'docker_cli/run_volumes'
+
+    def initialize(self):
+        super(run_volumes, self).initialize()
+        ptc = self.config['pretest_cmd'].strip()
+        if isinstance(ptc, basestring) and ptc != '':
+            utils.run(ptc, timeout=self.config['docker_timeout'])
 
 
 class volumes_base(SubSubtest):
@@ -50,10 +57,6 @@ class volumes_base(SubSubtest):
     @staticmethod
     def make_test_files(host_path):
         # Symlink can't be mountpoint (e.g. for NFS, SMB, etc.)
-        if (not os.path.isdir(host_path) or
-                os.path.islink(host_path)):
-            raise DockerTestNAError('Configured path "%s" is a symlink '
-                                    'or not a directory' % host_path)
         read_fn = utils.generate_random_string(24)
         write_fn = utils.generate_random_string(24)
         read_data = utils.generate_random_string(24)
@@ -72,17 +75,27 @@ class volumes_base(SubSubtest):
                 'host_path': host_path, 'cntr_path': cntr_path}
 
     def init_path_info(self, path_info, host_paths, cntr_paths, tmpdir):
+        if host_paths is None or len(host_paths) < 1:
+            raise DockerTestNAError("Configuration options host_paths and "
+                                    "cntr_paths CSV lists are empty")
+        if len(host_paths) != len(cntr_paths):
+            raise DockerTestError("Configuration option host_paths CSV list "
+                                  "must exactly match length of cntr_paths. "
+                                  "'%s' != '%s'" % (host_paths, cntr_paths))
         # create template-substitution dicts for each container
         for host_path, cntr_path in zip(host_paths, cntr_paths):
+            abs_host_path = os.path.abspath(host_path)
             # check for a valid host path for the test
-            if not os.path.isdir(host_path):
-                raise DockerTestNAError("Configured host_path '%s' is not a "
-                                        "directory." % host_path)
-            if not cntr_path or len(cntr_path) < 4:
-                raise DockerTestNAError("Configured cntr_path '%s' is not a "
-                                        "directory." % cntr_path)
+            msg_pfx = "Configured host_path '%s' is not a "
+            if not os.path.isdir(abs_host_path):
+                raise DockerTestError(str(msg_pfx + "directory.") % host_path)
+            if not os.path.ismount(abs_host_path):
+                raise DockerTestError(str(msg_pfx + "mount point") % host_path)
+            # Creation will raise OSError if not unique
+            host_path = os.path.join(host_path, os.path.basename(self.tmpdir))
+            os.mkdir(host_path)
             # keys must coorespond with those used in *_template strings
-            args = self.make_test_files(os.path.abspath(host_path))
+            args = self.make_test_files(host_path)
             args += (host_path, cntr_path)
             # list of dicts {'read_fn', 'write_fn', 'read_data', ...}
             test_dict = self.make_test_dict(*args)
@@ -105,7 +118,7 @@ class volumes_base(SubSubtest):
     def make_dockercmd(subtest, dockercmd_class, fqin,
                        run_template, cmd_tmplate, test_dict):
         # safe_substutute ignores unknown tokens
-        subargs = get_as_list(str(run_template % test_dict))
+        subargs = get_as_list(str(run_template % test_dict), omit_empty=True)
         subargs.append(fqin)
         subargs.append(cmd_tmplate % test_dict)
         return dockercmd_class(subtest, 'run', subargs)
@@ -185,18 +198,10 @@ class volumes_rw(volumes_base):
 
     def initialize(self):
         super(volumes_rw, self).initialize()
-        host_paths = get_as_list(self.config['host_paths'])
-        cntr_paths = get_as_list(self.config['cntr_paths'])
-        if len(host_paths) != len(cntr_paths):
-            raise DockerTestNAError("Configuration option host_paths CSV list "
-                                    "must exactly match length of cntr_paths. "
-                                    "'%s' != '%s'" % (host_paths, cntr_paths))
-        if len(host_paths) < 1:
-            raise DockerTestNAError("Configuration options host_paths and "
-                                    "cntr_paths CSV lists are empty")
+        host_paths = get_as_list(self.config['host_paths'], omit_empty=True)
+        cntr_paths = get_as_list(self.config['cntr_paths'], omit_empty=True)
         # list of substitution dictionaries for each container
         path_info = self.sub_stuff['path_info'] = []
-        # Throws DockerTestNAError if any host_paths is bad
         self.init_path_info(path_info, host_paths, cntr_paths, self.tmpdir)
         dockercmds = self.sub_stuff['dockercmds'] = []
         self.sub_stuff['cmdresults'] = []
