@@ -305,7 +305,7 @@ class ControlINI(ConfigParser.SafeConfigParser, Singleton):
         subtests = []
         # All subtest packages located beneath dir holding this control file
         for dirpath, dirnames, filenames in os.walk(subtest_path,
-                                            followlinks=True):
+                                                    followlinks=True):
             del dirnames  #  Not used
             # Skip top-level
             if dirpath == subtest_path:
@@ -353,17 +353,19 @@ class ControlINI(ConfigParser.SafeConfigParser, Singleton):
         key_field = self.get('Bugzilla', 'key_field').strip()
         for bug in bugs:
             field_value = getattr(bug, key_field)
-            mobj = regex.search(field_value)
-            if mobj is None:
-                continue
-            version, subthing = mobj.groups()
-            # Version is optional (and not currently used) but
-            # contains a trailing ':' that needs pruning
-            version = version[:-1]
-            # Multiple bugs may be associated with a subthing
-            bzs = result.get(subthing, [])
-            bzs.append(bug.bug_id)
-            result[subthing] = bzs
+            for groups in regex.findall(field_value):
+                if groups is None:
+                    continue
+                version, subthing = groups[0:2]
+                # Version is optional (and not currently used) but
+                # contains a trailing ':' that needs pruning
+                if version[-1] == ':':
+                    version = version[:-1]
+                # Multiple bugs may be associated with a subthing
+                bzs = result.get(subthing, [])
+                # TODO: Actually check version against something?
+                bzs.append(bug.bug_id)
+                result[subthing] = bzs
         return result
 
     def bugged_subthings(self, subthings, subtest_modules):
