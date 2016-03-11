@@ -152,17 +152,17 @@ class simple(save_load_base):
         str_load = self.sub_stuff['cmdresult_load']
         str_del = self.sub_stuff['cmdresult_del']
 
-        self.failif(str_save.exit_status != 0,
-                    "Problem with save cmd detail :%s" %
-                    str_save)
+        self.failif_ne(str_save.exit_status, 0,
+                       "Problem with save cmd detail :%s" %
+                       str_save)
 
-        self.failif(str_load.exit_status != 0,
-                    "Problem with load cmd detail :%s" %
-                    str_load)
+        self.failif_ne(str_load.exit_status, 0,
+                       "Problem with load cmd detail :%s" %
+                       str_load)
 
-        self.failif(str_del.exit_status != 0,
-                    "Problem with del cmd detail :%s" %
-                    str_del)
+        self.failif_ne(str_del.exit_status, 0,
+                       "Problem with del cmd detail :%s" %
+                       str_del)
 
         img_name = self.sub_stuff["rand_name"]
         images = self.sub_stuff["img"].list_imgs_with_full_name(img_name)

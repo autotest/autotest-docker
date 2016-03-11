@@ -86,9 +86,9 @@ class history_base(SubSubtest):
         if self.config["docker_expected_result"] == "PASS":
             # Raise exception if problems found
             OutputGood(self.sub_stuff['cmdresult'])
-            self.failif(self.sub_stuff['cmdresult'].exit_status != 0,
-                        "Non-zero history exit status: %s"
-                        % self.sub_stuff['cmdresult'])
+            self.failif_ne(self.sub_stuff['cmdresult'].exit_status, 0,
+                           "Non-zero history exit status: %s"
+                           % self.sub_stuff['cmdresult'])
 
             new_img_name = self.sub_stuff["new_image_name"]
             new_img_name2 = self.sub_stuff["new_image_name2"]

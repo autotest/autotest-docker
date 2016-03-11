@@ -101,9 +101,9 @@ class pull_base(SubSubtest):
     def exitcheck(self):
         exit_status = self.sub_stuff['dkrcmd'].exit_status
         if self.config["docker_expected_result"] == "PASS":
-            self.failif(exit_status != 0,
-                        "Non-zero pull exit status: %s"
-                        % self.sub_stuff['dkrcmd'])
+            self.failif_ne(exit_status, 0,
+                           "Non-zero pull exit status: %s"
+                           % self.sub_stuff['dkrcmd'])
         elif self.config["docker_expected_result"] == "FAIL":
             self.failif(exit_status == 0,
                         "Zero pull exit status: Command should fail due to"

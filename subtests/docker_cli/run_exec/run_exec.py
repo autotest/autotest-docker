@@ -172,7 +172,5 @@ class exec_pid_count(exec_base):
         OutputGood(dkrcmd_exec.cmdresult)
         pids = dkrcmd_exec.stdout.strip().splitlines()
         expected = self.config["pid_count"]
-        self.failif(len(pids) != expected,
-                    "Expecting %d pids: %s"
-                    % (expected, pids))
+        self.failif_ne(len(pids), expected, "Number of pids: %s" % pids)
         super(exec_pid_count, self).postprocess()

@@ -56,12 +56,12 @@ class info(subtest.Subtest):
         outputgood = OutputGood(self.stuff['cmdresult'])
         info_map = self._build_table(outputgood.stdout_strip)
         # Verify some individual items
-        self.failif(info_map['Storage Driver'].lower() != 'devicemapper',
-                    info_map['Storage Driver'])
-        self.failif(info_map['Data file'].lower() != '',
-                    info_map['Data file'])
-        self.failif(info_map['Metadata file'].lower() != '',
-                    info_map['Metadata file'])
+        self.failif_ne(info_map['Storage Driver'].lower(), 'devicemapper',
+                       'Storage Driver')
+        self.failif_ne(info_map['Data file'].lower(), '',
+                       'Data file')
+        self.failif_ne(info_map['Metadata file'].lower(), '',
+                       'Metadata file')
         di = DockerImages(self)
         # Make sure nothing is 'hidden'
         di.images_args = "%s --all" % di.images_args
@@ -69,9 +69,9 @@ class info(subtest.Subtest):
         img_set = set(di.list_imgs_ids())  # don't count multi-tags
         # ...with this
         img_cnt = int(info_map['Images'].lower())
-        self.failif(len(img_set) != img_cnt,
-                    "More/less images %d than info reported %d"
-                    % (len(img_set), img_cnt))
+        self.failif_ne(len(img_set), img_cnt,
+                       "More/less images %d than info reported %d"
+                       % (len(img_set), img_cnt))
         # verify value of elements
         self.verify_pool_name(info_map['Pool Name'])
         data_name = 'Data loop file'

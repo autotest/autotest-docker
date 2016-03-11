@@ -52,8 +52,7 @@ class volumes_one_source(volumes_base):
         super(volumes_one_source, self).postprocess()
         # assert exit statuses
         for result in self.sub_stuff['cmdresults']:
-            self.failif(result.exit_status != 0,
-                        "Failed: %s" % (result))
+            self.failif_ne(result.exit_status, 0, "Failed: %s" % (result))
         # assert md5sums
         cntr_md5s = [x.stdout.split()[0] for x in self.sub_stuff['cmdresults']]
         cntr_results = zip(self.sub_stuff['names'], cntr_md5s)
@@ -66,8 +65,8 @@ class volumes_one_source(volumes_base):
                 # print file_path
                 # print data
             md5 = hashlib.md5(data).hexdigest()
-            self.failif(result != md5,
-                        "MD5 mismatch for container: %s" % (name))
+            self.failif_ne(result, md5,
+                           "MD5 mismatch for container: %s" % (name))
 
     def cleanup(self):
         super(volumes_one_source, self).cleanup()

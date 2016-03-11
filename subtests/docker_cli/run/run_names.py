@@ -35,6 +35,4 @@ class run_names(run_base):
         self.failif(len(json) == 0)
         # docker sticks a "/" prefix on name (documented?)
         actual_name = str(json[0]['Name'][1:])
-        self.failif(actual_name != self.sub_stuff['expected_name'],
-                    "Actual name %s != expected name %s"
-                    % (actual_name, self.sub_stuff['expected_name']))
+        self.failif_ne(actual_name, self.sub_stuff['expected_name'], "Name")

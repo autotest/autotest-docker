@@ -165,8 +165,8 @@ class basic(subtest.SubSubtest):
     def _get_container_by_name(self, name):
         """ Checks only one container of given name exists and returns it """
         conts = self.sub_stuff['dc'].list_containers_with_name(name)
-        self.failif(len(conts) != 1, "0 or multiple containers of the same "
-                    "name (%s) found (%s)" % (name, conts))
+        self.failif_ne(len(conts), 1, "0 or multiple containers of the same "
+                       "name (%s) found (%s)" % (name, conts))
         return conts[0]
 
     def _nonexisting_path(self, path, prefix):
@@ -186,8 +186,7 @@ class basic(subtest.SubSubtest):
             if act != "":
                 break
             time.sleep(1)
-        self.failif(long_id != act, "Cidfile output (%s) doesn't match "
-                    "expected long_id (%s)" % (act, long_id))
+        self.failif_ne(long_id, act, "Cidfile output")
 
     def _cleanup_cidfiles(self):
         """ Unlink all used cidfiles """

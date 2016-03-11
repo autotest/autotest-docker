@@ -81,9 +81,9 @@ class create_base(SubSubtest):
         dkrcmd = self.sub_stuff['dkrcmd']
         OutputGood(dkrcmd.cmdresult)
         expected = 0  # always
-        self.failif(dkrcmd.exit_status != expected,
-                    "Exit status non-zero command %s"
-                    % dkrcmd.cmdresult)
+        self.failif_ne(dkrcmd.exit_status, expected,
+                       "Exit status non-zero command %s"
+                       % dkrcmd.cmdresult)
         # cid must be printed on stdout, always
         cid = self.get_cid()
         # non-forced removal must succeed, rely on rm test to verify.

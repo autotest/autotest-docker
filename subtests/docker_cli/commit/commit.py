@@ -95,9 +95,9 @@ class commit_base(SubSubtest):
         if self.config["docker_expected_result"] == "PASS":
             # Raise exception if problems found
             OutputGood(self.sub_stuff['cmdresult'])
-            self.failif(self.sub_stuff['cmdresult'].exit_status != 0,
-                        "Non-zero commit exit status: %s"
-                        % self.sub_stuff['cmdresult'])
+            self.failif_ne(self.sub_stuff['cmdresult'].exit_status, 0,
+                           "Non-zero commit exit status: %s"
+                           % self.sub_stuff['cmdresult'])
 
             im = self.check_image_exists(self.sub_stuff["new_image_name"])
             # Needed for cleanup
@@ -135,13 +135,13 @@ class commit_base(SubSubtest):
                            self.config['docker_commit_timeout'])
             results = cm.execute()
             if results.exit_status == 0:
-                self.failif((results.stdout.strip() !=
-                             self.sub_stuff["rand_data"]),
-                            "Data read from image do not match"
-                            " data written to container during"
-                            " test initialization: %s != %s" %
-                            (results.stdout.strip(),
-                             self.sub_stuff["rand_data"]))
+                self.failif_ne(results.stdout.strip(),
+                               self.sub_stuff["rand_data"],
+                               "Data read from image do not match"
+                               " data written to container during"
+                               " test initialization: %s != %s" %
+                               (results.stdout.strip(),
+                                self.sub_stuff["rand_data"]))
 
 
 class good(commit_base):

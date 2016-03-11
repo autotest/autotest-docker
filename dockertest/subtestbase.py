@@ -112,6 +112,33 @@ class SubBase(object):
         if bool(condition):
             raise DockerTestFail(reason)
 
+    @staticmethod
+    def failif_ne(actual, expected, reason=None):
+        """
+        Convenience method for subtests to compare two values and
+        fail if they differ. Failure message will include the expected
+        and actual values for ease of debugging.
+
+        :param actual: value being tested
+        :param expected: value to which we compare.
+        :param reason: Helpful text describing why the test failed
+        :raise DockerTestFail: If actual != expected
+        """
+
+        if actual == expected:
+            return
+        if reason is None:
+            reason = "Failed test condition"
+
+        # By default, quote each value. This is especially helpful when
+        # actual or expected is the empty string or a string with spaces.
+        # But if both are numeric types the quotes distract, so remove them.
+        arg = "'{}'"
+        if all(isinstance(x, (int, long, float)) for x in [actual, expected]):
+            arg = "{}"
+        spec = "{}: expected " + arg + "; got " + arg
+        raise DockerTestFail(spec.format(reason, expected, actual))
+
     @classmethod
     def log_x(cls, lvl, msg, *args):
         """

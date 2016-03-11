@@ -25,9 +25,9 @@ class check_default_cmd(commit_base):
         self.loginfo("postprocess()")
         # Raise exception if problems found
         OutputGood(self.sub_stuff['cmdresult'])
-        self.failif(self.sub_stuff['cmdresult'].exit_status != 0,
-                    "Non-zero commit exit status: %s"
-                    % self.sub_stuff['cmdresult'])
+        self.failif_ne(self.sub_stuff['cmdresult'].exit_status, 0,
+                       "Non-zero commit exit status: %s"
+                       % self.sub_stuff['cmdresult'])
 
         im = self.check_image_exists(self.sub_stuff["new_image_name"])
         # Needed for cleanup
@@ -51,13 +51,13 @@ class check_default_cmd(commit_base):
                     pass
                 dc = DockerCmd(self, "rm", ["-f", cont.long_id])
                 rm_results = dc.execute()
-                self.failif(rm_results.exit_status != 0,
-                            "Non-zero commit exit status: %s"
-                            % rm_results)
+                self.failif_ne(rm_results.exit_status, 0,
+                               "Non-zero commit exit status: %s"
+                               % rm_results)
 
-        self.failif(results.exit_status != 0,
-                    "Non-zero commit exit status: %s"
-                    % results)
+        self.failif_ne(results.exit_status, 0,
+                       "Non-zero commit exit status: %s"
+                       % results)
 
         self.failif(not self.sub_stuff['rand_data'] in results.stdout,
                     "Unexpected command result: %s"

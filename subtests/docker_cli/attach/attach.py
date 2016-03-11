@@ -52,9 +52,9 @@ class attach_base(SubSubtest):
         while not dkrcmd.done:
             self.loginfo("Pulling...")
             time.sleep(3)
-        self.failif(dkrcmd.exit_status != 0,
-                    "Fail to download image %s"
-                    % image_name)
+        self.failif_ne(dkrcmd.exit_status, 0,
+                       "Fail to download image %s"
+                       % image_name)
 
     def initialize(self):
         super(attach_base, self).initialize()

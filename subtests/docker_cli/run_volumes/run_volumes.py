@@ -233,18 +233,16 @@ class volumes_rw(volumes_base):
         results_data = zip(self.sub_stuff['cmdresults'],
                            self.sub_stuff['path_info'])
         for cmdresult, test_dict in results_data:
-            self.failif(cmdresult.exit_status != 0,
-                        "Non-zero exit status: %s" % cmdresult)
+            self.failif_ne(cmdresult.exit_status, 0,
+                           "Non-zero exit status: %s" % cmdresult)
             wh = test_dict['write_hash']
             rh = test_dict['read_hash']
             hp = test_dict['host_path']
             cp = test_dict['cntr_path']
             msg = ("Test hash mismatch for volume %s:%s; "
-                   "Expecting data %s, read data %s; "
                    "Command result %s"
-                   # wh/rh order is backwards for readability
-                   % (hp, cp, rh, wh, cmdresult))
-            self.failif(wh != rh, msg)
+                   % (hp, cp, cmdresult))
+            self.failif_ne(wh, rh, msg)
 
     def cleanup(self):
         self.cleanup_test_dict(self, self.sub_stuff['path_info'])

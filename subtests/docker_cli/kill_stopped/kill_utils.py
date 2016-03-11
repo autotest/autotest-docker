@@ -237,9 +237,8 @@ class kill_base(subtest.SubSubtest):
         super(kill_base, self).postprocess()
         for kill_result in self.sub_stuff.get('kill_results', []):
             OutputGood(kill_result)
-            self.failif(kill_result.exit_status != 0, "Exit status of the %s "
-                        "command was not 0 (%s)"
-                        % (kill_result.command, kill_result.exit_status))
+            self.failif_ne(kill_result.exit_status, 0,
+                           "Exit status of %s command" % kill_result.command)
 
     def cleanup(self):
         super(kill_base, self).cleanup()

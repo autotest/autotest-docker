@@ -102,9 +102,9 @@ class tag_base(SubSubtest):
         OutputGood(self.sub_stuff['cmdresult'], ignore_error=not expect_pass)
         if expect_pass:
             # Raise exception if problems found
-            self.failif(self.sub_stuff['cmdresult'].exit_status != 0,
-                        "Non-zero tag exit status: %s"
-                        % self.sub_stuff['cmdresult'])
+            self.failif_ne(self.sub_stuff['cmdresult'].exit_status, 0,
+                           "Non-zero tag exit status: %s"
+                           % self.sub_stuff['cmdresult'])
 
             img = self.get_images_by_name(self.sub_stuff["new_image_name"])
             # Needed for cleanup

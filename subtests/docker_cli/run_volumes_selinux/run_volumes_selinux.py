@@ -106,8 +106,8 @@ class selinux_base(subtest.SubSubtest):
                 self.logdebug("File %s Context: %s",
                               os.path.join(pwd, filename),
                               act)
-                self.failif(act != context, "Context of file %s is not %s (%s)"
-                            % ("%s/%s" % (pwd, filename), context, act))
+                self.failif_ne(act, context, "Context of file %s/%s"
+                               % (pwd, filename))
 
     def init_volume(self, context):
         """
@@ -160,9 +160,7 @@ class selinux_base(subtest.SubSubtest):
                         % cont.stdout)
         context_post = get_selinux_context(volume)
         if context_eq:
-            self.failif(context_pre != context_post,
-                        "Selinux context is not"
-                        "%s (%s)" % (context_pre, context_post))
+            self.failif_ne(context_post, context_pre, "Selinux context")
         else:
             self.failif(context_pre == context_post,
                         "Selinux context had not "

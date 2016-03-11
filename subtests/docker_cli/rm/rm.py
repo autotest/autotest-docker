@@ -175,10 +175,9 @@ class rm_sub_base(SubSubtest):
     def verify_output(self):
         cmdresult = self.sub_stuff['cmdresult']
         rm_cmdresult = self.sub_stuff['rm_cmdresult']
-        self.failif(cmdresult.exit_status != 0, ("Expected zero exit: %s"
-                                                 % cmdresult))
-        self.failif(rm_cmdresult.exit_status != 0, "Expected zero exit: %s"
-                    % rm_cmdresult)
+        self.failif_ne(cmdresult.exit_status, 0, "Exit status: %s" % cmdresult)
+        self.failif_ne(rm_cmdresult.exit_status, 0, "Expected zero exit: %s"
+                       % rm_cmdresult)
         OutputGood(cmdresult)
         OutputGood(rm_cmdresult)
 
@@ -186,7 +185,7 @@ class rm_sub_base(SubSubtest):
         cid = self.sub_stuff['container_id']
         self.loginfo("Verifying container %s is gone", cid)
         cl = self.sub_stuff['dc'].list_containers_with_cid(cid)
-        self.failif(cl != [], "Container %s was not removed!" % cid)
+        self.failif_ne(cl, [], "Container %s was not removed!" % cid)
         self.loginfo("Container is gone.  Verifying output")
 
     def verify_start(self):
@@ -197,9 +196,7 @@ class rm_sub_base(SubSubtest):
         start_file = open(start_filename, 'rb')
         start_time = int(start_file.read())
         init_time = self.sub_stuff['init_time']
-        self.failif(start_time != init_time,
-                    "Static data does not match, %s != %s"
-                    % (start_time, init_time))
+        self.failif_ne(start_time, init_time, "Static data")
 
     def verify_stop(self):
         stop_filename = os.path.join(self.sub_stuff['volume'], 'stop')
@@ -252,8 +249,8 @@ class forced(rm_sub_base):
         rm_cmdresult = self.sub_stuff['rm_cmdresult']
         self.failif(cmdresult.exit_status == 0, ("Expected non-zero exit: %s"
                                                  % cmdresult))
-        self.failif(rm_cmdresult.exit_status != 0, "Expected zero exit: %s"
-                    % rm_cmdresult)
+        self.failif_ne(rm_cmdresult.exit_statusm, 0, ("Expected zero exit: %s"
+                                                      % rm_cmdresult))
         OutputGood(cmdresult)
         OutputGood(rm_cmdresult)
 

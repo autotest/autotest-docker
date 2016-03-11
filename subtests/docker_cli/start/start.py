@@ -96,9 +96,9 @@ class start_base(SubSubtest):
         super(start_base, self).postprocess()
         self.outputgood()
         cmdresult = self.sub_stuff['dkrcmd'].cmdresult
-        self.failif(cmdresult.exit_status != 0,
-                    "Non-zero start exit status: %s"
-                    % cmdresult)
+        self.failif_ne(cmdresult.exit_status, 0,
+                       "Non-zero start exit status: %s"
+                       % cmdresult)
 
     def cleanup(self):
         super(start_base, self).cleanup()
