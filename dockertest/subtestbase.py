@@ -61,7 +61,7 @@ class SubBase(object):
             self.logdebug("WARNING: Recommended options not customized:")
             for nco in get_as_list(not_customized):
                 self.logdebug("WARNING: %s" % nco)
-            self.logwarning("WARNING: Test results may be externaly "
+            self.logwarning("WARNING: Test results may be externally "
                             "dependent! (See debug log for details)")
         msg = "%s configuration:\n" % self.__class__.__name__
         for key, value in self.config.items():
