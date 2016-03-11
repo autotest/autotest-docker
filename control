@@ -295,7 +295,7 @@ class ControlINI(ConfigParser.SafeConfigParser, Singleton):
         arg_subthings = []
         for csvitem in not_token_match:
             for item in csvitem.strip().split(','):
-                if self.NOEXECTOK in arg:
+                if self.NOEXECTOK in item:
                     continue
                 else:
                     arg_subthings.append(item.strip())
