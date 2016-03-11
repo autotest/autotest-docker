@@ -80,11 +80,16 @@ def get_bzobj(bzopts):
         logging.debug("Bugzilla url empty, exclusion filter disabled")
         return None
     try:
+        # Allow bugzilla module to be embedded into test directory
+        sys.path.insert(0, os.path.dirname(job.control))
         import bugzilla  # Keep confined to this function
     except ImportError:
         logging.warning("Bugzilla status exclusion filter configured "
                         "but bugzilla python module unavailable.")
         return None
+    # We were never here, you didn't see or hear anything.
+    if os.path.dirname(job.control) == sys.path[0]:
+        del sys.path[0]
     quiet_bz()  # the bugzilla module is very noisy
     bz = bugzilla.Bugzilla(url=url)
     if username is not '' and password is not '':
@@ -172,6 +177,9 @@ class ControlINI(ConfigParser.SafeConfigParser, Singleton):
     # Default location where write() writes to if no file given
     write_path = job.resultdir
 
+    # Token that signals not to execute tests
+    NOEXECTOK = '!!!'
+
     def __init__(self):
         # Help catch missing options in defaults but not in OPT_SEC_MAP
         # by making them None instead of ''
@@ -235,7 +243,9 @@ class ControlINI(ConfigParser.SafeConfigParser, Singleton):
         arg_x = []
         rej_x = []  # Rejects not matched by token_match function
         for arg in args:
-            if token_match(arg):
+            if self.NOEXECTOK in arg:
+                continue
+            elif token_match(arg):
                 arg_x_s = arg[2:].strip()  # remove token
                 arg_x += [arg_s.strip() for arg_s in arg_x_s.split(',')]
             else:
@@ -285,7 +295,10 @@ class ControlINI(ConfigParser.SafeConfigParser, Singleton):
         arg_subthings = []
         for csvitem in not_token_match:
             for item in csvitem.strip().split(','):
-                arg_subthings.append(item.strip())
+                if self.NOEXECTOK in arg:
+                    continue
+                else:
+                    arg_subthings.append(item.strip())
         # Preserve order & don't include items already in ini_subthings
         prefix = [subthing for subthing in arg_subthings
                   if subthing not in ini_subthings]
@@ -340,7 +353,12 @@ class ControlINI(ConfigParser.SafeConfigParser, Singleton):
         key_field = self.get('Bugzilla', 'key_field').strip()
         key_match = self.get('Bugzilla', 'key_match').strip()
         query = {key_field: key_match}
-        query.update(dict(self.items('Query')))
+        for key, value in dict(self.items('Query')).iteritems():
+            if ',' in value:
+                value = [item.strip()
+                         for item in value.strip().split(',')
+                         if item.strip() != '']
+            query.update({key: value})
         return bz.build_query(**query)
 
     def subthings_to_bugs(self, bugs):
@@ -571,12 +589,13 @@ class StepInit(Context, collections.Callable):
         step_msg_list = ["%s.%s" % (step.uri, step.tag)
                          for step in self.items]
         log_list(logging.info, "Executing tests:", step_msg_list)
-        _globals = globals()
-        for item in self.items:
-            # Callable's name must match global name
-            item.__name__ = str(item)
-            _globals[str(item)] = item
-            job.next_step_append(item)
+        if self.control_ini.NOEXECTOK not in self.args:
+            _globals = globals()
+            for item in self.items:
+                # Callable's name must match global name
+                item.__name__ = str(item)
+                _globals[str(item)] = item
+                job.next_step_append(item)
 
     def filter_simple(self, control_key):
         """
