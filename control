@@ -87,9 +87,10 @@ def get_bzobj(bzopts):
         logging.warning("Bugzilla status exclusion filter configured "
                         "but bugzilla python module unavailable.")
         return None
-    # We were never here, you didn't see or hear anything.
-    if os.path.dirname(job.control) == sys.path[0]:
-        del sys.path[0]
+    finally:
+        # We were never here, you didn't see or hear anything.
+        if os.path.dirname(job.control) == sys.path[0]:
+            del sys.path[0]
     quiet_bz()  # the bugzilla module is very noisy
     bz = bugzilla.Bugzilla(url=url)
     if username is not '' and password is not '':
