@@ -458,11 +458,12 @@ class SubSubtestCaller(Subtest):
         (instance attribute) to determine overall subtest success/failure.
         """
         super(SubSubtestCaller, self).run_once()
-        for name in self.subsubtest_names:
-            self.run_all_stages(name, self.new_subsubtest(name))
-        if len(self.start_subsubtests) == 0:
-            raise TestError("No sub-subtests configured to run "
+        if not self.subsubtest_names:
+            self.logwarning("No sub-subtests configured to run "
                             "for subtest %s" % self.config_section)
+        else:
+            for name in self.subsubtest_names:
+                self.run_all_stages(name, self.new_subsubtest(name))
 
     def postprocess(self):
         """
