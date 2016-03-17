@@ -8,10 +8,10 @@ Operational Summary
 ----------------------
 
 #. Try to download repository from registry
-#. if docker_expected_result == PASS: fail when command exitcode != 0
+#. Ensure that command exit code == docker_expected_exit_status (usually 0)
+#. if docker_expected_exit_status == 0:
     #. Check if image is in local repository.
     #. Remote image from local repository
-#. If docker_expected_result == FAIL: fail when command exitcode == 0
 
 Prerequisites
 ---------------------------------------------
@@ -99,18 +99,12 @@ class pull_base(SubSubtest):
         OutputGood(self.sub_stuff['dkrcmd'].cmdresult)
 
     def exitcheck(self):
-        exit_status = self.sub_stuff['dkrcmd'].exit_status
-        if self.config["docker_expected_result"] == "PASS":
-            self.failif_ne(exit_status, 0,
-                           "Non-zero pull exit status: %s"
-                           % self.sub_stuff['dkrcmd'])
-        elif self.config["docker_expected_result"] == "FAIL":
-            self.failif(exit_status == 0,
-                        "Zero pull exit status: Command should fail due to"
-                        " wrong command arguments.")
+        self.failif_ne(self.sub_stuff['dkrcmd'].exit_status,
+                       self.config["docker_expected_exit_status"],
+                       "Exit status from pull command")
 
     def existcheck(self):
-        if self.config["docker_expected_result"] == "PASS":
+        if self.config["docker_expected_exit_status"] == 0:
             di = self.sub_stuff['di']
             image_fn = di.full_name_from_defaults()
             image_list = self.sub_stuff['image_list']

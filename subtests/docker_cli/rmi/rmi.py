@@ -81,26 +81,18 @@ class rmi_base(SubSubtest):
 
     def postprocess(self):
         super(rmi_base, self).postprocess()
-        if self.config["docker_expected_result"] == "PASS":
-            # Raise exception if problems found
-            OutputGood(self.sub_stuff['cmdresult'])
-            self.failif_ne(self.sub_stuff['cmdresult'].exit_status, 0,
-                           "Non-zero rmi exit status: %s"
-                           % self.sub_stuff['cmdresult'])
+        # Raise exception if problems found
+        expect = self.config["docker_expected_exit_status"]
+        OutputGood(self.sub_stuff['cmdresult'], ignore_error=(expect != 0))
 
+        self.failif_ne(self.sub_stuff['cmdresult'].exit_status, expect,
+                       "Command exit status")
+
+        if expect == 0:
             im = self.check_image_exists(self.sub_stuff["image_name"])
             self.sub_stuff['image_list'] = im
             self.failif_ne(im, [], "Deleted image still exits: %s" %
                            self.sub_stuff["image_name"])
-
-        elif self.config["docker_expected_result"] == "FAIL":
-            self.failif(self.sub_stuff['cmdresult'].exit_status == 0,
-                        "Zero rmi exit status: Command should fail due to"
-                        " wrong command arguments.")
-        else:
-            self.failif(True, ("Config. option 'docker_expected_result' "
-                               "must be 'PASS' or 'FAIL', not %s"
-                               % self.config["docker_expected_result"]))
 
     def cleanup(self):
         super(rmi_base, self).cleanup()

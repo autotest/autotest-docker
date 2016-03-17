@@ -149,7 +149,7 @@ class exec_false(exec_base):
 
     def postprocess(self):
         dkrcmd_exec = self.sub_stuff['dkrcmd_exec']
-        mustfail(dkrcmd_exec.cmdresult)
+        mustfail(dkrcmd_exec.cmdresult, 1)
         OutputNotBad(dkrcmd_exec.cmdresult)
         super(exec_false, self).postprocess()
 

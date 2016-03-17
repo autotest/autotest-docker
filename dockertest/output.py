@@ -33,6 +33,7 @@ class DockerVersion(object):
     _server_lines = None
     _client_info = None
     _server_info = None
+    _has_distinct_exit_codes = None
 
     def __init__(self, version_string=None, docker_path=None):
         # If called without an explicit version string, run docker to find out
@@ -179,7 +180,7 @@ class DockerVersion(object):
         """
         if self._client is None:
             try:
-                return self._old_client()
+                self._client = self._old_client()
             except xceptions.DockerOutputError:
                 self._client = self.client_info('version')
         if self._client is None:
@@ -193,7 +194,7 @@ class DockerVersion(object):
         """
         if self._server is None:
             try:
-                return self._old_server()
+                self._server = self._old_server()
             except xceptions.DockerOutputError:
                 self._server = self.server_info('version')
         if self._server is None:
@@ -227,6 +228,29 @@ class DockerVersion(object):
         :raises DockerTestNAError: installed docker < wanted
         """
         return self._require(wanted, 'client', self.client)
+
+    @property
+    def has_distinct_exit_codes(self):
+        """
+        2016-03-23 **TEMPORARY** - for transition from docker-1.9 to 1.10
+
+        docker-1.10 will introduce distinct exit codes to allow differentiating
+        between container status and errors from docker run itself; see
+        bz1097344 and docker PR14012. If we see an exit code of 125 here,
+        assume we're using the new docker.
+        """
+        if self._has_distinct_exit_codes is None:
+            try:
+                # docker-1.10 *must* support distinct exit codes
+                self.require_client('1.10')
+                has = True
+            except xceptions.DockerTestNAError:
+                # some builds of 1.9 might support it. (FIXME: really?)
+                d_run = utils.run('docker run --invalid-opt invalid-image',
+                                  ignore_status=True)
+                has = (d_run.exit_status > 120)
+            DockerVersion._has_distinct_exit_codes = has
+        return DockerVersion._has_distinct_exit_codes
 
 
 class ColumnRanges(Mapping):
@@ -759,33 +783,52 @@ def mustpass(cmdresult, failmsg=None):
     return cmdresult
 
 
-def mustfail(cmdresult, failmsg=None):
+def mustfail(cmdresult, expected_status=None, failmsg=None):
     """
     Check docker cmd results for pass. Raise exception when command passed.
 
     :param cmdresult: results of cmd.
     :type cmdresult: object convertible to string with variable exit_status
+    :param expected_status: exit status we expect to see from cmd.
+                            NOTE: for backward compatibility with pre-20160331
+                            code, we try to gracefully handle if this param
+                            is missing (default to 1) or a string (set failmsg)
+    :type expected_status: integer, 1-255
     :param failmsg: Additional messages for describing problem when cmd fails.
     """
+    # FIXME: temporary: backward compatibility for pre-20160330 code
+    # FIXME: remove before the next API-changing release
+    if expected_status is None:
+        expected_status = 1
+    if isinstance(expected_status, basestring):
+        failmsg = expected_status
+        expected_status = 1
+
     if failmsg is None:
         details = "%s" % cmdresult
     else:
         details = "%s\n%s" % (failmsg, cmdresult)
     if cmdresult is not None:
         OutputNotBad(cmdresult)
-    if cmdresult.exit_status == 0:
-        raise xceptions.DockerExecError("Unexpected zero exit code,"
-                                        " details: %s" % details)
+    # FIXME: temporary; remove once we no longer run on pre-1.10 docker
+    if not DockerVersion().has_distinct_exit_codes:
+        expected_status = 1
+    if cmdresult.exit_status != expected_status:
+        raise xceptions.DockerExecError("Unexpected exit code %d; expected %d."
+                                        " Details: %s" % (
+                                            cmdresult.exit_status,
+                                            expected_status,
+                                            details))
     return cmdresult
 
 
 # This class inherits a LOT of public methods, but most of what
 # appears here is all 'behind the scenes' stuff for producing
-# imutable instances.
+# immutable instances.
 class DockerTime(datetime.datetime):  # pylint: disable=R0903
 
     """
-    Imutable Docker specialized zulu-time representation
+    Immutable Docker specialized zulu-time representation
 
     :note: value is undefined when instance == instance.tzinfo.EPOCH.
            For example, the FinishedAt time of a still-running container

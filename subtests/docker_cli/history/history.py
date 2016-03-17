@@ -83,13 +83,13 @@ class history_base(SubSubtest):
 
     def postprocess(self):
         super(history_base, self).postprocess()
-        if self.config["docker_expected_result"] == "PASS":
-            # Raise exception if problems found
-            OutputGood(self.sub_stuff['cmdresult'])
-            self.failif_ne(self.sub_stuff['cmdresult'].exit_status, 0,
-                           "Non-zero history exit status: %s"
-                           % self.sub_stuff['cmdresult'])
+        # Raise exception if problems found
+        expect = self.config["docker_expected_exit_status"]
+        OutputGood(self.sub_stuff['cmdresult'], ignore_error=(expect != 0))
+        self.failif_ne(self.sub_stuff['cmdresult'].exit_status, expect,
+                       "Exit status")
 
+        if expect == 0:
             new_img_name = self.sub_stuff["new_image_name"]
             new_img_name2 = self.sub_stuff["new_image_name2"]
             base_img_name = DockerImage.full_name_from_defaults(self.config)

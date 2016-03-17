@@ -29,7 +29,7 @@ class create_signal(create_base):
         sigdkrcmd = DockerCmd(self, 'kill',
                               ['--signal', str(sig),
                                self.get_cid()])
-        sigdkrcmd = mustfail(sigdkrcmd.execute())
+        sigdkrcmd = mustfail(sigdkrcmd.execute(), 1)
         self.sub_stuff['sigdkrcmd'] = sigdkrcmd
 
     def postprocess(self):

@@ -156,7 +156,7 @@ class DockerVersionTest(unittest.TestCase):
         self.assertEqual(docker_version.client, '1.8.2')
         self.assertEqual(docker_version.server, '1.8.2')
 
-    def test_client_new(self):
+    def test_client_info_new(self):
         version_string = (
             "Client:\n"
             " Go version:   go1.4.2\n"
