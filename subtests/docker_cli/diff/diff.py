@@ -65,9 +65,9 @@ class diff_base(SubSubtest):
         for key, value in expected:
             self.failif(key not in diffmap,
                         "Change to file: %s not detected." % (key))
-            self.failif(value != diffmap[key],
-                        "Change type detection error for "
-                        "change: %s %s" % (value, key))
+            self.failif_ne(value, diffmap[key],
+                           "Change type detection error for "
+                           "change: %s %s" % (value, key))
 
     def cleanup(self):
         super(diff_base, self).cleanup()

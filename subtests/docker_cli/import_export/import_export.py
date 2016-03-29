@@ -102,6 +102,6 @@ class simple(import_export_base):
         # Fail test if bad command or other stdout/stderr problems detected
         cmdresult = self.sub_stuff['cmdresult']
         OutputGood(cmdresult)
-        self.failif(cmdresult.exit_status != 0,
-                    "Problem with export import cmd detail :%s" %
-                    cmdresult)
+        self.failif_ne(cmdresult.exit_status, 0,
+                       "Problem with export import cmd detail :%s" %
+                       cmdresult)

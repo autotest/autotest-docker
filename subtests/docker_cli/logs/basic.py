@@ -55,6 +55,4 @@ class basic(Base):
         for key in ('before_start', 'after_start'):
             stdout = logs_cmd[key].stdout.strip()
             expected = expected_stdout[key].strip()
-            self.failif(stdout != expected,
-                        'Logs command output "%s" != Expected "%s"'
-                        % (stdout, expected))
+            self.failif_ne(stdout, expected, 'Logs command output')

@@ -157,8 +157,7 @@ class WaitBase(SubSubtest):
             return
         dkrcmd_exit = self.sub_stuff['dkrcmd'].exit_status
         expect_exit = int(_exit)
-        self.failif(dkrcmd_exit != expect_exit,
-                    "Wait exit %d != %d" % (dkrcmd_exit, expect_exit))
+        self.failif_ne(dkrcmd_exit, expect_exit, "Wait exit")
 
     def pproc_stdio(self, which):
         stdio = self.config[which]

@@ -94,7 +94,6 @@ class md5sum(base):
         cp_file = open(join(self.tmpdir, self.sub_stuff['filename']), 'rb')
         data = cp_file.read()
         actual_md5 = md5(data).hexdigest()
-        failmsg = ("File %s in tarball from %s md5 (%s) != expected %s"
-                   % (self.sub_stuff['filename'], self.config['tar_url'],
-                      actual_md5, self.config['md5sum']))
-        self.failif(actual_md5 != self.config['md5sum'], failmsg)
+        failmsg = ("File %s in tarball from %s md5"
+                   % (self.sub_stuff['filename'], self.config['tar_url']))
+        self.failif_ne(actual_md5, self.config['md5sum'], failmsg)

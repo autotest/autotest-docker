@@ -28,6 +28,6 @@ class create_names(create_base):
         self.failif(len(json) == 0)
         # docker sticks a "/" prefix on name (documented?)
         actual_name = str(json[0]['Name'][1:])
-        self.failif(actual_name != self.sub_stuff['name'],
-                    "Actual name %s != expected name %s"
-                    % (actual_name, self.sub_stuff['name']))
+        self.failif_ne(actual_name, self.sub_stuff['name'],
+                       "Actual name %s != expected name %s"
+                       % (actual_name, self.sub_stuff['name']))

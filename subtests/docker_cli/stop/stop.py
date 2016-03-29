@@ -117,12 +117,12 @@ class stop_base(SubSubtest):
         # Look for docker failures
         OutputGood(stop_results)
         OutputGood(self.sub_stuff['container_results'])
-        self.failif(stop_results.exit_status != 0, "Exit status of the docker "
-                    "stop command was not 0: %s" % stop_results)
+        self.failif_ne(stop_results.exit_status, 0, "Exit status of the "
+                       "docker stop command was not 0: %s" % stop_results)
         exp = self.config.get('docker_exit_code', 0)
-        self.failif(self.sub_stuff['container_results'].exit_status != exp,
-                    "Exit status of the docker run command was not %s: %s"
-                    % (exp, self.sub_stuff['container_results']))
+        self.failif_ne(self.sub_stuff['container_results'].exit_status, exp,
+                       "Exit status of the docker run command was not %s: %s"
+                       % (exp, self.sub_stuff['container_results']))
 
     def cleanup(self):
         super(stop_base, self).cleanup()

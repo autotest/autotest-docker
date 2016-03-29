@@ -92,14 +92,14 @@ class rmi_base(SubSubtest):
         if self.config["docker_expected_result"] == "PASS":
             # Raise exception if problems found
             OutputGood(self.sub_stuff['cmdresult'])
-            self.failif(self.sub_stuff['cmdresult'].exit_status != 0,
-                        "Non-zero rmi exit status: %s"
-                        % self.sub_stuff['cmdresult'])
+            self.failif_ne(self.sub_stuff['cmdresult'].exit_status, 0,
+                           "Non-zero rmi exit status: %s"
+                           % self.sub_stuff['cmdresult'])
 
             im = self.check_image_exists(self.sub_stuff["image_name"])
             self.sub_stuff['image_list'] = im
-            self.failif(im != [], "Deleted image still exits: %s" %
-                        self.sub_stuff["image_name"])
+            self.failif_ne(im, [], "Deleted image still exits: %s" %
+                           self.sub_stuff["image_name"])
 
         elif self.config["docker_expected_result"] == "FAIL":
             self.failif(self.sub_stuff['cmdresult'].exit_status == 0,

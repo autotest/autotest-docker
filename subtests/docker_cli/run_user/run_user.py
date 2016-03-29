@@ -37,9 +37,9 @@ class run_user(subtest.SubSubtestCaller):
         subargs.append("cat /etc/passwd")
         cmd = DockerCmd(self, 'run', subargs, verbose=False)
         result = cmd.execute()
-        self.failif(result.exit_status != 0,
-                    "Failed to get container's /etc/passwd. Exit status is !0"
-                    "\n%s" % result)
+        self.failif_ne(result.exit_status, 0,
+                       "Failed to get container's /etc/passwd."
+                       " Exit status is !0\n%s" % result)
         OutputGood(result)
         return result.stdout
 
@@ -134,9 +134,9 @@ class run_user_base(subtest.SubSubtest):
         """
         result = self.sub_stuff['result']
         OutputGood(result)
-        self.failif(result.exit_status != 0,
-                    "Container's exit status is !0 although it should pass"
-                    ":\n%s" % result)
+        self.failif_ne(result.exit_status, 0,
+                       "Container's exit status is !0 although it should pass"
+                       ":\n%s" % result)
         output = (str(result.stdout) + str(result.stderr))
         self.failif(self.sub_stuff['uid_check'] not in output, "UID "
                     "check line '%s' not present in the container output:\n%s"

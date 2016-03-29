@@ -103,9 +103,9 @@ class simple(CpBase):
         with open(copied_file, 'r') as copied_content:
             data = copied_content.read()
         copied_md5 = hashlib.md5(data).hexdigest()
-        self.failif(self.sub_stuff['cpfile_md5'] != copied_md5,
-                    "Copied file '%s' does not match docker file "
-                    "'%s'." % (copied_file, docker_file))
+        self.failif_ne(self.sub_stuff['cpfile_md5'], copied_md5,
+                       "Copied file '%s' does not match docker file "
+                       "'%s'." % (copied_file, docker_file))
         self.loginfo("Copied file matches docker file.")
 
 

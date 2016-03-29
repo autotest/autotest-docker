@@ -53,8 +53,8 @@ class expose(build_base):
     def postprocess(self):
         super(expose, self).postprocess()
         cntnr_port = self.sub_stuff['port_cntnr']
-        self.failif(cntnr_port.host_port != 8080, str(cntnr_port))
-        self.failif(cntnr_port.protocol != 'tcp', str(cntnr_port))
+        self.failif_ne(cntnr_port.host_port, 8080, str(cntnr_port))
+        self.failif_ne(cntnr_port.protocol, 'tcp', str(cntnr_port))
 
     def cleanup(self):
         for fd in self.sub_stuff.get('fds', []):

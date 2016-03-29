@@ -74,8 +74,8 @@ class workdir(subtest.Subtest):
         for name, _dir in self.stuff['good_dirs'].items():
             _command = self.stuff['cmdresults'][name].command
             self.logdebug("Commands: %s" % _command)
-            self.failif(self.stuff['cmdresults'][name].stdout.strip() != _dir,
-                        "fail to set workdir %s" % _dir)
+            self.failif_ne(self.stuff['cmdresults'][name].stdout.strip(), _dir,
+                           "failed to set workdir")
             self.logdebug("workdir %s set successful for container" % _dir)
         for name, _dir in self.stuff['bad_dirs'].items():
             _command = self.stuff['cmdresults'][name].command

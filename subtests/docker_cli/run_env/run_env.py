@@ -117,7 +117,7 @@ class spam(SubSubtest):
                 self.logwarning("var %s value %s does not match %s's %s",
                                 value, key, name, compareto[key])
         # Now fail after checking all the keys/values
-        self.failif(expected != actual)
+        self.failif_ne(actual, expected)
 
     def initialize(self):
         super(spam, self).initialize()
