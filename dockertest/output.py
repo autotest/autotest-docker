@@ -12,6 +12,7 @@ from autotest.client import utils
 import subprocess
 import xceptions
 from environment import AllGoodBase
+from version import LooseVersion
 
 
 class DockerVersion(object):
@@ -191,6 +192,43 @@ class DockerVersion(object):
         if self._server is None:
             self._oops('server version')
         return self._server
+
+    @staticmethod
+    def _require(wanted, name, other_version):
+        required_version = LooseVersion(wanted)
+        if other_version < required_version:
+            msg = ("Test requires docker %s version >= %s; %s found"
+                   % (name, required_version, other_version))
+            raise xceptions.DockerTestNAError(msg)
+        # In case it's useful to caller
+        return other_version
+
+    def require_server(self, wanted):
+        """
+        Run 'docker version', parse server version, compare to wanted.
+
+        :param wanted: required docker (possibly remote) server version
+        :raises DockerTestNAError: installed docker < wanted
+        """
+        return self._require(wanted, 'server', self.server)
+
+    def require_client(self, wanted):
+        """
+        Run 'docker version', parse client version, compare to wanted.
+
+        :param wanted: required docker client version
+        :raises DockerTestNAError: installed docker < wanted
+        """
+        return self._require(wanted, 'client', self.client)
+
+    @classmethod
+    def helper(cls):
+        """
+        Shortcut around DockerCmd for output, w/ less verification/validation
+        """
+        return cls(subprocess.check_output('docker version',
+                                           shell=True,  # $PATH from profile
+                                           close_fds=True))  # more safe
 
 
 class ColumnRanges(Mapping):
