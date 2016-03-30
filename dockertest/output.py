@@ -222,11 +222,11 @@ class DockerVersion(object):
         return self._require(wanted, 'client', self.client)
 
     @classmethod
-    def helper(cls):
+    def helper(cls, docker_path=''):
         """
         Shortcut around DockerCmd for output, w/ less verification/validation
         """
-        return cls(subprocess.check_output('docker version',
+        return cls(subprocess.check_output('%sdocker version' % docker_path,
                                            shell=True,  # $PATH from profile
                                            close_fds=True))  # more safe
 
