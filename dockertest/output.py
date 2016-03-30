@@ -34,7 +34,14 @@ class DockerVersion(object):
     _client_info = None
     _server_info = None
 
-    def __init__(self, version_string):
+    def __init__(self, version_string=None, docker_path=None):
+        # If called without an explicit version string, run docker to find out
+        if version_string is None:
+            if docker_path is None:
+                docker_path = 'docker'
+            version_string = subprocess.check_output(docker_path + ' version',
+                                                     shell=True,
+                                                     close_fds=True)
         self.version_string = version_string
 
     def _oops(self, what):
@@ -220,15 +227,6 @@ class DockerVersion(object):
         :raises DockerTestNAError: installed docker < wanted
         """
         return self._require(wanted, 'client', self.client)
-
-    @classmethod
-    def helper(cls, docker_path=''):
-        """
-        Shortcut around DockerCmd for output, w/ less verification/validation
-        """
-        return cls(subprocess.check_output('%sdocker version' % docker_path,
-                                           shell=True,  # $PATH from profile
-                                           close_fds=True))  # more safe
 
 
 class ColumnRanges(Mapping):

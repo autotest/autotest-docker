@@ -17,7 +17,7 @@ class create_signal(create_base):
 
     def initialize(self):
         super(create_signal, self).initialize()
-        DockerVersion.helper().require_client(self.non_zero_exit_version)
+        DockerVersion().require_client(self.non_zero_exit_version)
         self.sub_stuff['sigdkrcmd'] = None
 
     def run_once(self):
