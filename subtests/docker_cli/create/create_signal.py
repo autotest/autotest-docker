@@ -6,6 +6,7 @@ import signal
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import mustfail
 from dockertest.output import OutputNotBad
+from dockertest.output import DockerVersion
 from create import create_base
 
 
@@ -16,7 +17,7 @@ class create_signal(create_base):
 
     def initialize(self):
         super(create_signal, self).initialize()
-        self.require_docker_version(self.non_zero_exit_version)
+        DockerVersion.helper().require_client(self.non_zero_exit_version)
         self.sub_stuff['sigdkrcmd'] = None
 
     def run_once(self):

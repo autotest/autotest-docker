@@ -24,11 +24,6 @@ from autotest.client import test
 import version
 import config
 import subtestbase
-# There is a bug in Pylint + virtualenv that makes this fail in Travis CI
-# https://github.com/PyCQA/pylint/issues/73
-from distutils.version import LooseVersion  # pylint: disable=E0611,F0401
-from dockercmd import DockerCmd
-from output import DockerVersion
 from xceptions import DockerTestFail
 from xceptions import DockerTestNAError
 from xceptions import DockerTestError
@@ -295,22 +290,6 @@ class SubSubtest(subtestbase.SubBase):
         logging.warning("SubSubtest.make_subsubtest_config() is deprecated!")
         self.config = self.make_config(all_configs, parent_config,
                                        self.config_section)
-
-    def require_docker_version(self, wanted):
-        """
-        Run 'docker version', parse client version, compare to wanted.
-
-        :param wanted: required docker version
-        :raises DockerTestNAError: installed docker < wanted
-        """
-        stdout = DockerCmd(self, "version").execute().stdout
-        dockerversion = DockerVersion(stdout)
-        client_version = LooseVersion(dockerversion.client)
-        required_version = LooseVersion(wanted)
-        if client_version < required_version:
-            raise DockerTestNAError("Test requires docker version >= %s;"
-                                    " %s installed" % (required_version,
-                                                       client_version))
 
 
 class SubSubtestCaller(Subtest):
