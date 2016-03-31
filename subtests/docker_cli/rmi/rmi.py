@@ -239,3 +239,8 @@ class with_blocking_container_by_id(with_blocking_container_by_tag):
     def check_image_exists_by_id(self, image_id):
         di = DockerImages(self)
         return di.list_imgs_with_image_id(image_id)
+
+    def cleanup(self):
+        super(with_blocking_container_by_id, self).cleanup()
+        di = DockerImages(self)
+        di.clean_all([self.sub_stuff["image_name"]])
