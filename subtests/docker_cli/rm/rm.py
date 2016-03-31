@@ -249,8 +249,8 @@ class forced(rm_sub_base):
         rm_cmdresult = self.sub_stuff['rm_cmdresult']
         self.failif(cmdresult.exit_status == 0, ("Expected non-zero exit: %s"
                                                  % cmdresult))
-        self.failif_ne(rm_cmdresult.exit_statusm, 0, ("Expected zero exit: %s"
-                                                      % rm_cmdresult))
+        self.failif_ne(rm_cmdresult.exit_status, 0, ("Expected zero exit: %s"
+                                                     % rm_cmdresult))
         OutputGood(cmdresult)
         OutputGood(rm_cmdresult)
 

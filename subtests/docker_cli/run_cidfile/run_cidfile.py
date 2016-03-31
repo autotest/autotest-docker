@@ -135,14 +135,14 @@ class basic(subtest.SubSubtest):
         self._check_cidfile(long_id, cidfile)
         # cidfile already exists (running container)
         containers.append(self._init_container(subargs, cidfile, 'true',
-                                               mustfail))
+                                               lambda x: mustfail(x, 1)))
         self._check_failure_cidfile_present(containers[-1])
         # cidfile already exists (exited container)
         containers[0].stdin("exit\n")
         containers[0].wait(10)
         containers[0].close()
         containers.append(self._init_container(subargs, cidfile, 'true',
-                                               mustfail))
+                                               lambda x: mustfail(x, 1)))
         self._check_failure_cidfile_present(containers[-1])
         # restart container with cidfile
         mustpass(dockercmd.DockerCmd(self, 'start', [name],

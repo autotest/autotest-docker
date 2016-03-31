@@ -63,7 +63,7 @@ class simple(subtest.SubSubtest):
                    "in the output:\n%s")
         # Nonexisting container
         missing_msg = self.config['missing_msg']
-        result = mustfail(DockerCmd(self, "start", [name]).execute())
+        result = mustfail(DockerCmd(self, "start", [name]).execute(), 125)
         self.failif(missing_msg not in str(result), err_msg
                     % ("non-existing", missing_msg, result))
 

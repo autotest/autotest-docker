@@ -30,7 +30,6 @@ class delete_wrong_name(rmi_base):
         super(delete_wrong_name, self).postprocess()
         # Raise exception if problems found
         OutputGood(self.sub_stuff['cmdresult'], ignore_error=True)
-        if self.config["docker_expected_result"] == "FAIL":
-            self.failif(self.sub_stuff['cmdresult'].exit_status == 0,
-                        "Zero rmi exit status: Command should fail due to"
-                        " wrong image name.")
+        self.failif_ne(self.sub_stuff['cmdresult'].exit_status,
+                       self.config["docker_expected_exit_status"],
+                       "Docker exit status")

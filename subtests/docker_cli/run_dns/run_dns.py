@@ -39,7 +39,7 @@ class run_dns(subtest.Subtest):
             for name in search:
                 subargs.insert(0, '--dns-search %s' % name)
         return mustfail(DockerCmd(self, 'run', subargs,
-                                  verbose=False).execute())
+                                  verbose=False).execute(), 125)
 
     def _execute_and_record(self, dns, search, dnss, searches):
         """ Execute and store the new dns/searches """

@@ -282,11 +282,11 @@ class DockerCmdTestBasic(DockerCmdTestBase):
         docker_command = self.dockercmd.DockerCmd(self.fake_subtest,
                                                   'fake_subcommand')
         self.assertRaises(self.xceptions.DockerExecError,
-                          self.output.mustfail, docker_command.execute())
+                          self.output.mustfail, docker_command.execute(), 1)
 
         docker_command = self.dockercmd.DockerCmd(self.fake_subtest,
                                                   'unittest_fail')
-        self.assertTrue(self.output.mustfail(docker_command.execute()))
+        self.assertTrue(self.output.mustfail(docker_command.execute(), 1))
 
 
 class AsyncDockerCmd(DockerCmdTestBase):

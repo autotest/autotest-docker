@@ -143,7 +143,7 @@ class simple_base(attach_base):
 
     def failif_contain(self, check_for, in_output, details):
         self.failif(check_for in in_output,
-                    "Command '%s' output must contain '%s' but doesn't."
+                    "Command '%s' output must not contain '%s' but does."
                     " Detail: %s" % (self.config["bash_cmd"],
                                      check_for, details))
         self.logdebug("Output does NOT contain '%s'", check_for)

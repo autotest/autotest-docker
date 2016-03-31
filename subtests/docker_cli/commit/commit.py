@@ -92,26 +92,20 @@ class commit_base(SubSubtest):
 
     def postprocess(self):
         super(commit_base, self).postprocess()
-        if self.config["docker_expected_result"] == "PASS":
-            # Raise exception if problems found
-            OutputGood(self.sub_stuff['cmdresult'])
-            self.failif_ne(self.sub_stuff['cmdresult'].exit_status, 0,
-                           "Non-zero commit exit status: %s"
-                           % self.sub_stuff['cmdresult'])
+        # Raise exception if problems found
+        expect = self.config["docker_expected_exit_status"]
+        OutputGood(self.sub_stuff['cmdresult'], ignore_error=(expect != 0))
 
+        self.failif_ne(self.sub_stuff['cmdresult'].exit_status, expect,
+                       "Command exit status")
+
+        if expect == 0:
             im = self.check_image_exists(self.sub_stuff["new_image_name"])
             # Needed for cleanup
             self.sub_stuff['image_list'] = im
             self.failif(len(im) < 1,
                         "Failed to look up committed image ")
             self.check_file_in_image()
-
-        elif self.config["docker_expected_result"] == "FAIL":
-            og = OutputGood(self.sub_stuff['cmdresult'], ignore_error=True)
-            es = self.sub_stuff['cmdresult'].exit_status == 0
-            self.failif(not og or not es,
-                        "Zero commit exit status: Command should fail due to"
-                        " wrong command arguments.")
 
     def cleanup(self):
         super(commit_base, self).cleanup()

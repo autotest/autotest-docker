@@ -225,7 +225,8 @@ class postprocessing(object):
             if OutputGood(build_def.dockercmd.cmdresult,
                           ignore_error=True,
                           skip=['error_check']):
-                return build_def.dockercmd.cmdresult.exit_status != 0
+                # FIXME: this is likely to fail in docker-1.10; bz1097344
+                return build_def.dockercmd.cmdresult.exit_status == 1
         else:
             raise DockerTestError("Command error: %s" % command)
 

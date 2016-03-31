@@ -71,14 +71,14 @@ class kill_bad_base(subtest.SubSubtest):
             mustfail(DockerCmd(self, 'kill',
                                ['-s', signal,
                                 self.sub_stuff['container_name']],
-                               verbose=False).execute())
+                               verbose=False).execute(), 125)
             self.failif(self.sub_stuff['container_cmd'].done, "Testing "
                         "container died after using signal %s." % signal)
         dkrcnt = DockerContainers(self)
         nonexisting_name = dkrcnt.get_unique_name()
         self.logdebug("Killing nonexisting containe.")
         mustfail(DockerCmd(self, 'kill', [nonexisting_name],
-                           verbose=False).execute())
+                           verbose=False).execute(), 125)
 
     def postprocess(self):
         """
