@@ -812,7 +812,8 @@ def mustfail(cmdresult, expected_status=None, failmsg=None):
         OutputNotBad(cmdresult)
     # FIXME: temporary; remove once we no longer run on pre-1.10 docker
     if not DockerVersion().has_distinct_exit_codes:
-        expected_status = 1
+        # Docker <1.10 exits 2 on daemon error (125 in 1.10), 1 on all else
+        expected_status = 1 + (expected_status == 125)
     if cmdresult.exit_status != expected_status:
         raise xceptions.DockerExecError("Unexpected exit code %d; expected %d."
                                         " Details: %s" % (
