@@ -12,6 +12,7 @@ from autotest.client import utils
 import subprocess
 import xceptions
 from environment import AllGoodBase
+from version import LooseVersion
 
 
 class DockerVersion(object):
@@ -33,7 +34,14 @@ class DockerVersion(object):
     _client_info = None
     _server_info = None
 
-    def __init__(self, version_string):
+    def __init__(self, version_string=None, docker_path=None):
+        # If called without an explicit version string, run docker to find out
+        if version_string is None:
+            if docker_path is None:
+                docker_path = 'docker'
+            version_string = subprocess.check_output(docker_path + ' version',
+                                                     shell=True,
+                                                     close_fds=True)
         self.version_string = version_string
 
     def _oops(self, what):
@@ -191,6 +199,34 @@ class DockerVersion(object):
         if self._server is None:
             self._oops('server version')
         return self._server
+
+    @staticmethod
+    def _require(wanted, name, other_version):
+        required_version = LooseVersion(wanted)
+        if other_version < required_version:
+            msg = ("Test requires docker %s version >= %s; %s found"
+                   % (name, required_version, other_version))
+            raise xceptions.DockerTestNAError(msg)
+        # In case it's useful to caller
+        return other_version
+
+    def require_server(self, wanted):
+        """
+        Run 'docker version', parse server version, compare to wanted.
+
+        :param wanted: required docker (possibly remote) server version
+        :raises DockerTestNAError: installed docker < wanted
+        """
+        return self._require(wanted, 'server', self.server)
+
+    def require_client(self, wanted):
+        """
+        Run 'docker version', parse client version, compare to wanted.
+
+        :param wanted: required docker client version
+        :raises DockerTestNAError: installed docker < wanted
+        """
+        return self._require(wanted, 'client', self.client)
 
 
 class ColumnRanges(Mapping):

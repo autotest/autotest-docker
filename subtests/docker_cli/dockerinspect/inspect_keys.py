@@ -36,20 +36,39 @@ class inspect_keys(inspect_base):
         # inspect a container
         subargs = self.sub_stuff['containers']
         json = self.inspect_and_parse(subargs)
+        # in-place modify, expression used for clarity
         self.sub_stuff['container_config'] = self.filter_keys(json)
 
         # inspect an image
         subargs = [self.sub_stuff['image']]
         json = self.inspect_and_parse(subargs)
+        # in-place modify, expression used for clarity
         self.sub_stuff['image_config'] = self.filter_keys(json)
 
-    @staticmethod
-    def filter_keys(json):
+    def filter_keys(self, json):
+        json0 = json[0]
         # Keys in Labels should not be checked for style
         try:
-            del json[0]['Config']['Labels']
+            json0['Config']['Labels'] = {}
+            self.logdebug("Cleared Config.Labels branch")
         except KeyError:
-            pass
+            self.logdebug("Config.Labels branch not found?")
+        # These are data-keys, not structural, ignore names
+        try:
+            # New in docker 1.9.1
+            networks = json0['NetworkSettings']['Networks']
+            for network in networks.keys():
+                # Child key names still need checking
+                dummy_key = 'RenamedForTesting_%s' % network
+                original_value = networks[network]
+                del networks[network]
+                networks[dummy_key] = original_value
+                self.logdebug("NetworkSettings.Networks.%s -> "
+                              "NetworkSettings.Networks.%s",
+                              network, dummy_key)
+        except KeyError:
+            self.logdebug("NetworkSettings.Networks.* branches not found?")
+        self.logdebug("JSON object after filtering:\n%s\n", json)
         return json
 
     def get_keys(self, coll):
@@ -83,17 +102,24 @@ class inspect_keys(inspect_base):
         # verify image keys
         name = "image: %s" % (self.sub_stuff['image'])
         keys = self.get_keys(self.sub_stuff['image_config'])
-        if self.config['image_keys']:
-            check_keys = self.config['image_keys'].split(',')
-            self.assert_keys(check_keys, keys, name)
-        if self.config['key_regex']:
-            self.assert_regex(keys, name)
+        # Makes copy-paste into json_reformat / json_verify easier
+        xmsg = "failing json:\n%s\n" % self.config['image_config']
+        try:
+            if self.config['image_keys']:
+                check_keys = self.config['image_keys'].split(',')
+                self.assert_keys(check_keys, keys, name)
+            if self.config['key_regex']:
+                self.assert_regex(keys, name)
 
-        # verify container keys
-        name = "container: %s" % (self.sub_stuff['containers'][0])
-        keys = self.get_keys(self.sub_stuff['container_config'])
-        if self.config['container_keys']:
-            check_keys = self.config['container_keys'].split(',')
-            self.assert_keys(check_keys, keys, name)
-        if self.config['key_regex']:
-            self.assert_regex(keys, name)
+            # verify container keys
+            name = "container: %s" % (self.sub_stuff['containers'][0])
+            keys = self.get_keys(self.sub_stuff['container_config'])
+            xmsg = "failing json:\n%s\n" % self.config['container_config']
+            if self.config['container_keys']:
+                check_keys = self.config['container_keys'].split(',')
+                self.assert_keys(check_keys, keys, name)
+            if self.config['key_regex']:
+                self.assert_regex(keys, name)
+        except:
+            self.logdebug(xmsg)
+            raise
