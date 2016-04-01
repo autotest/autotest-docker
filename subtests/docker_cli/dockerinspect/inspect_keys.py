@@ -103,7 +103,7 @@ class inspect_keys(inspect_base):
         name = "image: %s" % (self.sub_stuff['image'])
         keys = self.get_keys(self.sub_stuff['image_config'])
         # Makes copy-paste into json_reformat / json_verify easier
-        xmsg = "failing json:\n%s\n" % self.config['image_config']
+        xmsg = "failing json:\n%s\n" % self.sub_stuff['image_config']
         try:
             if self.config['image_keys']:
                 check_keys = self.config['image_keys'].split(',')
@@ -114,7 +114,7 @@ class inspect_keys(inspect_base):
             # verify container keys
             name = "container: %s" % (self.sub_stuff['containers'][0])
             keys = self.get_keys(self.sub_stuff['container_config'])
-            xmsg = "failing json:\n%s\n" % self.config['container_config']
+            xmsg = "failing json:\n%s\n" % self.sub_stuff['container_config']
             if self.config['container_keys']:
                 check_keys = self.config['container_keys'].split(',')
                 self.assert_keys(check_keys, keys, name)
