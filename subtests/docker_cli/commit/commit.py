@@ -43,6 +43,7 @@ class commit_base(SubSubtest):
         config.none_if_empty(self.config)
         di = DockerImages(self)
         new_img_name = di.get_unique_name()
+        cname = DockerContainers(self).get_unique_name()
         self.sub_stuff["new_image_name"] = new_img_name
 
         self.sub_stuff['rand_data'] = utils.generate_random_string(8)
@@ -51,7 +52,7 @@ class commit_base(SubSubtest):
 
         fqin = DockerImage.full_name_from_defaults(self.config)
         prep_changes = DockerCmd(self, "run",
-                                 ["--detach", fqin, cmd_with_rand],
+                                 ["--name=%s" % cname, fqin, cmd_with_rand],
                                  self.config['docker_commit_timeout'])
 
         results = prep_changes.execute()
@@ -59,8 +60,7 @@ class commit_base(SubSubtest):
             raise xceptions.DockerTestNAError("Problems during "
                                               "initialization of"
                                               " test: %s", results)
-        else:
-            self.sub_stuff["container"] = results.stdout.strip()
+        self.sub_stuff["container"] = cname
 
     def complete_docker_command_line(self):
         c_author = self.config["commit_author"]
@@ -133,9 +133,7 @@ class commit_base(SubSubtest):
                                self.sub_stuff["rand_data"],
                                "Data read from image do not match"
                                " data written to container during"
-                               " test initialization: %s != %s" %
-                               (results.stdout.strip(),
-                                self.sub_stuff["rand_data"]))
+                               " test initialization")
 
 
 class good(commit_base):
