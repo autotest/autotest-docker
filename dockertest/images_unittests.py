@@ -355,6 +355,19 @@ class DockerImageTestBasic(ImageTestBase):
         self.assertEqual(user, None)
         self.assertEqual(addr, "address:1234")
 
+    def test_empty_tag(self):
+        """
+        Empty tag names seen in docker-1.9 output of 'docker events'
+        in some tag actions. docker-1.10 seems to forbid trailing colon.
+        """
+        test = "myname:"   # note the trailing colon with no actual tag name
+        DI = self.images.DockerImage
+        repo, tag, addr, user = DI.split_to_component(test)
+        self.assertEqual(repo, 'myname')
+        self.assertEqual(tag, '')
+        self.assertEqual(user, None)
+        self.assertEqual(addr, None)
+
     def test_remove_cli(self):
         d = self.images.DockerImages(self.fake_subtest, 1.0, True)
         self.assertEqual(d.remove_image_by_id('123456789012').command,

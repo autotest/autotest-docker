@@ -929,6 +929,10 @@ class DockerTime(datetime.datetime):  # pylint: disable=R0903
         dargs = dict(zip(tuple(keys), tuple(values)))
         return super(DockerTime, cls).__new__(cls, **dargs)
 
+    def __repr__(self):
+        return '{0}("{1:%Y-%m-%dT%H:%M:%S}.{2:06d}{1:%z}")'.format(
+            self.__class__.__name__, self, self.microsecond)
+
     @classmethod
     def __new_zulu__(cls, isostr, base, values, keys, tzn):
         # Killall letter Z and z's

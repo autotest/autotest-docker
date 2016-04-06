@@ -58,7 +58,7 @@ class DockerImage(object):  # pylint: disable=R0902
                               r"(?P<repo_addr_port>:[\d]+?)?/)?"  # optional
                               r"(?P<user>[\w\-\.\+]+/)?"  # optional
                               r"(?P<repo>[\w\-\.]+)"  # required
-                              r"(?P<tag>:[\w\-\.]+)?")  # optional
+                              r"(?P<tag>:[\w\-\.]*)?")  # optional
 
     # Many arguments are simply required here
     # pylint: disable=R0913
