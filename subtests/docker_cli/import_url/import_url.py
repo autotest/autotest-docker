@@ -48,7 +48,7 @@ class base(SubSubtest):
         subargs += [self.sub_stuff['import_repo']]
         subargs += ['some', 'dummy', 'command']
         self.logdebug("Next docker command should fail...")
-        mustfail(DockerCmd(self, 'run', subargs).execute(), 1)
+        mustfail(DockerCmd(self, 'run', subargs).execute(), 125)
 
     def initialize(self):
         super(base, self).initialize()
