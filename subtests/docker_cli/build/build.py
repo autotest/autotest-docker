@@ -125,7 +125,7 @@ class postprocessing(object):
                 result = method(build_def, command, parameter)
                 passed.append(result)
                 if not result:
-                    self.loginfo("Postprocess %s: Failed", command)
+                    self.logwarning("Postprocess %s: Failed", command)
         if not all(passed):
             raise DockerTestFail("One or more postprocess commands did not"
                                  " pass, see debug log for details")
