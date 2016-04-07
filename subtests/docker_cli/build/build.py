@@ -128,7 +128,7 @@ class postprocessing(object):
                     self.loginfo("Postprocess %s: Failed", command)
         if not all(passed):
             raise DockerTestFail("One or more postprocess commands did not"
-                                 "pass, see debug log for details")
+                                 " pass, see debug log for details")
         else:
             self.loginfo("All postprocessing passed")
 
@@ -316,7 +316,7 @@ class postprocessing(object):
             if created_ids.isdisjoint(img_ids):
                 self.logdebug("%s() All missing as expected", command)
                 return True
-        self.logdebug("%s() Unaccounted imtermediates: %s",
+        self.logdebug("%s() Unaccounted intermediates: %s",
                       command, created_ids)
         self.logdebug("w/ leftover image IDs: %s", img_ids)
         return False

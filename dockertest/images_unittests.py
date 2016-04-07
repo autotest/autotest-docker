@@ -235,7 +235,7 @@ class DockerImageTestBasic(ImageTestBase):
                          " DockerImage(full_name:fedora:32 LONG_ID:0d20aec6529d5d396b195182c0eaa82bfe014c3e82ab390203ed56a774d2c404 CREATED:5 weeks ago SIZE:387 MB),"
                          " DockerImage(full_name:fedora:rawhide LONG_ID:0d20aec6529d5d396b195182c0eaa82bfe014c3e82ab390203ed56a774d2c404 CREATED:5 weeks ago SIZE:387 MB)]",)
 
-    def test_name_comparsion_dockerimage(self):
+    def test_name_comparison_dockerimage(self):
         di_ref = self.images.DockerImage("fedora_repo", "last_tag",
                                          ("0d20aec6529d5d396b195182c0eaa82bfe0"
                                           "14c3e82ab390203ed56a774d2c404"),
