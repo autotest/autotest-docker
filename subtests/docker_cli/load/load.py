@@ -18,6 +18,8 @@ from dockertest.images import DockerImages
 from dockertest.config import get_as_list
 from dockertest.output import mustpass
 from dockertest.output import OutputGood
+from dockertest.output import DockerVersion
+from dockertest import xceptions
 import os
 
 
@@ -26,7 +28,7 @@ class load(subtest.Subtest):
     def initialize(self):
         super(load, self).initialize()
         self.stuff['di'] = di = DockerImages(self)
-        img_id = self.config['test_id'].strip()
+        img_id = self._test_id
         img_name = self.config['test_fqin'].strip()
         img_file = self.config['test_filename'].strip()
         if img_file[0] != '/':
@@ -41,6 +43,16 @@ class load(subtest.Subtest):
         self.stuff['dkrcmd'] = DockerCmd(self, 'load',
                                          ['--input', img_file])
 
+    @property
+    def _test_id(self):
+        img_id = self.config['test_id']
+        # FIXME: remove this once docker < 1.10 is eradicated
+        try:
+            DockerVersion().require_client("1.10")
+        except xceptions.DockerTestNAError:
+            img_id = self.config['test_id_old']
+        return img_id.strip()
+
     def run_once(self):
         super(load, self).run_once()
         self.stuff['dkrcmd'].execute()
@@ -49,7 +61,7 @@ class load(subtest.Subtest):
         super(load, self).postprocess()
         OutputGood(self.stuff['dkrcmd'].cmdresult)
         mustpass(self.stuff['dkrcmd'])
-        img_id = self.config['test_id']
+        img_id = self._test_id
         img_name = self.config['test_fqin']
         di = self.stuff['di']
         self.failif(img_id not in di.list_imgs_ids(),
