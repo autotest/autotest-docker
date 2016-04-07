@@ -25,7 +25,7 @@ script:
     - ./run_checkdocs.py
     - ./run_unittests.sh
     - ./run_pylint.sh --FF
-    - inspekt style --disable E501,E265,W601,E402,E731
+    - inspekt style --disable E501,E265,W601,E402,E731,E221
 
 # TODO: Do we need notifications?
 #notifications:
