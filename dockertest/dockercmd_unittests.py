@@ -77,6 +77,14 @@ class FakeCmdResult(object):    # pylint: disable=R0903
         return self
 
 
+class FakeDockerVersion(object):
+    def __init__(self, *args):
+        pass
+
+    def has_distinct_exit_codes():
+        return False
+
+
 def run(command, *args, **dargs):
     """ Don't actually run anything! """
     result = FakeCmdResult(command=command, args=args, dargs=dargs)
@@ -183,6 +191,7 @@ class DockerCmdTestBase(unittest.TestCase):
         self.config = config
         self.dockercmd = dockercmd
         self.output = output
+        setattr(mock('output'), 'DockerVersion', FakeDockerVersion)
         self.subtest = subtest
         self.config.CONFIGDEFAULT = tempfile.mkdtemp(self.__class__.__name__)
         self.config.CONFIGCUSTOMS = tempfile.mkdtemp(self.__class__.__name__)
