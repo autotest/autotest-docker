@@ -316,6 +316,20 @@ class DockerImageTestBasic(ImageTestBase):
         act = self.images.DockerImage.full_name_from_defaults(config)
         self.assertEqual(act, 'fedora')
 
+    def test_docker_110_id_parsing(self):
+        """
+        Docker 1.10 image and container IDs include a "sha256:" prefix;
+        make sure our parsing code strips off the prefix but still returns
+        a valid short_id
+        """
+        id_components = ["sha256:", "0123456789ab",    # <-- 12-char short id
+                         "9dcfe46a8f465344284a3538cd"  # <-- + 52 chars = 64
+                         "6b0beeb18b4f249619fec4a659"]
+        long_id = "".join(id_components)
+        di = self.images.DockerImage("myrepo", "a", long_id, "bb", "cc", "dd")
+        self.assertEqual(di.long_id, long_id)
+        self.assertEqual(di.short_id, id_components[1])
+
     def test_bastard_repo(self):
         test = "bAsTaRd-rEPo.lOcAl_hOsT:1073741824/.b+o-F_H./a.s-d_f:F.d-S_a"
         DI = self.images.DockerImage

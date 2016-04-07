@@ -92,6 +92,10 @@ class DockerImage(object):  # pylint: disable=R0902
         self.user = user
 
         self.short_id = long_id[:12]
+        # docker-1.10 output includes a prefix describing the hash type
+        colon = long_id.find(":")
+        if colon >= 3:
+            self.short_id = long_id[colon + 1:colon + 13]
         self.full_name = self.full_name_from_component(repo, tag,
                                                        repo_addr, user)
 
@@ -360,7 +364,13 @@ class DockerImages(object):
         tag = row['TAG']
         long_id = row['IMAGE ID']
         created = row['CREATED']
-        size = row['VIRTUAL SIZE']
+        try:
+            size = row['VIRTUAL SIZE']
+        except KeyError:
+            try:
+                size = row['SIZE']
+            except KeyError:
+                raise KeyError("neither SIZE nor VIRTUAL SIZE found in header")
         return cls.DICLS(repo, tag, long_id, created, size)
 
     # private methods don't need docstrings
