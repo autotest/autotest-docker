@@ -798,29 +798,32 @@ def mustfail(cmdresult, expected_status=None, failmsg=None):
     """
     # FIXME: temporary: backward compatibility for pre-20160330 code
     # FIXME: remove before the next API-changing release
-    if expected_status is None:
+    if expected_status is None:                    # old: mustfail(x)
         expected_status = 1
-    if isinstance(expected_status, basestring):
-        failmsg = expected_status
-        expected_status = 1
+    if isinstance(expected_status, basestring):    # old: mustfail(x, "msg")
+        if not expected_status.isdigit():     # pylint: disable=E1101
+            failmsg = expected_status
+            expected_status = 1
 
     if failmsg is None:
         details = "%s" % cmdresult
     else:
         details = "%s\n%s" % (failmsg, cmdresult)
-    if cmdresult is not None:
-        OutputNotBad(cmdresult)
+    OutputNotBad(cmdresult)
+    if cmdresult.exit_status == expected_status:
+        return cmdresult
+    # On pre-1.10 docker, accept any nonzero exit status: it's impossible
+    # to automatically map docker-1.10 codes to 1.9
     # FIXME: temporary; remove once we no longer run on pre-1.10 docker
     if not DockerVersion().has_distinct_exit_codes:
-        # Docker <1.10 exits 2 on daemon error (125 in 1.10), 1 on all else
-        expected_status = 1 + (expected_status == 125)
-    if cmdresult.exit_status != expected_status:
-        raise xceptions.DockerExecError("Unexpected exit code %d; expected %d."
-                                        " Details: %s" % (
-                                            cmdresult.exit_status,
-                                            expected_status,
-                                            details))
-    return cmdresult
+        if cmdresult.exit_status != 0:
+            return cmdresult
+
+    raise xceptions.DockerExecError("Unexpected exit code %d; expected %d."
+                                    " Details: %s" % (
+                                        cmdresult.exit_status,
+                                        expected_status,
+                                        details))
 
 
 # This class inherits a LOT of public methods, but most of what
