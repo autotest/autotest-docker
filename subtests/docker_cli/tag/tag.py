@@ -20,6 +20,7 @@ from dockertest.images import DockerImages
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
 from dockertest.output import mustpass
+from dockertest.output import DockerVersion
 from dockertest.dockercmd import DockerCmd
 from dockertest import subtest
 from dockertest import config
@@ -58,9 +59,9 @@ class tag_base(SubSubtest):
     def prep_image(self, base_image):
         """ Tag the dockertest image to this test name """
         mustpass(DockerCmd(self, "pull", [base_image],
-                           verbose=False).execute())
+                           verbose=True).execute())
         subargs = [base_image, self.sub_stuff["image"]]
-        tag_results = DockerCmd(self, "tag", subargs, verbose=False).execute()
+        tag_results = DockerCmd(self, "tag", subargs, verbose=True).execute()
         if tag_results.exit_status:
             raise xceptions.DockerTestNAError("Problems during "
                                               "initialization of"
@@ -186,8 +187,12 @@ class double_tag(change_tag):
         self.sub_stuff['tmp_image_list'].add(self.sub_stuff["new_image_name"])
         mustpass(DockerCmd(self, 'tag', self.complete_docker_command_line(),
                            verbose=True).execute())
-        # ...but the actual (second) tag incantation in run_once() should fail.
-        self.expect_pass(False)
+        # On docker 1.10, the second tag should pass. On < 1.10, fail.
+        try:
+            DockerVersion().require_server("1.10")
+            self.expect_pass(True)
+        except xceptions.DockerTestNAError:
+            self.expect_pass(False)
 
 
 class double_tag_force(double_tag):
