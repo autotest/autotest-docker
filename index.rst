@@ -72,36 +72,40 @@ Prerequisites
     *  **Clean** environment, only test-related images, containers
        and dependent services (besides ``docker -d``) at the start
        of **every** Autotest run.
-    *  Docker installation (with ``docker -d`` running at startup)
+    *  Docker installation (with docker daemon running)
     *  Default settings for Docker on your platform/OS,
-       unless otherwise noted.
+       including storage (LVM thin-pool + XFS).
     *  Sufficient available temporary storage for multiple copies of the
        test-related images/container content.
 
 *  `Supported Docker OS platform`_
 
-    *  Red Hat Enterprise Linux 7 Server
-    *  Fedora 20 or later recommended
-    *  Linux kernel 3.12.9 or later
+    *  Red Hat Enterprise Linux 7 Server (preferred for development)
+    *  Red Hat Enterprise Linux Atomic Host (preferred for testing)
+    *  Fedora 22 or later including Atomic (not all tests may function)
 
 *  Platform Applications/tools
 
+    *  Autotest 0.16.0 or later (preferred).
     *  Coreutils or equivalent (i.e. ``cat``, ``mkdir``, ``tee``, etc.)
     *  Tar and supported compression programs (``bzip2``, ``gzip``, etc.)
     *  nfs-utils (nfs-server support daemons)
     *  Git (and basic familiarity with its operation)
-    *  Python 2.6 or greater (but not 3.0)
+    *  Python 2.6 or greater (not 3.0)
     *  Optional (for building documentation), ``make``, ``python-sphinx``,
        and ``docutils`` or equivalent for your platform.
-    *  Autotest 0.16.0 or later, precise, specific version is configurable.
-    *  Basic iptables based firewall, no ``firewalld`` or ``libvirtd`` running.
-    *  (Optional) python-bugzilla (or equivalent) for test control based
+    *  Optional (for running unittests), ``pylint``, ``pep8``,
+       ``python-unittest2``, ``python2-mock`` and ``python-nose``.
+    *  (Optional) ``python-bugzilla`` for test exclusion based
        upon bug status.  See section `bugzilla_integration`_
 
 
 *  **Any specific requirements for particular** `subtest modules`_.
    In particular:
 
+    *  Direct root access for running docker, restarting the daemon,
+       and accessing metadata / storage details.  Running through
+       sudo may work to a degree, but is likely to cause problems.
     *  Access to a remote (to the host) image registry via ``docker pull``,
        ``http``, ``https``, and ``git``.
     *  External testing dependencies must be usable by tests w/in fixed
@@ -118,12 +122,14 @@ Quickstart
 ----------------
 
 #.  Double-check you meet all the requirements in `docker_autotest_prereq`_.
-#.  Clone autotest into ``/usr/local/autotest``
+#.  As ``root``, clone autotest into ``/var/lib/autotest``
+#.  Set and export the ``AUTOTEST_PATH`` environment variable.
 
 ::
 
-    [root@docker ~]# cd /usr/local
-    [root@docker local]# ``git clone https://github.com/autotest/autotest.git autotest``
+    [root@docker ~]# cd /var/lib
+    [root@docker lib]# git clone https://github.com/autotest/autotest.git autotest
+    [root@docker lib]# export AUTOTEST_PATH=/var/lib/autotest
 
 #.  Change to the ``client/tests`` subdirectory.
 #.  Clone the `autotest-docker`_ repository into the ``docker`` subdirectory.
@@ -132,11 +138,10 @@ Quickstart
 
 ::
 
-    [root@docker local]# cd autotest/client/tests
+    [root@docker lib]# cd autotest/client/tests
     [root@docker tests]# git clone https://github.com/autotest/autotest-docker.git docker
 
 #.  Change into newly checked out repository directory.
-#.  Check out the most recent release by tag.
 #.  Make a copy of default configuration, edit as appropriate.  Particularly
     the options for ``docker_repo_name``, ``docker_repo_tag``,
     ``docker_registry_host``, and ``docker_registry_user`` (see
@@ -145,7 +150,6 @@ Quickstart
 ::
 
     [root@docker tests]# cd docker
-    [root@docker docker]# git checkout $(git tag --list | tail -1)
     [root@docker docker]# cp -abi config_defaults/defaults.ini config_custom/
     [root@docker docker]# vi config_custom/defaults.ini
 
@@ -153,8 +157,11 @@ Quickstart
 
 ::
 
-    [root@docker docker]# cd /usr/local/autotest/client
+    [root@docker docker]# cd /var/lib/autotest/client
 
+#.  Verify you don't have any valuable images or running containers.  They
+    will be destroyed, unless configured by name or ID in ``preserve_fqins``
+    and/or ``preserve_cnames`` configuration options.
 #.  Run the autotest standalone client (``autotest-local run docker``).  The
     default behavior is to run all subtests.  However, the example below
     demonstrates using the ``--args`` parameter to select *only two* subtests:
@@ -162,7 +169,7 @@ Quickstart
 ::
 
     [root@docker client]# ./autotest-local run docker --args example,docker_cli/version
-    Writing results to /usr/local/autotest/client/results/default
+    Writing results to /var/lib/autotest/client/results/default
     START   ----    ----
         START   docker/subtests/example.test_1-of-2
             RUNNING ----    INFO: initialize()
