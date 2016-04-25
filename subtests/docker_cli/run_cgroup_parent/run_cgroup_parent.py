@@ -161,9 +161,10 @@ class run_cgroup_parent_invalid_name(run_cgroup_parent_base):
     def initialize(self):
         super(run_cgroup_parent_invalid_name, self).initialize()
         self._setup("/{rand1}")
-        self._expect(stderr="Error response from daemon:"
-                     " Cannot start container {cid}: [8] System error:"
-                     " Invalid slice name /{rand1}")
+        self._expect(stderr="docker: Error response from daemon:"
+                     " cgroup-parent for systemd cgroup should be a"
+                     " valid slice named as \"xxx.slice\".\n"
+                     "See '/usr/bin/docker run --help'.")
 
 
 class run_cgroup_parent_path(run_cgroup_parent_base):
