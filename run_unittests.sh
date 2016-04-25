@@ -13,6 +13,8 @@ do
     sleep "0.1s"
     wait %- &> /dev/null
     RET=$?
+
+    if [ $RET -ne 0 -a $RET -ne 127 ]; then exit $RET; fi
 done
 
 if [ -n "$AUTOTEST_PATH" ]
@@ -32,7 +34,8 @@ fi
 # FIXME: find a way to have nosetests recurse, or move the tests into
 #        a directory structure that nose can handle.
 for unittest in $(find subtests -name 'test_*.py'); do
-    nosetests -v $unittest
+    echo $unittest
+    nosetests -v $unittest || exit 1
 done
 
 echo ""

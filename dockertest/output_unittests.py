@@ -268,6 +268,29 @@ fedora                        latest              58394af373423902a1b97f209a31e3
         sr = tt.find('TAG', 'rawhide')
         self.assertEqual(sr['REPOSITORY'], 'fedora')
 
+    def test_images_d110(self):
+        """
+        New format for docker-1.10: VIRTUAL SIZE heading is now just SIZE,
+        and container IDs include the 'sha256:' prefix.
+        """
+        tt = self.TT("""REPOSITORY                    TAG                 IMAGE ID                                                                  CREATED             SIZE
+192.168.122.245:5000/fedora   32                  sha256:0d20aec6529d5d396b195182c0eaa82bfe014c3e82ab390203ed56a774d2c404   5 weeks ago         387 MB
+fedora                        32                  sha256:0d20aec6529d5d396b195182c0eaa82bfe014c3e82ab390203ed56a774d2c404   5 weeks ago         387 MB
+fedora                        rawhide             sha256:0d20aec6529d5d396b195182c0eaa82bfe014c3e82ab390203ed56a774d2c404   5 weeks ago         387 MB
+192.168.122.245:5000/fedora   latest              sha256:58394af373423902a1b97f209a31e3777932d9321ef10e64feaaa7b4df609cf9   5 weeks ago         385.5 MB
+fedora                        20                  sha256:58394af373423902a1b97f209a31e3777932d9321ef10e64feaaa7b4df609cf9   5 weeks ago         385.5 MB
+fedora                        heisenbug           sha256:58394af373423902a1b97f209a31e3777932d9321ef10e64feaaa7b4df609cf9   5 weeks ago         385.5 MB
+fedora                        latest              sha256:58394af373423902a1b97f209a31e3777932d9321ef10e64feaaa7b4df609cf9   5 weeks ago         385.5 MB
+""")
+        self.assertEqual(tt.columnranges.values(),
+                         ['REPOSITORY', 'TAG', 'IMAGE ID', 'CREATED',
+                          'SIZE'])
+        sr = tt.search('IMAGE ID', ('sha256:58394af373423902a1b97f209a31e3777932'
+                                    'd9321ef10e64feaaa7b4df609cf9'))
+        self.assertEqual(len(sr), 4)
+        sr = tt.find('TAG', 'rawhide')
+        self.assertEqual(sr['REPOSITORY'], 'fedora')
+
     def test_containers(self):
         tt = self.TT("""CONTAINER ID                                                       IMAGE               COMMAND                                                                                                                   CREATED              STATUS                          PORTS               NAMES               SIZE
 96e1db5c0fd559d7ad4c472425c8b5f1f5b8c3b5952cc1fdc3eee846f6b33fea   fedora:20           bash -c 'echo 'this is a really really really really super big really really really really long command' > /tmp/foobar'   About a minute ago   Exited (0) About a minute ago                       dreamy_brattain     166 B

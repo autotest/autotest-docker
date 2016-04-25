@@ -235,7 +235,7 @@ class DockerImageTestBasic(ImageTestBase):
                          " DockerImage(full_name:fedora:32 LONG_ID:0d20aec6529d5d396b195182c0eaa82bfe014c3e82ab390203ed56a774d2c404 CREATED:5 weeks ago SIZE:387 MB),"
                          " DockerImage(full_name:fedora:rawhide LONG_ID:0d20aec6529d5d396b195182c0eaa82bfe014c3e82ab390203ed56a774d2c404 CREATED:5 weeks ago SIZE:387 MB)]",)
 
-    def test_name_comparsion_dockerimage(self):
+    def test_name_comparison_dockerimage(self):
         di_ref = self.images.DockerImage("fedora_repo", "last_tag",
                                          ("0d20aec6529d5d396b195182c0eaa82bfe0"
                                           "14c3e82ab390203ed56a774d2c404"),
@@ -316,6 +316,20 @@ class DockerImageTestBasic(ImageTestBase):
         act = self.images.DockerImage.full_name_from_defaults(config)
         self.assertEqual(act, 'fedora')
 
+    def test_docker_110_id_parsing(self):
+        """
+        Docker 1.10 image and container IDs include a "sha256:" prefix;
+        make sure our parsing code strips off the prefix but still returns
+        a valid short_id
+        """
+        id_components = ["sha256:", "0123456789ab",    # <-- 12-char short id
+                         "9dcfe46a8f465344284a3538cd"  # <-- + 52 chars = 64
+                         "6b0beeb18b4f249619fec4a659"]
+        long_id = "".join(id_components)
+        di = self.images.DockerImage("myrepo", "a", long_id, "bb", "cc", "dd")
+        self.assertEqual(di.long_id, long_id)
+        self.assertEqual(di.short_id, id_components[1])
+
     def test_bastard_repo(self):
         test = "bAsTaRd-rEPo.lOcAl_hOsT:1073741824/.b+o-F_H./a.s-d_f:F.d-S_a"
         DI = self.images.DockerImage
@@ -340,6 +354,19 @@ class DockerImageTestBasic(ImageTestBase):
         self.assertEqual(tag, 'tag')
         self.assertEqual(user, None)
         self.assertEqual(addr, "address:1234")
+
+    def test_empty_tag(self):
+        """
+        Empty tag names seen in docker-1.9 output of 'docker events'
+        in some tag actions. docker-1.10 seems to forbid trailing colon.
+        """
+        test = "myname:"   # note the trailing colon with no actual tag name
+        DI = self.images.DockerImage
+        repo, tag, addr, user = DI.split_to_component(test)
+        self.assertEqual(repo, 'myname')
+        self.assertEqual(tag, '')
+        self.assertEqual(user, None)
+        self.assertEqual(addr, None)
 
     def test_remove_cli(self):
         d = self.images.DockerImages(self.fake_subtest, 1.0, True)

@@ -1,3 +1,5 @@
+#
+# coding: utf-8
 r"""
 Summary
 ----------
@@ -34,58 +36,13 @@ from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.xceptions import DockerValueError
 
 
-cid_regex = re.compile(r'\s+([a-z0-9]{64})\:\s+')
-fqin_regex = DockerImage.repo_split_p
-source_regex = re.compile(r'\s+\(from\s+\S+\)\s+')
-operation_regex = re.compile(r'\s+(\w+)$')  # final word chars
-
-
-def event_dt(line):
-    try:
-        return DockerTime(line)
-    except (AttributeError, TypeError, ValueError):  # failed
-        return None
-
-
-def event_cid(line):
-    mobj = cid_regex.search(line)
-    if mobj is not None:
-        return mobj.group(1)
-    else:
-        return None
-
-
-def event_fqin(line):
-    mobj = fqin_regex.search(line)
-    if mobj is not None:
-        return mobj.group(0)
-    else:
-        return None
-
-
-def event_source(line):
-    mobj = source_regex.search(line)
-    if mobj is not None:
-        # Verifies formatting
-        containerid = "".join([s for s in mobj.group(0)
-                               if s is not None])
-        return containerid
-    else:
-        return None
-
-
-def event_operation(line):
-    mobj = operation_regex.search(line)
-    if mobj is not None:
-        return mobj.group(1)
-    else:
-        return None
-
-
-def event_details(line):
-    return {'datetime': event_dt(line),
-            'source': event_source(line),
-            'operation': event_operation(line)}
+regexes = {
+    'timestamp': r'[\d-]+T[\d:]+\.\d+[+-][\d:]+',   # <iso8601>.<µs>[+/-]HH:MM
+    'cid':       r'(sha256:)?[0-9a-fA-F]{64}',      # 64-char hash
+    'fqin':      DockerImage.repo_split_p.pattern,  # eg some.repo/image:tag
+    'operation': r'[\w-]+',                         # eg create, archive-path
+    'source':    r'\S+'                             # canonical image name
+}
 
 
 def is_dupe_event(needle, haystack):
@@ -98,21 +55,70 @@ def is_dupe_event(needle, haystack):
     return False
 
 
+def parse_event_docker_110(line):
+    """
+    Try to parse input as a docker 1.10 event
+    """
+    # eg <timestamp> container start <sha> (details)
+    event_re = re.compile(r'^(?P<timestamp>{timestamp})'
+                          r'\s+(?P<object>\w+)'
+                          r'\s+(?P<operation>{operation})'
+                          r'\s+(?P<identifier>{cid}|{fqin})'
+                          r'\s+\((?P<rest>.*)\)'.format(**regexes))
+    mobj = event_re.match(line)
+    if mobj is None:
+        return None
+
+    # Matched! Extract the positional fields, then try looking for source img
+    details = {
+        'datetime':   DockerTime(mobj.group('timestamp')),
+        'identifier': mobj.group('identifier'),
+        'object':     mobj.group('object'),
+        'operation':  mobj.group('operation'),
+        'source':     None,
+    }
+    # TODO: (maybe): split out components of the parenthesized list.
+    # If so, keep in mind that you can't just split on commas (because
+    # of "Red Hat, Inc.") and that the fields are output in unpredictable
+    # order: even two consecutive event lines will have different ordering.
+    source_re = re.compile(r'(^|\s)image=(?P<image>\S+)(,|$)')
+    mobj2 = source_re.search(mobj.group('rest'))
+    if mobj2 is not None:
+        details['source'] = mobj2.group('image')
+    return details
+
+
+def parse_event_docker_109(line):
+    """
+    Try to parse input as a docker < 1.10 event
+    """
+    # eg <timestamp> <sha> (from <source>) start
+    event_re = re.compile(r'^(?P<timestamp>{timestamp})'
+                          r'\s+(?P<identifier>{cid}|{fqin}):'
+                          r'(\s+\(from (?P<source>{source})\))?'
+                          r'\s+(?P<operation>{operation})'.format(**regexes))
+    mobj = event_re.match(line)
+    if mobj is not None:
+        return {
+            'datetime':   DockerTime(mobj.group('timestamp')),
+            'identifier': mobj.group('identifier'),
+            'source':     mobj.group('source'),
+            'operation':  mobj.group('operation'),
+        }
+    return None
+
+
 def parse_event(line):
     """
-    Return tuple(CID/FQIN, {DETAILS}) from parsing line
+    Return {DETAILS} from parsing line
 
     :param line: String-like containing a single event line
-    :returns: (CID/FQIN, {DETAILS}) from parsing line or None if unparseable
+    :returns: {DETAILS} from parsing line or None if unparseable
     """
-    identifier = event_cid(line)
-    if identifier is None:
-        identifier = event_fqin(line)
-    details = event_details(line)
-    if identifier is None or details['datetime'] is None:
-        return None  # unparseable line
-    else:
-        return (identifier, details)
+    details = parse_event_docker_110(line)
+    if details is None:
+        details = parse_event_docker_109(line)
+    return details
 
 
 def parse_events(lines, slop=None):
@@ -120,7 +126,7 @@ def parse_events(lines, slop=None):
     Return list of tuples for valid lines returned by parse_events()
 
     :param lines: String containing events, one per line
-    :param slop: number of unparseable lines to tollerate, None/- to disable
+    :param slop: number of unparseable lines to tolerate, None/- to disable
     :returns: List of tuple(CID, {DETAILS}) as returned from parse_events()
     """
     sloppy = []
@@ -128,12 +134,9 @@ def parse_events(lines, slop=None):
     n_lines = 0
     for line in lines.splitlines():
         n_lines += 1
-        if len(line) < 64:   # len of a cid
-            sloppy.append(line)
-            continue
         cid_details = parse_event(line)
         if cid_details is not None:
-            result.append(cid_details)
+            result.append((cid_details['identifier'], cid_details))
         else:
             sloppy.append(line)
         if slop is not None and slop >= 0:
@@ -239,7 +242,8 @@ class events(Subtest):
         cid_events = events_by_id(all_events)
         cid = self.stuff['nfdc_cid']
         self.failif(cid not in cid_events,
-                    'Test container cid %s does not appear in events' % cid)
+                    'Test container cid %s does not appear in events %s'
+                    % (cid, cid_events))
         test_events = cid_events[cid]
         for event in test_events:
             if event['operation'] in self.stuff['leftovers']:

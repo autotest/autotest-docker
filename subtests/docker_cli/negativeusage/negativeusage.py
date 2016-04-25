@@ -39,7 +39,7 @@ from dockertest import images
 from dockertest import config
 from dockertest import output
 from dockertest import xceptions
-from dockertest.output import mustpass
+from dockertest.output import mustpass, mustfail
 
 
 class NoisyCmd(dockercmd.DockerCmd):
@@ -180,8 +180,7 @@ class Base(subtest.SubSubtest):
         NoPanic(self.sub_stuff['cmdresult'])
         expected_exit_status = self.config['extcmd']
         cmdresult = self.sub_stuff['cmdresult']
-        self.failif_ne(cmdresult.exit_status, expected_exit_status,
-                       "Exit status: %s" % cmdresult)
+        mustfail(cmdresult, expected_exit_status)
         # Same checks for both
         for outtype in ('stdout', 'stderr'):
             if self.sub_stuff[outtype] is not None:

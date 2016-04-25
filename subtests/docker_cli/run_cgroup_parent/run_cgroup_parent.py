@@ -72,7 +72,7 @@ class run_cgroup_parent_base(SubSubtest):
         super(run_cgroup_parent_base, self).postprocess()
 
         cmdresult = self.sub_stuff["cmdresult"]
-        OutputGood(cmdresult, ignore_error=False)
+        OutputGood(cmdresult, ignore_error=True)
 
         self.sub_stuff["cid"] = self._read_cid()
         path_exp = self.sub_stuff['expected_path'].format(**self.sub_stuff)
@@ -117,7 +117,10 @@ class run_cgroup_parent_base(SubSubtest):
         Read container ID from --cidfile file, so we can replace {cid}
         in format string and do an exact match on expected values.
         """
-        cid = open(self.sub_stuff['cidfile'], 'rb').read().strip()
+        try:
+            cid = open(self.sub_stuff['cidfile'], 'rb').read().strip()
+        except IOError:
+            return "<n/a>"         # no cidfile, e.g. because of bad command
         if len(cid) < 12:
             raise DockerTestError("bad cid (length < 12) in --cidfile")
         return cid
