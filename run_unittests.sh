@@ -19,7 +19,7 @@ done
 
 if [ -n "$AUTOTEST_PATH" ]
 then
-    export PYTHONPATH=$(dirname $AUTOTEST_PATH)
+    export PYTHONPATH=$(dirname $AUTOTEST_PATH):$(dirname $0)
 else
     python -c 'import autotest'
     if [ "$?" -ne "0" ]
@@ -28,14 +28,15 @@ else
              "AUTOTEST_PATH env. var. is not set"
         exit 1
     fi
+    export PYTHONPATH=$(dirname $0)
 fi
 
-# Unit tests for subtests.
-# FIXME: find a way to have nosetests recurse, or move the tests into
-#        a directory structure that nose can handle.
+# Unit tests for subtests. Due to autotest layout, the subtest directories
+# aren't importable or discoverable by python itself. We have to do our
+# own discovery.
 for unittest in $(find subtests -name 'test_*.py'); do
     echo $unittest
-    nosetests -v $unittest || exit 1
+    python $unittest -v || exit 1
 done
 
 echo ""

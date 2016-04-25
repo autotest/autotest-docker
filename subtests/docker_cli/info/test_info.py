@@ -5,16 +5,7 @@
 # As of 2016-02-12 this only includes verify_pool_name(); we'll try to
 # extend coverage as needed.
 #
-# RUNNING:
-#
-#   $ nosetests -v subtests/docker_cli/info
-#
-# This assumes that your autotest-docker is checked out underneath
-# the client/tests subdirectory of a checked-out autotest repo,
-# *and* that the autotest repo is called "autotest" (e.g. not "my-autotest").
-# Also: you can't just run nosetests and hope it'll recurse. It won't.
-#
-# Yeah. Sorry. There's indubitably a better way. Please fix if you know how.
+# RUNNING: see run_unittests.sh in the top level of docker-autotest
 #
 from unittest2 import TestCase, main        # pylint: disable=unused-import
 from mock import Mock, patch
@@ -91,3 +82,6 @@ class TestVerifyPoolName(TestCase):
                            " (from docker info) not found in dmsetup ls"
                            " list '['rhel-docker--pool_tdata',"
                            " 'rhel-docker--pool_tmeta']'")
+
+if __name__ == '__main__':
+    main()

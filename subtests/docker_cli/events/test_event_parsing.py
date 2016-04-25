@@ -146,3 +146,6 @@ class TestEventParsing(TestCase):
         actual = events.parse_events(event_log)
         self.maxDiff = None
         self.assertEqual(actual, expect)
+
+if __name__ == '__main__':
+    main()

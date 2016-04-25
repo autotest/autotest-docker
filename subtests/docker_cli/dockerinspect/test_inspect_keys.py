@@ -268,3 +268,6 @@ class TestFilterKeys(TestCase):
             raised = True
         if not raised:
             self.fail("Known-bad test did not raise exception.")
+
+if __name__ == '__main__':
+    main()
