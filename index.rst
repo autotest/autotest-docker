@@ -95,7 +95,7 @@ Prerequisites
     *  Optional (for building documentation), ``make``, ``python-sphinx``,
        and ``docutils`` or equivalent for your platform.
     *  Optional (for running unittests), ``pylint``, ``pep8``,
-       ``python-unittest2``, ``python2-mock`` and ``python-nose``.
+       ``python-unittest2``, and ``python2-mock``.
     *  (Optional) ``python-bugzilla`` for test exclusion based
        upon bug status.  See section `bugzilla_integration`_
 
