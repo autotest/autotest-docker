@@ -112,7 +112,7 @@ check_dockertest() {
 
 check_dockertests() {
     echo -e "\n\n======================================= dockertest"
-    find dockertest -name '*.py' -a -not -name '*_unittest*.py' | \
+    find dockertest -name '*.py' -a -not -name '*_unittest*.py' | sort | \
     while read LINE; do
         trap "break" INT
         check_dockertest "${LINE}"
@@ -148,7 +148,7 @@ check_subtests() {
     do
         trap "break" INT
         echo -e "\n\n======================================= ${thing}"
-        find ${thing} -name '*.py' | while read LINE; do
+        find ${thing} -name '*.py' | sort | while read LINE; do
             trap "break" INT
             check_subtest "${LINE}"
         done || exit 1
