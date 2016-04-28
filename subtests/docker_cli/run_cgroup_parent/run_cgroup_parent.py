@@ -40,7 +40,7 @@ class run_cgroup_parent_base(SubSubtest):
         self.sub_stuff['rand2'] = utils.generate_random_string(8)
         self.sub_stuff['cgroup_parent'] = cg_parent.format(**self.sub_stuff)
 
-    def _expect(self, path=None, stderr=None):
+    def _expect(self, path=None, stderr=None, exit_status=0):
         """
         Set up test parameters: what to expect on completion.
         The format strings {rand1} and {rand2} will be replaced with the
@@ -49,6 +49,7 @@ class run_cgroup_parent_base(SubSubtest):
         """
         self.sub_stuff['expected_path'] = path if path else ''
         self.sub_stuff['expected_stderr'] = stderr if stderr else ''
+        self.sub_stuff['expected_status'] = exit_status
 
     def run_once(self):
         """
@@ -72,7 +73,8 @@ class run_cgroup_parent_base(SubSubtest):
         super(run_cgroup_parent_base, self).postprocess()
 
         cmdresult = self.sub_stuff["cmdresult"]
-        OutputGood(cmdresult, ignore_error=True)
+        expected_status = self.sub_stuff["expected_status"]
+        OutputGood(cmdresult, ignore_error=(expected_status != 0))
 
         self.sub_stuff["cid"] = self._read_cid()
         path_exp = self.sub_stuff['expected_path'].format(**self.sub_stuff)
@@ -86,7 +88,13 @@ class run_cgroup_parent_base(SubSubtest):
         stderr = "\n".join([line
                             for line in cmdresult.stderr.strip().split("\n")
                             if not line.startswith('time="')])
-        self.failif_ne(stderr, stderr_exp, "stderr")
+        if stderr_exp:
+            re_stderr = re.compile(stderr_exp)
+            if not re.match(re_stderr, stderr):
+                raise DockerTestFail("expected '%s' not found in stderr ('%s')"
+                                     % (stderr_exp, stderr))
+        else:
+            self.failif_ne(stderr, stderr_exp, "unexpected stderr")
 
         # If we're expecting stdout, it must contain multiple lines each
         # of the form:
@@ -111,6 +119,9 @@ class run_cgroup_parent_base(SubSubtest):
                 raise DockerTestFail("No output from cgroups")
         else:
             self.failif_ne(stdout, '', "unexpected output on stdout")
+
+        # Check exit code last: the stdout/stderr diagnostics are more helpful
+        self.failif_ne(cmdresult.exit_status, expected_status, "exit status")
 
     def _read_cid(self):
         """
@@ -161,10 +172,7 @@ class run_cgroup_parent_invalid_name(run_cgroup_parent_base):
     def initialize(self):
         super(run_cgroup_parent_invalid_name, self).initialize()
         self._setup("/{rand1}")
-        self._expect(stderr="docker: Error response from daemon:"
-                     " cgroup-parent for systemd cgroup should be a"
-                     " valid slice named as \"xxx.slice\".\n"
-                     "See '/usr/bin/docker run --help'.")
+        self._expect(stderr=self.config['expect_stderr'], exit_status=125)
 
 
 class run_cgroup_parent_path(run_cgroup_parent_base):
