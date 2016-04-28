@@ -95,7 +95,7 @@ class stress(kill_base):
         if sigproxy:
             self.sub_stuff['kill_cmds'].append(False)
         else:
-            dcmd = DockerCmd(self, 'kill', extra_subargs, verbose=False)
+            dcmd = DockerCmd(self, 'kill', extra_subargs)
             self.sub_stuff['kill_cmds'].append(dcmd)
         self.sub_stuff['signals_set'] = signals_set
 

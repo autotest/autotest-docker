@@ -79,9 +79,8 @@ class build(subtest.SubSubtestCaller):
             for cid in self.stuff['dc'].list_container_ids():
                 if cid in self.stuff['existing_containers']:
                     continue    # don't remove previously existing ones
-                self.logdebug("Remoivng container %s", cid)
-                dcmd = DockerCmd(self, 'rm', ['--force', '--volumes', cid],
-                                 verbose=False)
+                self.logdebug("Removing container %s", cid)
+                dcmd = DockerCmd(self, 'rm', ['--force', '--volumes', cid])
                 dcmd.execute()
             dimg = self.stuff['di']
             base_repo_fqin = DockerImage.full_name_from_defaults(self.config)
@@ -96,9 +95,8 @@ class build(subtest.SubSubtestCaller):
                     # never ever remove base_repo_fqin under any circumstance
                     if thing == base_repo_fqin:
                         continue
-                self.logdebug("Remoivng image %s", img)
-                dcmd = DockerCmd(self, 'rmi', ['--force', thing],
-                                 verbose=False)
+                self.logdebug("Removing image %s", img)
+                dcmd = DockerCmd(self, 'rmi', ['--force', thing])
                 dcmd.execute()
 
 
@@ -368,7 +366,7 @@ class postprocessing(object):
         else:
             cmd = 'ls -la "%s"' % path
         subargs = ['--rm', '--attach', 'stdout', build_def.image_name, cmd]
-        dkrcmd = DockerCmd(self, 'run', subargs, verbose=False)
+        dkrcmd = DockerCmd(self, 'run', subargs)
         dkrcmd.quiet = True
         dkrcmd.execute()
         exists = dkrcmd.exit_status == 0
@@ -470,7 +468,7 @@ class build_base(postprocessing, subtest.SubSubtest):
             os.chdir(dockerfile_dir_path)
         subargs = docker_build_options + ["-t", image_name,
                                           dockerfile_dir_path]
-        dockercmd = DockerCmd(self, 'build', subargs, verbose=True)
+        dockercmd = DockerCmd(self, 'build', subargs)
         # Pass as keywords allows ignoring parameter order
         return [self.BuildDef(image_name=image_name,
                               dockercmd=dockercmd,
@@ -510,9 +508,8 @@ class build_base(postprocessing, subtest.SubSubtest):
             for cid in self.sub_stuff['dc'].list_container_ids():
                 if cid in self.sub_stuff['existing_containers']:
                     continue    # don't remove previously existing ones
-                self.logdebug("Remoivng container %s", cid)
-                dcmd = DockerCmd(self, 'rm', ['--force', '--volumes', cid],
-                                 verbose=False)
+                self.logdebug("Removing container %s", cid)
+                dcmd = DockerCmd(self, 'rm', ['--force', '--volumes', cid])
                 dcmd.execute()
             dimg = self.sub_stuff['di']
             base_repo_fqin = DockerImage.full_name_from_defaults(self.config)
@@ -527,9 +524,8 @@ class build_base(postprocessing, subtest.SubSubtest):
                     # never ever remove base_repo_fqin under any circumstance
                     if thing == base_repo_fqin:
                         continue
-                self.logdebug("Remoivng image %s", img)
-                dcmd = DockerCmd(self, 'rmi', ['--force', thing],
-                                 verbose=False)
+                self.logdebug("Removing image %s", img)
+                dcmd = DockerCmd(self, 'rmi', ['--force', thing])
                 dcmd.execute()
 
 

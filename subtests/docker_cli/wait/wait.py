@@ -63,9 +63,7 @@ class WaitBase(SubSubtest):
                                                        str(target.sleep))
         subargs += get_as_list(target_cmd)
         timeout = self.config['target_timeout']
-        return DockerCmd(self, command, subargs,
-                         verbose=self.config['target_verbose'],
-                         timeout=timeout)
+        return DockerCmd(self, command, subargs, timeout=timeout)
 
     def target_wait_dkrcmd(self, name, fqin, setup, wait_opr, sleep):
         del sleep  # not used for now

@@ -32,11 +32,10 @@ class InteractiveAsyncDockerCmd(dockercmd.AsyncDockerCmd):
     with PIPE as stdin and allows use of stdin(data) to interact with process.
     """
 
-    def __init__(self, subbase, subcmd, subargs=None, timeout=None,
-                 verbose=True):
+    def __init__(self, subbase, subcmd, subargs=None, timeout=None):
         super(InteractiveAsyncDockerCmd, self).__init__(subbase, subcmd,
                                                         subargs, timeout,
-                                                        verbose)
+                                                        verbose=True)
         self._stdin = None
         self._stdout_idx = 0
 
@@ -145,8 +144,7 @@ class basic(subtest.SubSubtest):
                                                lambda x: mustfail(x, 125)))
         self._check_failure_cidfile_present(containers[-1])
         # restart container with cidfile
-        mustpass(dockercmd.DockerCmd(self, 'start', [name],
-                                     verbose=False).execute())
+        mustpass(dockercmd.DockerCmd(self, 'start', [name]).execute())
         is_alive = lambda: 'Up' in self._get_container_by_name(name).status
         self.failif(utils.wait_for(is_alive, 10) is None, "Container %s "
                     "was not restarted in 10 seconds." % name)

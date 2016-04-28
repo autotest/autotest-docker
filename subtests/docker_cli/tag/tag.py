@@ -58,10 +58,9 @@ class tag_base(SubSubtest):
 
     def prep_image(self, base_image):
         """ Tag the dockertest image to this test name """
-        mustpass(DockerCmd(self, "pull", [base_image],
-                           verbose=True).execute())
+        mustpass(DockerCmd(self, "pull", [base_image]).execute())
         subargs = [base_image, self.sub_stuff["image"]]
-        tag_results = DockerCmd(self, "tag", subargs, verbose=True).execute()
+        tag_results = DockerCmd(self, "tag", subargs).execute()
         if tag_results.exit_status:
             raise xceptions.DockerTestNAError("Problems during "
                                               "initialization of"
@@ -185,8 +184,8 @@ class double_tag(change_tag):
         super(double_tag, self).initialize()
         # Tag it for the first time. This should pass...
         self.sub_stuff['tmp_image_list'].add(self.sub_stuff["new_image_name"])
-        mustpass(DockerCmd(self, 'tag', self.complete_docker_command_line(),
-                           verbose=True).execute())
+        mustpass(DockerCmd(self, 'tag',
+                           self.complete_docker_command_line()).execute())
         # On docker 1.10, the second tag should pass. On < 1.10, fail.
         try:
             DockerVersion().require_server("1.10")

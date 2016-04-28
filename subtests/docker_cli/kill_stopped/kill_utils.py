@@ -80,7 +80,7 @@ class kill_base(subtest.SubSubtest):
         subargs.append("bash")
         subargs.append("-c")
         subargs.append(self.config['exec_cmd'])
-        container = AsyncDockerCmd(self, 'run', subargs, verbose=False)
+        container = AsyncDockerCmd(self, 'run', subargs)
         self.sub_stuff['container_cmd'] = container
         container.execute()
 
@@ -103,7 +103,7 @@ class kill_base(subtest.SubSubtest):
         subargs.append("bash")
         subargs.append("-c")
         subargs.append(self.config['exec_cmd'])
-        container = DockerCmd(self, 'run', subargs, verbose=False)
+        container = DockerCmd(self, 'run', subargs)
         self.sub_stuff['container_cmd'] = container
         mustpass(container.execute())
 
@@ -113,7 +113,7 @@ class kill_base(subtest.SubSubtest):
         else:
             subargs = []
         subargs.append(name)
-        container = AsyncDockerCmd(self, 'attach', subargs, verbose=False)
+        container = AsyncDockerCmd(self, 'attach', subargs)
         self.sub_stuff['container_cmd'] = container  # overwrites finished cmd
         container.execute()
 
@@ -199,8 +199,7 @@ class kill_base(subtest.SubSubtest):
                     sig_long = False
                 else:
                     subargs = ["-s %s" % signal] + extra_subargs
-                kill_cmds.append(DockerCmd(self, 'kill', subargs,
-                                           verbose=False))
+                kill_cmds.append(DockerCmd(self, 'kill', subargs))
 
         # Kill -9 is the last one :-)
         signal = 9
@@ -208,8 +207,7 @@ class kill_base(subtest.SubSubtest):
         if self.config.get('kill_map_signals'):
             signal = SIGNAL_MAP.get(signal, signal)
         kill_cmds.append(DockerCmd(self, 'kill',
-                                   ["-s %s" % signal] + extra_subargs,
-                                   verbose=False))
+                                   ["-s %s" % signal] + extra_subargs))
 
         if sigproxy:
             self.logdebug("kill_command_example: Killing directly the "

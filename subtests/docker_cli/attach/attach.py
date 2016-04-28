@@ -45,8 +45,7 @@ class attach_base(SubSubtest):
 
     def pull_image(self, image_name):
         dkrcmd = AsyncDockerCmd(self, 'pull', [image_name],
-                                self.config['docker_timeout'],
-                                verbose=True)
+                                self.config['docker_timeout'])
         self.loginfo("Executing background command: %s" % dkrcmd)
         dkrcmd.execute()
         while not dkrcmd.done:
@@ -91,8 +90,7 @@ class simple_base(attach_base):
         self.sub_stuff['file_desc'].append(run_in_pipe_r)
         self.sub_stuff['file_desc'].append(run_in_pipe_w)
         self.sub_stuff["run_in_pipe_w"] = run_in_pipe_w
-        dkrcmd = AsyncDockerCmd(self, 'run', self.sub_stuff['subargs'],
-                                verbose=True)
+        dkrcmd = AsyncDockerCmd(self, 'run', self.sub_stuff['subargs'])
 
         # Runs in background
         self.sub_stuff['cmdresult'] = dkrcmd.execute(run_in_pipe_r)
@@ -121,8 +119,7 @@ class simple_base(attach_base):
 
         self.sub_stuff['subargs_a'].append(self.sub_stuff["rand_name"])
 
-        dkrcmd = AsyncDockerCmd(self, 'attach', self.sub_stuff['subargs_a'],
-                                verbose=True)
+        dkrcmd = AsyncDockerCmd(self, 'attach', self.sub_stuff['subargs_a'])
         # Runs in background
         self.sub_stuff['cmd_attach'] = dkrcmd
         self.sub_stuff['cmdresult_attach'] = dkrcmd.execute(attach_in_pipe_r)
@@ -198,8 +195,7 @@ class sig_proxy_off_base(attach_base):
         self.sub_stuff['file_desc'].append(run_in_pipe_r)
         self.sub_stuff['file_desc'].append(run_in_pipe_w)
         self.sub_stuff["run_in_pipe_w"] = run_in_pipe_w
-        dkrcmd = AsyncDockerCmd(self, 'run', self.sub_stuff['subargs'],
-                                verbose=True)
+        dkrcmd = AsyncDockerCmd(self, 'run', self.sub_stuff['subargs'])
 
         # Runs in background
         self.sub_stuff['cmdresult'] = dkrcmd.execute(run_in_pipe_r)
@@ -224,8 +220,7 @@ class sig_proxy_off_base(attach_base):
 
         self.sub_stuff['subargs_a'].append(self.sub_stuff["rand_name"])
 
-        dkrcmd = AsyncDockerCmd(self, 'attach', self.sub_stuff['subargs_a'],
-                                verbose=True)
+        dkrcmd = AsyncDockerCmd(self, 'attach', self.sub_stuff['subargs_a'])
         # Runs in background
         self.sub_stuff['cmd_attach'] = dkrcmd
         self.sub_stuff['cmdresult_attach'] = dkrcmd.execute()

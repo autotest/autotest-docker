@@ -45,7 +45,7 @@ class images_all_base(SubSubtest):
         self.sub_stuff['containers'].append(name)
         subargs.append(fin)
         subargs.append(cmd)
-        mustpass(DockerCmd(self, 'run', subargs, verbose=False).execute())
+        mustpass(DockerCmd(self, 'run', subargs).execute())
         return name
 
     def _create_image(self, parent, prefix, cmd):
@@ -57,11 +57,10 @@ class images_all_base(SubSubtest):
         images = self.sub_stuff['di']
         cont_name = self._init_container("test", parent, [], cmd)
         img_name = images.get_unique_name(prefix)
-        dkrcmd = DockerCmd(self, "commit", [cont_name, img_name],
-                           verbose=False)
+        dkrcmd = DockerCmd(self, "commit", [cont_name, img_name])
         img_id = mustpass(dkrcmd.execute()).stdout.strip()
-        mustpass(DockerCmd(self, 'rm', ['--force', '--volumes', cont_name],
-                           verbose=False).execute())
+        mustpass(DockerCmd(self, 'rm',
+                           ['--force', '--volumes', cont_name]).execute())
         self.sub_stuff['images'].append(img_id)
         return [img_id, img_name]
 
@@ -135,8 +134,8 @@ class images_all_base(SubSubtest):
                             % (image[1], err_str()))
             if image[3] and image[4] is not None:
                 history = mustpass(DockerCmd(self, 'history',
-                                             ['--no-trunc', '-q', image[0]],
-                                             verbose=False).execute()).stdout
+                                             ['--no-trunc', '-q',
+                                              image[0]]).execute()).stdout
                 for parent in image[4]:
                     self.failif(parent not in history, "Parent image '%s' of "
                                 "image '%s' was not found in `docker history`:"
@@ -185,23 +184,23 @@ class two_images_with_parents(images_all_base):
         # Verify
         self.verify_images((test_a, test_a1, test_b, test_b1))
         # Untag test_a
-        mustpass(DockerCmd(self, 'rmi', [test_a[1]], verbose=False).execute())
+        mustpass(DockerCmd(self, 'rmi', [test_a[1]]).execute())
         test_a[3] = False   # exists, untagged
         # Verify
         self.verify_images((test_a, test_a1, test_b, test_b1))
         # Untag test_a.1
-        mustpass(DockerCmd(self, 'rmi', [test_a1[1]], verbose=False).execute())
+        mustpass(DockerCmd(self, 'rmi', [test_a1[1]]).execute())
         test_a1[2:4] = [False, False]   # doesn't exist, not tagged
         test_a[2:4] = [False, False]    # doesn't exist, not tagged
         # Verify
         self.verify_images((test_a, test_a1, test_b, test_b1))
         # Untag test_b.1
-        mustpass(DockerCmd(self, 'rmi', [test_b1[1]], verbose=False).execute())
+        mustpass(DockerCmd(self, 'rmi', [test_b1[1]]).execute())
         test_b1[2:4] = [False, False]  # doesn't exist, not tagged
         # Verify
         self.verify_images((test_a, test_a1, test_b, test_b1))
         # Remove the last image by id
-        mustpass(DockerCmd(self, 'rmi', [test_b[0]], verbose=False).execute())
+        mustpass(DockerCmd(self, 'rmi', [test_b[0]]).execute())
         test_b[2:4] = [False, False]    # doesn't exist, not tagged
         self.verify_images((test_a, test_a1, test_b, test_b1))
 

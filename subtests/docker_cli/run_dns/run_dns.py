@@ -38,8 +38,7 @@ class run_dns(subtest.Subtest):
         if search:
             for name in search:
                 subargs.insert(0, '--dns-search %s' % name)
-        return mustfail(DockerCmd(self, 'run', subargs,
-                                  verbose=False).execute(), 125)
+        return mustfail(DockerCmd(self, 'run', subargs).execute(), 125)
 
     def _execute_and_record(self, dns, search, dnss, searches):
         """ Execute and store the new dns/searches """
@@ -50,8 +49,7 @@ class run_dns(subtest.Subtest):
         if search:
             for name in search:
                 subargs.insert(0, '--dns-search %s' % name)
-        res = mustpass(DockerCmd(self, 'run', subargs,
-                                 verbose=False).execute())
+        res = mustpass(DockerCmd(self, 'run', subargs).execute())
         dnss.append(self.re_nameserver.findall(res.stdout))
         search = self.re_search.findall(res.stdout)
         self.failif(len(search) > 1, "Number of search lines is > 1:\n%s"

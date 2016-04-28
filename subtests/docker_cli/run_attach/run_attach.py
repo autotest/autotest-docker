@@ -53,7 +53,7 @@ class run_attach_base(subtest.SubSubtest):
         fin = DockerImage.full_name_from_defaults(self.config)
         subargs.append(fin)
         subargs.append(cmd)
-        cmd = DockerCmd(self, 'run', subargs, timeout=30, verbose=False)
+        cmd = DockerCmd(self, 'run', subargs, timeout=30)
         try:
             cmd.execute(cmd_input)
         finally:

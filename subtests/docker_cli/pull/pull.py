@@ -76,8 +76,7 @@ class pull_base(SubSubtest):
         image_fn = self.init_image_fn()
         # set by run_once()
         self.sub_stuff['image_list'] = []
-        dkrcmd = AsyncDockerCmd(self, 'pull',
-                                [image_fn], verbose=True)
+        dkrcmd = AsyncDockerCmd(self, 'pull', [image_fn])
         dkrcmd.quiet = False
         self.sub_stuff['dkrcmd'] = dkrcmd
         self.clean_all()

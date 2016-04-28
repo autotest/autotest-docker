@@ -110,8 +110,7 @@ class Base(subtest.SubSubtest):
         cntr = dockercmd.AsyncDockerCmd(self, 'run',
                                         ['--detach',
                                          self.sub_stuff['FQIN'],
-                                         'sleep 5m'],
-                                        verbose=False)
+                                         'sleep 5m'])
         cntr.execute()
         # cntr.stdout is a property
         if output.wait_for_output(lambda: cntr.stdout, r'^\w{64}$'):
@@ -122,8 +121,8 @@ class Base(subtest.SubSubtest):
         # Throw away cntr, all we need is the CID
         cntr = mustpass(dockercmd.DockerCmd(self, 'run',
                                             ['--detach',
-                                             self.sub_stuff['FQIN'], 'true'],
-                                            verbose=False).execute())
+                                             self.sub_stuff['FQIN'],
+                                             'true']).execute())
         # Only the CID is needed
         self.sub_stuff['STPCNTR'] = cntr.stdout.splitlines()[-1].strip()
 

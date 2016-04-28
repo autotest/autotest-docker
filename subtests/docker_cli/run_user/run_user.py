@@ -35,7 +35,7 @@ class run_user(subtest.SubSubtestCaller):
         fin = DockerImage.full_name_from_defaults(self.config)
         subargs.append(fin)
         subargs.append("cat /etc/passwd")
-        cmd = DockerCmd(self, 'run', subargs, verbose=False)
+        cmd = DockerCmd(self, 'run', subargs)
         result = cmd.execute()
         self.failif_ne(result.exit_status, 0,
                        "Failed to get container's /etc/passwd."
@@ -74,7 +74,7 @@ class run_user_base(subtest.SubSubtest):
         subargs.append("bash")
         subargs.append("-c")
         subargs.append(cmd)
-        self.sub_stuff['cmd'] = DockerCmd(self, 'run', subargs, verbose=False)
+        self.sub_stuff['cmd'] = DockerCmd(self, 'run', subargs)
 
     def _init_test_depenent(self):
         """

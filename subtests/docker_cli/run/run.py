@@ -49,8 +49,7 @@ class run_base(SubSubtest):
         subargs.append(self.config['cmd'])
 
     def init_dockercmd(self):
-        dkrcmd = DockerCmd(self, 'run', self.sub_stuff['subargs'],
-                           verbose=True)
+        dkrcmd = DockerCmd(self, 'run', self.sub_stuff['subargs'])
         self.sub_stuff['dkrcmd'] = dkrcmd
 
     def initialize(self):

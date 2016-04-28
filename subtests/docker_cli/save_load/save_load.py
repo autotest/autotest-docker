@@ -49,7 +49,7 @@ class save_load_base(SubSubtest):
         fin = DockerImage.full_name_from_defaults(self.config)
         subargs.append(fin)
         subargs.append(cmd)
-        container = DockerCmd(self, 'run', subargs, verbose=False)
+        container = DockerCmd(self, 'run', subargs)
         return container, name
 
     def initialize(self):
@@ -120,14 +120,12 @@ class simple(save_load_base):
                                       "tmpdir": self.tmpdir})
 
         dkrcmd = DockerCmd(self, 'save',
-                           [self.sub_stuff['save_ar']],
-                           verbose=True)
+                           [self.sub_stuff['save_ar']])
         self.sub_stuff['cmdresult_save'] = dkrcmd.execute()
 
         # Delete image
         dkrcmd = DockerCmd(self, 'rmi',
-                           [self.sub_stuff["rand_name"]],
-                           verbose=True)
+                           [self.sub_stuff["rand_name"]])
         self.sub_stuff['cmdresult_del'] = dkrcmd.execute()
 
         # Load image
@@ -137,8 +135,7 @@ class simple(save_load_base):
                                       "tmpdir": self.tmpdir})
 
         dkrcmd = DockerCmd(self, 'load',
-                           [self.sub_stuff['load_ar']],
-                           verbose=True)
+                           [self.sub_stuff['load_ar']])
         dkrcmd.verbose = True
         self.sub_stuff['cmdresult_load'] = dkrcmd.execute()
 
