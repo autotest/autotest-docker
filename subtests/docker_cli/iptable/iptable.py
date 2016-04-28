@@ -107,7 +107,7 @@ class iptable_base(SubSubtest):
     def run_once(self):
         super(iptable_base, self).run_once()
         subargs = self.sub_stuff['subargs']
-        mustpass(DockerCmd(self, 'run -d', subargs, verbose=True).execute())
+        mustpass(DockerCmd(self, 'run -d', subargs).execute())
         self.sub_stuff['rules_during'] = self.read_iptable_rules(None)
 
     def postprocess(self):

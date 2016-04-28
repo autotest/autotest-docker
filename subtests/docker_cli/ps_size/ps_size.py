@@ -39,7 +39,7 @@ class ps_size_base(SubSubtest):
         fin = DockerImage.full_name_from_defaults(self.config)
         subargs.append(fin)
         subargs.append(cmd)
-        dkrcmd = DockerCmd(self, 'run', subargs, verbose=False)
+        dkrcmd = DockerCmd(self, 'run', subargs)
         return dkrcmd
 
     def initialize(self):

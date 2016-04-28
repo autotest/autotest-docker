@@ -74,7 +74,7 @@ class spam(SubSubtest):
             subargs.append("%s=%s" % (key, value))
         subargs.append(DockerImages(self).default_image)
         subargs.append("bash -c 'env > /x/env.output'")
-        _ = DockerCmd(self, 'run', subargs, verbose=False)
+        _ = DockerCmd(self, 'run', subargs)
         _.quiet = True
         self.sub_stuff['dkrcmd'] = _
 

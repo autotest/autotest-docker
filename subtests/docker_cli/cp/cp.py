@@ -149,8 +149,7 @@ class every_last(CpBase):
                    "--attach=stdout",
                    fqin,
                    "python -c '%s'" % code]
-        # Data transfered over stdout, don't log it!
-        nfdc = DockerCmd(self, "run", subargs, verbose=False)
+        nfdc = DockerCmd(self, "run", subargs)
         nfdc.quiet = True
         self.logdebug("Executing %s", nfdc.command)
         mustpass(nfdc.execute())
@@ -175,8 +174,7 @@ class every_last(CpBase):
                     % (self.config['max_files'], total))
         self.loginfo("Testing copy of %d files from container" % total)
         self.sub_stuff['results'] = {}  # cont_path -> cmdresult
-        # Avoid excessive logging
-        nfdc = DockerCmd(self, 'cp', verbose=False)
+        nfdc = DockerCmd(self, 'cp')
         nfdc.quiet = True
         nfiles = 0
         for index, srcfile in enumerate(self.sub_stuff['lastfiles']):

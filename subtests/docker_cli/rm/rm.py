@@ -41,7 +41,7 @@ class rm_sub_base(SubSubtest):
         # Can't use containers module b/c "rm" is the test-subject
         subargs = self.config['rm_options_csv'].strip().split(',')
         subargs.append(what)
-        rm_cmd = DockerCmd(self, 'rm', subargs, verbose=True)
+        rm_cmd = DockerCmd(self, 'rm', subargs)
         self.sub_stuff['rm_cmdresult'] = rm_cmd.execute()
         wait_rm = self.config['wait_rm']
         self.loginfo("Sleeping %d seconds after rm",

@@ -79,7 +79,7 @@ class Base(SubSubtest):
         subargs += get_as_list(self.config['extra_create_args'])
         subargs += [fqin, command]
         subargs += args.strip().split()
-        dockercmd = cls(self, 'create', subargs, verbose=True)
+        dockercmd = cls(self, 'create', subargs)
         dockercmd.quiet = True
         if execute:
             dockercmd.execute()
@@ -97,7 +97,7 @@ class Base(SubSubtest):
         :return: A new DockerCmd instance
         """
         subargs = get_as_list(self.config['extra_start_args']) + [name]
-        dockercmd = cls(self, 'start', subargs, verbose=True)
+        dockercmd = cls(self, 'start', subargs)
         dockercmd.quiet = True
         if execute:
             dockercmd.execute()
@@ -117,7 +117,7 @@ class Base(SubSubtest):
         subargs = args.strip().split()
         subargs += [name]
         # This is test subject, provide additional details
-        dockercmd = cls(self, 'logs', subargs, verbose=True)
+        dockercmd = cls(self, 'logs', subargs)
         dockercmd.quiet = False
         if execute:
             dockercmd.execute()

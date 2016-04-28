@@ -44,7 +44,7 @@ class create_remote_tag(create_base):
             self.loginfo("Removing images...")
             subargs = ['--force']
             subargs += [img.full_name for img in existing_images]
-            mustpass(DockerCmd(self, 'rmi', subargs, verbose=True).execute())
+            mustpass(DockerCmd(self, 'rmi', subargs).execute())
             # Wait for images to actually go away
             _fn = lambda: self.long_id_in_images(long_id)
             gone = utils.wait_for(_fn, 60, step=1,

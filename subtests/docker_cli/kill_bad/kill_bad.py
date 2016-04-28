@@ -42,7 +42,7 @@ class kill_bad_base(subtest.SubSubtest):
         subargs.append("bash")
         subargs.append("-c")
         subargs.append(self.config['exec_cmd'])
-        container = AsyncDockerCmd(self, 'run', subargs, verbose=False)
+        container = AsyncDockerCmd(self, 'run', subargs)
         self.sub_stuff['container_cmd'] = container
         container.execute()
 
@@ -70,15 +70,14 @@ class kill_bad_base(subtest.SubSubtest):
         for signal in self.config['bad_signals'].split(','):
             mustfail(DockerCmd(self, 'kill',
                                ['-s', signal,
-                                self.sub_stuff['container_name']],
-                               verbose=False).execute(), 1)
+                                self.sub_stuff['container_name']]).execute(),
+                     1)
             self.failif(self.sub_stuff['container_cmd'].done, "Testing "
                         "container died after using signal %s." % signal)
         dkrcnt = DockerContainers(self)
         nonexisting_name = dkrcnt.get_unique_name()
         self.logdebug("Killing nonexisting containe.")
-        mustfail(DockerCmd(self, 'kill', [nonexisting_name],
-                           verbose=False).execute(), 1)
+        mustfail(DockerCmd(self, 'kill', [nonexisting_name]).execute(), 1)
 
     def postprocess(self):
         """
