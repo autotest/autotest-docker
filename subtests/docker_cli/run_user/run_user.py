@@ -76,7 +76,7 @@ class run_user_base(subtest.SubSubtest):
         subargs.append(cmd)
         self.sub_stuff['cmd'] = DockerCmd(self, 'run', subargs)
 
-    def _init_test_depenent(self):
+    def _init_test_dependent(self):
         """
         Override this with your desired test setup.
         """
@@ -84,7 +84,7 @@ class run_user_base(subtest.SubSubtest):
         self.sub_stuff['uid_check'] = None
         self.sub_stuff['whoami_check'] = None
         self.sub_stuff['subargs'] = None
-        raise NotImplementedError("Override this methodin your test!")
+        raise NotImplementedError("Override this method in your test!")
 
     def initialize(self):
         """
@@ -94,7 +94,7 @@ class run_user_base(subtest.SubSubtest):
         # Prepare a container
         config.none_if_empty(self.config)
         self.sub_stuff['dc'] = DockerContainers(self)
-        self._init_test_depenent()
+        self._init_test_dependent()
         self._init_container(self.sub_stuff['subargs'],
                              self.config['exec_cmd'])
 
@@ -161,7 +161,7 @@ class default(run_user_base):
     Doesn't use "-u" and expects the default user to be root::0
     """
 
-    def _init_test_depenent(self):
+    def _init_test_dependent(self):
         self.sub_stuff['execution_failure'] = False
         self.sub_stuff['uid_check'] = "UIDCHECK: 0:"
         self.sub_stuff['whoami_check'] = "WHOAMICHECK: root"
@@ -174,7 +174,7 @@ class named_user(run_user_base):
     Finds any user but root existing on container and uses it by name
     """
 
-    def _init_test_depenent(self):
+    def _init_test_dependent(self):
         user = None
         for line in self.parent_subtest.stuff['passwd'].splitlines():
             line = line.strip()
@@ -200,7 +200,7 @@ class num_user(run_user_base):
     Finds any user but root existing on container and uses it by uid
     """
 
-    def _init_test_depenent(self):
+    def _init_test_dependent(self):
         user = None
         for line in self.parent_subtest.stuff['passwd'].splitlines():
             line = line.strip()
@@ -226,7 +226,7 @@ class bad_user(run_user_base):
     Generates user name which doesn't exist in containers passwd
     """
 
-    def _init_test_depenent(self):
+    def _init_test_dependent(self):
         users = []
         for line in self.parent_subtest.stuff['passwd'].splitlines():
             line = line.strip()
@@ -248,7 +248,7 @@ class bad_number(run_user_base):
     (it should start, print correct uid, but whoami should fail)
     """
 
-    def _init_test_depenent(self):
+    def _init_test_dependent(self):
         uid = False
         uids = []
         for line in self.parent_subtest.stuff['passwd'].splitlines():
@@ -280,7 +280,7 @@ class too_high_number(run_user_base):
     Uses incorrectly large uid number (2147483648)
     """
 
-    def _init_test_depenent(self):
+    def _init_test_dependent(self):
         self.sub_stuff['execution_failure'] = ("Uids and gids must be in "
                                                "range 0-2147483647")
         self.sub_stuff['subargs'] = ['--rm', '--interactive',

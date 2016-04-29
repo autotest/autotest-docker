@@ -60,11 +60,11 @@ class run_attach_base(subtest.SubSubtest):
             result = cmd.cmdresult
         return result
 
-    def _init_test_depenent(self):
+    def _init_test_dependent(self):
         """
         Override this with your desired test setup.
         """
-        raise NotImplementedError("Override this methodin your test!")
+        raise NotImplementedError("Override this method in your test!")
 
     def _populate_expected_results(self):
         """
@@ -138,7 +138,7 @@ class run_attach_base(subtest.SubSubtest):
         config.none_if_empty(self.config)
         self.sub_stuff['dc'] = DockerContainers(self)
         self.sub_stuff['containers'] = []
-        self._init_test_depenent()
+        self._init_test_dependent()
         # TODO: Test w/ tty=True when some DockerCmd class supports pty
         # for tty in (True, False):   # generate matrix of tested variants
         tty = False
@@ -233,7 +233,7 @@ class none(run_attach_base):
     should fail.
     """
 
-    def _init_test_depenent(self):
+    def _init_test_dependent(self):
         self.sub_stuff['subargs'] = ['']
         self._populate_expected_results()
 
@@ -245,7 +245,7 @@ class stdin(run_attach_base):
     (prints the container's id)
     """
 
-    def _init_test_depenent(self):
+    def _init_test_dependent(self):
         self.sub_stuff['subargs'] = ['-a stdin']
         self._populate_expected_results()
 
@@ -256,7 +256,7 @@ class stdout(run_attach_base):
     Only stdout is attached, stdin fails and no output in stderr.
     """
 
-    def _init_test_depenent(self):
+    def _init_test_dependent(self):
         self.sub_stuff['subargs'] = ['-a stdout']
         self._populate_expected_results()
 
@@ -267,7 +267,7 @@ class stderr(run_attach_base):
     Only stderr is attached, stdin fails, no output in stdout.
     """
 
-    def _init_test_depenent(self):
+    def _init_test_dependent(self):
         self.sub_stuff['subargs'] = ['-a stderr']
         self._populate_expected_results()
 
@@ -278,7 +278,7 @@ class in_out(run_attach_base):
     stdin/stdout are attached, no output in stderr
     """
 
-    def _init_test_depenent(self):
+    def _init_test_dependent(self):
         self.sub_stuff['subargs'] = ['-a stdin', '-a stdout']
         self._populate_expected_results()
 
@@ -289,7 +289,7 @@ class in_err(run_attach_base):
     stdin/stderr are attached, no output in stdout
     """
 
-    def _init_test_depenent(self):
+    def _init_test_dependent(self):
         self.sub_stuff['subargs'] = ['-a stdin', '-a stderr']
         self._populate_expected_results()
 
@@ -300,7 +300,7 @@ class in_out_err(run_attach_base):
     All streams attached, output should be found in correct streams.
     """
 
-    def _init_test_depenent(self):
+    def _init_test_dependent(self):
         self.sub_stuff['subargs'] = ['-a stdin', '-a stdout', '-a stderr']
         self._populate_expected_results()
 
@@ -313,8 +313,8 @@ class i_stdin(stdin):
     :note: uses --interactive
     """
 
-    def _init_test_depenent(self):
-        super(i_stdin, self)._init_test_depenent()
+    def _init_test_dependent(self):
+        super(i_stdin, self)._init_test_dependent()
         self.sub_stuff['subargs'].append('--interactive')
 
 
@@ -325,8 +325,8 @@ class i_in_out(in_out):
     :note: uses --interactive
     """
 
-    def _init_test_depenent(self):
-        super(i_in_out, self)._init_test_depenent()
+    def _init_test_dependent(self):
+        super(i_in_out, self)._init_test_dependent()
         self.sub_stuff['subargs'].append('--interactive')
 
 
@@ -337,8 +337,8 @@ class i_in_err(in_err):
     :note: uses --interactive
     """
 
-    def _init_test_depenent(self):
-        super(i_in_err, self)._init_test_depenent()
+    def _init_test_dependent(self):
+        super(i_in_err, self)._init_test_dependent()
         self.sub_stuff['subargs'].append('--interactive')
 
 
@@ -349,6 +349,6 @@ class i_in_out_err(in_out_err):
     :note: uses --interactive
     """
 
-    def _init_test_depenent(self):
-        super(i_in_out_err, self)._init_test_depenent()
+    def _init_test_dependent(self):
+        super(i_in_out_err, self)._init_test_dependent()
         self.sub_stuff['subargs'].append('--interactive')
