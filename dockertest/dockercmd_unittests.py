@@ -186,8 +186,6 @@ class DockerCmdTestBase(unittest.TestCase):
         import dockercmd
         import output
         import subtest
-        import xceptions
-        self.xceptions = xceptions
         self.config = config
         self.dockercmd = dockercmd
         self.output = output
@@ -284,13 +282,13 @@ class DockerCmdTestBasic(DockerCmdTestBase):
 
         docker_command = self.dockercmd.DockerCmd(self.fake_subtest,
                                                   'unittest_fail')
-        self.assertRaises(self.xceptions.DockerExecError,
+        self.assertRaises(self.output.xceptions.DockerExecError,
                           self.output.mustpass, docker_command.execute())
 
     def test_must_fail_docker_cmd(self):
         docker_command = self.dockercmd.DockerCmd(self.fake_subtest,
                                                   'fake_subcommand')
-        self.assertRaises(self.xceptions.DockerExecError,
+        self.assertRaises(self.output.xceptions.DockerExecError,
                           self.output.mustfail, docker_command.execute(), 1)
 
         docker_command = self.dockercmd.DockerCmd(self.fake_subtest,

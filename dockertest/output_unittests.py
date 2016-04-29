@@ -104,7 +104,8 @@ class BaseInterfaceTest(unittest.TestCase):
                 return fake_self.cmdresult.exit_status == 0
         self.assertTrue(Actual(self.good_cmdresult, ignore_error=True))
         self.assertFalse(Actual(self.bad_cmdresult, ignore_error=True))
-        self.assertRaises(self.DockerOutputError, Actual, self.bad_cmdresult)
+        self.assertRaises(self.output.xceptions.DockerOutputError,
+                          Actual, self.bad_cmdresult)
 
     def test_output_good(self):
         cmdresult = FakeCmdResult('docker', 0, "STDOUT", "STDERR", 123)
