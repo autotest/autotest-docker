@@ -34,7 +34,6 @@ INIT_HOOK="
 AP = os.environ.get('AUTOTEST_PATH', '/usr/local/autotest')
 sys.path.append(os.path.abspath(AP + '/..'))
 sys.path.append(os.path.abspath('.'))
-sys.path.append(os.path.abspath('dockertest'))
 import autotest
 import autotest.common
 "

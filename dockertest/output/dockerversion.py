@@ -8,8 +8,8 @@ Handlers for docker version parsing
 import re
 from autotest.client import utils
 import subprocess
-import xceptions
-from version import LooseVersion
+from dockertest.xceptions import DockerOutputError, DockerTestNAError
+from dockertest.version import LooseVersion
 
 
 class DockerVersion(object):
@@ -43,9 +43,8 @@ class DockerVersion(object):
         self.version_string = version_string
 
     def _oops(self, what):
-        raise xceptions.DockerOutputError("Couldn't parse %s "
-                                          "from %s" % (what,
-                                                       self.version_string))
+        raise DockerOutputError("Couldn't parse %s from %s" %
+                                (what, self.version_string))
 
     # This is old code, not updating to preserve old behavior
     def _old_client(self):
@@ -104,7 +103,7 @@ class DockerVersion(object):
             else:
                 msg = ("Unexpected line '%s' in version string: '%s'"
                        % (version_line, self.version_string))
-                raise xceptions.DockerOutputError(msg)
+                raise DockerOutputError(msg)
         return (client_lines, server_lines)
 
     # This is to preserve API behavior for old tests
@@ -178,7 +177,7 @@ class DockerVersion(object):
         if self._client is None:
             try:
                 self._client = self._old_client()
-            except xceptions.DockerOutputError:
+            except DockerOutputError:
                 self._client = self.client_info('version')
         if self._client is None:
             self._oops('client version')
@@ -192,7 +191,7 @@ class DockerVersion(object):
         if self._server is None:
             try:
                 self._server = self._old_server()
-            except xceptions.DockerOutputError:
+            except DockerOutputError:
                 self._server = self.server_info('version')
         if self._server is None:
             self._oops('server version')
@@ -204,7 +203,7 @@ class DockerVersion(object):
         if other_version < required_version:
             msg = ("Test requires docker %s version >= %s; %s found"
                    % (name, required_version, other_version))
-            raise xceptions.DockerTestNAError(msg)
+            raise DockerTestNAError(msg)
         # In case it's useful to caller
         return other_version
 
@@ -241,7 +240,7 @@ class DockerVersion(object):
                 # docker-1.10 *must* support distinct exit codes
                 self.require_client('1.10')
                 has = True
-            except xceptions.DockerTestNAError:
+            except DockerTestNAError:
                 # some builds of 1.9 might support it. (FIXME: really?)
                 d_run = utils.run('docker run --invalid-opt invalid-image',
                                   ignore_status=True)

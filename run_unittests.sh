@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export PYTHONPATH=.
+
 echo ""
 echo ""
 for unittest in dockertest/*_unittests.py

@@ -182,15 +182,18 @@ class DockerCmdTestBase(unittest.TestCase):
         return FakeSubtest()
 
     def setUp(self):
-        import config
-        import dockercmd
-        import output
-        import subtest
-        self.config = config
-        self.dockercmd = dockercmd
-        self.output = output
-        setattr(mock('output'), 'DockerVersion', FakeDockerVersion)
-        self.subtest = subtest
+        import dockertest.config
+        import dockertest.dockercmd
+        import dockertest.output
+        import dockertest.subtest
+        from dockertest.xceptions import DockerExecError
+        self.DockerExecError = DockerExecError
+        self.config = dockertest.config
+        self.dockercmd = dockertest.dockercmd
+        self.output = dockertest.output
+        setattr(mock('dockertest.output.validate'),
+                'DockerVersion', FakeDockerVersion)
+        self.subtest = dockertest.subtest
         self.config.CONFIGDEFAULT = tempfile.mkdtemp(self.__class__.__name__)
         self.config.CONFIGCUSTOMS = tempfile.mkdtemp(self.__class__.__name__)
         self._setup_defaults()
@@ -282,13 +285,13 @@ class DockerCmdTestBasic(DockerCmdTestBase):
 
         docker_command = self.dockercmd.DockerCmd(self.fake_subtest,
                                                   'unittest_fail')
-        self.assertRaises(self.output.xceptions.DockerExecError,
+        self.assertRaises(self.DockerExecError,
                           self.output.mustpass, docker_command.execute())
 
     def test_must_fail_docker_cmd(self):
         docker_command = self.dockercmd.DockerCmd(self.fake_subtest,
                                                   'fake_subcommand')
-        self.assertRaises(self.output.xceptions.DockerExecError,
+        self.assertRaises(self.DockerExecError,
                           self.output.mustfail, docker_command.execute(), 1)
 
         docker_command = self.dockercmd.DockerCmd(self.fake_subtest,

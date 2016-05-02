@@ -70,9 +70,9 @@ class FakeCmdResult(object):
 class BaseInterfaceTest(unittest.TestCase):
 
     def setUp(self):
-        import output
-        from xceptions import DockerOutputError
-        self.output = output
+        import dockertest.output
+        self.output = dockertest.output
+        from dockertest.xceptions import DockerOutputError
         self.DockerOutputError = DockerOutputError
         self.good_cmdresult = FakeCmdResult('/bin/true', exit_status=0)
         self.bad_cmdresult = FakeCmdResult('/bin/false', exit_status=1)
@@ -104,8 +104,7 @@ class BaseInterfaceTest(unittest.TestCase):
                 return fake_self.cmdresult.exit_status == 0
         self.assertTrue(Actual(self.good_cmdresult, ignore_error=True))
         self.assertFalse(Actual(self.bad_cmdresult, ignore_error=True))
-        self.assertRaises(self.output.xceptions.DockerOutputError,
-                          Actual, self.bad_cmdresult)
+        self.assertRaises(self.DockerOutputError, Actual, self.bad_cmdresult)
 
     def test_output_good(self):
         cmdresult = FakeCmdResult('docker', 0, "STDOUT", "STDERR", 123)
@@ -113,12 +112,12 @@ class BaseInterfaceTest(unittest.TestCase):
         cmdresult.stderr = "panic: runtime error: slice bounds out of range"
         str(self.output.OutputGood(cmdresult, False,
                                    ['crash_check', 'error_check']))
-        self.assertRaises(self.output.xceptions.DockerOutputError,
+        self.assertRaises(self.DockerOutputError,
                           self.output.OutputGood, cmdresult)
 
         cmdresult.stderr = ""
         cmdresult.stdout = "Usage: docker [OPTIONS] COMMAND [arg...]"
-        self.assertRaises(self.output.xceptions.DockerOutputError,
+        self.assertRaises(self.DockerOutputError,
                           self.output.OutputGood, cmdresult)
 
 

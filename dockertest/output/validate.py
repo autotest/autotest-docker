@@ -8,7 +8,7 @@ Handlers for command-line output processing, crash/panic detection, etc.
 import re
 from autotest.client import utils
 import subprocess
-import xceptions
+from dockertest.xceptions import DockerExecError, DockerOutputError
 from . dockerversion import DockerVersion
 
 
@@ -124,7 +124,7 @@ class OutputGoodBase(AllGoodBase):
     Compare True if all methods ending in '_check' return True on stdout/stderr
 
     :param cmdresult: autotest.client.utils.CmdResult instance
-    :param ignore_error: Raise exceptions.DockerOutputError if False
+    :param ignore_error: Raise xceptions.DockerOutputError if False
     :param skip: Iterable of checks to bypass, None to run all
     """
 
@@ -161,7 +161,7 @@ class OutputGoodBase(AllGoodBase):
         # Not nonzero means One or more checkers returned False
         if not ignore_error and not self.__nonzero__():
             # Str representation will provide details
-            raise xceptions.DockerOutputError(str(self))
+            raise DockerOutputError(str(self))
 
     def __str__(self):
         if not self.__nonzero__():
@@ -335,8 +335,8 @@ def mustpass(cmdresult, failmsg=None):
         details = "%s\n%s" % (failmsg, cmdresult)
     OutputNotBad(cmdresult)
     if cmdresult.exit_status != 0:
-        raise xceptions.DockerExecError("Unexpected non-zero exit code,"
-                                        " details: %s" % details)
+        raise DockerExecError("Unexpected non-zero exit code, details: %s"
+                              % details)
     return cmdresult
 
 
@@ -376,8 +376,5 @@ def mustfail(cmdresult, expected_status=None, failmsg=None):
         if cmdresult.exit_status != 0:
             return cmdresult
 
-    raise xceptions.DockerExecError("Unexpected exit code %d; expected %d."
-                                    " Details: %s" % (
-                                        cmdresult.exit_status,
-                                        expected_status,
-                                        details))
+    raise DockerExecError("Unexpected exit code %d; expected %d. Details: %s"
+                          % (cmdresult.exit_status, expected_status, details))
