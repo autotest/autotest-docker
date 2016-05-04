@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export PYTHONPATH=.
+export PYTHONPATH=$(dirname $0)
 
 echo ""
 echo ""
@@ -19,9 +19,10 @@ do
     if [ $RET -ne 0 -a $RET -ne 127 ]; then exit $RET; fi
 done
 
+# Tests below need to include autotest modules; make sure we can access them.
 if [ -n "$AUTOTEST_PATH" ]
 then
-    export PYTHONPATH=$(dirname $AUTOTEST_PATH):$(dirname $0)
+    export PYTHONPATH=$(dirname $AUTOTEST_PATH):$PYTHONPATH
 else
     python -c 'import autotest'
     if [ "$?" -ne "0" ]
@@ -30,14 +31,13 @@ else
              "AUTOTEST_PATH env. var. is not set"
         exit 1
     fi
-    export PYTHONPATH=$(dirname $0)
 fi
 
 # Unit tests for subtests. Due to autotest layout, the subtest directories
 # aren't importable or discoverable by python itself. We have to do our
 # own discovery.
-for unittest in $(find subtests -name 'test_*.py'); do
-    echo $unittest
+for unittest in $(find subtests -name 'test_*.py' | sort); do
+    echo \$ python $unittest
     python $unittest -v || exit 1
 done
 
