@@ -26,7 +26,6 @@ from dockertest.containers import DockerContainers
 from dockertest.images import DockerImages
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import mustpass
-from dockertest.output import mustfail
 
 
 class import_url(SubSubtestCaller):
@@ -48,7 +47,10 @@ class base(SubSubtest):
         subargs += [self.sub_stuff['import_repo']]
         subargs += ['some', 'dummy', 'command']
         self.logdebug("Next docker command should fail...")
-        mustfail(DockerCmd(self, 'run', subargs).execute(), 125)
+        cmdresult = DockerCmd(self, 'run', subargs).execute()
+        if cmdresult.exit_status not in [125, 127]:
+            self.failif(True, "Unexpected exit code %d; expected 125 or 127."
+                        % cmdresult.exit_status)
 
     def initialize(self):
         super(base, self).initialize()
