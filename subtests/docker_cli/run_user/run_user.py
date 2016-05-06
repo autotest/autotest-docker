@@ -236,7 +236,7 @@ class bad_user(run_user_base):
                 pass
         user = utils.get_unique_name(lambda name: name not in users, "user",
                                      length=6)
-        self.sub_stuff['execution_failure'] = "Unable to find user %s" % user
+        self.sub_stuff['execution_failure'] = "unable to find user %s" % user
         self.sub_stuff['subargs'] = ['--rm', '--interactive',
                                      '--user=%s' % user]
 
@@ -281,7 +281,7 @@ class too_high_number(run_user_base):
     """
 
     def _init_test_dependent(self):
-        self.sub_stuff['execution_failure'] = ("Uids and gids must be in "
+        self.sub_stuff['execution_failure'] = ("uids and gids must be in "
                                                "range 0-2147483647")
         self.sub_stuff['subargs'] = ['--rm', '--interactive',
                                      '--user=2147483648']
