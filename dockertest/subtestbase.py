@@ -139,6 +139,24 @@ class SubBase(object):
         spec = "{}: expected " + arg + "; got " + arg
         raise DockerTestFail(spec.format(reason, expected, actual))
 
+    @staticmethod
+    def failif_not_in(needle, haystack, description=None):
+        """
+        Convenience method for subtests to test for an expected substring
+        being contained in a larger string, e.g. to look for XYZ in a
+        command's stdout/stderr.
+
+        :param needle: the string you're looking for
+        :param haystack: the actual string, e.g stdout results from a command
+        :param description: description of haystack, e.g. 'stdout from foo'
+        """
+        if description is None:
+            description = 'string'
+        if needle in haystack:
+            return
+        raise DockerTestFail("Expected string '%s' not in %s '%s'"
+                             % (needle, description, haystack))
+
     @classmethod
     def log_x(cls, lvl, msg, *args):
         """
