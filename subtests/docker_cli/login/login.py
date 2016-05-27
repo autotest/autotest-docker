@@ -8,20 +8,17 @@ Operational Summary
 -------------------
 
 #. Create a self-signed SSL certificate
-#. Install cert locally for use by docker daemon (FIXME:seems unnecessary)
 #. Generate a pseudorandom password
 #. Generate htpasswd file with a test user and this password
-#. Run a registry container using new certificate & account
+#. Run a registry container using new certificate & credentials
 #. Run individual subtests against this standard setup
 """
 
 import os
 from base64 import b64encode
-import errno
 import json
 import urllib2
 import time
-from shutil import copyfile
 from autotest.client import utils
 from dockertest.containers import DockerContainers
 from dockertest.images import DockerImages
@@ -90,38 +87,6 @@ class login_base(SubSubtest):
         self.sub_stuff['port'] = port
         self.sub_stuff['server'] = localhost + ':' + port
 
-        # Make certificate available to our docker daemon
-        # FIXME: remove this. It doesn't seem like this is necessary.
-        #       docker login and push work exactly as expected even if I
-        #       comment out the copyfile. Not surprising, since I wouldn't
-        #       expect the copied cert to take effect without a daemon
-        #       restart (which we can't do, because of docker-latest
-        #       confusion). So I'm proposing leaving this in for my
-        #       first commit in the PR, then immediately removing it.
-        #       That at least leaves it for posterity.
-        docker_cert_dir = '/etc/docker/certs.d/{server}'.format(
-            **self.sub_stuff)
-        self._mkdir_p(docker_cert_dir)
-        docker_cert_file = os.path.join(docker_cert_dir, 'domain.crt')
-        copyfile('domain.crt', docker_cert_file)
-        # FIXME: now we presumably need to restart docker daemon
-
-        self.sub_stuff['docker_cert_dir'] = docker_cert_dir
-        self.sub_stuff['docker_cert_file'] = docker_cert_file
-
-    @staticmethod
-    def _mkdir_p(path):
-        """
-        mkdir, but stay cool if directory already exists.
-        """
-        try:
-            os.mkdir(path)
-        except OSError as e:
-            if e.errno == errno.EEXIST and os.path.isdir(path):
-                pass
-            else:
-                raise
-
     def _create_htpasswd(self):
         """
         Write an htpasswd file in our current directory, for use by
@@ -184,7 +149,7 @@ class login_base(SubSubtest):
                 if e.reason == 'Unauthorized':
                     return
             except urllib2.URLError as e:
-                # FIXME: assume that it's SSLEOFError; how can we make sure?
+                # Likely case: registry is still spinning up. Keep waiting.
                 pass
             time.sleep(0.5)
         raise DockerTestFail("timed out waiting for registry")
@@ -251,10 +216,6 @@ class login_base(SubSubtest):
     def cleanup(self):
         DockerContainers(self).clean_all(self.sub_stuff['my_containers'])
         DockerImages(self).clean_all(self.sub_stuff['my_images'])
-
-        # Remove the cert copies in /etc (FIXME: probably never used anyway)
-        os.unlink(self.sub_stuff['docker_cert_file'])
-        os.rmdir(self.sub_stuff['docker_cert_dir'])
         self._restore_docker_auth_file()
 
 
