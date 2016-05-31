@@ -76,8 +76,7 @@ class inspect_base(SubSubtest):
         Builds a hash map of the config for a container given
         its directory.
         :param container_path: The path to the container or image.
-        :return: A dict containting the container's entire configuration
-        :raise: throw some exception handling in here
+        :return: A dict containing the container's entire configuration
         """
         all_files = os.walk(container_path).next()[2]
         json_files = [x for x in all_files if x.endswith('json')]
