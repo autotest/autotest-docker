@@ -113,7 +113,7 @@ class DockerContainer(object):  # pylint: disable=R0902
 
         :param container_name: Stripped string of container name
         :return: tuple of container_name, [(child, alias), ...] or None
-        :rais ValueError: On invalid/unparsable container_name
+        :raise ValueError: On invalid/unparsable container_name
         """
         # Don't assume already stripped or string-like
         container_name = str(container_name).strip()
@@ -492,7 +492,7 @@ class DockerContainers(object):
         Remove an container by container Name.
 
         :param name: Name of container
-        :raise: ValueError when no container with name found
+        :raise ValueError: when no container with name found
         """
         cnts = self.list_containers_with_name(str(name))
         if len(cnts) == 1:

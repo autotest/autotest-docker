@@ -18,7 +18,7 @@ class DockerTime(datetime.datetime):  # pylint: disable=R0903
            For example, the FinishedAt time of a still-running container
     :param isostr: ISO 8601 format string
     :param sep: Optional separation character ('T' by default)
-    :raise: ValueError if isostr is unparseable
+    :raise ValueError: if isostr is unparseable
     """
 
     class UTC(datetime.tzinfo):

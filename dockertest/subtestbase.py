@@ -149,6 +149,7 @@ class SubBase(object):
         :param needle: the string you're looking for
         :param haystack: the actual string, e.g stdout results from a command
         :param description: description of haystack, e.g. 'stdout from foo'
+        :raise DockerTestFail: if needle is not found in haystack
         """
         if description is None:
             description = 'string'
