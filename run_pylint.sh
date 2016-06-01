@@ -22,11 +22,24 @@ then
     fi
 fi
 
-TMPFILENAME="/tmp/run_pylint_$RANDOM"
+# Tests need to include autotest modules; make sure we can access them.
+if [ -z "$AUTOTEST_PATH" ]
+then
+    python -c 'import autotest'
+    if [ "$?" -ne "0" ]
+    then
+        echo "ERROR: autotest module won't load or " \
+             "AUTOTEST_PATH env. var. is not set"
+        exit 1
+    fi
+fi
+
+TMPFILENAME="$(mktemp --suffix=run_pylint)"
 PEP8=`which pep8`
 # for readability, allow multiple spaces after commas, colons & before '='
 PEP8IGNORE='E731,E221,E241'
 MSGFMT='(pylint) {msg_id}:{line:3d},{column}: {obj}: {msg}'
+# General 'bad' stuff that should never appear
 # Disable 'line too long' - will be picked up by pep8
 # Check "note" (W0511) separately
 DISABLEMSG="I0011,R0801,R0904,R0921,R0922,C0301,C0326,W0511${SPECIALONE}"
@@ -73,6 +86,17 @@ record_return() {
     fi
 }
 
+check_print() {
+    PRINTS=$(egrep --with-filename --line-number '^\s*print\s+' "$1")
+    if [ -n "$PRINTS" ]
+    then
+        echo "Python print statement(s) found:"
+        echo "$PRINTS"
+        return 1
+    fi
+    return 0
+}
+
 # Run a command, checking exit status.
 # If command fails: if called with --FF, exit immediately. Otherwise,
 # continue but remember to exit with failure at end of tests.
@@ -96,6 +120,7 @@ check_dockertest() {
            --no-docstring-rgx='(__.*__)|(_.*)|(__init__)' \
            --output-format="colorized" \
            --rcfile=/dev/null \
+           --deprecated-modules=regsub,TERMIOS,Bastion,rexec,pdb \
            --msg-template="$MSGFMT" "${WHAT}"
     # Just print FIXME/TODO warnings, don't fail on them.
     pylint -rn --init-hook="$INIT_HOOK" \
@@ -103,11 +128,13 @@ check_dockertest() {
                --enable=W0511 \
                --output-format="colorized" \
                --rcfile=/dev/null \
+               --deprecated-modules=regsub,TERMIOS,Bastion,rexec,pdb \
                --msg-template="$MSGFMT" "${WHAT}"
     if [ -n "$PEP8" ]
     then
         run_ff $PEP8 --ignore=$PEP8IGNORE "$WHAT"
     fi
+    run_ff check_print "$WHAT"
 }
 
 check_dockertests() {
@@ -129,6 +156,7 @@ check_subtest() {
            --min-public-methods=1\
            --output-format="colorized" \
            --rcfile=/dev/null \
+           --deprecated-modules=regsub,TERMIOS,Bastion,rexec,pdb \
            --msg-template="$MSGFMT" "${WHAT}"
     # Just print FIXME/TODO warnings, don't fail on them.
     pylint -rn --init-hook="$SUBTESTINIT_HOOK" \
@@ -136,11 +164,13 @@ check_subtest() {
                --enable=W0511 \
                --output-format="colorized" \
                --rcfile=/dev/null \
+               --deprecated-modules=regsub,TERMIOS,Bastion,rexec,pdb \
                --msg-template="$MSGFMT" "${WHAT}"
     if [ -n "$PEP8" ]
     then
         run_ff $PEP8 --ignore=$PEP8IGNORE "$WHAT"
     fi
+    run_ff check_print "$WHAT"
 }
 
 check_subtests() {
