@@ -27,7 +27,7 @@ else
     python -c 'import autotest'
     if [ "$?" -ne "0" ]
     then
-        echo "ERROR: autotest module won't load or"\
+        echo "ERROR: autotest module won't load or " \
              "AUTOTEST_PATH env. var. is not set"
         exit 1
     fi
