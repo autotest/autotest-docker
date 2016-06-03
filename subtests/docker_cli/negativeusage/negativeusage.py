@@ -40,6 +40,7 @@ from dockertest import config
 from dockertest import output
 from dockertest import xceptions
 from dockertest.output import mustpass, mustfail
+from dockertest.output import DockerVersion
 
 
 class NoisyCmd(dockercmd.DockerCmd):
@@ -168,6 +169,9 @@ class Base(subtest.SubSubtest):
         self.init_utilities()
         self.init_substitutions()
         self.do_substitutions()
+        if '--tmpfs' in self.sub_stuff['subarg']:
+            # Minimum docker version 1.10 is required for --tmpfs
+            DockerVersion().require_server("1.10")
 
     def run_once(self):
         super(Base, self).run_once()
