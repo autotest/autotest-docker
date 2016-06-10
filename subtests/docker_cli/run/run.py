@@ -75,7 +75,9 @@ class run_base(SubSubtest):
         dockercmd = self.sub_stuff['dkrcmd']
         OutputGood(dockercmd.cmdresult)
         expected = self.config['exit_status']
-        self.failif_ne(dockercmd.exit_status, expected, "Exit status")
+        self.failif_ne(dockercmd.exit_status, expected,
+                       "Exit status %s"
+                       % dockercmd.cmdresult)
 
     def cleanup(self):
         super(run_base, self).cleanup()
