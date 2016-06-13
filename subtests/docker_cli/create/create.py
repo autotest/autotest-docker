@@ -80,7 +80,7 @@ class create_base(SubSubtest):
         # Fail test if bad command or other stdout/stderr problems detected
         dkrcmd = self.sub_stuff['dkrcmd']
         OutputGood(dkrcmd.cmdresult)
-        expected = 0  # always
+        expected = self.config['exit_status']
         self.failif_ne(dkrcmd.exit_status, expected,
                        "Exit status non-zero command %s"
                        % dkrcmd.cmdresult)
