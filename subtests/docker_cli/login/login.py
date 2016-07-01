@@ -124,7 +124,7 @@ class login_base(SubSubtest):
         key = 'docker_auth_file_preserved'
         if key in self.sub_stuff:
             os.rename(self.sub_stuff[key], auth_file)
-        else:
+        elif os.path.exists(auth_file):
             os.unlink(auth_file)
 
     def _wait_for_registry_ready(self, timeout=None):
