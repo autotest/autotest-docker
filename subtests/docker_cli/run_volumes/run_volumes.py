@@ -118,7 +118,7 @@ class volumes_base(SubSubtest):
     def make_dockercmd(subtest, dockercmd_class, fqin,
                        run_template, cmd_tmplate, test_dict):
         # safe_substutute ignores unknown tokens
-        subargs = get_as_list(str(run_template % test_dict), omit_empty=True)
+        subargs = get_as_list(str(run_template % test_dict))
         subargs.append(fqin)
         subargs.append(cmd_tmplate % test_dict)
         return dockercmd_class(subtest, 'run', subargs)
@@ -198,8 +198,8 @@ class volumes_rw(volumes_base):
 
     def initialize(self):
         super(volumes_rw, self).initialize()
-        host_paths = get_as_list(self.config['host_paths'], omit_empty=True)
-        cntr_paths = get_as_list(self.config['cntr_paths'], omit_empty=True)
+        host_paths = get_as_list(self.config['host_paths'])
+        cntr_paths = get_as_list(self.config['cntr_paths'])
         # list of substitution dictionaries for each container
         path_info = self.sub_stuff['path_info'] = []
         self.init_path_info(path_info, host_paths, cntr_paths, self.tmpdir)

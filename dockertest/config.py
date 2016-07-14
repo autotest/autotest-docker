@@ -482,7 +482,7 @@ class Config(dict):
         return the_copy
 
 
-def get_as_list(value, sep=",", omit_empty=False):
+def get_as_list(value, sep=",", omit_empty=True):
     """
     Return config value as list separated by sep.
 
