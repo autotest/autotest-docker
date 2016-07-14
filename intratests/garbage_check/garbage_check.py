@@ -24,8 +24,10 @@ from dockertest.subtest import SubSubtest
 from dockertest.containers import DockerContainers
 from dockertest.images import DockerImage
 from dockertest.images import DockerImages
-from dockertest.config import get_as_list
+from dockertest import config
 
+def get_as_list(value):
+    return config.get_as_list(value, omit_empty=True)
 
 class DockerImageIncomplete(DockerImage):
 
