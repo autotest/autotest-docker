@@ -339,6 +339,11 @@ class TestUtilities(ConfigTestBase):
     def test_getaslist_2(self):
         testvalue = ''
         testlist = self.config.get_as_list(testvalue)
+        self.assertEqual(testlist, [])
+
+    def test_getaslist_empty(self):
+        testvalue = ''
+        testlist = self.config.get_as_list(testvalue, omit_empty=False)
         self.assertEqual(testlist, [''])
 
     def test_getaslist_3(self):
