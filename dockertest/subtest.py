@@ -18,7 +18,7 @@ import imp
 import sys
 import copy
 from ConfigParser import Error
-from autotest.client.shared.error import TestError
+from autotest.client.shared.error import TestError, TestNAError
 from autotest.client.shared.version import get_version
 from autotest.client import test
 import version
@@ -410,7 +410,11 @@ class SubSubtestCaller(Subtest):
                               self.exception_info["error_source"],
                               detail)
             exc_info = self.exception_info["exc_info"]
-            # cleanup() will still be called before this propigates
+            # Treat N/A as passed, even though this may hide obscure failures
+            if isinstance(detail, TestNAError):
+                self.logwarning("Treating TestNAError as PASS")
+                self.final_subsubtests.add(name)
+            # cleanup() will still be called before this propagates
             raise exc_info[0], exc_info[1], exc_info[2]
 
     def run_all_stages(self, name, subsubtest):
