@@ -92,6 +92,11 @@ class sigproxy_base(SubSubtest):
             time.sleep(0.5)
             if 'READY' in container_cmd.stdout:
                 return
+            # Some containers run detached; use 'docker logs' to check output
+            logs = DockerCmd(self, 'logs', [self.sub_stuff['container_name']])
+            logs.execute()
+            if 'READY' in logs.stdout:
+                return
         self.failif(container_cmd.done, "Container exited before ready")
         raise DockerTestFail("timed out waiting for container READY")
 
