@@ -6,8 +6,8 @@ Handlers for docker version parsing
 # pylint: disable=W0403
 
 import re
-from autotest.client import utils
 import subprocess
+from autotest.client import utils
 from dockertest.xceptions import DockerOutputError, DockerTestNAError
 from dockertest.version import LooseVersion
 

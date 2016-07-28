@@ -6,9 +6,9 @@
 #. Verify produced output with expected output
 """
 
+from datetime import datetime
 from time import sleep
 from logs import Base
-from datetime import datetime
 
 
 class basic(Base):

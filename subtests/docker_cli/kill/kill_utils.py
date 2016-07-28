@@ -113,9 +113,9 @@ class kill_base(subtest.SubSubtest):
         else:
             subargs = []
         subargs.append(name)
-        container = AsyncDockerCmd(self, 'attach', subargs)
-        self.sub_stuff['container_cmd'] = container  # overwrites finished cmd
-        container.execute()
+        c_attach = AsyncDockerCmd(self, 'attach', subargs)
+        self.sub_stuff['container_cmd'] = c_attach  # overwrites finished cmd
+        c_attach.execute()
 
     def initialize(self):
         super(kill_base, self).initialize()
@@ -336,7 +336,7 @@ class kill_check_base(kill_base):
         _check = self.config['check_stdout']
         timeout = self.config['stress_cmd_timeout']
         self.sub_stuff['kill_results'] = []
-        stopped_log = False
+        stopped_log = None
         _container_pid = container_cmd.process_id
         self.loginfo("Running kill sequence...")
         for cmd, signal in itertools.izip(kill_cmds, signals_sequence):
@@ -346,13 +346,13 @@ class kill_check_base(kill_base):
             elif signal == 9 or signal is None:   # SIGTERM
                 self._kill_dash_nine(container_cmd)
             elif signal == 19:    # SIGSTOP can't be caught
-                if stopped_log is False:
+                if stopped_log is None:
                     stopped_log = set()
             elif signal == 18:  # SIGCONT, check previous payload
                 self._check_previous_payload(stopped_log, container_out,
                                              timeout, _check)
-                stopped_log = False
-            elif stopped_log is not False:  # if not false it's set()
+                stopped_log = None
+            elif stopped_log is not None:  # if not false it's set()
                 if cmd is not False:
                     # Using docker kill: signals are forwarded when the cont
                     #                    is ready

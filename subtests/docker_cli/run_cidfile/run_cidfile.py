@@ -15,6 +15,7 @@ Operational Summary
 5.  Stop the container and cleanup
 """
 import os
+import time
 
 from autotest.client.shared import utils
 from dockertest import config, subtest, dockercmd
@@ -22,7 +23,6 @@ from dockertest.containers import DockerContainers
 from dockertest.images import DockerImage
 from dockertest.output import mustfail
 from dockertest.output import mustpass
-import time
 
 
 class InteractiveAsyncDockerCmd(dockercmd.AsyncDockerCmd):

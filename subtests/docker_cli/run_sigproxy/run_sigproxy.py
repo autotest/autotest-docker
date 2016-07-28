@@ -73,9 +73,9 @@ class sigproxy_base(SubSubtest):
         else:
             subargs = []
         subargs.append(name)
-        container = AsyncDockerCmd(self, 'attach', subargs)
-        self.sub_stuff['container_cmd'] = container  # overwrites finished cmd
-        container.execute()
+        c_attach = AsyncDockerCmd(self, 'attach', subargs)
+        self.sub_stuff['container_cmd'] = c_attach  # overwrites finished cmd
+        c_attach.execute()
 
     def init_test_specific_variables(self):
         raise NotImplementedError("Test specific variables has to be "

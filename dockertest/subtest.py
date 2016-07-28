@@ -168,7 +168,7 @@ class Subtest(subtestbase.SubBase, test.test):
             except (IOError, OSError, Error):
                 self.logwarning("Failed to load reference '%s' and/or"
                                 "it's '[Control]' section.", fullpath)
-                self._control_ini = {}
+                self._control_ini = {}    # pylint: disable=E0012,R0204
         if self._control_ini == {}:
             self.logdebug("No reference control.ini found, returning None")
             return None

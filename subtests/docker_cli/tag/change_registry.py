@@ -13,10 +13,10 @@ clean
 4. remote tagged image from local repo.
 """
 
-from tag import change_tag
-from dockertest.images import DockerImage
 import random
 import string
+from tag import change_tag
+from dockertest.images import DockerImage
 
 
 class change_registry(change_tag):

@@ -22,6 +22,7 @@ Prerequisites
 """
 
 from difflib import unified_diff
+from autotest.client import utils
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import mustpass
 from dockertest.containers import DockerContainers
@@ -29,7 +30,6 @@ from dockertest.config import get_as_list
 from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCallerSimultaneous
-from autotest.client import utils
 
 
 class iptable(SubSubtestCallerSimultaneous):

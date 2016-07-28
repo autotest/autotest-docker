@@ -246,6 +246,6 @@ class SubBase(object):
                                               exc_info[1],
                                               exc_info[2])
 
-        error_tb = "".join(error_tb).strip() + "\n"
+        error_tb_str = "".join(error_tb).strip() + "\n"
         cls.logerror(error_head)
-        cls.logdebug(error_tb)
+        cls.logdebug(error_tb_str)

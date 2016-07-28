@@ -1,8 +1,8 @@
+import json
 from unittest2 import TestCase, main        # pylint: disable=unused-import
 from mock import Mock
 import autotest  # pylint: disable=unused-import
 import inspect_keys
-import json
 
 
 class TestFilterKeys(TestCase):

@@ -22,6 +22,7 @@ Prerequisites
 
 from StringIO import StringIO
 import pickle
+import hashlib
 import inspect
 import os.path
 from autotest.client import utils
@@ -33,7 +34,6 @@ from dockertest.images import DockerImage
 from dockertest.images import DockerImages
 from dockertest.containers import DockerContainers
 from dockertest.environment import set_selinux_context
-import hashlib
 
 
 class cp(SubSubtestCaller):

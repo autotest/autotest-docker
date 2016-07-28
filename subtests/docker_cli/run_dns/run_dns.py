@@ -10,6 +10,7 @@ Operational Summary
 #.  Execute couple of correctly set dns/dns-search scenarios
 #.  Execute couple of incorrect dns/dns-search scenarios
 """
+import itertools
 import random
 import re
 
@@ -18,7 +19,6 @@ from dockertest import subtest
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import mustpass, mustfail
 from dockertest.images import DockerImage
-import itertools
 
 
 class run_dns(subtest.Subtest):
