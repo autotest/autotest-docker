@@ -203,3 +203,10 @@ class double_tag_force(double_tag):
         # Difference from parent is that we use --force, and should pass
         self.sub_stuff['force_tag'] = True
         self.expect_pass(True)
+
+        # -f option removed in docker 1.12
+        try:
+            DockerVersion().require_server("1.12")
+            self.expect_pass(False)
+        except xceptions.DockerTestNAError:
+            pass

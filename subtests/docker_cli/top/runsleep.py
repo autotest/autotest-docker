@@ -33,8 +33,8 @@ class runsleep(base):
         OutputGood(self.sub_stuff['run_dkrcmd'].cmdresult)
         OutputGood(self.sub_stuff['top_dkrcmd'].cmdresult)
         pstable = TextTable(self.sub_stuff['top_dkrcmd'].stdout)
-        self.failif_ne(len(pstable), 1)
+        self.failif_ne(len(pstable), 1, "Number of rows returned by top")
         psrow = pstable[0]
-        self.failif_ne(psrow['USER'], 'root')
-        self.failif(int(psrow['PID']) == 1)
-        self.failif_ne(psrow['COMMAND'], self.COMMAND)
+        self.failif_ne(psrow['USER'], 'root', 'Expected user')
+        self.failif(int(psrow['PID']) == 1, 'Process PID is 1')
+        self.failif_ne(psrow['COMMAND'], self.COMMAND, 'Expected command')
