@@ -13,12 +13,12 @@ postprocess:
 7) analyze results
 """
 
+from autotest.client.shared import utils
 from dockertest import config, subtest
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
 from dockertest.output import mustpass, mustfail
 from dockertest.images import DockerImage
-from autotest.client.shared import utils
 
 
 class simple(subtest.SubSubtest):

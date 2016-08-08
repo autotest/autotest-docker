@@ -51,7 +51,7 @@ class stress(kill_base):
                  signals_set = set of signals, which should be present in the
                                output.
         """
-        stopped = False
+        stopped = None
         mapped = False
         signals_set = set()
         signals_sequence = []
@@ -65,7 +65,7 @@ class stress(kill_base):
                 if signal == 18:
                     if stopped:
                         signals_set.add(stopped)
-                    stopped = False
+                    stopped = None
                     signals_set.add(signal)
                 elif signal == 19:
                     stopped = set()

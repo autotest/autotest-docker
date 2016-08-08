@@ -1,10 +1,10 @@
 import os.path
+from autotest.client import utils
 from autotest.client.shared import error
 from dockertest.output import mustpass
 from dockertest.dockercmd import DockerCmd
 from dockertest.config import get_as_list
 from dockertest.xceptions import DockerTestFail
-from autotest.client import utils
 from create import create_base
 
 

@@ -12,6 +12,8 @@ Operational Summary
 #. Check output
 """
 
+import json
+import os
 from autotest.client import utils
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd
@@ -20,8 +22,6 @@ from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
 from dockertest.xceptions import DockerTestError
-import json
-import os
 
 
 class dockerinspect(SubSubtestCaller):
@@ -33,7 +33,7 @@ class inspect_base(SubSubtest):
 
     @staticmethod
     def verify_same_configs(subtest, source, comp, ignore_fields=None):
-        for i in range(len(comp)):
+        for i in range(len(comp)):  # pylint: disable=E0012,C0200
             for key in comp[i].keys():
                 if ignore_fields and key in ignore_fields:
                     continue

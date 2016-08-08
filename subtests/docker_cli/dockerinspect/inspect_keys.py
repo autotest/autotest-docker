@@ -7,12 +7,12 @@ https://bugzilla.redhat.com/show_bug.cgi?id=1092773
 3. Check output keys againt known keys and a regex
 """
 
+import re
 from dockerinspect import inspect_base
 from dockertest.output import mustpass
 from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
 from dockertest.xceptions import DockerTestError
-import re
 
 
 class inspect_keys(inspect_base):

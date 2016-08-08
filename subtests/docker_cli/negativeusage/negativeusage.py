@@ -120,12 +120,12 @@ class Base(subtest.SubSubtest):
             raise xceptions.DockerTestNAError("Failed to initialize %s"
                                               % self.config_section)
         # Throw away cntr, all we need is the CID
-        cntr = mustpass(dockercmd.DockerCmd(self, 'run',
-                                            ['--detach',
-                                             self.sub_stuff['FQIN'],
-                                             'true']).execute())
+        result = mustpass(dockercmd.DockerCmd(self, 'run',
+                                              ['--detach',
+                                               self.sub_stuff['FQIN'],
+                                               'true']).execute())
         # Only the CID is needed
-        self.sub_stuff['STPCNTR'] = cntr.stdout.splitlines()[-1].strip()
+        self.sub_stuff['STPCNTR'] = result.stdout.splitlines()[-1].strip()
 
     def init_substitutions(self):
         di = self.sub_stuff['di']
@@ -151,6 +151,7 @@ class Base(subtest.SubSubtest):
                                                  xcpt.message))
             else:
                 value = ''
+            # pylint: disable=E0012,R0204
             if key == 'subarg':  # This is a CSV option
                 if value.strip() == '':
                     value = []

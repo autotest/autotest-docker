@@ -85,10 +85,7 @@ class ConfigSection(object):
         :param section: Name of section to check.
         :returns: True/False if section exists.
         """
-        if section == self._section:
-            return True
-        else:
-            return False
+        return section == self._section
 
     def options(self):
         """
@@ -247,6 +244,7 @@ class ConfigDict(MutableMapping):
     def __init__(self, section, defaults=None, *args, **dargs):
         self._config_section = ConfigSection(defaults=defaults,
                                              section=section)
+        # pylint: disable=E1101
         super(ConfigDict, self).__init__(*args, **dargs)
 
     # Private method doesn't need docstring

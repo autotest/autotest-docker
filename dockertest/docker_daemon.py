@@ -8,9 +8,9 @@ Docker Daemon interface helpers and utilities
 import httplib
 import socket
 import json
-from output import wait_for_output
 from autotest.client.shared import service
 from autotest.client import utils
+from output import wait_for_output
 
 
 class ClientBase(object):

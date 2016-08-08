@@ -11,12 +11,12 @@ Operational Summary
    each subtest executes 6 variants of tty/non-tty vs stdin/out/err.
 #. Analyze results (exit_code, input_handling, correct_output)
 """
+import re
 from autotest.client import utils
 from dockertest import config, xceptions, subtest
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
-import re
 
 
 LS_GOOD = ["bin", "etc", "lib", "root", "var"]

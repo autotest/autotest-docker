@@ -21,13 +21,13 @@ Prerequisites
 ``dmsetup``, ``stat`` and ``du`` commands are available on host.
 """
 
+import os
 from autotest.client import utils
 from dockertest import subtest
 from dockertest.output import OutputGood
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import mustpass
 from dockertest.images import DockerImages
-import os
 
 
 class info(subtest.Subtest):

@@ -13,9 +13,9 @@ clean
 4. remote tagged image from local repo.
 """
 
-from tag import change_tag
-from dockertest.images import DockerImage
 from autotest.client import utils
+from dockertest.images import DockerImage
+from tag import change_tag
 
 
 class change_repository(change_tag):

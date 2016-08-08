@@ -53,10 +53,8 @@ class start_base(SubSubtest):
     def initialize(self):
         super(start_base, self).initialize()
         config.none_if_empty(self.config)
-        dc = DockerContainers(self)
-        self.sub_stuff["conts_obj"] = dc
-        dc = DockerContainersRunOnly(self)
-        self.sub_stuff["con_ro_obj"] = dc
+        self.sub_stuff["conts_obj"] = DockerContainers(self)
+        self.sub_stuff["con_ro_obj"] = DockerContainersRunOnly(self)
 
         self.sub_stuff["image_name"] = None
         self.sub_stuff["container"] = None

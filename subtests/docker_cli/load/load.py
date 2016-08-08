@@ -12,6 +12,7 @@ Operational Summary
 #.  Verify expected ID exists.
 #.  Remove loaded image
 """
+import os
 from dockertest import subtest
 from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImages
@@ -20,7 +21,6 @@ from dockertest.output import mustpass
 from dockertest.output import OutputGood
 from dockertest.output import DockerVersion
 from dockertest import xceptions
-import os
 
 
 class load(subtest.Subtest):

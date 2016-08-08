@@ -6,8 +6,8 @@ Handlers for command-line output processing, crash/panic detection, etc.
 # pylint: disable=W0403
 
 import re
-from autotest.client import utils
 import subprocess
+from autotest.client import utils
 from dockertest.xceptions import DockerExecError, DockerOutputError
 from . dockerversion import DockerVersion
 

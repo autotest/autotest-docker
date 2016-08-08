@@ -423,7 +423,7 @@ class DockerContainers(object):
         cmd = 'kill '
         if _signal is not None:
             if _signal.upper().startswith('SIG'):
-                _signal = _signal[3:]
+                _signal = _signal[3:]          # pylint: disable=E0012,E1136
             cmd += "--signal=%s " % str(_signal)
         cmd += str(long_id)
         if self.verify_output:
@@ -563,14 +563,14 @@ class DockerContainers(object):
             preserve_cnames = get_as_list(preserve_cnames)
         else:
             preserve_cnames = []
-        preserve_cnames = set(preserve_cnames)
-        preserve_cnames.discard(None)
-        preserve_cnames.discard('')
+        preserve_cnames_set = set(preserve_cnames)
+        preserve_cnames_set.discard(None)
+        preserve_cnames_set.discard('')
         self.verbose = False
         try:
             for name in containers:
                 name = name.strip()
-                if name in preserve_cnames:
+                if name in preserve_cnames_set:
                     continue
                 try:
                     self.subtest.logdebug("Cleaning %s", name)

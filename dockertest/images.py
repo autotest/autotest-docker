@@ -26,17 +26,15 @@ Note: As in other places, the terms 'repo' and 'image' are used
 # pylint: disable=W0403
 
 import re
+from autotest.client import utils
 from autotest.client.shared import error
 from config import Config
 from config import none_if_empty
 from config import get_as_list
-from autotest.client import utils
-from output import OutputGood
-from output import TextTable
+from output import OutputGood, TextTable
 from subtestbase import SubBase
-from xceptions import DockerTestError
+from xceptions import DockerTestError, DockerCommandError
 from xceptions import DockerFullNameFormatError
-from xceptions import DockerCommandError
 
 
 # Many attributes simply required here
@@ -641,13 +639,13 @@ class DockerImages(object):
         else:
             preserve_fqins = []
         preserve_fqins.append(self.default_image)
-        preserve_fqins = set(preserve_fqins)
-        preserve_fqins.discard(None)
-        preserve_fqins.discard('')
+        preserve_fqins_set = set(preserve_fqins)
+        preserve_fqins_set.discard(None)
+        preserve_fqins_set.discard('')
         self.verbose = False
         try:
             for name in fqins:
-                if name in preserve_fqins:
+                if name in preserve_fqins_set:
                     continue
                 try:
                     self.subtest.logdebug("Cleaning %s", name)
