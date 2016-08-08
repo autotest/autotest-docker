@@ -146,7 +146,9 @@ class SubBase(object):
         being contained in a larger string, e.g. to look for XYZ in a
         command's stdout/stderr.
 
-        :param needle: the string you're looking for
+        :param needle: the string you're looking for. May be a list of
+                       multiple strings separated by '|' and optional
+                       whitespace, e.g. 'needle | fiddle | doo wah diddy'
         :param haystack: the actual string, e.g stdout results from a command
         :param description: description of haystack, e.g. 'stdout from foo'
         :raise DockerTestFail: if needle is not found in haystack
@@ -155,8 +157,15 @@ class SubBase(object):
             description = 'string'
         if needle in haystack:
             return
-        raise DockerTestFail("Expected string '%s' not in %s '%s'"
-                             % (needle, description, haystack))
+        expect_s = "Expected string '%s'" % needle
+        if '|' in needle:
+            needles = [n.strip() for n in needle.split('|')]
+            expect_s = "Expected strings %s" % needles
+            for subneedle in needles:
+                if subneedle.strip() in haystack:
+                    return
+        raise DockerTestFail("%s not in %s '%s'" %
+                             (expect_s, description, haystack))
 
     @classmethod
     def log_x(cls, lvl, msg, *args):

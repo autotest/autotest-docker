@@ -10,13 +10,13 @@ do
 done
 wait %- &> /dev/null
 RET=$?
-while [ "$RET" -ne "127" ]
+while [ $RET -ne 127 ]
 do
+    if [ $RET -ne 0 ]; then exit $RET; fi
+
     sleep "0.1s"
     wait %- &> /dev/null
     RET=$?
-
-    if [ $RET -ne 0 -a $RET -ne 127 ]; then exit $RET; fi
 done
 
 # Tests below need to include autotest modules; make sure we can access them.
