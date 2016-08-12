@@ -85,7 +85,7 @@ class basic(subtest.SubSubtest):
                         custom_dockercmd=None):
         """
         Starts container
-        :warning: When dkrcmd_cls is of Async type, there is no guarrantee
+        :warning: When dkrcmd_cls is of Async type, there is no guarantee
                   that it is going to be up&running after return.
         """
         def do_nothing(resutls):
@@ -137,6 +137,8 @@ class basic(subtest.SubSubtest):
                                                lambda x: mustfail(x, 125)))
         self._check_failure_cidfile_present(containers[-1])
         # cidfile already exists (exited container)
+        # FIXME: this occasionally throws SIGPIPE, presumably because
+        #  container isn't fully ready. This is a tough one to solve.
         containers[0].stdin("exit\n")
         containers[0].wait(10)
         containers[0].close()
@@ -161,11 +163,16 @@ class basic(subtest.SubSubtest):
                     % (msg_cidfile_exists, dkrcmd))
 
     def _get_container_by_name(self, name):
-        """ Checks only one container of given name exists and returns it """
-        conts = self.sub_stuff['dc'].list_containers_with_name(name)
-        self.failif_ne(len(conts), 1, "0 or multiple containers of the same "
-                       "name (%s) found (%s)" % (name, conts))
-        return conts[0]
+        """ Runs 'docker ps' until desired named container is found """
+        found = [[]]                 # python2 hack for scope within closure
+
+        def find_container():
+            found[0] = self.sub_stuff['dc'].list_containers_with_name(name)
+            return len(found[0]) == 1
+
+        ok = utils.wait_for(find_container, 10)
+        self.failif(not ok, "Timed out waiting for container '%s'" % name)
+        return found[0][0]
 
     def _nonexisting_path(self, path, prefix):
         """ generate non-existing file name """
