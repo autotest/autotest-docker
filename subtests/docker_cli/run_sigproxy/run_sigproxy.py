@@ -81,25 +81,6 @@ class sigproxy_base(SubSubtest):
         raise NotImplementedError("Test specific variables has to be "
                                   "overridden by child.")
 
-    def _wait_for_ready(self):
-        """
-        Container command echoes READY once it sets up all the signal traps.
-        Here we wait for that READY, or time out.
-        """
-        container_cmd = self.sub_stuff['container_cmd']
-        end_time = time.time() + self.config['wait_start']
-        while time.time() <= end_time:
-            time.sleep(0.5)
-            if 'READY' in container_cmd.stdout:
-                return
-            # Some containers run detached; use 'docker logs' to check output
-            logs = DockerCmd(self, 'logs', [self.sub_stuff['container_name']])
-            logs.execute()
-            if 'READY' in logs.stdout:
-                return
-        self.failif(container_cmd.done, "Container exited before ready")
-        raise DockerTestFail("timed out waiting for container READY")
-
     def initialize(self):
         super(sigproxy_base, self).initialize()
         self.init_test_specific_variables()
@@ -117,7 +98,8 @@ class sigproxy_base(SubSubtest):
             self._init_container_attached(name)
         else:
             self._init_container_normal(name)
-        self._wait_for_ready()
+        cmd = self.sub_stuff['container_cmd']
+        cmd.wait_for_ready(timeout=self.config['wait_start'])
         # Prepare the "sigproxy" command
         kill_sigs = [int(sig) for sig in self.config['kill_signals'].split()]
         self.sub_stuff['kill_signals'] = kill_sigs

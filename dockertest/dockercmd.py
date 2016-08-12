@@ -10,7 +10,7 @@ import time
 from autotest.client import utils
 from subtestbase import SubBase
 from xceptions import DockerNotImplementedError
-from xceptions import DockerTestError
+from xceptions import DockerExecError, DockerTestError
 
 
 class DockerCmdBase(object):
@@ -334,6 +334,49 @@ class AsyncDockerCmd(DockerCmdBase):
                                          stdin=stdin, close_fds=True)
         return self.cmdresult
 
+    def wait_for_ready(self, timeout=None, timestep=0.2):
+        """
+        Monitor the output of a container (including docker logs, in
+        case stdout is detached), waiting for the string 'READY'. Return
+        as soon as we see it. If we don't, throw a meaningful exception.
+
+        :raises DockerExecError: on timeout.
+        """
+        end_time = time.time() + timeout
+        while time.time() <= end_time:
+            time.sleep(timestep)
+            if 'READY' in self.stdout:
+                return
+            # Also check docker logs
+            cid = self.container_id
+            if cid is not None:
+                logs = DockerCmd(self.subtest, 'logs', [self.container_id])
+                logs.execute()
+                if 'READY' in logs.stdout:
+                    return
+
+        # Never saw READY. Did container exit? If so, help user understand why
+        if self.done:
+            msg = "Container exited before READY"
+            if self.exit_status == 0:
+                msg += " (normal exit status)"
+            else:
+                msg += "; exit status = %d" % self.exit_status
+            stderr = self.stderr
+            if stderr:
+                msg += "; stderr='%s'" % stderr
+            raise DockerExecError(msg)
+
+        # Container still running. Must be a timeout.
+        msg = "Timed out waiting for container READY"
+        stdout = self.stdout
+        if stdout:
+            # Juuuuuuust in case it appeared since we last checked
+            if 'READY' in stdout:
+                return
+            msg += "; stdout='%s'" % stdout
+        raise DockerExecError(msg)
+
     def wait(self, timeout=None):
         """
         Return CmdResult after waiting for process to end or timeout
@@ -378,6 +421,27 @@ class AsyncDockerCmd(DockerCmdBase):
             raise DockerTestError("Attempted to get pid before execute()"
                                   " called.")
         return self._async_job.sp.pid
+
+    @property
+    def container_id(self):
+        """
+        Try to discover our own container ID or name. Return None if we can't.
+        """
+
+        # The simple case: if we are a docker attach command, assume that
+        # subargs are zero or more flags plus a container ID or name.
+        if self.subcmd == 'attach':
+            return self.subargs[-1]
+
+        # Non-attach command. Find our PID, iterate over all containers,
+        # get their PID (via inspect). If we find a match, return the CID.
+        pid = self.process_id
+        cids = utils.run('docker ps -q', verbose=False).stdout.splitlines()
+        for cid in cids:
+            c_pid = utils.run('docker inspect --format {{.State.Pid}} ' + cid)
+            if int(c_pid.stdout) == int(pid):
+                return cid
+        return None
 
     # Override base-class property methods to give up-to-second details
 
