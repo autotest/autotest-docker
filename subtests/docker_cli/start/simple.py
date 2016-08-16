@@ -23,13 +23,8 @@ from dockertest.images import DockerImage
 
 class simple(subtest.SubSubtest):
 
-    def _init_stuff(self):
-        """ Initialize stuff """
-        self.sub_stuff['container_name'] = None     # name of the container
-
     def initialize(self):
         super(simple, self).initialize()
-        self._init_stuff()
         config.none_if_empty(self.config)
         # Get free name
         docker_containers = DockerContainers(self)
@@ -38,7 +33,6 @@ class simple(subtest.SubSubtest):
 
     def _start_container(self, name):
         """ Create, store in self.sub_stuff and execute container """
-        self.sub_stuff['container_name'] = name
         if self.config.get('run_options_csv'):
             subargs = [arg for arg in
                        self.config['run_options_csv'].split(',')]
@@ -52,39 +46,43 @@ class simple(subtest.SubSubtest):
         subargs.append("'echo STARTED: $(date); while :; do sleep 0.1; done'")
         container = AsyncDockerCmd(self, 'run', subargs)
         container.execute()
-        utils.wait_for(lambda: container.stdout.startswith("STARTED"), 5,
-                       step=0.1)
+        ok = utils.wait_for(lambda: container.stdout.startswith("STARTED"), 9,
+                            step=0.1)
+        self.failif(not ok, "Timed out waiting for STARTED from container.\n"
+                    "Output: '%s'" % container.stdout)
 
     def run_once(self):
         # Execute the start command
         super(simple, self).run_once()
         name = self.sub_stuff['container_name']
-        err_msg = ("Start of the %s container failed, but '%s' message is not "
-                   "in the output:\n%s")
-        # Nonexisting container
-        missing_msg = self.config['missing_msg']
+        # Container does not yet exist; 'start' should fail.
         result = mustfail(DockerCmd(self, "start", [name]).execute(), 1)
-        self.failif(missing_msg not in str(result), err_msg
-                    % ("non-existing", missing_msg, result))
+        self.failif_not_in(self.config['missing_msg'], str(result),
+                           "'docker start <nonexistent container>' failed"
+                           " (as expected), but docker error message did not"
+                           " include expected diagnostic.")
 
-        # Running container
+        # Now run the container. The first "start" here is a NOP but is
+        # included to confirm that consecutive "docker start" commands
+        # do not fail; rhbz#1096293
         self._start_container(name)
         result = mustpass(DockerCmd(self, "start", [name]).execute())
 
-        # Stopped container
+        # Stop container, then restart it.
         mustpass(DockerCmd(self, "kill", [name]).execute())
+        mustpass(DockerCmd(self, "wait", [name]).execute())
         result = mustpass(DockerCmd(self, "start", [name]).execute())
 
     def postprocess(self):
         super(simple, self).postprocess()
         name = self.sub_stuff['container_name']
-        logs = AsyncDockerCmd(self, "logs", ['-f', name])
-        logs.execute()
-        utils.wait_for(lambda: logs.stdout.count("\n") == 2, 5, step=0.1)
-        out = logs.stdout
-        self.failif(out.count("\n") != 2, "The container was executed twice, "
-                    "there should be 2 lines with start dates, but is "
-                    "%s.\nContainer output:\n%s" % (out.count("\n"), out))
+
+        def started_twice():
+            result = mustpass(DockerCmd(self, "logs", [name]).execute())
+            return result.stdout.count("STARTED") == 2
+
+        ok = utils.wait_for(started_twice, 10, step=0.5)
+        self.failif(not ok, "Timed out waiting for second STARTED message.\n")
         mustpass(DockerCmd(self, "kill", [name]).execute())
 
     def cleanup(self):
