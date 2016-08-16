@@ -334,7 +334,7 @@ class AsyncDockerCmd(DockerCmdBase):
                                          stdin=stdin, close_fds=True)
         return self.cmdresult
 
-    def wait_for_ready(self, timeout=None, timestep=0.2):
+    def wait_for_ready(self, cid=None, timeout=None, timestep=0.2):
         """
         Monitor the output of a container (including docker logs, in
         case stdout is detached), waiting for the string 'READY'. Return
@@ -348,9 +348,10 @@ class AsyncDockerCmd(DockerCmdBase):
             if 'READY' in self.stdout:
                 return
             # Also check docker logs
-            cid = self.container_id
+            if cid is None:
+                cid = self.container_id
             if cid is not None:
-                logs = DockerCmd(self.subtest, 'logs', [self.container_id])
+                logs = DockerCmd(self.subtest, 'logs', [cid])
                 logs.execute()
                 if 'READY' in logs.stdout:
                     return
