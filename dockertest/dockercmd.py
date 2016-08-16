@@ -345,7 +345,8 @@ class AsyncDockerCmd(DockerCmdBase):
         end_time = time.time() + timeout
         while time.time() <= end_time:
             time.sleep(timestep)
-            if 'READY' in self.stdout:
+            stdout = self.stdout
+            if 'READY' in stdout:
                 return
             # Also check docker logs
             if cid is None:
@@ -353,7 +354,8 @@ class AsyncDockerCmd(DockerCmdBase):
             if cid is not None:
                 logs = DockerCmd(self.subtest, 'logs', [cid])
                 logs.execute()
-                if 'READY' in logs.stdout:
+                stdout = logs.stdout
+                if 'READY' in stdout:
                     return
 
         # Never saw READY. Did container exit? If so, help user understand why
@@ -370,11 +372,7 @@ class AsyncDockerCmd(DockerCmdBase):
 
         # Container still running. Must be a timeout.
         msg = "Timed out waiting for container READY"
-        stdout = self.stdout
         if stdout:
-            # Juuuuuuust in case it appeared since we last checked
-            if 'READY' in stdout:
-                return
             msg += "; stdout='%s'" % stdout
         raise DockerExecError(msg)
 
