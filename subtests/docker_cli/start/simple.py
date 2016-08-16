@@ -62,23 +62,27 @@ class simple(subtest.SubSubtest):
                            " (as expected), but docker error message did not"
                            " include expected diagnostic.")
 
-        # Now run the container. The first "start" here should be a NOP.
+        # Now run the container. The first "start" here is a NOP but is
+        # included to confirm that consecutive "docker start" commands
+        # do not fail; rhbz#1096293
         self._start_container(name)
         result = mustpass(DockerCmd(self, "start", [name]).execute())
 
         # Stop container, then restart it.
         mustpass(DockerCmd(self, "kill", [name]).execute())
-        mustpass(DockerCmd(self, "wait", [name]).execute(), 137)
+        mustpass(DockerCmd(self, "wait", [name]).execute())
         result = mustpass(DockerCmd(self, "start", [name]).execute())
 
     def postprocess(self):
         super(simple, self).postprocess()
         name = self.sub_stuff['container_name']
-        logs = AsyncDockerCmd(self, "logs", ['-f', name])
-        logs.execute()
-        ok = utils.wait_for(lambda: logs.stdout.count("\n") == 2, 20, step=0.1)
-        self.failif(not ok, "Timed out waiting for second STARTED message.\n"
-                    "Output: '%s'" % logs.stdout)
+
+        def started_twice():
+            result = mustpass(DockerCmd(self, "logs", [name]).execute())
+            return result.stdout.count("STARTED") == 2
+
+        ok = utils.wait_for(started_twice, 10, step=0.5)
+        self.failif(not ok, "Timed out waiting for second STARTED message.\n")
         mustpass(DockerCmd(self, "kill", [name]).execute())
 
     def cleanup(self):
