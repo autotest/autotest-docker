@@ -161,6 +161,9 @@ class login_base(SubSubtest):
         """
         if password is None:
             password = self.sub_stuff['passwd']
+        # FIXME: --email option is deprecated in 1.12, and will be
+        # removed in 1.13. We still need it for <= 1.10; otherwise
+        # docker prompts from stdin, and we hang.
         dc = DockerCmd(self, 'login', ['--username', self.sub_stuff['user'],
                                        '--password', password,
                                        '--email', 'nobody@redhat.com',
@@ -258,8 +261,6 @@ class login_fail(login_base):
         cmdresult = self.sub_stuff['cmdresult']
         OutputGood(cmdresult, ignore_error=True)
         mustfail(cmdresult, 1)
-        self.failif_not_in("no successful auth challenge", cmdresult.stderr,
-                           "stderr from failed docker login")
         self.failif_not_in("401 Unauthorized", cmdresult.stderr,
                            "stderr from failed docker login")
 
