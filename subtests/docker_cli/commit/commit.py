@@ -53,7 +53,7 @@ class commit_base(SubSubtest):
         fqin = DockerImage.full_name_from_defaults(self.config)
         prep_changes = DockerCmd(self, "run",
                                  ["--name=%s" % cname, fqin, cmd_with_rand],
-                                 self.config['docker_commit_timeout'])
+                                 self.config['docker_timeout'])
 
         results = prep_changes.execute()
         if results.exit_status:
@@ -126,7 +126,7 @@ class commit_base(SubSubtest):
             f_read_cmd = self.config['docker_read_file_cmd'] % f_name
 
             cm = DockerCmd(self, "run", ["--rm", repo_addr, f_read_cmd],
-                           self.config['docker_commit_timeout'])
+                           self.config['docker_timeout'])
             results = cm.execute()
             if results.exit_status == 0:
                 self.failif_ne(results.stdout.strip(),
