@@ -15,6 +15,10 @@ import os.path
 import logging
 import collections
 import ConfigParser
+from binascii import crc32
+from socket import gethostname
+
+MYHOSTNAME = gethostname()
 
 def log_list(method, msg, lst):
     """
@@ -489,7 +493,8 @@ class Step(collections.Callable):
         self.context = context
         if advance:
             self.context.index += 1
-        self.tag = str(self.context.index)
+        # Long names make aweful looking results
+        self.tag = "%d_%d" % (self.context.index, abs(crc32(MYHOSTNAME)))
 
     def __call__(self):
         self._mangle_syspath()
