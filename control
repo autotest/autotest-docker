@@ -378,7 +378,7 @@ class ControlINI(ConfigParser.SafeConfigParser, Singleton):
                 version, subthing = groups[0:2]
                 # Version is optional (and not currently used) but
                 # contains a trailing ':' that needs pruning
-                if version[-1] == ':':
+                if version and version[-1] == ':':
                     version = version[:-1]
                 # Multiple bugs may be associated with a subthing
                 bzs = result.get(subthing, [])
