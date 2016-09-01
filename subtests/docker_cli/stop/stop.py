@@ -77,32 +77,24 @@ class stop_base(SubSubtest):
 
     def check_output(self):
         """
-        Check that config[check_stdout] is present in the execute docker stdout
+        Check that config[check_stdout] is present in the executed docker
+        command's stdout; or, if 'check_output_inverted' config is set,
+        check that it is absent.
         """
         check_stdout = self.config.get("check_stdout")
+        if not check_stdout:
+            return
         results = self.sub_stuff['container_results']
-        if check_stdout and check_stdout not in results.stdout:
-            raise xceptions.DockerTestFail("Expected stdout '%s' not in "
-                                           "container_results:\n%s"
-                                           % (check_stdout, results))
-
-    def check_output_inverted(self):
-        """
-        Inverse version of check_output (fails in case of stdout str presence
-        """
-        check_stdout = self.config.get("check_stdout")
-        results = self.sub_stuff['container_results']
-        if check_stdout and check_stdout in results.stdout:
-            raise xceptions.DockerTestFail("Expected stdout '%s' not in "
-                                           "container_results:\n%s"
-                                           % (check_stdout, results))
+        if self.config.get('check_output_inverted'):
+            self.failif(check_stdout in results.stdout,
+                        "Found unwanted string '%s' in stdout '%s'" %
+                        (check_stdout, results.stdout))
+        else:
+            self.failif_not_in(check_stdout, results.stdout, "stdout")
 
     def postprocess(self):
         super(stop_base, self).postprocess()
-        if self.config.get('check_output_inverted'):
-            self.check_output_inverted()
-        else:
-            self.check_output()
+        self.check_output()
         stop_results = self.sub_stuff['stop_results']
         if self.config.get("stop_duration"):
             stop_duration = float(self.config.get("stop_duration"))
