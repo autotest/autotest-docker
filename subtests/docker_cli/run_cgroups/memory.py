@@ -7,7 +7,7 @@ properly.
 
 from dockertest import xceptions
 from dockertest.dockercmd import DockerCmd
-from dockertest.output import OutputNotBad
+from dockertest.output import mustpass, mustfail, OutputNotBad
 from dockertest.images import DockerImage
 from cgroups_base import cgroups_base
 
@@ -170,6 +170,10 @@ class memory_base(cgroups_base):
         for subargs in self.sub_stuff['subargs']:
             dkrcmd = DockerCmd(self, 'run -d -i', subargs)
             dkrcmd.execute()
+            if self.config['expect_success'] == 'PASS':
+                mustpass(dkrcmd)
+            else:
+                mustfail(dkrcmd, 125)
             memory_containers.append(dkrcmd)
 
     def check_result(self, subargs, long_id):
@@ -185,7 +189,11 @@ class memory_base(cgroups_base):
         return self.check_memory(memory_value, cgroup_memory, memory_unit)
 
     def postprocess_positive(self, this_result, passed):
-        self.failif(not isinstance(this_result, dict))
+        if this_result is None:
+            raise xceptions.DockerTestError("Invoked with null results")
+        self.failif(not isinstance(this_result, dict),
+                    ("expected this_result to be a dict; it's a %s" %
+                     this_result.__class__))
         status = this_result.keys().pop()
         if status is "PASS":
             self.logdebug(this_result)
@@ -199,7 +207,9 @@ class memory_base(cgroups_base):
 
     def postprocess_negative(self, this_result, memory_container, passed):
         if this_result is not None:  # Verify failed
-            self.failif(not isinstance(this_result, dict))
+            self.failif(not isinstance(this_result, dict),
+                        ("expected this_result to be a dict; it's a %s" %
+                         this_result.__class__))
             status = this_result.keys().pop()
             if status is "FAIL":
                 self.logdebug("Expected fail: %s", this_result)
@@ -239,7 +249,8 @@ class memory_base(cgroups_base):
                 long_id = memory_container.stdout.splitlines()[0].strip()
                 # Throws DockerIOError
                 this_result = self.check_result(subargs, long_id)
-            except (IndexError, xceptions.DockerIOError):
+            except (IndexError, xceptions.DockerIOError) as e:
+                self.logwarning("Ignoring exception: %s" % e)
                 this_result = None
             if self.config['expect_success'] == "PASS":
                 self.postprocess_positive(this_result, passed)
