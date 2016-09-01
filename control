@@ -378,7 +378,7 @@ class ControlINI(ConfigParser.SafeConfigParser, Singleton):
                 version, subthing = groups[0:2]
                 # Version is optional (and not currently used) but
                 # contains a trailing ':' that needs pruning
-                if version[-1] == ':':
+                if version and version[-1] == ':':
                     version = version[:-1]
                 # Multiple bugs may be associated with a subthing
                 bzs = result.get(subthing, [])
@@ -580,6 +580,9 @@ class StepInit(Context, collections.Callable):
         self.items += [Step(uri, self) for uri in posttest_uris]
         # TIMEOUT is a global defined at top of module
         self.step_timeout = float(TIMEOUT) / float(len(subtest_uris) + 1)
+        # Presume most tests will use no-more than half of their timeout
+        self.step_timeout *= 1.5
+        logging.info("Subtest timeout set to %0.4fs" % self.step_timeout)
         # This is incremented by steps, reset for execution
         self.index = 0
 

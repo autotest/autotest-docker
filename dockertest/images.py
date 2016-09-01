@@ -340,7 +340,12 @@ class DockerImages(object):
     def __init__(self, subtest, timeout=None, verbose=False):
         if timeout is None:
             # Defined in [DEFAULTS] guaranteed to exist
-            self.timeout = subtest.config['docker_timeout']
+            cfgto = subtest.config['docker_timeout']
+            self.timeout = float(cfgto)
+            if self.timeout != cfgto:
+                subtest.logwarning("Configured docker_timeout value '%s' did "
+                                   "not automatically converted to an "
+                                   "int/float by the config module." % cfgto)
         else:
             # config() auto-converts otherwise catch non-float convertible
             self.timeout = float(timeout)
