@@ -4,7 +4,9 @@ NAME = "Docker"
 TIME = "LONG"
 TEST_TYPE = "CLIENT"
 # timeout in seconds
-TIMEOUT = 60 * 60 * 4  # 4 hours, divided amung each subtest step
+TIMEOUT = 60 * 60 * 4  # 4 hours, divided among each subtest step
+# Extra multiple to apply onto each subtest to account for early-finishes
+TIMEOUT_FUDGE_FACTOR = 2
 
 import sys
 import os
@@ -581,7 +583,7 @@ class StepInit(Context, collections.Callable):
         # TIMEOUT is a global defined at top of module
         self.step_timeout = float(TIMEOUT) / float(len(subtest_uris) + 1)
         # Presume most tests will use no-more than half of their timeout
-        self.step_timeout *= 1.5
+        self.step_timeout *= TIMEOUT_FUDGE_FACTOR
         logging.info("Subtest timeout set to %0.4fs" % self.step_timeout)
         # This is incremented by steps, reset for execution
         self.index = 0
