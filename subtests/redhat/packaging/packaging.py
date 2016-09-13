@@ -21,6 +21,10 @@ class packaging(subtest.SubSubtestCaller):
 
     """ SubSubtest caller """
 
+    def initialize(self):
+        self.failif_not_redhat()
+        super(packaging, self).initialize()
+
 
 class packaging_base(SubSubtest):
     pass

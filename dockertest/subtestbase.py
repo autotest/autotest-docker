@@ -10,6 +10,7 @@ modules.
 import logging
 import traceback
 from xceptions import DockerTestFail
+from xceptions import DockerTestNAError
 from config import get_as_list
 
 
@@ -45,6 +46,9 @@ class SubBase(object):
         "postprocess": "postprocess()",
         "cleanup": "cleanup()"
     }
+
+    #: Path to file indicating which Red Hat release this is
+    redhat_release_filepath = "/etc/redhat-release"
 
     def __init__(self, *args, **dargs):
         super(SubBase, self).__init__(*args, **dargs)
@@ -166,6 +170,25 @@ class SubBase(object):
                     return
         raise DockerTestFail("%s not in %s '%s'" %
                              (expect_s, description, haystack))
+
+    @classmethod
+    def failif_not_redhat(cls, xcept=DockerTestNAError):
+        """
+        Raises an exception if this is a non-RHEL/RHELAH System
+
+        :param xcept: Non-default exception to raise
+        :raise DockerTestNAError: By default
+        """
+        try:
+            with open(cls.redhat_release_filepath, 'rb') as rhrel:
+                if 'Enterprise' not in rhrel.read():
+                    raise xcept("Test only intended for a Red Hat "
+                                "Enterprise Linux System.")
+        except IOError, anotherone:
+            raise xcept("Is this a Red Hat Enterprise system?  "
+                        "Error reading %s: %s."
+                        % (cls.redhat_release_filepath,
+                           str(anotherone)))
 
     @classmethod
     def log_x(cls, lvl, msg, *args):

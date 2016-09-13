@@ -5,6 +5,7 @@
 
 import os
 import sys
+from tempfile import mkstemp
 import types
 from unittest2 import TestCase, main
 
@@ -42,6 +43,7 @@ class DockerTestFail(Exception):
 
 # Mock module and exception class in one stroke
 setattr(mock('xceptions'), 'DockerTestFail', DockerTestFail)
+setattr(mock('xceptions'), 'DockerTestNAError', DockerTestFail)
 
 # END   boilerplate crap needed for subtests, which should be refactored
 ###############################################################################
@@ -70,6 +72,30 @@ expect_fail = [
     ['a | b | c', 'd'],
     ['a | a | a', 'b'],
 ]
+
+
+class TestNotRedHat(TestCase):
+
+    def setUp(self):
+        import subtestbase
+        self.subtestbase = subtestbase
+        # Saves some typing
+        self.stbsb = self.subtestbase.SubBase
+        pfx = 'subtestbase_unitest'
+        (fd,
+         self.stbsb.redhat_release_filepath) = mkstemp(prefix=pfx)
+        os.close(fd)
+
+    def test_failif_not_redhat(self):
+        with open(self.stbsb.redhat_release_filepath, 'wb') as rhrel:
+            rhrel.write('this is not a red hat system')
+        self.assertRaises(DockerTestFail, self.stbsb.failif_not_redhat,
+                          DockerTestFail)
+
+    def test_failif_redhat(self):
+        with open(self.stbsb.redhat_release_filepath, 'wb') as rhrel:
+            rhrel.write('Red Hat Enterprise Linux Atomic Host release 7.2')
+        self.assertEqual(self.stbsb.failif_not_redhat(DockerTestFail), None)
 
 
 class TestFailIfNotIn(TestCase):
