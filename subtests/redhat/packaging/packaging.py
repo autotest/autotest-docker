@@ -12,7 +12,7 @@ Operational Summary
 """
 
 import os
-import magic
+from autotest.client import utils
 from dockertest import subtest
 from dockertest.subtest import SubSubtest
 
@@ -33,14 +33,9 @@ class debuginfo_present(packaging_base):
     if/when it becomes possible to ship debuginfo as a separate rpm.
     """
 
-    def initialize(self):
-        super(debuginfo_present, self).initialize()
-        # The python-magic package that ships with RHEL is clunky, obsolete,
-        # undocumented, and bears no relation to any currently known magic.py
-        # in other distros or via pip. Refer to:
-        #     https://stackoverflow.com/questions/25286176
-        self.sub_stuff['magic'] = magic.open(magic.MAGIC_NONE)
-        self.sub_stuff['magic'].load()
+    @staticmethod
+    def _filetype(path):
+        return utils.run("file %s" % path).stdout.strip()
 
     def run_once(self):
         super(debuginfo_present, self).run_once()
@@ -49,10 +44,5 @@ class debuginfo_present(packaging_base):
         for binfile in ['docker-current', 'docker-latest']:
             path = os.path.join('/usr/bin', binfile)
             if os.path.exists(path):
-                filetype = self.sub_stuff['magic'].file(path)
-                self.failif_not_in('not stripped', filetype,
+                self.failif_not_in('not stripped', self._filetype(path),
                                    '%s binary is stripped of debuginfo' % path)
-
-    def cleanup(self):
-        super(debuginfo_present, self).cleanup()
-        self.sub_stuff['magic'].close()
