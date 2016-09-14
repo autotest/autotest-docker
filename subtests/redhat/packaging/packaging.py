@@ -33,8 +33,6 @@ class packaging_base(SubSubtest):
 class debuginfo_present(packaging_base):
     """
     bz1280068 - make sure docker binary is shipped with debug info.
-    We simply use libmagic to check for us. Note that this may fail
-    if/when it becomes possible to ship debuginfo as a separate rpm.
     """
 
     @staticmethod
