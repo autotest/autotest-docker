@@ -24,6 +24,10 @@ class rhel_push_plugin(subtest.SubSubtestCaller):
 
     """ SubSubtest caller """
 
+    def initialize(self):
+        self.failif_not_redhat()
+        super(rhel_push_plugin, self).initialize()
+
 
 class rhel_push_plugin_base(SubSubtest):
 
