@@ -23,6 +23,8 @@ from dockertest.subtest import SubSubtest
 from dockertest.output import OutputGood
 from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
 from dockertest.containers import DockerContainers
+from dockertest.output import DockerVersion
+from dockertest.xceptions import DockerTestNAError
 from dockertest.images import DockerImage
 from dockertest import subtest
 from dockertest import config
@@ -123,6 +125,11 @@ class start_base(SubSubtest):
 
         results = prep_changes.execute()
         return results.exit_status
+
+    @staticmethod
+    def skip_if_docker_1_10():
+        if DockerVersion().server.startswith("1.10"):
+            raise DockerTestNAError("rhbz#1330224 will not be fixed in 1.10")
 
 
 class short_term_app(start_base):

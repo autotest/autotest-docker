@@ -16,6 +16,10 @@ class rerun_long_term_app(short_term_app):
     config_section = 'docker_cli/start/rerun_long_term_app'
     check_if_cmd_finished = False
 
+    def initialize(self):
+        super(rerun_long_term_app, self).initialize()
+        self.skip_if_docker_1_10()
+
     def outputgood(self):
         # Raise exception if problems found
         # but ignore expected error message
