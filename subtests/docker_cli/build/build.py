@@ -223,8 +223,7 @@ class postprocessing(object):
             if OutputGood(build_def.dockercmd.cmdresult,
                           ignore_error=True,
                           skip=['error_check']):
-                # FIXME: this is likely to fail in docker-1.10; bz1097344
-                return build_def.dockercmd.cmdresult.exit_status == 1
+                return build_def.dockercmd.cmdresult.exit_status != 0
         else:
             raise DockerTestError("Command error: %s" % command)
 
@@ -428,15 +427,13 @@ class build_base(postprocessing, subtest.SubSubtest):
         # Get the latest container (remove all newly created in cleanup
         self.sub_stuff['dc'] = DockerContainers(self)
         self.sub_stuff['di'] = DockerImages(self)
-        pec = self.parent_subtest.stuff['existing_containers']
-        self.sub_stuff['existing_containers'] = pec
-        pei = self.parent_subtest.stuff['existing_images']
-        self.sub_stuff['existing_images'] = pei
 
     def make_builds(self, source):
         dimg = self.sub_stuff['di']
         image_name = dimg.get_unique_name()
         base_repo_fqin = DockerImage.full_name_from_defaults(source)
+        # Existing images recorded after this method runs
+        DockerCmd(self, 'pull', [base_repo_fqin]).execute()
         use_config_repo = source['use_config_repo']
         postproc_cmd_csv = source['postproc_cmd_csv']
         dockerfile_dir_path = source['dockerfile_dir_path'].strip()
@@ -482,7 +479,13 @@ class build_base(postprocessing, subtest.SubSubtest):
         super(build_base, self).initialize()
         self.initialize_utils()
         self.sub_stuff['builds'] = []
+        # Side-effect: docker pulls the base-image
         self.sub_stuff['builds'] += self.make_builds(self.config)
+        pec = self.parent_subtest.stuff['existing_containers']
+        self.sub_stuff['existing_containers'] = pec
+        # Count after pulling base-image
+        pei = self.parent_subtest.stuff['existing_images']
+        self.sub_stuff['existing_images'] = pei
 
     def run_once(self):
         super(build_base, self).run_once()
