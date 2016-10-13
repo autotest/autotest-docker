@@ -48,11 +48,12 @@ class inspect_keys(inspect_base):
     def filter_keys(self, json):
         json0 = json[0]
         # Keys in Labels should not be checked for style
-        try:
-            json0['Config']['Labels'] = {}
-            self.logdebug("Cleared Config.Labels branch")
-        except KeyError:
-            self.logdebug("Config.Labels branch not found?")
+        for label_parent in ('Config', 'ContainerConfig'):
+            try:
+                json0[label_parent]['Labels'] = {}
+                self.logdebug("Cleared %s.Labels branch", label_parent)
+            except KeyError:
+                self.logwarning("%s.Labels branch not found?", label_parent)
         # These are data-keys, not structural, ignore names
         try:
             # New in docker 1.9.1
