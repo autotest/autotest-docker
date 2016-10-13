@@ -2,6 +2,6 @@
 Description=docker-autotest systemd subtest. If you see this file on a live system it means something has failed very badly
 
 [Service]
-ExecStart=/usr/bin/docker run -p 4321:4321 --name p4321 p4321
-ExecStop=-/usr/bin/docker stop p4321
-ExecStop=/usr/bin/docker rm -f p4321
+ExecStart=/usr/bin/docker run -p 4321:4321 --name {name} {name}
+ExecStop=-/usr/bin/docker stop {name}
+ExecStop=/usr/bin/docker rm -f {name}

@@ -1,0 +1,7 @@
+[Unit]
+Description=docker-autotest systemd pull image subtest. If you see this file on a live system it means something has failed very badly
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/docker pull {name}
+RemainAfterExit=yes

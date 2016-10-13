@@ -1,4 +1,5 @@
-FROM centos:latest
+# The value of FROM is to be set by test from systemd.ini
+FROM {base_img}
 RUN yum install -y python && \
     yum update -y && \
     yum clean all
