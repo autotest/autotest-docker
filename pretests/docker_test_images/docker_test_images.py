@@ -28,6 +28,7 @@ from dockertest.subtest import SubSubtestCaller
 from dockertest.subtest import SubSubtest
 from dockertest.images import DockerImages
 from dockertest.dockercmd import DockerCmd
+from dockertest.config import Config
 from dockertest.config import get_as_list
 from dockertest.config import CONFIGCUSTOMS
 from dockertest.config import ConfigSection
@@ -65,20 +66,26 @@ class docker_test_images(SubSubtestCaller):
         if self.stuff['update'] and self.stuff['fqins']:
             # These /are/ the customized defaults, don't re-default them
             cfgsec = ConfigSection(dict(), 'DEFAULTS')
+            # config.merge_write() can't work with DEFAULTS
+            for key, value in Config.defaults_.items():
+                cfgsec.set(key, value)
             # This may not exist
             if cfgsec.has_option('preserve_fqins'):
-                preserve_fqins = get_as_list(cfgsec.get('preserve_fqins'))
+                preserve_fqins = set(get_as_list(cfgsec.get('preserve_fqins')))
             else:
-                preserve_fqins = []
+                preserve_fqins = set([])
             self.logdebug("Old preserve_fqins: %s", preserve_fqins)
             # Update the existing list
-            preserve_fqins += self.stuff['fqins']
+            preserve_fqins |= set(self.stuff['fqins'])
             # Convert back to CSV, value still in memory only
             cfgsec.set('preserve_fqins', ",".join(preserve_fqins))
-            # This will get picked up when next test executes
-            cfgsec.merge_write(open(self.stuff['defaults_ini'], 'wb'))
             self.loginfo("Updated preserve_fqins: %s",
                          cfgsec.get('preserve_fqins'))
+            # This will get picked up when next test executes
+            cfgsec.write(open(self.stuff['defaults_ini'], 'wb'))
+            # Be kind to anyone debugging the contents
+            msg = "\n# preserve_fqins modified by %s\n" % self.config_section
+            open(self.stuff['defaults_ini'], 'ab').write(msg)
         super(docker_test_images, self).postprocess()
 
 

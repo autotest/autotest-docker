@@ -203,6 +203,7 @@ class ConfigSection(object):
         scp = SafeConfigParser()
         # Safe if file doesn't exist
         scp.read(fileobject.name)
+        # N/B: This won't work with DEFAULTS
         if not scp.has_section(self._section):
             scp.add_section(self._section)
         for key, value in self.items():
