@@ -27,7 +27,9 @@ class memory_base(cgroups_base):
         """
         container_memory = int(docker_memory)
         cgroup_memory = int(cgroup_memory)
-        if cgroup_memory == 9223372036854775807:
+        # Probably because of "-m 0". RHEL <= 7.2 reported 0x7FF...FFFF in
+        # .../cgroup/.../memory.limit_in_bytes, RHEL >= 7.3 reports 0x...F000.
+        if cgroup_memory >= 0x7FFFFFFFFFFFF000:
             cgroup_memory = 0
 
         if unit == 'K' or unit == 'k':
