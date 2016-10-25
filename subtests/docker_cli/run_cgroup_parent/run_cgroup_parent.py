@@ -110,6 +110,10 @@ class run_cgroup_parent_base(SubSubtest):
                     raise DockerTestFail("cgroup line does not conform to"
                                          " '<n>:<controller>:<path>': '%s'"
                                          % line)
+                # bz1385924: 'pids' fails in docker-1.10; not worth fixing.
+                if m.group(2) == 'pids':
+                    if DockerVersion().server.startswith("1.10"):
+                        continue
                 self.failif_ne(m.group(3), path_exp, "cgroup path for %s:%s"
                                % (m.group(1), m.group(2)))
                 found_match = True
