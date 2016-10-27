@@ -211,7 +211,6 @@ class SubSubtest(subtestbase.SubBase):
         self.config_section = self.make_name(pscs)
         # Allow child to inherit and override parent config
         all_configs = config.Config()
-        # make_subsubtest_config will modify this
         parent_config = self.parent_subtest.config
         # subsubtest config is optional, overrides parent.
         if self.config_section not in all_configs:
@@ -281,16 +280,6 @@ class SubSubtest(subtestbase.SubBase):
             else:
                 _config[key] = val
         return _config
-
-    def make_subsubtest_config(self, all_configs, parent_config,
-                               subsubtest_config):
-        """
-        Deprecated, use make_config() instead, will be removed soon
-        """
-        del subsubtest_config  # not used
-        logging.warning("SubSubtest.make_subsubtest_config() is deprecated!")
-        self.config = self.make_config(all_configs, parent_config,
-                                       self.config_section)
 
 
 class SubSubtestCaller(Subtest):
