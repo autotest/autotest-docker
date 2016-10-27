@@ -11,7 +11,6 @@ loading the specified configuration section (see `configuration module`_)
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
-import logging
 import tempfile
 import os.path
 import imp
@@ -246,6 +245,8 @@ class SubSubtest(subtestbase.SubBase):
         """
         Form subsubtest configuration by inheriting parent subtest config
         """
+        # Many branches needed to keep this method compact
+        # pylint: disable=R0912
         subsubtest_config = all_configs.get(name, {})
         # don't redefine the module
         _config = copy.deepcopy(parent_config)  # a copy
