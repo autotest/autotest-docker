@@ -11,7 +11,6 @@ loading the specified configuration section (see `configuration module`_)
 # Pylint runs from a different directory, it's fine to import this way
 # pylint: disable=W0403
 
-import logging
 import tempfile
 import os.path
 import imp
@@ -154,26 +153,47 @@ class Subtest(subtestbase.SubBase, test.test):
         """
         self.log_step_msg('postprocess_iteration')
 
+    def _control_ini_section(self, section):
+        if self._control_ini is None:
+            self._control_ini = {}  # empty set of caches
+        cache = self._control_ini.get(section, None)
+        if cache is None:  # empty cache from set
+            fullpath = os.path.join(self.job.resultdir, 'control.ini')
+            # Control-file & behavior cannot be assumed, file may not exist.
+            try:
+                cache = config.ConfigDict(section)
+                cache.read(open(fullpath, 'rb'))
+                # The class instance isn't needed, only store the data
+                # ignore re-definition of 'cache' warning.
+                # pylint: disable=R0204
+                cache = dict(cache.items())
+            except (IOError, OSError, Error):
+                self.logwarning("Failed to load reference '%s' and/or "
+                                "its '[%s]' section.", fullpath, section)
+                # Flag to signal no file or section
+                cache = {}
+            # Update cache set
+            self._control_ini[section] = cache
+        # Must always return None or a dictionary
+        if cache == {}:
+            self.logdebug("No reference control.ini found, returning None")
+            return None
+        else:
+            return dict(cache.items())  # return a copy
+
     @property
     def control_config(self):
         """
         Represent operational control.ini's [Control] section as a dict or None
         """
-        if self._control_ini is None:
-            fullpath = os.path.join(self.job.resultdir, 'control.ini')
-            # Control-file & behavior cannot be assumed, file may not exist.
-            try:
-                self._control_ini = config.ConfigDict('Control')
-                self._control_ini.read(open(fullpath, 'rb'))
-            except (IOError, OSError, Error):
-                self.logwarning("Failed to load reference '%s' and/or"
-                                "it's '[Control]' section.", fullpath)
-                self._control_ini = {}    # pylint: disable=E0012,R0204
-        if self._control_ini == {}:
-            self.logdebug("No reference control.ini found, returning None")
-            return None
-        else:
-            return dict(self._control_ini.items())  # return a copy
+        return self._control_ini_section('Control')
+
+    @property
+    def bugzilla_config(self):
+        """
+        Same as ``control_config()`` but for [Bugzilla] section (if exists)
+        """
+        return self._control_ini_section('Bugzilla')
 
 
 class SubSubtest(subtestbase.SubBase):
@@ -212,7 +232,6 @@ class SubSubtest(subtestbase.SubBase):
         self.config_section = self.make_name(pscs)
         # Allow child to inherit and override parent config
         all_configs = config.Config()
-        # make_subsubtest_config will modify this
         parent_config = self.parent_subtest.config
         # subsubtest config is optional, overrides parent.
         if self.config_section not in all_configs:
@@ -246,11 +265,15 @@ class SubSubtest(subtestbase.SubBase):
         """
         Form subsubtest configuration by inheriting parent subtest config
         """
+        # Many branches needed to keep this method compact
+        # pylint: disable=R0912
         subsubtest_config = all_configs.get(name, {})
         # don't redefine the module
         _config = copy.deepcopy(parent_config)  # a copy
         # global defaults mixed in, even if overridden in parent :(
         for key, val in subsubtest_config.items():
+            if key == 'subsubtests':
+                continue  # only applicable to parent
             if key == '__example__':
                 # Compose from parent + subsub
                 par_val = parent_config.get(key, '').strip()
@@ -280,16 +303,6 @@ class SubSubtest(subtestbase.SubBase):
             else:
                 _config[key] = val
         return _config
-
-    def make_subsubtest_config(self, all_configs, parent_config,
-                               subsubtest_config):
-        """
-        Deprecated, use make_config() instead, will be removed soon
-        """
-        del subsubtest_config  # not used
-        logging.warning("SubSubtest.make_subsubtest_config() is deprecated!")
-        self.config = self.make_config(all_configs, parent_config,
-                                       self.config_section)
 
 
 class SubSubtestCaller(Subtest):
@@ -327,7 +340,6 @@ class SubSubtestCaller(Subtest):
     def __init__(self, *args, **dargs):
         super(SubSubtestCaller, self).__init__(*args, **dargs)
         #: Need separate private dict similar to `sub_stuff` but different name
-
         self.subsubtest_names = []
         self.start_subsubtests = {}
         self.final_subsubtests = set()
@@ -350,25 +362,30 @@ class SubSubtestCaller(Subtest):
         if len(self.subsubtest_names) == 0:
             sst_names = self.config['subsubtests']
             self.subsubtest_names = config.get_as_list(sst_names)
+        # Turn a short name into a fully-qualified name
+        mkfull = lambda short: os.path.join(self.config_section, short)
+        # Could be None or empty dictionary
+        if self.bugzilla_config:
+            bzexclude = set(
+                config.get_as_list(self.bugzilla_config['excluded']))
         else:
-            sst_names = self.subsubtest_names
-        if self.control_config is not None:
+            bzexclude = set()
+        # Also could be None or empty dictionary
+        if self.control_config:
             subthings = set(
-                config.get_as_list(self.control_config['subthings'],
-                                   omit_empty=True))
+                config.get_as_list(self.control_config['subthings']))
             includes = set(
-                config.get_as_list(self.control_config['include'],
-                                   omit_empty=True))
-            exclude = set(
-                config.get_as_list(self.control_config['exclude'],
-                                   omit_empty=True))
-            allem = subthings | exclude | includes
+                config.get_as_list(self.control_config['include']))
+            excludes = set(
+                config.get_as_list(self.control_config['exclude']))
+            # covers all items from command-line, config, control, and BZ
+            allem = subthings | excludes | includes
             if len(allem) < 1:
                 return  # Empty set implies ALL
-            # Make sure every control-config referenced sub-subtest exists
-            # in subsubtests option
-            fullnames = set([os.path.join(self.config_section, ssn)
+            fullnames = set([mkfull(ssn)
                              for ssn in self.subsubtest_names])
+            # Make sure every control-config referenced sub-subtest exists
+            # in subsubtests option, unless it is excluded by bugzilla
             children = set()
             # filter out all names not a subsubtest of this subtest
             for testname in allem:
@@ -377,11 +394,13 @@ class SubSubtestCaller(Subtest):
             if len(children) < 1:
                 return  # No children specified
             # Any children NOT listed in fullnames are 'undefined'
-            if children - fullnames:
+            # unless they were excluded by (an old) bugzilla
+            missing_section = children - fullnames - bzexclude
+            if missing_section:
                 msg = ("Sub-subtest(s) %s referenced in control include, "
                        "exclude, and/or subthings but not defined in "
-                       "subsubtests configuration option: %s"
-                       % (children - fullnames, self.subsubtest_names))
+                       'subsubtests = %s'
+                       % (missing_section, self.subsubtest_names))
                 raise DockerTestError(msg)
 
     def try_all_stages(self, name, subsubtest):

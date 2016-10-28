@@ -445,7 +445,7 @@ class ControlINI(ConfigParser.SafeConfigParser, Singleton):
         log_list(logging.info,
                  "Sub/sub-subtests blocked by bugzillas:",
                  bug_blocked.items())
-        self.set('Bugzilla', 'exclude',
+        self.set('Bugzilla', 'excluded',
                  ", ".join(bug_blocked.keys()))
         return bug_blocked
 
