@@ -134,22 +134,43 @@ def _which_docker():
 
 
 def _systemd_action(action):
-    utils.run("systemctl %s %s.service" % (action, _which_docker()))
+    return utils.run("systemctl %s %s.service" % (action, _which_docker()))
 
 
 def stop():
     """ stop the docker daemon """
-    _systemd_action('stop')
+    return _systemd_action('stop')
 
 
 def start():
     """ start the docker daemon """
-    _systemd_action('start')
+    return _systemd_action('start')
 
 
 def restart():
     """ restart the docker daemon """
-    _systemd_action('restart')
+    return _systemd_action('restart')
+
+
+def pid():
+    """ returns the process ID of currently-running docker daemon """
+    cmd_result = _systemd_action('show --property=MainPID')
+    stdout = cmd_result.stdout
+    if not stdout.startswith('MainPID='):
+        raise RuntimeError("Unexpected output from %s: expected MainPID=NNN,"
+                           " got '%s'" % (cmd_result.command, stdout))
+    return int(stdout[8:])
+
+
+def cmdline():
+    """
+    Returns the command line (argv) for the currently-running docker daemon,
+    as read from /proc/<pid>/cmdline. We don't use 'systemctl show' because
+    that includes unexpanded variables. Return value is a list of strings.
+    """
+    cmdline_file = os.path.join('/proc', str(pid()), 'cmdline')
+    with open(cmdline_file, 'r') as cmdline_fh:
+        return cmdline_fh.read().split('\0')
 
 
 def assert_pristine_environment():
