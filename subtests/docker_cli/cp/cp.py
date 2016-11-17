@@ -4,8 +4,9 @@ Summary
 
 Simple tests that check the the ``docker cp`` command.  The ``simple``
 subtest verifies content creation and exact match after cp.  The
-``every_last`` verifies copying many hundreds of files from a
-stopped container to the host.
+``every_last`` subtest verifies copying many hundreds of files from a
+stopped container to the host.  The ``volume_mount`` subtest verifies
+https://github.com/docker/docker/issues/27773
 
 Operational Summary
 --------------------
@@ -207,3 +208,72 @@ class every_last(CpBase):
         self.loginfo("Success, copied %d files from container, "
                      "expected number from configuration %d"
                      % (copied_number, expected_number))
+
+
+class volume_mount(CpBase):
+    """
+    Regression between docker-1.10.3 and 1.12.
+
+    See: https://github.com/docker/docker/issues/27773
+    """
+
+    def initialize(self):
+        super(volume_mount, self).initialize()
+
+        vol = 'v_' + utils.generate_random_string(8)
+        subargs = ['create', '--name', vol]
+        mustpass(DockerCmd(self, 'volume', subargs).execute())
+        self.sub_stuff['volume_name'] = vol
+
+        # First container: bind-mounts new volume, then unpacks two
+        # tarballs into it. I don't know why it has to be two tarballs
+        # and not one, but the tar thing (vs plain copy) has to do
+        # with pivot_root. Whatever that is.
+        c1 = DockerContainers(self).get_unique_name(prefix='c1_')
+        # Path is not configurable because it's hardcoded in the tarballs
+        vol_binding = vol + ':/.imagebuilder-transient-mount'
+        subargs = ['--name', c1, '-v', vol_binding, 'busybox']
+        mustpass(DockerCmd(self, 'create', subargs).execute())
+        self.sub_stuff['container1'] = c1
+        for ab in ['a', 'b']:
+            tar_file = 'cp_volume_mount_data_%s.tar' % ab
+            tar_path = os.path.join(self.parent_subtest.bindir, tar_file)
+            # Failure mode only happens if cp is via redirected stdin.
+            docker_path = self.config['docker_path']
+            utils.run("%s cp - %s:/ < %s" % (docker_path, c1, tar_path))
+
+        # Second container also bind-mounts the volume, but directly
+        # through the host filesystem.
+        subargs = ['inspect', '-f', '"{{ .Mountpoint }}"', vol]
+        inspect_cmd = mustpass(DockerCmd(self, 'volume', subargs).execute())
+        mp = inspect_cmd.stdout.strip()
+
+        c2 = DockerContainers(self).get_unique_name(prefix='c2_')
+        subargs = ['--name', c2,
+                   '-v', mp + '/0:/mountdir',
+                   '-v', mp + '/1:/mountfile',
+                   'busybox', 'cat', '/mountfile']
+        mustpass(DockerCmd(self, 'create', subargs).execute())
+        self.sub_stuff['container2'] = c2
+
+    def run_once(self):
+        super(volume_mount, self).run_once()
+        subargs = ['-a', self.sub_stuff['container2']]
+        # This is the command that fails in broken docker-1.12 builds
+        result = mustpass(DockerCmd(self, 'start', subargs).execute())
+        self.sub_stuff['start_result'] = result
+
+    def postprocess(self):
+        super(volume_mount, self).postprocess()
+        self.failif_not_in('value3b', self.sub_stuff['start_result'].stdout)
+
+    def cleanup(self):
+        super(volume_mount, self).cleanup()
+        for key in ['container1', 'container2']:
+            if key in self.sub_stuff:
+                subargs = ['-f', self.sub_stuff[key]]
+                DockerCmd(self, 'rm', subargs).execute()
+
+        if 'volume_name' in self.sub_stuff:
+            vol = self.sub_stuff['volume_name']
+            DockerCmd(self, 'volume', ['rm', vol]).execute()
