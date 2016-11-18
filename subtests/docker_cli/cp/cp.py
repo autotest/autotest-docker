@@ -250,8 +250,8 @@ class volume_mount(CpBase):
 
         c2 = DockerContainers(self).get_unique_name(prefix='c2_')
         subargs = ['--name', c2,
-                   '-v', mp + '/0:/mountdir',
-                   '-v', mp + '/1:/mountfile',
+                   '-v', mp + '/0:/mountdir:Z',
+                   '-v', mp + '/1:/mountfile:Z',
                    'busybox', 'cat', '/mountfile']
         mustpass(DockerCmd(self, 'create', subargs).execute())
         self.sub_stuff['container2'] = c2
