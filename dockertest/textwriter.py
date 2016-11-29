@@ -558,8 +558,7 @@ class TextTranslator(nodes.NodeVisitor):
                     par = TextWrapper(width=colwidths[i]).wrap(cell)
                     if par:
                         # Originally written to use map
-                        # pylint: disable=W0141
-                        maxwidth = max(map(column_width, par))
+                        maxwidth = max([column_width(x) for x in par])
                     else:
                         maxwidth = 0
                     realwidths[i] = max(realwidths[i], maxwidth)

@@ -6,7 +6,6 @@ import re
 from dockertest.xceptions import DockerTestNAError
 from dockertest.output import OutputGood
 from run_volumes import volumes_base
-from run_volumes import DockerTestNAError
 
 
 class file_volume(volumes_base):
