@@ -1,0 +1,22 @@
+<testsuites>
+    <testsuite name="02complete" timestamp="2016-11-14" failures="1" tests="3" skipped="1" errors="0">
+        <properties>
+            <property name="input_name" value="02complete"/>
+        </properties>
+        <testcase classname="02complete.subtests.docker_cli" name="abc" time="240"/>
+        <testcase classname="02complete.subtests.docker_cli" name="failtest" time="30">
+            <failure message="My &lt;error message&gt; &amp; &quot;more&quot;">This is line 1 of an error message
+This is line 2
+
+...and this, after a &amp;lt;blank&amp;gt; line, is 3
+</failure>
+            <system-out>stdout</system-out>
+            <system-err>stderr</system-err>
+        </testcase>
+        <testcase classname="02complete.subtests.docker_cli" name="na" time="2">
+            <skipped message="Test requires docker server version &gt;= 1.12; 1.10.3 found">[Errno 2] No such file or directory: 'docker/subtests/docker_cli/na.3/debug/na.3.ERROR'</skipped>
+            <system-out>stdout</system-out>
+            <system-err>stderr</system-err>
+        </testcase>
+    </testsuite>
+</testsuites>

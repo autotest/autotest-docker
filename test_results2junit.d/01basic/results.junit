@@ -1,0 +1,8 @@
+<testsuites>
+    <testsuite name="01basic" timestamp="2016-11-14" failures="0" tests="1" skipped="0" errors="0">
+        <properties>
+            <property name="input_name" value="01basic"/>
+        </properties>
+        <testcase classname="01basic.subtests.docker_cli" name="abc" time="240"/>
+    </testsuite>
+</testsuites>

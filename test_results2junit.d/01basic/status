@@ -1,0 +1,5 @@
+START	----	----	timestamp=1479154748	localtime=Nov 14 15:19:08
+	START	docker/subtests/docker_cli/abc.1	docker/subtests/docker_cli/abc.1	timestamp=1479154836	timeout=480	localtime=Nov 14 15:20:36
+		GOOD	docker/subtests/docker_cli/abc.1	docker/subtests/docker_cli/abc.1	timestamp=1479155076	localtime=Nov 14 15:24:36	completed successfully
+	END GOOD	docker/subtests/docker_cli/abc.1	docker/subtests/docker_cli/abc.1	timestamp=1479155076	localtime=Nov 14 15:24:36
+END GOOD	----	----	timestamp=1479156352	localtime=Nov 14 15:45:52

@@ -36,7 +36,7 @@ fi
 # Unit tests for subtests. Due to autotest layout, the subtest directories
 # aren't importable or discoverable by python itself. We have to do our
 # own discovery.
-for unittest in $(find subtests -name 'test_*.py' | sort); do
+for unittest in $(find . -name 'test_*.py' | sort); do
     echo \$ python $unittest
     python $unittest -v || exit 1
 done

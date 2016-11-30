@@ -1,0 +1,14 @@
+#
+# This is a more complete stress test including a failure, a skip, and reading error logs
+#
+START	----	----	timestamp=1479154748	localtime=Nov 14 15:19:08
+	START	docker/subtests/docker_cli/abc.1	docker/subtests/docker_cli/abc.1	timestamp=1479154836	timeout=480	localtime=Nov 14 15:20:36
+		GOOD	docker/subtests/docker_cli/abc.1	docker/subtests/docker_cli/abc.1	timestamp=1479155076	localtime=Nov 14 15:24:36	completed successfully
+	END GOOD	docker/subtests/docker_cli/abc.1	docker/subtests/docker_cli/abc.1	timestamp=1479155076	localtime=Nov 14 15:24:36
+	START	docker/subtests/docker_cli/failtest.2	docker/subtests/docker_cli/failtest.2	timestamp=1479155470	timeout=480	localtime=Nov 14 15:31:10
+		FAIL	docker/subtests/docker_cli/failtest.2	docker/subtests/docker_cli/failtest.2	timestamp=1479155500	localtime=Nov 14 15:31:40	My <error message> & "more"
+	END FAIL	docker/subtests/docker_cli/failtest.2	docker/subtests/docker_cli/failtest.2	timestamp=1479155500	localtime=Nov 14 15:31:40
+	START	docker/subtests/docker_cli/na.3	docker/subtests/docker_cli/na.3	timestamp=1480433509	timeout=480	localtime=Nov 29 10:31:49
+		TEST_NA	docker/subtests/docker_cli/na.3	docker/subtests/docker_cli/na.3	timestamp=1480433511	localtime=Nov 29 10:31:51	Test requires docker server version >= 1.12; 1.10.3 found
+	END TEST_NA	docker/subtests/docker_cli/na.3	docker/subtests/docker_cli/na.3	timestamp=1480433511	localtime=Nov 29 10:31:51
+END GOOD	----	----	timestamp=1479156352	localtime=Nov 14 15:45:52

@@ -1,0 +1,314 @@
+#!/usr/bin/env python
+#
+# results2junit - convert docker-autotest results file to Jenkins format
+#
+"""
+Convert docker-autotest results file (named 'status') to a results.junit
+file suitable by Jenkins.
+"""
+
+import argparse
+import os
+import re
+import sys
+import time
+
+# Convert status-file status to junit form. Key is the string as it
+# appears in the status (input) file; value is how we write it in the
+# junit (output xml) file. Blank (i.e. GOOD) means we don't need to track.
+JUNIT_STATUS = {
+    'GOOD': '',
+    'TEST_NA': 'skipped',
+    'ERROR': 'errors',
+    'FAIL': 'failures',
+}
+
+
+def xml_escape(input_string):
+    """
+    Escape XML-sensitive characters in a string
+    """
+    if not input_string:
+        return ''
+    if isinstance(input_string, basestring):
+        s_out = input_string
+    else:
+        s_out = '%s' % input_string
+
+    s_out = s_out.replace('&', '&amp;')
+    s_out = s_out.replace('<', '&lt;')
+    s_out = s_out.replace('>', '&gt;')
+    s_out = s_out.replace('"', '&quot;')
+    return s_out
+
+
+class TestSuite(object):
+    """
+    Set of test results, initialized from a list read by blah blah
+    """
+
+    def __init__(self, name, results):
+        self.name = self.input_name = name
+        self.results = results
+        # Reset test & failure counts
+        self.count = {'tests': 0}
+        for count_name in JUNIT_STATUS.values():
+            if count_name:
+                self.count[count_name] = 0
+
+        # Last result entry is an overall status
+        overall = self.results.pop()
+        if overall['name'] != '----':
+            raise ValueError('Expected "----" as last result; got %s' %
+                             overall['name'])
+        self.time = overall['run_time']
+        parsed_time = time.localtime(overall['timestamp'])
+        self.timestamp = time.strftime('%Y-%m-%d', parsed_time)
+        self.testcases = []
+        for result in self.results:
+            testcase = TestCase(result, self.name)
+            self.add_testcase(testcase)
+
+        self._consolidate_garbage_checks()
+
+    def add_testcase(self, testcase):
+        """
+        Add one testcase to our list. Update relevant counts (total number
+        of tests, number of failures/errors/skipped).
+        """
+        self.testcases.append(testcase)
+
+        self.count['tests'] += 1
+        if testcase.category in self.count:
+            self.count[testcase.category] += 1
+
+    def _consolidate_garbage_checks(self):
+        for i, tc in enumerate(self.testcases):
+            if tc.name == 'garbage_check':
+                tc.classname = self.testcases[i-1].classname
+                tc.name = self.testcases[i-1].name + '--garbage-check'
+
+    def write_xml(self, outfile):
+        """
+        Writes a junit XML file.
+        Yes, this is hand-created XML and it's nauseating. That's how
+        the existing autotest JUnit_api.py does it, and that's the quickest
+        way for me to do it right now.
+        """
+        tmpfile = outfile + '.tmp'
+        with open(tmpfile, 'w') as outfile_fh:
+            outfile_fh.write(self.as_xml)
+        if os.path.exists(outfile):
+            os.rename(outfile, outfile + '.BAK')
+        os.rename(tmpfile, outfile)
+
+    @property
+    def as_xml(self):
+        """
+        Returns the entire set of test cases as an XML string suitable
+        for writing to a junit file.
+        """
+        xml = "<testsuites>\n"
+        xml += self._xml_summary
+        xml += self._xml_properties
+        for tc in self.testcases:
+            xml += tc.as_xml
+        xml += "    </testsuite>\n"
+        xml += "</testsuites>\n"
+        return xml
+
+    @property
+    def _xml_summary(self):
+        xml = '    <testsuite'
+        for key in ['name', 'timestamp']:
+            xml += ' {}="{}"'.format(key, xml_escape(getattr(self, key)))
+        for count_key, count_value in self.count.items():
+            xml += ' {}="{}"'.format(count_key, count_value)
+        xml += ">\n"
+        return xml
+
+    @property
+    def _xml_properties(self):
+        """
+        Jenkins doesn't actually seem to use this. I'm leaving it as a
+        placeholder in case someone finds a way to use it; if not, scrap it.
+        """
+        xml = "        <properties>\n"
+        properties = {'input_name': self.input_name}
+        for prop in properties.keys():
+            xml += "            <property name=\"{}\" value=\"{}\"/>\n".format(
+                prop, xml_escape(properties[prop]))
+        xml += "        </properties>\n"
+        return xml
+
+
+class TestCase(object):
+    """
+    One individual test case. Initialized from an AutotestResults dict.
+    """
+
+    def __init__(self, result, suite_name):
+        self.test_path = name = result['name']
+        # Strip off clunky number strings
+        name2 = re.sub(r'\.\d+(_\d+)?$', '', name)
+
+        # Name is something like docker/subtests/docker_cli/build ;
+        # we want classname=rhel-7.2-ADEPT.subtests.docker_cli, name=build
+        components = name2.split('/')
+        if not components[0] == 'docker':
+            raise ValueError('Does not begin with docker/ : %s' % name)
+        components[0] = suite_name
+
+        self.name = components.pop()
+        self.classname = '.'.join(components)
+        self.time = result['run_time']
+        self.set_status(result)
+
+    def set_status(self, result):
+        """
+        Sets category and message based on result status (good, error, etc)
+        """
+        if result['status'] in JUNIT_STATUS:
+            self.category = JUNIT_STATUS[result['status']]
+            self.message = result['result']
+        else:
+            self.category = 'unknown' + result['status']
+            self.message = 'WEIRD: ' + result['result']
+
+    @property
+    def as_xml(self):
+        """
+        Returns test case as an XML string
+        """
+        xml = '        <testcase'
+        for key in ['classname', 'name', 'time']:
+            xml += ' {}="{}"'.format(key, xml_escape(getattr(self, key)))
+        if self.category:
+            xml += ">\n"
+            # XML tag is the singular 'error', 'failure', or 'skipped'
+            err_type = self.category.rstrip('s')
+            xml += "            <{} message=\"{}\">{}</{}>\n".format(
+                err_type,
+                xml_escape(self.message),
+                xml_escape(self.stacktrace),
+                err_type)
+            xml += "            <system-out>stdout</system-out>\n"
+            xml += "            <system-err>stderr</system-err>\n"
+            xml += "        </testcase>\n"
+        else:
+            xml += "/>\n"
+        return xml
+
+    @property
+    def stacktrace(self):
+        """
+        Returns the full docker-autotest stacktrace for a given testcase,
+        as read from the .ERROR file in this test's subdirectory.
+        """
+        # Given 'docker/subtests/docker_cli/run_volumes.46_756384709',
+        # read the file debug/run_volumes.46_756384709.ERROR in that subdir
+        testname = self.test_path.split("/")[-1]
+        error_log = os.path.join(self.test_path, 'debug', testname + '.ERROR')
+        stacktrace = ''
+        try:
+            with open(error_log, 'r') as error_log_fh:
+                stacktrace = error_log_fh.read()
+        except IOError, e:
+            stacktrace = e
+        return xml_escape(stacktrace)
+
+
+class AutotestResults(object):
+    """
+    Sample class for foo bar
+    """
+
+    def __init__(self):
+        status_file = 'status'
+        self.start_times = []
+        self.results = []
+        self.messages = ['']
+        with open(status_file, "r") as status_fh:
+            for line in status_fh:
+                line.strip()
+                parts = line.strip().rstrip().split("\t")
+                self.parse_status_line(parts)
+
+    def __iter__(self):
+        return (x for x in self.results)
+
+    def parse_status_line(self, parts):
+        """
+        Parses one autotest status line, eg
+            START/END GOOD   docker/this/that  ... timestamp ... message ...
+        Preserves all END lines inside self.results; START and status
+        lines have their timestamps and messages preserved for the
+        next END line.
+        """
+        if len(parts) < 5:
+            return
+        if not parts[3].startswith('timestamp='):
+            return
+        timestamp = int(parts[3].split("=")[1])
+
+        if parts[0].startswith('START'):
+            self.start_times.append(timestamp)
+            return
+
+        if parts[0].startswith('END'):
+            self.results.append({'name': parts[2],
+                                 'status': parts[0].replace('END', '').strip(),
+                                 'timestamp': timestamp,
+                                 'run_time': timestamp - self.start_times.pop(),
+                                 'result': self.messages.pop()})
+            return
+
+        if parts[5]:
+            self.messages.append(parts[5])
+
+    def pop(self):
+        """
+        Allows treating this obj as a list. Returns the last element.
+        """
+        return self.results.pop()
+
+
+def parse_args():
+    """
+    Parse command-line args
+    """
+
+    # see https://mkaz.github.io/2014/07/26/python-argparse-cookbook/
+    parser = argparse.ArgumentParser(description='Description of program')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='show verbose progress indicators', required=False)
+    parser.add_argument('-n', '--dry-run', action='store_true',
+                        help='make no actual changes', required=False)
+    parser.add_argument('--name', type=str,
+                        help='name for this test suite;' +
+                        ' should correspond to ADEPT name')
+
+    parser.add_argument('autotest_results_dir',
+                        help='path to directory containing "status" file;' +
+                        ' this is also where we write results.junit')
+    return parser.parse_args()
+
+
+def main(argv=None):
+    """
+    Entry point for command-line invocation.
+    """
+    if argv is None:
+        argv = sys.argv
+
+    args = parse_args()
+
+    os.chdir(args.autotest_results_dir)
+
+    results = AutotestResults()
+    ts = TestSuite(args.name, results)
+
+    ts.write_xml('results.junit')
+
+if __name__ == "__main__":
+    main()
