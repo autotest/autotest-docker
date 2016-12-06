@@ -214,7 +214,8 @@ class volume_mount(CpBase):
     """
     Regression between docker-1.10.3 and 1.12.
 
-    See: https://github.com/docker/docker/issues/27773
+    See: https://bugzilla.redhat.com/show_bug.cgi?id=1402086
+         https://github.com/docker/docker/issues/27773
     """
 
     def initialize(self):
