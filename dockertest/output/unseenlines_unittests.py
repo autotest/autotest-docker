@@ -6,20 +6,20 @@ import tempfile
 import unittest
 
 
-class NewLinesTestBase(unittest.TestCase):
+class UnseenLinesTestBase(unittest.TestCase):
 
     def setUp(self):
-        from newlines import NewLines
-        self.NewLines = NewLines
+        from UnseenLines import UnseenLines
+        self.UnseenLines = UnseenLines
 
     def tearDown(self):
-        del self.NewLines
+        del self.UnseenLines
 
 
-class NewLinesTestFile(NewLinesTestBase):
+class UnseenLinesTestFile(UnseenLinesTestBase):
 
     def setUp(self):
-        super(NewLinesTestFile, self).setUp()
+        super(UnseenLinesTestFile, self).setUp()
         self.tempfile = tempfile.TemporaryFile()
         self.tempfile_fd = self.tempfile.fileno()
 
@@ -29,16 +29,16 @@ class NewLinesTestFile(NewLinesTestBase):
             del self.tempfile
         except IOError:
             pass
-        super(NewLinesTestFile, self).tearDown()
+        super(UnseenLinesTestFile, self).tearDown()
 
     def test_init(self):
-        nl = self.NewLines(self.tempfile_fd)
+        nl = self.UnseenLines(self.tempfile_fd)
         self.assertTrue(nl.idx is not None)
         self.assertTrue(nl.strbuffer is not None)
         self.assertTrue(nl.lines is not None)
 
     def test_empty(self):
-        nl = self.NewLines(self.tempfile_fd)
+        nl = self.UnseenLines(self.tempfile_fd)
         self.assertTrue(nl.idx is not None)
         idx = nl.idx
         self.assertEqual(nl.nextline(), None)
@@ -50,7 +50,7 @@ class NewLinesTestFile(NewLinesTestBase):
         self.tempfile.write("foo\nbar")
         self.tempfile.flush()
         self.tempfile.seek(0, 0)
-        nl = self.NewLines(self.tempfile_fd)
+        nl = self.UnseenLines(self.tempfile_fd)
         self.assertTrue(nl.idx is not None)
         idx = nl.idx
         self.assertEqual(nl.peek(), '')
@@ -61,10 +61,10 @@ class NewLinesTestFile(NewLinesTestBase):
         self.assertEqual(nl.peek(), 'bar')
 
 
-class NewLinesTestPipe(NewLinesTestBase):
+class UnseenLinesTestPipe(UnseenLinesTestBase):
 
     def setUp(self):
-        super(NewLinesTestPipe, self).setUp()
+        super(UnseenLinesTestPipe, self).setUp()
         self.r_pipe, self.w_pipe = os.pipe()
 
     def tearDown(self):
@@ -73,16 +73,16 @@ class NewLinesTestPipe(NewLinesTestBase):
             os.close(self.w_pipe)
         except OSError:
             pass
-        super(NewLinesTestPipe, self).tearDown()
+        super(UnseenLinesTestPipe, self).tearDown()
 
     def test_init(self):
-        nl = self.NewLines(self.r_pipe)
+        nl = self.UnseenLines(self.r_pipe)
         self.assertTrue(nl.idx is not None)
         self.assertTrue(nl.strbuffer is not None)
         self.assertTrue(nl.lines is not None)
 
     def test_empty(self):
-        nl = self.NewLines(self.r_pipe)
+        nl = self.UnseenLines(self.r_pipe)
         self.assertTrue(nl.idx is not None)
         idx = nl.idx
         self.assertEqual(nl.nextline(), None)
@@ -92,7 +92,7 @@ class NewLinesTestPipe(NewLinesTestBase):
 
     def test_pre(self):
         os.write(self.w_pipe, "foo\nbar")
-        nl = self.NewLines(self.r_pipe)
+        nl = self.UnseenLines(self.r_pipe)
         self.assertTrue(nl.idx is not None)
         idx = nl.idx
         self.assertEqual(nl.peek(), '')
@@ -104,7 +104,7 @@ class NewLinesTestPipe(NewLinesTestBase):
 
     def test_bracketed(self):
         os.write(self.w_pipe, "foo\nbar")
-        nl = self.NewLines(self.r_pipe)
+        nl = self.UnseenLines(self.r_pipe)
         self.assertTrue(nl.idx is not None)
         idx = nl.idx
         self.assertEqual(nl.peek(), '')
@@ -120,7 +120,7 @@ class NewLinesTestPipe(NewLinesTestBase):
         self.assertEqual(nl.idx, idx + 2)
 
     def test_post(self):
-        nl = self.NewLines(self.r_pipe)
+        nl = self.UnseenLines(self.r_pipe)
         self.assertTrue(nl.idx is not None)
         idx = nl.idx
         self.assertEqual(nl.nextline(), None)
@@ -137,10 +137,10 @@ class NewLinesTestPipe(NewLinesTestBase):
         self.assertEqual(nl.nextline(), None)
 
 
-class NewLinesTestpty(NewLinesTestBase):
+class UnseenLinesTestpty(UnseenLinesTestBase):
 
     def setUp(self):
-        super(NewLinesTestpty, self).setUp()
+        super(UnseenLinesTestpty, self).setUp()
         self.m_pty, self.s_pty = os.openpty()
         tty.setraw(self.m_pty)
         tty.setraw(self.m_pty)
@@ -151,16 +151,16 @@ class NewLinesTestpty(NewLinesTestBase):
             os.close(self.m_pty)
         except OSError:
             pass
-        super(NewLinesTestpty, self).tearDown()
+        super(UnseenLinesTestpty, self).tearDown()
 
     def test_init(self):
-        nl = self.NewLines(self.s_pty)
+        nl = self.UnseenLines(self.s_pty)
         self.assertTrue(nl.idx is not None)
         self.assertTrue(nl.strbuffer is not None)
         self.assertTrue(nl.lines is not None)
 
     def test_empty(self):
-        nl = self.NewLines(self.s_pty)
+        nl = self.UnseenLines(self.s_pty)
         self.assertTrue(nl.idx is not None)
         idx = nl.idx
         self.assertEqual(nl.nextline(), None)
@@ -170,7 +170,7 @@ class NewLinesTestpty(NewLinesTestBase):
 
     def test_pre(self):
         os.write(self.m_pty, "foo\nbar")
-        nl = self.NewLines(self.s_pty)
+        nl = self.UnseenLines(self.s_pty)
         self.assertTrue(nl.idx is not None)
         idx = nl.idx
         self.assertEqual(nl.peek(), '')
@@ -182,7 +182,7 @@ class NewLinesTestpty(NewLinesTestBase):
 
     def test_bracketed(self):
         os.write(self.m_pty, "foo\nbar")
-        nl = self.NewLines(self.s_pty)
+        nl = self.UnseenLines(self.s_pty)
         self.assertTrue(nl.idx is not None)
         idx = nl.idx
         self.assertEqual(nl.peek(), '')
@@ -198,7 +198,7 @@ class NewLinesTestpty(NewLinesTestBase):
         self.assertEqual(nl.idx, idx + 2)
 
     def test_post(self):
-        nl = self.NewLines(self.s_pty)
+        nl = self.UnseenLines(self.s_pty)
         self.assertTrue(nl.idx is not None)
         idx = nl.idx
         self.assertEqual(nl.nextline(), None)
@@ -214,7 +214,7 @@ class NewLinesTestpty(NewLinesTestBase):
         self.assertEqual(nl.peek(), 'bar')
         self.assertEqual(nl.nextline(), None)
 
-# FIXME: Need unittest for NewlineMatch
+# FIXME: Need unittest for UnseenLineMatch
 
 if __name__ == "__main__":
     unittest.main()

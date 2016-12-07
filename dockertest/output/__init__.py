@@ -9,4 +9,5 @@ from . dockerversion import DockerVersion
 from . texttable import TextTable, ColumnRanges
 from . validate import OutputGood, OutputGoodBase, OutputNotBad
 from . validate import wait_for_output, mustpass, mustfail
-from . newlines import NewLines, NewlineMatchTimeout, NewlineMatch, NewlineMatchPeek, NoNewlineMatch
+from . unseenlines import UnseenLines, UnseenlineMatchTimeout, UnseenlineMatch
+from . unseenlines import UnseenlineMatchPeek, NoUnseenlineMatch
