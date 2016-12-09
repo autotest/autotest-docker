@@ -7,6 +7,7 @@ Handlers for command-line output processing, crash/panic detection, etc.
 
 import re
 import subprocess
+from string import printable
 from autotest.client import utils
 from dockertest.xceptions import DockerExecError, DockerOutputError
 from . dockerversion import DockerVersion
@@ -201,8 +202,11 @@ class OutputGoodBase(AllGoodBase):
 class OutputGood(OutputGoodBase):
 
     """
-    Container of standard checks
+    Container of standard checks, and one optional (nonprintables_check)
     """
+
+    def __init__(self, cmdresult, ignore_error=False, skip='nonprintables_check'):
+        super(OutputGood, self).__init__(cmdresult, ignore_error, skip)
 
     @staticmethod
     def crash_check(output):
@@ -253,6 +257,16 @@ class OutputGood(OutputGoodBase):
         :return: True if 'FATA ' does **not** sppear
         """
         regex = re.compile(r'FATA\[\d+')
+        return not bool(regex.search(output))
+
+    @staticmethod
+    def nonprintables_check(output):
+        """
+        Return False if non-printable characters are found in output.
+
+        :note: Must be explicitly enabled by calling enable_nonprintables()
+        """
+        regex = re.compile(r"[^%s]" % re.escape(printable))
         return not bool(regex.search(output))
 
 
