@@ -29,6 +29,7 @@ from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
 from dockertest.images import DockerImages
 from dockertest.output import OutputGood
+from dockertest.output import OutputNotBad
 from dockertest.config import get_as_list
 from dockertest.xceptions import DockerTestFail
 from dockertest.xceptions import DockerTestError
@@ -208,22 +209,28 @@ class postprocessing(object):
         self.logdebug("Postprocessing commands: %s", commands)
         return result
 
-    @staticmethod
-    def basic_postprocess(build_def, command, parameter):
+    def basic_postprocess(self, build_def, command, parameter):
         del parameter  # not used
         if command == 'positive':
-            # Verify zero exit status + healthy output
-            if OutputGood(build_def.dockercmd.cmdresult,
-                          ignore_error=True):
+            # Verify zero exit status and healthy output
+            opg = OutputGood(build_def.dockercmd.cmdresult,
+                             ignore_error=True)
+            if opg:
                 return build_def.dockercmd.cmdresult.exit_status == 0
             else:
+                self.logwarn('Positive output expected but check failed: %s',
+                             str(opg))
                 return False
         elif command == 'negative':
-            # Verify non-zero exit status + healthy output
-            if OutputGood(build_def.dockercmd.cmdresult,
-                          ignore_error=True,
-                          skip=['error_check']):
+            # Verify non-zero exit status and no panics
+            notbad = OutputNotBad(build_def.dockercmd.cmdresult,
+                                  ignore_error=True)
+            if notbad:
                 return build_def.dockercmd.cmdresult.exit_status != 0
+            else:
+                self.logwarn('Negative output expected, but this is worse: %s',
+                             str(notbad))
+                return False
         else:
             raise DockerTestError("Command error: %s" % command)
 
