@@ -1,22 +1,15 @@
 #!/bin/bash
 
+# Exit non-zero on the first error
+set -e
+
 export PYTHONPATH=$(dirname $0)
 
 echo ""
 echo ""
 for unittest in dockertest/*_unittests.py
 do
-    ${unittest} --failfast --quiet --buffer &
-done
-wait %- &> /dev/null
-RET=$?
-while [ $RET -ne 127 ]
-do
-    if [ $RET -ne 0 ]; then exit $RET; fi
-
-    sleep "0.1s"
-    wait %- &> /dev/null
-    RET=$?
+    ${unittest} --failfast --quiet --buffer
 done
 
 # Tests below need to include autotest modules; make sure we can access them.
@@ -38,7 +31,7 @@ fi
 # own discovery.
 for unittest in $(find . -name 'test_*.py' | sort); do
     echo \$ python $unittest
-    python $unittest -v || exit 1
+    python $unittest -v
 done
 
 echo ""
