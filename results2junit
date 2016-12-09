@@ -10,6 +10,7 @@ file suitable by Jenkins.
 import argparse
 import os
 import re
+import string
 import sys
 import time
 
@@ -39,7 +40,9 @@ def xml_escape(input_string):
     s_out = s_out.replace('<', '&lt;')
     s_out = s_out.replace('>', '&gt;')
     s_out = s_out.replace('"', '&quot;')
-    return s_out
+
+    # Strip out nonprintable characters, e.g. escape sequences.
+    return ''.join(c for c in s_out if c in string.printable)
 
 
 class TestSuite(object):
