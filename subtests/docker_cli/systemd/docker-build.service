@@ -3,5 +3,5 @@ Description=docker-autotest systemd build image subtest. If you see this file on
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/docker build {options} -t {name} {dockerfiledir}
+ExecStart=/usr/bin/docker build {unit_opts} -t {image_name} {tmpdir}
 RemainAfterExit=yes

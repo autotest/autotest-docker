@@ -48,10 +48,8 @@ Prerequisites
 *  An image stated in systemd.ini can be pulled & build
 """
 
-from os.path import join
-from os import rename
-from os import unlink
-from shutil import copyfile
+from os.path import exists, join
+from os import rename, unlink
 from autotest.client import utils
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
@@ -67,27 +65,33 @@ class systemd_base(SubSubtest):
 
     def initialize(self):
         super(systemd_base, self).initialize()
-        self.sub_stuff['bindir'] = self.parent_subtest.bindir
-        self.sub_stuff['tmpdir'] = self.tmpdir
+
+        # Copy unit file into place, with translations.
+        bindir = self.parent_subtest.bindir
         unitfile = self.config['sysd_unit_file']
-        self.sub_stuff['unitf_dst'] = join('/etc/systemd/system', unitfile)
-        self.sub_stuff['tmpdirf'] = join(self.sub_stuff['tmpdir'], unitfile)
-        self.sub_stuff['dkrfl'] = join(self.sub_stuff['bindir'], 'Dockerfile')
-        copyfile(join(self.sub_stuff['bindir'], unitfile),
-                 self.sub_stuff['tmpdirf'])
+        unitfile_src = join(bindir, unitfile)
+        self.sub_stuff['unitfile_dst'] = join('/etc/systemd/system', unitfile)
+        self.sed_file(unitfile_src, self.sub_stuff['unitfile_dst'])
+
+        # Dockerfile & requirements to tmp workdir (not all tests use this)
+        for f in ['Dockerfile', 'p4321-server.py']:
+            self.sed_file(join(bindir, f), join(self.tmpdir, f))
 
     def run_once(self):
+        super(systemd_base, self).run_once()
         self.sysd_action('daemon-reload')
         for act in 'start', 'status':
             self.sysd_action(act, self.config['sysd_unit_file'])
 
     def postprocess(self):
         super(systemd_base, self).postprocess()
-        imgs_fulname = DockerImages(self).list_imgs_full_name()
-        names_lst = [x.split(':')[0].split('/', -1)[-1] for x in imgs_fulname]
-        if self.config['image_name'] not in names_lst:
-            raise DockerTestError("Image %s is not present"
-                                  % self.config['image_name'])
+        image_name = self.config['image_name']
+        all_images = DockerImages(self).list_imgs()
+        for img_obj in all_images:
+            if img_obj.cmp_greedy(repo=image_name, tag="latest"):
+                return
+        raise DockerTestError("Image %s:latest not found among %s" %
+                              (image_name, [i.full_name for i in all_images]))
 
     def cleanup(self):
         super(systemd_base, self).cleanup()
@@ -96,7 +100,7 @@ class systemd_base(SubSubtest):
         except OSError:
             pass
         finally:
-            unlink(self.sub_stuff['unitf_dst'])
+            unlink(self.sub_stuff['unitfile_dst'])
             self.sysd_action('daemon-reload')
         DockerImages(self).clean_all([self.config['image_name']])
 
@@ -107,12 +111,19 @@ class systemd_base(SubSubtest):
             command = '{} {}'.format(command, sysd_unit)
         utils.run(command, ignore_status=False)
 
-    def sed_file(self, vars_dict):
-        tmpdir_rf = self.sub_stuff['tmpdirf']
-        tmpdir_wf = '{}.tmp'.format(tmpdir_rf)
-        with open(tmpdir_rf, "r") as srcfile, open(tmpdir_wf, "w") as dstfile:
-            dstfile.write(srcfile.read().format(**vars_dict))
-        rename(tmpdir_wf, tmpdir_rf)
+    def sed_file(self, path_in, path_out):
+        """
+        Copies path_in to path_out, replacing {xxxxx} in the source file
+        with values from config settings
+        """
+        path_out_tmp = path_out + '.tmp'
+        if exists(path_out_tmp):
+            unlink(path_out_tmp)
+        replace = dict(self.config)
+        replace['tmpdir'] = self.tmpdir
+        with open(path_in, "r") as srcfile, open(path_out_tmp, "w") as dstfile:
+            dstfile.write(srcfile.read().format(**replace))
+        rename(path_out_tmp, path_out)
 
 
 class systemd_build(systemd_base):
@@ -120,30 +131,7 @@ class systemd_build(systemd_base):
     """
     To test building an image using systemd unitfile
     """
-
-    def initialize(self):
-        # edit unitfile & copy it to /etc/systemd/system/
-        super(systemd_build, self).initialize()
-        build_dict = {'dockerfiledir': self.sub_stuff['bindir'],
-                      'options': self.config['unit_opts'],
-                      'name': self.config['image_name']}
-        self.sed_file(build_dict)
-        copyfile(self.sub_stuff['tmpdirf'], self.sub_stuff['unitf_dst'])
-        # copy Dockerfile to tmpdir, edit, then copy to bindir for build
-        self.sub_stuff['tmpdirf'] = join(self.sub_stuff['tmpdir'],
-                                         'Dockerfile')
-        tmpdirf = self.sub_stuff['tmpdirf']
-        self.sub_stuff['dkrfl_bk'] = '{}.bk'.format(tmpdirf)
-        for f in [tmpdirf, self.sub_stuff['dkrfl_bk']]:
-            copyfile(self.sub_stuff['dkrfl'], f)
-        dkrfl_dict = {'base_img': self.config['img_frm']}
-        self.sed_file(dkrfl_dict)
-        copyfile(tmpdirf, self.sub_stuff['dkrfl'])
-
-    def cleanup(self):
-        super(systemd_build, self).cleanup()
-        # restore Dockerfile to its initial state
-        copyfile(self.sub_stuff['dkrfl_bk'], self.sub_stuff['dkrfl'])
+    pass
 
 
 class systemd_pull(systemd_base):
@@ -151,10 +139,4 @@ class systemd_pull(systemd_base):
     """
     To test pulling an image using systemd unitfile
     """
-
-    def initialize(self):
-        # edit unitfile & copy it to /etc/systemd/system/
-        super(systemd_pull, self).initialize()
-        pull_dict = {'name': self.config['image_name']}
-        self.sed_file(pull_dict)
-        copyfile(self.sub_stuff['tmpdirf'], self.sub_stuff['unitf_dst'])
+    pass

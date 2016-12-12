@@ -3,5 +3,5 @@ Description=docker-autotest systemd pull image subtest. If you see this file on 
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/docker pull {name}
+ExecStart=/usr/bin/docker pull {image_name}
 RemainAfterExit=yes

@@ -5,9 +5,6 @@ predefined settings
 
 import time
 import socket
-from os.path import join
-from shutil import copy
-from shutil import copyfile
 from autotest.client import utils
 from autotest.client.shared.utils import is_port_free
 from dockertest.dockercmd import DockerCmd
@@ -19,25 +16,11 @@ from systemd import systemd_base
 class systemd_run(systemd_base):
 
     def initialize(self):
-        # edit unitfile & copy it to /etc/systemd/system/
         super(systemd_run, self).initialize()
-        run_dict = {'name': self.config['image_name']}
-        self.sed_file(run_dict)
-        copyfile(self.sub_stuff['tmpdirf'], self.sub_stuff['unitf_dst'])
-        # copy Dockerfile & p4321-server.py to tmpdir and edit Dockerfile
-        tmpdir = self.sub_stuff['tmpdir']
-        self.sub_stuff['tmpdirf'] = join(tmpdir, 'Dockerfile')
-        for f in 'Dockerfile', 'p4321-server.py':
-            copy(join(self.sub_stuff['bindir'], f), tmpdir)
-        dkrfl_dict = {'base_img': self.config['img_frm']}
-        self.sed_file(dkrfl_dict)
         # build image using edited Dockerfile in tmpdir
-        dkrcmd = DockerCmd(self, 'build', [self.config['build_opt'], tmpdir])
+        dkrcmd = DockerCmd(self, 'build', [self.config['build_opt'],
+                                           self.tmpdir])
         mustpass(dkrcmd.execute())
-
-    def run_once(self):
-        self.sysd_action('daemon-reload')
-        self.sysd_action('start', self.config['sysd_unit_file'])
 
     def postprocess(self):
         super(systemd_run, self).postprocess()
