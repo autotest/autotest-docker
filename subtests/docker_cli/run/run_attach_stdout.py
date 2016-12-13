@@ -19,7 +19,7 @@ class run_attach_stdout(run_base):
     def postprocess(self):
         super(run_attach_stdout, self).postprocess()
         attach_cmdresult = self.sub_stuff['attachcmd'].cmdresult
-        OutputGood(attach_cmdresult)
+        OutputGood(attach_cmdresult, skip=['nonprintables_check'])
         mustpass(attach_cmdresult)
         secret_sauce = self.config['secret_sauce']
         secret_present = attach_cmdresult.stdout.find(secret_sauce) != -1

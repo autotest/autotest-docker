@@ -108,7 +108,8 @@ class stop_base(SubSubtest):
                                                     stop_duration))
         # Look for docker failures
         OutputGood(stop_results)
-        OutputGood(self.sub_stuff['container_results'])
+        OutputGood(self.sub_stuff['container_results'],
+                   skip=['nonprintables_check'])
         self.failif_ne(stop_results.exit_status, 0, "Exit status of the "
                        "docker stop command was not 0: %s" % stop_results)
         exp = self.config.get('docker_exit_code', 0)

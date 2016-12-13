@@ -178,7 +178,7 @@ class rm_sub_base(SubSubtest):
         self.failif_ne(cmdresult.exit_status, 0, "Exit status: %s" % cmdresult)
         self.failif_ne(rm_cmdresult.exit_status, 0, "Expected zero exit: %s"
                        % rm_cmdresult)
-        OutputGood(cmdresult)
+        OutputGood(cmdresult, skip=['nonprintables_check'])
         OutputGood(rm_cmdresult)
 
     def verify_container(self):

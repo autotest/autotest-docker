@@ -134,7 +134,7 @@ class exec_true(exec_base):
     def postprocess(self):
         dkrcmd_exec = self.sub_stuff['dkrcmd_exec']
         mustpass(dkrcmd_exec.cmdresult)
-        OutputGood(dkrcmd_exec.cmdresult)
+        OutputGood(dkrcmd_exec.cmdresult, skip=['nonprintables_check'])
         super(exec_true, self).postprocess()
 
 

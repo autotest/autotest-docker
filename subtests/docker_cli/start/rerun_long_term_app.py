@@ -25,4 +25,4 @@ class rerun_long_term_app(short_term_app):
         # but ignore expected error message
         cmdresult = self.sub_stuff['dkrcmd'].cmdresult
         OutputGood(cmdresult, ignore_error=True,
-                   skip=['error_check'])
+                   skip=['error_check', 'nonprintables_check'])

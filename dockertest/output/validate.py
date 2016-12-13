@@ -205,9 +205,6 @@ class OutputGood(OutputGoodBase):
     Container of standard checks, and one optional (nonprintables_check)
     """
 
-    def __init__(self, cmdresult, ignore_error=False, skip='nonprintables_check'):
-        super(OutputGood, self).__init__(cmdresult, ignore_error, skip)
-
     @staticmethod
     def crash_check(output):
         """
@@ -273,7 +270,7 @@ class OutputGood(OutputGoodBase):
 class OutputNotBad(OutputGood):
 
     """
-    Same as OutputGood, except skip checking error/usage messages by default
+    Same as OutputGood, except only check for egregious, horrible problems.
     """
 
     #: Full command line that outputs string to search for kernel oopses
@@ -287,7 +284,7 @@ class OutputNotBad(OutputGood):
     _dmesg_cache = None
 
     def __init__(self, cmdresult, ignore_error=False, skip=None):
-        defaults = ['error_check', 'usage_check']
+        defaults = ['error_check', 'usage_check', 'nonprintables_check']
         if skip is None:
             skip = defaults
         else:

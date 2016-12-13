@@ -40,7 +40,7 @@ class run_user(subtest.SubSubtestCaller):
         self.failif_ne(result.exit_status, 0,
                        "Failed to get container's /etc/passwd."
                        " Exit status is !0\n%s" % result)
-        OutputGood(result)
+        OutputGood(result, skip=['nonprintables_check'])
         return result.stdout
 
     def initialize(self):
@@ -133,7 +133,7 @@ class run_user_base(subtest.SubSubtest):
         Check that container executed correctly and that output is as expected
         """
         result = self.sub_stuff['result']
-        OutputGood(result)
+        OutputGood(result, skip=['nonprintables_check'])
         self.failif_ne(result.exit_status, 0,
                        "Container's exit status is !0 although it should pass"
                        ":\n%s" % result)
