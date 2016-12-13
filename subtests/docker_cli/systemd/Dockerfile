@@ -1,7 +1,5 @@
-FROM centos:latest
-RUN yum install -y python && \
-    yum update -y && \
-    yum clean all
+# The value of FROM is to be set by test from systemd.ini
+FROM {dockerfile_base_image}
 ADD /p4321-server.py /usr/bin/
 RUN chmod 755 /usr/bin/p4321-server.py
 EXPOSE 4321

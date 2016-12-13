@@ -1,86 +1,142 @@
-"""
+r"""
 Summary
 -------
-Testing basic container as systemd service
+
+This is to test basic container as systemd service using a predefined unit
+file. Image pulling, building, and running are performed.
 
 Operational Summary
 ---------------------
-This is to test container as systemd service using a predefined unit file
-(``p4321.service``) and a ``script p4321-server.py``. An image is built with
-this script added. Systemd starts a container using this image & the container
-writes current time to port ``4321``. From host, the socket is read and the
-value is checked to see if it is a digit. Finally, container is stopped
-through systemd and system is cleaned up.
 
+#. Provided unitfile is edited & copied to ``/etc/systemd/system``.
+#. Image is pulled using unitfile
+#. Image is build using provided Dockedfile
+#. Container is started/run using unitfile
+
+Operational Detail
+----------------------
+
+systemd pull
+~~~~~~~~~~~~~~~~~
+#. Edit unitfile ``docker-pull.service`` & copy it to ``/etc/systemd/system``
+#. Systemd service is started using this file to pull an image.
+#. Systemd service is stoped and image removed
+
+systemd build
+~~~~~~~~~~~~~~~~~
+#. Edit unitfile ``docker-build.service`` & copy it to ``/etc/systemd/system``
+#. Edit Dockerfile
+#. Systemd service is started using this file to build an image.
+#. Systemd service is stoped and image removed
+
+systemd run
+~~~~~~~~~~~~~~~~~
+#. Edit unitfile ``p4321.service`` and copy to ``/etc/systemd/system``
+#. Edit ``Dockerfile`` and copy to test temporary directory
+#. Copy a script ``p4321-server.py`` to test temporary directory
+#. Built an image using the Dockerfile and script
+#. Systemd starts a container using this image
+#. The container writes current time to port ``4321``.
+#. From host, the socket is read and the value is checked
+#. Finally, container is stopped through systemd and system is cleaned up.
+
+Prerequisites
+----------------
+*  Docker daemon is running
+*  systemd unitfiles can be copied to ``/etc/systemd/system``
+*  systemd actions of start/status/stop & daemon-reload can be performed
+*  An image stated in systemd.ini can be pulled & build
 """
 
-import shutil
-import time
-import socket
-from os.path import exists
-from os import unlink
+from os.path import exists, join
+from os import rename, unlink
 from autotest.client import utils
-from autotest.client.shared.utils import is_port_free
-from dockertest.subtest import Subtest
-from dockertest.dockercmd import DockerCmd
+from dockertest.subtest import SubSubtest
+from dockertest.subtest import SubSubtestCaller
 from dockertest.images import DockerImages
-from dockertest.output import mustpass
 from dockertest.xceptions import DockerTestError
 
 
-class systemd(Subtest):
+class systemd(SubSubtestCaller):
+    pass
+
+
+class systemd_base(SubSubtest):
 
     def initialize(self):
-        super(systemd, self).initialize()
-        unit_file_srcpath = '{}{}'.format(self.bindir, '/p4321.service')
-        shutil.copyfile(unit_file_srcpath, self.config['sysd_unitf_dest'])
-        dkrcmd = DockerCmd(self, 'build', ['--force-rm -t',
-                                           self.config['name'], self.bindir])
-        mustpass(dkrcmd.execute())
+        super(systemd_base, self).initialize()
+
+        # Copy unit file into place, with translations.
+        bindir = self.parent_subtest.bindir
+        unitfile = self.config['sysd_unit_file']
+        unitfile_src = join(bindir, unitfile)
+        self.sub_stuff['unitfile_dst'] = join('/etc/systemd/system', unitfile)
+        self.sed_file(unitfile_src, self.sub_stuff['unitfile_dst'])
+
+        # Dockerfile & requirements to tmp workdir (not all tests use this)
+        for f in ['Dockerfile', 'p4321-server.py']:
+            self.sed_file(join(bindir, f), join(self.tmpdir, f))
 
     def run_once(self):
-        host = 'localhost'
-        port = 4321
+        super(systemd_base, self).run_once()
         self.sysd_action('daemon-reload')
-        self.sysd_action('start', self.config['sysd_unit_file'])
-        utils.wait_for(lambda: not is_port_free(port, host), 10)
-        time_from_socket = self.read_socket(host, port)
-        self.failif(not time_from_socket.isdigit(),
-                    "Data received from container is non-numeric: '%s'"
-                    % time_from_socket)
+        for act in 'start', 'status':
+            self.sysd_action(act, self.config['sysd_unit_file'])
+
+    def postprocess(self):
+        super(systemd_base, self).postprocess()
+        image_name = self.config['image_name']
+        all_images = DockerImages(self).list_imgs()
+        for img_obj in all_images:
+            if img_obj.cmp_greedy(repo=image_name, tag="latest"):
+                return
+        raise DockerTestError("Image %s:latest not found among %s" %
+                              (image_name, [i.full_name for i in all_images]))
 
     def cleanup(self):
-        super(systemd, self).cleanup()
-        filepath = self.config['sysd_unitf_dest']
-        if exists(filepath):
+        super(systemd_base, self).cleanup()
+        try:
             self.sysd_action('stop', self.config['sysd_unit_file'])
-            unlink(filepath)
+        except OSError:
+            pass
+        finally:
+            unlink(self.sub_stuff['unitfile_dst'])
             self.sysd_action('daemon-reload')
-        DockerImages(self).clean_all([self.config['name']])
+        DockerImages(self).clean_all([self.config['image_name']])
 
     @staticmethod
-    def sysd_action(action=None, sysd_unit=None):
+    def sysd_action(action, sysd_unit=None):
         command = 'systemctl {}'.format(action)
         if sysd_unit:
             command = '{} {}'.format(command, sysd_unit)
         utils.run(command, ignore_status=False)
 
-    @staticmethod
-    def read_socket(host, port):
-        max_read_tries = 10
-        num_read_try = max_read_tries
-        while num_read_try:
-            # using timeout 13-sec as it's 1-sec longer than two DNS timeouts
-            s = socket.create_connection((host, port), 13)
-            s.settimeout(2.0)
-            try:
-                time_from_socket = s.recv(512).strip()
-                if time_from_socket:
-                    s.shutdown(socket.SHUT_RDWR)
-                    return time_from_socket
-                num_read_try -= 1
-            except socket.timeout:
-                pass
-            time.sleep(1.0)
-        raise DockerTestError("Failed to read from socket with %d tries"
-                              % max_read_tries)
+    def sed_file(self, path_in, path_out):
+        """
+        Copies path_in to path_out, replacing {xxxxx} in the source file
+        with values from config settings
+        """
+        path_out_tmp = path_out + '.tmp'
+        if exists(path_out_tmp):
+            unlink(path_out_tmp)
+        replace = dict(self.config)
+        replace['tmpdir'] = self.tmpdir
+        with open(path_in, "r") as srcfile, open(path_out_tmp, "w") as dstfile:
+            dstfile.write(srcfile.read().format(**replace))
+        rename(path_out_tmp, path_out)
+
+
+class systemd_build(systemd_base):
+
+    """
+    To test building an image using systemd unitfile
+    """
+    pass
+
+
+class systemd_pull(systemd_base):
+
+    """
+    To test pulling an image using systemd unitfile
+    """
+    pass

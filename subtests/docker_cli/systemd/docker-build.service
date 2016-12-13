@@ -1,0 +1,7 @@
+[Unit]
+Description=docker-autotest systemd build image subtest. If you see this file on a live system it means something has failed very badly
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/docker build {unit_opts} -t {image_name} {tmpdir}
+RemainAfterExit=yes
