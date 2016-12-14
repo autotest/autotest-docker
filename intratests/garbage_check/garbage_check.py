@@ -56,10 +56,12 @@ class DockerImageIncomplete(DockerImage):
 
     def __eq__(self, other):
         if self.long_id == self.__class__.UNKNOWN:
-            return self.cmp_greedy(other.repo, other.tag,
-                                   other.repo_addr, other.user)
-        else:
-            return super(DockerImageIncomplete, self.__eq__(other))
+            # Comparing by name is only possible for non-<none>s
+            if other.repo and other.tag and other.repo_addr and other.user:
+                return self.cmp_greedy(other.repo, other.tag,
+                                       other.repo_addr, other.user)
+            return False
+        return super(DockerImageIncomplete, self.__eq__(other))
 
     @classmethod
     def prob_is_fqin(cls, fqin_or_id):
@@ -256,12 +258,11 @@ class nones(Base):
         leftover_images = [img for img in di.list_imgs()
                            if img not in preserve_images]
         for img in leftover_images:
-            # another sub-subtest will take care of <none> images
-            if img.repo != '' or img.repo != '<none>' or img.repo is not None:
+            if img.repo is not None and img.repo and img.repo != '<none>':
                 continue
             if not self.config['remove_garbage']:
                 continue
-            self.logwarning("Removing left behind: %s", img)
+            self.logwarning("Removing leftover <none> image: %s", img)
             try:
                 di.remove_image_by_id(img.short_id)
             except (ValueError, KeyError):
