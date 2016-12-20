@@ -71,7 +71,7 @@ class start_base(SubSubtest):
         self.loginfo("Starting container...")
         self.loginfo("Executing background command: %s" % dkrcmd.command)
         dkrcmd.execute()
-        dkrcmd.wait(60)
+        dkrcmd.wait(self.config['dkrcmd_waittime'])
         self.sub_stuff["dkrcmd"] = dkrcmd
 
     def complete_docker_command_line(self):
