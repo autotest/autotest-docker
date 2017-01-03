@@ -17,7 +17,6 @@ Prerequisites
 None
 """
 
-import os.path
 from dockertest import subtest
 from dockertest.output import OutputGood
 from dockertest.output import DockerVersion
@@ -42,12 +41,8 @@ class version(subtest.Subtest):
         # Raise exception on Go Panic or usage help message
         outputgood = OutputGood(self.stuff['cmdresult'])
         docker_version = DockerVersion(outputgood.stdout_strip)
-        info = ("docker version client: %s server %s"
-                % (docker_version.client, docker_version.server))
-        self.loginfo("Found %s", info)
-        with open(os.path.join(self.job.sysinfo.sysinfodir,
-                               'docker_version'), 'wb') as info_file:
-            info_file.write("%s\n" % info)
+        self.loginfo("docker version client: %s server %s",
+                     docker_version.client, docker_version.server)
         self.verify_version(docker_version)
 
     def verify_version(self, docker_version):

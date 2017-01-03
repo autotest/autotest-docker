@@ -114,7 +114,7 @@ class SocketClient(ClientBase):
 # Group of utils for managing docker daemon service.
 
 
-def _which_docker():
+def which_docker():
     """
     Returns 'docker' or 'docker-latest' based on setting in
     /etc/sysconfig/docker.
@@ -134,7 +134,7 @@ def _which_docker():
 
 
 def _systemd_action(action):
-    return utils.run("systemctl %s %s.service" % (action, _which_docker()))
+    return utils.run("systemctl %s %s.service" % (action, which_docker()))
 
 
 def stop():
@@ -197,7 +197,7 @@ def edit_options_file(remove=None, add=None):
     :param remove: string or list of strings - option(s) to remove from line
     :param add: string or list of strings - option(s) to add to line
     """
-    sysconfig_file = '/etc/sysconfig/%s' % _which_docker()
+    sysconfig_file = '/etc/sysconfig/%s' % which_docker()
     sysconfig_bkp = sysconfig_file + PRESERVED_EXTENSION
     if os.path.exists(sysconfig_bkp):
         raise RuntimeError("Backup file already exists: %s" % sysconfig_bkp)
@@ -256,7 +256,7 @@ def revert_options_file():
     situation in which it makes sense to revert options without restarting
     docker daemon.
     """
-    sysconfig_file = '/etc/sysconfig/%s' % _which_docker()
+    sysconfig_file = '/etc/sysconfig/%s' % which_docker()
     sysconfig_bkp = sysconfig_file + PRESERVED_EXTENSION
     if os.path.exists(sysconfig_bkp):
         os.rename(sysconfig_bkp, sysconfig_file)
