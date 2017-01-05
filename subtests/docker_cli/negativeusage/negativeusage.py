@@ -77,6 +77,9 @@ class negativeusage(subtest.SubSubtestCaller):
             return
         preserve_fqins = config.get_as_list(self.config['preserve_fqins'])
         preserve_cnames = config.get_as_list(self.config['preserve_cnames'])
+        # this can happen if initialize() fails early
+        if 'dc' not in self.stuff:
+            return
         dc = self.stuff['dc']
         ecs = self.stuff['existing_containers'] + preserve_cnames
         di = self.stuff['di']

@@ -694,7 +694,7 @@ class SubSubtestCallerSimultaneous(SubSubtestCaller):
                             "for subtest %s", self.config_section)
 
     def run_once(self):
-        # DO NOT CALL superclass run_once() this variation works
+        # DO NOT CALL superclass run_once(); this variation works
         # completely differently!
         self.log_step_msg('run_once')
         for name, subsubtest in self.run_subsubtests.items():
@@ -711,7 +711,7 @@ class SubSubtestCallerSimultaneous(SubSubtestCaller):
                 self.logtraceback(name, sys.exc_info(), "run_once", detail)
 
     def postprocess(self):
-        # DO NOT CALL superclass run_once() this variation works
+        # DO NOT CALL superclass postprocess(); this variation works
         # completely differently!
         self.log_step_msg('postprocess')
         start_subsubtests = set(self.start_subsubtests.keys())
@@ -734,6 +734,7 @@ class SubSubtestCallerSimultaneous(SubSubtestCaller):
 
     def cleanup(self):
         super(SubSubtestCallerSimultaneous, self).cleanup()
+        self.log_step_msg('cleanup')
         cleanup_failures = set()  # just for logging purposes
         for name, subsubtest in self.start_subsubtests.items():
             try:
