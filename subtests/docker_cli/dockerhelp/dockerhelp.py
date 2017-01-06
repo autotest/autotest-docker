@@ -68,7 +68,8 @@ class help_base(SubSubtest):
             self.failif(no_usage, "Did not return usage help on stdout for: "
                         "%s" % cmdresult.command)
             outputgood = OutputGood(cmdresult, ignore_error=True,
-                                    skip=['usage_check', 'error_check'])
+                                    skip=['usage_check', 'error_check',
+                                          'nonprintables_check'])
             self.failif(not outputgood, str(outputgood))
         for cmdresult in self.sub_stuff['failure_cmdresults']:
             defined = cmdresult.stdout.lower().find('flag provided but '
@@ -78,7 +79,8 @@ class help_base(SubSubtest):
                         'error or usage message for: '
                         "%s" % cmdresult.command)
             outputgood = OutputGood(cmdresult, ignore_error=True,
-                                    skip=['usage_check'])
+                                    skip=['usage_check',
+                                          'nonprintables_check'])
             self.failif(not outputgood, str(outputgood))
 
 

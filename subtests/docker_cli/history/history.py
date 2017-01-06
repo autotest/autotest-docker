@@ -85,7 +85,8 @@ class history_base(SubSubtest):
         super(history_base, self).postprocess()
         # Raise exception if problems found
         expect = self.config["docker_expected_exit_status"]
-        OutputGood(self.sub_stuff['cmdresult'], ignore_error=(expect != 0))
+        OutputGood(self.sub_stuff['cmdresult'], ignore_error=(expect != 0),
+                   skip=['nonprintables_check'])
         self.failif_ne(self.sub_stuff['cmdresult'].exit_status, expect,
                        "Exit status")
 

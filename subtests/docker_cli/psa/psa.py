@@ -101,7 +101,7 @@ class psa(subtest.Subtest):
 
     def postprocess(self):
         super(psa, self).postprocess()
-        OutputGood(self.stuff['cmdresult'], "test container failed on start")
+        OutputGood(self.stuff['cmdresult'], skip=['nonprintables_check'])
         dc = self.stuff['dc']
         cnts = dc.list_containers_with_name(self.stuff['container_name'])
         self.failif(len(cnts) < 1, "Test container not found in list")

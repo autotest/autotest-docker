@@ -73,7 +73,7 @@ class run_base(SubSubtest):
     def postprocess(self):
         super(run_base, self).postprocess()  # Prints out basic info
         dockercmd = self.sub_stuff['dkrcmd']
-        OutputGood(dockercmd.cmdresult)
+        OutputGood(dockercmd.cmdresult, skip=['nonprintables_check'])
         expected = self.config['exit_status']
         self.failif_ne(dockercmd.exit_status, expected,
                        "Exit status %s"

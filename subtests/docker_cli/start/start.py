@@ -89,8 +89,11 @@ class start_base(SubSubtest):
         return cmds
 
     def outputgood(self):
+        skip = None
+        if self.config["docker_attach"] or self.config["docker_interactive"]:
+            skip = ['nonprintables_check']
         # Raise exception if problems found
-        OutputGood(self.sub_stuff['dkrcmd'])
+        OutputGood(self.sub_stuff['dkrcmd'], skip=skip)
 
     def postprocess(self):
         super(start_base, self).postprocess()

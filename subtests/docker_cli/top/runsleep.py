@@ -30,7 +30,8 @@ class runsleep(base):
         self.sub_stuff['top_dkrcmd'].execute()  # blocking
 
     def postprocess(self):
-        OutputGood(self.sub_stuff['run_dkrcmd'].cmdresult)
+        OutputGood(self.sub_stuff['run_dkrcmd'].cmdresult,
+                   skip=['nonprintables_check'])
         OutputGood(self.sub_stuff['top_dkrcmd'].cmdresult)
         pstable = TextTable(self.sub_stuff['top_dkrcmd'].stdout)
         self.failif_ne(len(pstable), 1, "Number of rows returned by top")

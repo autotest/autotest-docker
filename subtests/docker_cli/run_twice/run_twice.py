@@ -49,7 +49,7 @@ class run_twice(subtest.Subtest):
         super(run_twice, self).postprocess()
         for cmdresult in self.stuff['cmdresults']:
             self.loginfo("command: '%s'" % cmdresult.command)
-            outputgood = OutputGood(cmdresult)
+            outputgood = OutputGood(cmdresult, skip=['nonprintables_check'])
             self.failif(not outputgood, str(outputgood))
         for cmdresult in self.stuff['2nd_cmdresults']:
             self.loginfo("command: '%s'" % cmdresult.command)

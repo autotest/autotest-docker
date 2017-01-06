@@ -7,6 +7,7 @@ Handlers for command-line output processing, crash/panic detection, etc.
 
 import re
 import subprocess
+from string import printable
 from autotest.client import utils
 from dockertest.xceptions import DockerExecError, DockerOutputError
 from . dockerversion import DockerVersion
@@ -201,7 +202,7 @@ class OutputGoodBase(AllGoodBase):
 class OutputGood(OutputGoodBase):
 
     """
-    Container of standard checks
+    Container of standard checks, and one optional (nonprintables_check)
     """
 
     @staticmethod
@@ -255,11 +256,21 @@ class OutputGood(OutputGoodBase):
         regex = re.compile(r'FATA\[\d+')
         return not bool(regex.search(output))
 
+    @staticmethod
+    def nonprintables_check(output):
+        """
+        Return False if non-printable characters are found in output.
+
+        :note: Must be explicitly enabled by calling enable_nonprintables()
+        """
+        regex = re.compile(r"[^%s]" % re.escape(printable))
+        return not bool(regex.search(output))
+
 
 class OutputNotBad(OutputGood):
 
     """
-    Same as OutputGood, except skip checking error/usage messages by default
+    Same as OutputGood, except only check for egregious, horrible problems.
     """
 
     #: Full command line that outputs string to search for kernel oopses
@@ -273,7 +284,7 @@ class OutputNotBad(OutputGood):
     _dmesg_cache = None
 
     def __init__(self, cmdresult, ignore_error=False, skip=None):
-        defaults = ['error_check', 'usage_check']
+        defaults = ['error_check', 'usage_check', 'nonprintables_check']
         if skip is None:
             skip = defaults
         else:

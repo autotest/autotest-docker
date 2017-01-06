@@ -81,7 +81,8 @@ class workdir(subtest.Subtest):
             _command = self.stuff['cmdresults'][name].command
             self.logdebug("Commands: %s" % _command)
             outputgood = OutputGood(self.stuff['cmdresults'][name],
-                                    ignore_error=True)
+                                    ignore_error=True,
+                                    skip=['nonprintables_check'])
             self.failif(self.stuff['cmdresults'][name].exit_status == 0,
                         str(outputgood))
             if self.stuff['cmdresults'][name].exit_status != 0:
