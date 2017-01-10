@@ -218,8 +218,8 @@ class postprocessing(object):
             if opg:
                 return build_def.dockercmd.cmdresult.exit_status == 0
             else:
-                self.logwarn('Positive output expected but check failed: %s',
-                             str(opg))
+                self.logwarning('Positive output expected but check'
+                                ' failed: %s', str(opg))
                 return False
         elif command == 'negative':
             # Verify non-zero exit status and no panics
@@ -228,8 +228,8 @@ class postprocessing(object):
             if notbad:
                 return build_def.dockercmd.cmdresult.exit_status != 0
             else:
-                self.logwarn('Negative output expected, but this is worse: %s',
-                             str(notbad))
+                self.logwarning('Negative output expected, but'
+                                ' this is worse: %s', str(notbad))
                 return False
         else:
             raise DockerTestError("Command error: %s" % command)
