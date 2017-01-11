@@ -7,9 +7,15 @@ Low-level/standalone host-environment handling/checking utilities/classes/data
        in autotest!
 """
 
+import errno
 import subprocess
+# This always fails on travis with: no get in xattr (E0611)
+# dispite successful 'pip install pyxattr==0.5.1'.  A test
+# for this name has been added to .travis.yml directly.
+from xattr import get as getxattr  # pylint: disable=E0611
 
 
+# FIXME: pwd is misleading, it should be 'path'
 def set_selinux_context(pwd, context=None, recursive=True):
     """
     When selinux is enabled it sets the context by chcon -t ...
@@ -34,3 +40,19 @@ def set_selinux_context(pwd, context=None, recursive=True):
         raise OSError("Fail to set selinux context by '%s' (%s):\nSTDOUT:\n%s"
                       "\nSTDERR:\n%s" % (_cmd, cmd.poll(), cmd.stdout.read(),
                                          cmd.stderr.read()))
+
+
+def get_selinux_context(path):
+    """
+    When selinux is enabled, return the context of ``path``
+    :param path: Full or relative path to a file or directory
+    :return: SELinux context as a string or None if not set
+    """
+    try:
+        # may include null-termination in string
+        return getxattr(path, 'security.selinux').replace('\000', '')
+    except IOError, xcpt:
+        if xcpt.errno == errno.EOPNOTSUPP:
+            return None
+        else:
+            raise
