@@ -49,4 +49,9 @@ class log_versions(subtest.Subtest):
 
     @staticmethod
     def _rpmq(package_name):
-        return utils.run("rpm -q %s" % package_name).stdout
+        # Most systems will not have docker-latest. And in some rare cases,
+        # a system with docker-latest might not have docker.
+        nvr = utils.run("rpm -q %s" % package_name, ignore_status=True).stdout
+        if 'is not installed' in nvr:
+            return ''
+        return nvr
