@@ -25,6 +25,7 @@ install:
     - pip install Autotest==0.16.2
     - pip install inspektor==0.2.0
     - pip install unittest2==0.8.0
+    # TODO: Use libselinux-python equivilent instead
     - pip install pyxattr==0.5.1
 
 script:

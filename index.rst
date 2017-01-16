@@ -92,6 +92,7 @@ Prerequisites
     *  nfs-utils (nfs-server support daemons)
     *  Git (and basic familiarity with its operation)
     *  Python 2.6 or greater (not 3.0)
+    *  libselinux-python 2.2 (or pyxattr 0.5.1) or later
     *  Optional (for building documentation), ``make``, ``python-sphinx``,
        and ``docutils`` or equivalent for your platform.
     *  Optional (for running unittests), ``pylint``, ``pep8``,
