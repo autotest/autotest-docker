@@ -7,17 +7,9 @@ Low-level/standalone host-environment handling/checking utilities/classes/data
        in autotest!
 """
 
-import sys
 import errno
 import subprocess
-try:
-    # TODO: Get python-selinux module working in travis (ubuntu)
-    import selinux
-except ImportError:
-    # This always fails on travis with: no get in xattr (E0611)
-    # dispite successful 'pip install pyxattr==0.5.1'.  A test
-    # for this name has been added to .travis.yml directly.
-    from xattr import get as getxattr  # pylint: disable=E0611
+import selinux
 
 
 # FIXME: pwd is misleading, it should be 'path'
@@ -54,14 +46,10 @@ def get_selinux_context(path):
     :return: SELinux context as a string or None if not set
     """
     try:
-        if 'selinux' in sys.modules:
-            # First list item is null-terminated string length
-            return selinux.getfilecon(path)[1]
-        else:
-            # may include null-termination in string
-            return getxattr(path, 'security.selinux').replace('\000', '')
-    except (IOError, OSError), xcpt:
-        if xcpt.errno in [errno.EOPNOTSUPP, errno.ENOENT]
+        # First list item is null-terminated string length
+        return selinux.getfilecon(path)[1]
+    except IOError, xcpt:
+        if xcpt.errno == errno.ENOENT:
             return None
         else:
             raise
