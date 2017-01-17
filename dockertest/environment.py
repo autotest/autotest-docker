@@ -7,7 +7,6 @@ Low-level/standalone host-environment handling/checking utilities/classes/data
        in autotest!
 """
 
-import errno
 import subprocess
 import selinux
 
@@ -31,6 +30,7 @@ def set_selinux_context(pwd, context=None, recursive=True):
     _cmd = ("type -P selinuxenabled || exit 0 ; "
             "selinuxenabled || exit 0 ; "
             "chcon -%st %s %s" % (flags, context, pwd))
+    # FIXME: Should use selinux.setfilecon()
     cmd = subprocess.Popen(_cmd, stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE, shell=True)
     if cmd.wait() != 0:
@@ -44,12 +44,7 @@ def get_selinux_context(path):
     When selinux is enabled, return the context of ``path``
     :param path: Full or relative path to a file or directory
     :return: SELinux context as a string or None if not set
+    :raises IOError: When file does not exist.
     """
-    try:
-        # First list item is null-terminated string length
-        return selinux.getfilecon(path)[1]
-    except IOError, xcpt:
-        if xcpt.errno == errno.ENOENT:
-            return None
-        else:
-            raise
+    # First list item is null-terminated string length
+    return selinux.getfilecon(path)[1]
