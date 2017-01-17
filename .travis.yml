@@ -14,24 +14,25 @@ matrix:
 git:
     submodules: false
 
+# Allow importing modules that can't be installed with pip
+virtualenv:
+    system_site_packages: true
+
 addons:
   apt:
     packages:
-        - python-pyxattr
-        - libattr1-dev
+        - python-selinux
 
 install:
     - pip install Pylint==1.5.5 Pep8==1.6.2 Sphinx==1.2.2
     - pip install Autotest==0.16.2
     - pip install inspektor==0.2.0
     - pip install unittest2==0.8.0
-    - pip install pyxattr==0.5.1
 
 script:
     - SPHINXOPTS="-W" make
     - ./run_checkdocs.py
     - ./run_unittests.sh
-    - python -c "import xattr; exit(int('get' not in dir(xattr)))"
     - ./run_pylint.sh --FF
     - inspekt style --disable E501,E265,W601,E402,E731,E221
 

@@ -83,6 +83,7 @@ Prerequisites
     *  Red Hat Enterprise Linux 7 Server (preferred for development)
     *  Red Hat Enterprise Linux Atomic Host (preferred for testing)
     *  Fedora 22 or later including Atomic (not all tests may function)
+    *  Other platforms (such as Ubuntu) un-maintained but possible.
 
 *  Platform Applications/tools
 
@@ -92,6 +93,7 @@ Prerequisites
     *  nfs-utils (nfs-server support daemons)
     *  Git (and basic familiarity with its operation)
     *  Python 2.6 or greater (not 3.0)
+    *  libselinux-python 2.2 or later
     *  Optional (for building documentation), ``make``, ``python-sphinx``,
        and ``docutils`` or equivalent for your platform.
     *  Optional (for running unittests), ``pylint``, ``pep8``,
