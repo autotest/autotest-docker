@@ -42,7 +42,7 @@ def set_selinux_context(path=None, context=None, recursive=True, pwd=None):
     # changes context in case selinux is supported and is enabled
     _cmd = ("type -P selinuxenabled || exit 0 ; "
             "selinuxenabled || exit 0 ; "
-            "chcon -%st %s %s" % (flags, context, pwd))
+            "chcon -%st %s %s" % (flags, context, path))
     # FIXME: Should use selinux.setfilecon()
     cmd = subprocess.Popen(_cmd, stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE, shell=True)
