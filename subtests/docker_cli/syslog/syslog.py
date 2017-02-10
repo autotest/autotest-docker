@@ -26,7 +26,7 @@ from dockertest.output import mustpass
 from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
 from dockertest.containers import DockerContainers
-from dockertest.xceptions import DockerTestNAError
+from dockertest.xceptions import DockerTestNAError, DockerTestFail
 
 
 class syslog(Subtest):
@@ -62,16 +62,21 @@ class syslog(Subtest):
         self.loginfo("Commands: %s" % _command)
         _status = self.stuff['cmdresults'].exit_status
         self.failif(_status, str(self.stuff['cmdresults'].stderr))
-        _check = self.verify_message_logged()
-        self.failif(not _check, "syslog test failed")
+        self.verify_message_logged()
 
     def verify_message_logged(self):
+        linecount = 0
         with open(self.config['syslogfile']) as f:
-            f.seek(-4096, os.SEEK_END)
+            f.seek(-8192, os.SEEK_END)
             for line in f:
+                linecount += 1
                 if line.strip().endswith(self.stuff["msg"]):
                     self.loginfo(line.strip())
-                    return True
+                    return
+        raise DockerTestFail("Did not find expected message '%s'"
+                             " in last %d lines of syslog file %s" %
+                             (self.stuff["msg"], linecount,
+                              self.config['syslogfile']))
 
     def cleanup(self):
         super(syslog, self).cleanup()
