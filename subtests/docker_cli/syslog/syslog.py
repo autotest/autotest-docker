@@ -53,6 +53,10 @@ class syslog(Subtest):
                    self.stuff['fin'],
                    self.stuff['testcmds']]
 
+        # New syslog output must be after the current syslog file end
+        self.stuff['syslog_fh'] = open(self.config['syslogfile'])
+        self.stuff['syslog_fh'].seek(0, os.SEEK_END)
+
         nfdc = DockerCmd(self, "run", subargs)
         self.stuff['cmdresults'] = mustpass(nfdc.execute())
 
@@ -65,18 +69,14 @@ class syslog(Subtest):
         self.verify_message_logged()
 
     def verify_message_logged(self):
-        linecount = 0
-        with open(self.config['syslogfile']) as f:
-            f.seek(-8192, os.SEEK_END)
-            for line in f:
-                linecount += 1
-                if line.strip().endswith(self.stuff["msg"]):
-                    self.loginfo(line.strip())
-                    return
+        for line in self.stuff['syslog_fh']:
+            if line.strip().endswith(self.stuff["msg"]):
+                self.loginfo("Found in syslog: %s" % line.strip())
+                self.stuff['syslog_fh'].close()
+                return
         raise DockerTestFail("Did not find expected message '%s'"
-                             " in last %d lines of syslog file %s" %
-                             (self.stuff["msg"], linecount,
-                              self.config['syslogfile']))
+                             " in syslog file %s" %
+                             (self.stuff["msg"], self.config['syslogfile']))
 
     def cleanup(self):
         super(syslog, self).cleanup()
