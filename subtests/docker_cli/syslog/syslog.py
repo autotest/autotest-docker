@@ -21,6 +21,7 @@ Prerequisites
 import os
 import os.path
 import datetime
+from autotest.client.shared import utils
 from dockertest.subtest import Subtest
 from dockertest.output import mustpass
 from dockertest.dockercmd import DockerCmd
@@ -69,6 +70,7 @@ class syslog(Subtest):
         self.verify_message_logged()
 
     def verify_message_logged(self):
+        utils.run("journalctl --flush")
         for line in self.stuff['syslog_fh']:
             if line.strip().endswith(self.stuff["msg"]):
                 self.loginfo("Found in syslog: %s" % line.strip())
