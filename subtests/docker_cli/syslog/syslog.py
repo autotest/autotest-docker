@@ -21,12 +21,13 @@ Prerequisites
 import os
 import os.path
 import datetime
+from autotest.client.shared import utils
 from dockertest.subtest import Subtest
 from dockertest.output import mustpass
 from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
 from dockertest.containers import DockerContainers
-from dockertest.xceptions import DockerTestNAError
+from dockertest.xceptions import DockerTestNAError, DockerTestFail
 
 
 class syslog(Subtest):
@@ -53,6 +54,10 @@ class syslog(Subtest):
                    self.stuff['fin'],
                    self.stuff['testcmds']]
 
+        # New syslog output must be after the current syslog file end
+        self.stuff['syslog_fh'] = open(self.config['syslogfile'])
+        self.stuff['syslog_fh'].seek(0, os.SEEK_END)
+
         nfdc = DockerCmd(self, "run", subargs)
         self.stuff['cmdresults'] = mustpass(nfdc.execute())
 
@@ -62,16 +67,18 @@ class syslog(Subtest):
         self.loginfo("Commands: %s" % _command)
         _status = self.stuff['cmdresults'].exit_status
         self.failif(_status, str(self.stuff['cmdresults'].stderr))
-        _check = self.verify_message_logged()
-        self.failif(not _check, "syslog test failed")
+        self.verify_message_logged()
 
     def verify_message_logged(self):
-        with open(self.config['syslogfile']) as f:
-            f.seek(-4096, os.SEEK_END)
-            for line in f:
-                if line.strip().endswith(self.stuff["msg"]):
-                    self.loginfo(line.strip())
-                    return True
+        utils.run("journalctl --flush")
+        for line in self.stuff['syslog_fh']:
+            if line.strip().endswith(self.stuff["msg"]):
+                self.loginfo("Found in syslog: %s" % line.strip())
+                self.stuff['syslog_fh'].close()
+                return
+        raise DockerTestFail("Did not find expected message '%s'"
+                             " in syslog file %s" %
+                             (self.stuff["msg"], self.config['syslogfile']))
 
     def cleanup(self):
         super(syslog, self).cleanup()
