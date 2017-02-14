@@ -11,6 +11,7 @@ from autotest.client import utils
 from subtestbase import SubBase
 from xceptions import DockerNotImplementedError
 from xceptions import DockerExecError, DockerTestError
+from xceptions import DockerCommandError
 
 
 class DockerCmdBase(object):
@@ -398,14 +399,20 @@ class AsyncDockerCmd(DockerCmdBase):
     @property
     def done(self):
         """
-        Return True if processes has ended
+        Return True if processes has ended (successful or not)
 
-        :raises DockerTestError: on incorrect usage
+        :raises DockerTestError: execute() was not called first
+        :raises DockerCommandError: If timeout exceeded
         """
 
         if self._async_job is None:
             raise DockerTestError("Attempted to wait for done before execute()"
                                   " called.")
+        if self.duration >= self.timeout:
+            # Exception takes care of logging the command
+            raise DockerCommandError("Timed out after %0.2f seconds"
+                                     % (float(self.timeout)),
+                                     self.cmdresult)
         return self._async_job.sp.poll() is not None
 
     @property
@@ -481,6 +488,12 @@ class AsyncDockerCmd(DockerCmdBase):
 
     @property
     def duration(self):
+        """
+        Returns difference between start time and now.
+
+        returns: time in seconds
+        rtype: float
+        """
         if self._async_job is None:
             return None
         if self._async_job.sp.poll() is not None:
@@ -489,4 +502,4 @@ class AsyncDockerCmd(DockerCmdBase):
         else:
             # Current elapsed time
             duration = time.time() - self._async_job.start_time
-        return duration
+        return float(duration)

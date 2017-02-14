@@ -75,8 +75,9 @@ class pull_base(SubSubtest):
         self.sub_stuff['di'] = DockerImages(self)
         image_fn = self.init_image_fn()
         # set by run_once()
+        timeo = self.config['docker_pull_timeout']
         self.sub_stuff['image_list'] = []
-        dkrcmd = AsyncDockerCmd(self, 'pull', [image_fn])
+        dkrcmd = AsyncDockerCmd(self, 'pull', [image_fn], timeout=timeo)
         dkrcmd.quiet = False
         self.sub_stuff['dkrcmd'] = dkrcmd
         self.clean_all()

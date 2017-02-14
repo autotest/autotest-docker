@@ -319,6 +319,14 @@ class AsyncDockerCmd(DockerCmdTestBase):
         cmdresult = docker_cmd.execute()
         self.assertTrue(isinstance(cmdresult, FakeCmdResult))
         self.assertEqual(docker_cmd.wait(123).duration, 123)
+
+        # Exercize timeout w/o mocking time.time
+        from dockertest.xceptions import DockerCommandError
+        docker_cmd.timeout = -1
+        # Need to use attribute lookup for property call
+        self.assertRaises(DockerCommandError, getattr, docker_cmd, 'done')
+
+        docker_cmd.timeout = 99999999
         self.assertTrue(docker_cmd.done)
         self.assertEqual(docker_cmd.stdout, "STDOUT")
         self.assertEqual(docker_cmd.stderr, "STDERR")
