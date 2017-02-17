@@ -691,6 +691,14 @@ class StepInit(Context, collections.Callable):
         return [subthing for subthing in subthings
                 if subthing in subtest_modules]
 
+# Grab a compressed copy of the audit log after every test
+# N/B: Autotest silently ignores any failures with this.
+audit_log = '/var/log/audit/audit.log'
+if os.path.isfile(audit_log):
+    command = 'gzip -9c %s' % audit_log
+    job.add_sysinfo_command(command, "audit.log.gz", True)
+else:
+    logging.warning("Can't record %s because it doesn't exist", audit_log)
 
 # Entry point into step-engine, job searches for this callable
 step_init = StepInit()
