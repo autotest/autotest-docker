@@ -87,3 +87,5 @@ check_label "confined container: root dir" \
 check_label "container with overridden range" \
             "docker run --rm --security-opt label:level:s0:c1,c2 $image cat /proc/self/attr/current" \
             "s0:c1,c2"
+
+exit $rc
