@@ -43,6 +43,7 @@ class selinux_labels(subtest.Subtest):
                      % (join(self.bindir, 'test.sh'),
                         self.stuff['di'].default_image),
                      ignore_status=True)
+        self.logdebug(str(result))
         self.stuff['result'] = result
 
     def postprocess(self):
