@@ -638,9 +638,13 @@ class StepInit(Context, collections.Callable):
         # Remove all sub/sub-subtests explicitly requested for exclusion
         subthings = [subthing for subthing in included
                      if subthing not in subthing_exclude]
-        # Additional exclusions due to unresolved bug
-        bug_blocked = control_ini.bugged_subthings(subthings,
-                                                   subtest_modules)
+        # Additional exclusions due to unresolved bug (completely optional)
+        try:
+            bug_blocked = control_ini.bugged_subthings(subthings,
+                                                       subtest_modules)
+        except:
+            # Don't fail entire job b/c BZ access problem
+            bug_blocked = {}
         subthing_exclude += bug_blocked.keys()
         # Log and remove all bug_blocked items from subthings (in-place modify)
         filter_bugged(subthings, bug_blocked, subtest_modules)
