@@ -217,8 +217,10 @@ class login_base(SubSubtest):
         return DockerCmd(self, 'push', [pushed_name]).execute()
 
     def cleanup(self):
-        DockerContainers(self).clean_all(self.sub_stuff['my_containers'])
-        DockerImages(self).clean_all(self.sub_stuff['my_images'])
+        if 'my_containers' in self.sub_stuff:
+            DockerContainers(self).clean_all(self.sub_stuff['my_containers'])
+        if 'my_images' in self.sub_stuff:
+            DockerImages(self).clean_all(self.sub_stuff['my_images'])
         self._restore_docker_auth_file()
 
 
