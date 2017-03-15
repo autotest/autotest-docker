@@ -283,8 +283,8 @@ class logout_ok(login_ok):
 
     def postprocess(self):
         super(logout_ok, self).postprocess()
-        self.failif_not_in('Remove login credentials for',
-                           self.sub_stuff['cmdresult_logout'].stdout,
+        xpect = 'Remove login credentials for | Removing login credentials for'
+        self.failif_not_in(xpect, self.sub_stuff['cmdresult_logout'].stdout,
                            'stdout from docker logout')
 
 
