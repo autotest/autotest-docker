@@ -316,8 +316,8 @@ def wait_for_output(output_fn, pattern, timeout=60, timestep=0.2):
     r"""
     Wait for matched_string in async_process.stdout max for time==timeout.
 
-    :param process_output_fn: function which returns data for matching.
-    :type process_output_fn: function
+    :param output_fn: function which returns data for matching.
+    :type output_fn: function
     :param pattern: string which should be found in stdout.
     :return: True if pattern matches process_output else False
     """
