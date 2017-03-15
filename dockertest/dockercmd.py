@@ -343,6 +343,8 @@ class AsyncDockerCmd(DockerCmdBase):
 
         :raises DockerExecError: on timeout.
         """
+        if timeout is None:
+            timeout = self.timeout
         end_time = time.time() + timeout
         while time.time() <= end_time:
             time.sleep(timestep)
