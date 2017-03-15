@@ -98,12 +98,10 @@ class selinux_base(subtest.SubSubtest):
         """ Check all files in given $path have the context $context """
         for pwd, _, filenames in os.walk(path):
             for filename in filenames:
-                act = get_selinux_context("%s/%s" % (pwd, filename))
-                self.logdebug("File %s Context: %s",
-                              os.path.join(pwd, filename),
-                              act)
-                self.failif_ne(act, context, "Context of file %s/%s"
-                               % (pwd, filename))
+                full_filepath = os.path.join(pwd, filename)
+                actual = get_selinux_context(full_filepath)
+                self.failif_ne(actual, context,
+                               "SELinux context of file %s" % full_filepath)
 
     def init_volume(self, context):
         """
