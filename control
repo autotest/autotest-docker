@@ -700,7 +700,8 @@ class StepInit(Context, collections.Callable):
 audit_log = '/var/log/audit/audit.log'
 if os.path.isfile(audit_log):
     command = 'gzip -9c %s' % audit_log
-    job.add_sysinfo_command(command, "audit.log.gz", True)
+    # on_every_test=False has already run (before control file loaded)
+    job.add_sysinfo_command(command, "audit.log.gz", on_every_test=True)
 else:
     logging.warning("Can't record %s because it doesn't exist", audit_log)
 

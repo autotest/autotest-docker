@@ -38,6 +38,8 @@ class selinux_base(subtest.SubSubtest):
 
     """ Base class """
 
+    OCTAL_READY = r'\0122\0105\0101\0104\0131'
+
     def initialize(self):
         """
         Runs one container
@@ -62,7 +64,8 @@ class selinux_base(subtest.SubSubtest):
             subargs.append("--volume %s" % volume)
         if volumes_from:
             subargs.append("--volumes-from %s" % volumes_from)
-        name = self.sub_stuff['dc'].get_unique_name()
+        dc = self.sub_stuff['dc']
+        name = dc.get_unique_name()
         self.sub_stuff['containers'].append(name)
         subargs.append("--name %s" % name)
         fin = DockerImage.full_name_from_defaults(self.config)
@@ -72,27 +75,33 @@ class selinux_base(subtest.SubSubtest):
         self.sub_stuff['fds'].append(write_fd)
         self.sub_stuff['fds'].append(read_fd)
         dkrcmd = dockercmd.AsyncDockerCmd(self, 'run', subargs)
-        # TODO: Fix use of dkrcmd.stdin when appropriate class mech. available
         dkrcmd.execute(read_fd)
         dkrcmd.stdin = write_fd
         os.close(read_fd)  # no longer needed
-        os.write(write_fd, 'echo "Started"\n')
-        self.failif(not wait_for_output(lambda: dkrcmd.stdout,
-                                        'Started',
-                                        timeout=20),
-                    "Error starting container %s: %s" % (name, dkrcmd))
+
+        # This could take a while if image needs pulling
+        find_name = lambda: str(dc.list_containers_with_name(name)) != []
+        self.failif_ne(utils.wait_for(find_name,
+                                      timeout=self.config['docker_timeout']),
+                       True,  # None == timeout
+                       "Container %s not in 'docker ps' output within"
+                       " timeout: %s" % (name, dc.list_containers()))
+
+        # Don't match echo of the 'echo' command itself
+        self.logdebug('Confirming %s is responding', name)
+        os.write(write_fd, "echo -e '%s'\n" % self.OCTAL_READY)
+        dkrcmd.wait_for_ready()
+        self.logdebug('Confirmed')
         return dkrcmd
 
     def check_context_recursive(self, path, context):
         """ Check all files in given $path have the context $context """
         for pwd, _, filenames in os.walk(path):
             for filename in filenames:
-                act = get_selinux_context("%s/%s" % (pwd, filename))
-                self.logdebug("File %s Context: %s",
-                              os.path.join(pwd, filename),
-                              act)
-                self.failif_ne(act, context, "Context of file %s/%s"
-                               % (pwd, filename))
+                full_filepath = os.path.join(pwd, filename)
+                actual = get_selinux_context(full_filepath)
+                self.failif_ne(actual, context,
+                               "SELinux context of file %s" % full_filepath)
 
     def init_volume(self, context):
         """
