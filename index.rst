@@ -83,7 +83,7 @@ Prerequisites
     *  Red Hat Enterprise Linux 7 Server (preferred for development)
     *  Red Hat Enterprise Linux Atomic Host (preferred for testing)
     *  Fedora 22 or later including Atomic (not all tests may function)
-    *  Other platforms (such as Ubuntu) un-maintained but possible.
+    *  Other platforms (such as CentOs, SLES, Ubuntu) un-maintained but possible.
 
 *  Platform Applications/tools
 
