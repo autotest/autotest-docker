@@ -144,15 +144,15 @@ class login_base(SubSubtest):
         end_time = time.time() + timeout
         while time.time() <= end_time:
             try:
-                urllib2.urlopen(url)
+                urllib2.urlopen(url, cafile="domain.crt")
             except urllib2.HTTPError as e:
                 if e.reason == 'Unauthorized':
                     return
             except urllib2.URLError as e:
                 # Likely case: registry is still spinning up. Keep waiting.
-                pass
+                self.logdebug("_wait_for_registry_ready(): %s", str(e))
             time.sleep(0.5)
-        raise DockerTestFail("timed out waiting for registry")
+        raise DockerTestFail("timed out waiting for registry %s" % url)
 
     def docker_login(self, password=None):
         """

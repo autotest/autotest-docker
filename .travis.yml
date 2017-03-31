@@ -1,6 +1,7 @@
 language: python
 python:
-    - "2.7"
+    # 2.7.9 or greater needed for 'cafile=' option in urllib2.urlopen()
+    - "2.7.10"
 
 branches:
     only:
@@ -14,10 +15,6 @@ matrix:
 git:
     submodules: false
 
-# Allow importing modules that can't be installed with pip
-virtualenv:
-    system_site_packages: true
-
 addons:
   apt:
     packages:
@@ -28,6 +25,10 @@ install:
     - pip install Autotest==0.16.2
     - pip install inspektor==0.2.0
     - pip install unittest2==0.8.0
+    # Necessary so we can 'import selinux'. Although Travis provides a
+    # system_site_packages mechanism for this purpose, it blows up
+    # with python 2.7.10.
+    - export PYTHONPATH="$PYTHONPATH:/usr/lib/python2.7/dist-packages"
 
 script:
     - SPHINXOPTS="-W" make
