@@ -6,6 +6,7 @@ Docker Daemon interface helpers and utilities
 # pylint: disable=W0403
 
 import httplib
+import logging
 import socket
 import json
 import os
@@ -159,16 +160,34 @@ def pid():
     if not stdout.startswith('MainPID='):
         raise RuntimeError("Unexpected output from %s: expected MainPID=NNN,"
                            " got '%s'" % (cmd_result.command, stdout))
-    return int(stdout[8:])
+    mainpid = int(stdout[8:])
+    cmd = cmdline(mainpid)
+    if 'dockerd' in cmd[0]:
+        return mainpid
+    # As of April 2017 we may be running dockerd under runc. If so, actual
+    # dockerd process is an immediate child of the one returned by systemd.
+    for child_pid in utils.run("pgrep -P %s" % mainpid).stdout.split():
+        cmd = cmdline(child_pid)
+        if 'dockerd' in cmd[0]:
+            return int(child_pid)
+    # Urp. No dockerd process found. Cross fingers & hope systemd is right.
+    logging.warning("docker_daemon.pid(): systemd reports %d,"
+                    " which does not appear to be dockerd, but no child"
+                    " processes appear to be dockerd either.", mainpid)
+    return mainpid
 
 
-def cmdline():
+def cmdline(process_id=None):
     """
-    Returns the command line (argv) for the currently-running docker daemon,
-    as read from /proc/<pid>/cmdline. We don't use 'systemctl show' because
+    Returns the command line (argv) for the given process_id, as read
+    from /proc/<pid>/cmdline. We don't use 'systemctl show' because
     that includes unexpanded variables. Return value is a list of strings.
+
+    :param process_id: PID whose commandline we read (default: docker daemon)
     """
-    cmdline_file = os.path.join('/proc', str(pid()), 'cmdline')
+    if process_id is None:
+        process_id = pid()
+    cmdline_file = os.path.join('/proc', str(process_id), 'cmdline')
     with open(cmdline_file, 'r') as cmdline_fh:
         return cmdline_fh.read().split('\0')
 
