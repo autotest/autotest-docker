@@ -37,11 +37,12 @@ from dockertest.xceptions import DockerValueError
 
 
 regexes = {
-    'timestamp': r'[\d-]+T[\d:]+\.\d+[+-][\d:]+',   # <iso8601>.<µs>[+/-]HH:MM
-    'cid':       r'(sha256:)?[0-9a-fA-F]{64}',      # 64-char hash
-    'fqin':      DockerImage.repo_split_p.pattern,  # eg some.repo/image:tag
-    'operation': r'[\w-]+',                         # eg create, archive-path
-    'source':    r'\S+'                             # canonical image name
+    'timestamp': r'[\d-]+T[\d:]+\.\d+([+-][\d:]+|Z)',  # <iso8601>.<µs><TZ>
+                                                       # TZ='[+/-]HH:MM' or 'Z'
+    'cid':       r'(sha256:)?[0-9a-fA-F]{64}',         # 64-char hash
+    'fqin':      DockerImage.repo_split_p.pattern,     # eg some.repo/image:tag
+    'operation': r'[\w-]+',                            # eg create, attach
+    'source':    r'\S+'                                # canonical image name
 }
 
 
