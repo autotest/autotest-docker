@@ -83,5 +83,6 @@ class syslog(Subtest):
     def cleanup(self):
         super(syslog, self).cleanup()
         if self.config['remove_after_test']:
-            dkrcmd = DockerCmd(self, 'rm', [self.stuff['container_name']])
-            dkrcmd.execute()
+            if 'container_name' in self.stuff:
+                dkrcmd = DockerCmd(self, 'rm', [self.stuff['container_name']])
+                dkrcmd.execute()
