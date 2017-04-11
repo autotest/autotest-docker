@@ -26,6 +26,7 @@ class run_flags_base(subtest.SubSubtest):
 
     def has_storage_opt(self, wanted):
         docker_cmdline = dockertest.docker_daemon.cmdline()
+        self.logdebug("docker daemon command line: %s", docker_cmdline)
         last_opt = ''
         for opt in docker_cmdline:
             if opt == wanted and last_opt == '--storage-opt':
@@ -71,7 +72,7 @@ class run_flags_deferred_deletion(run_flags_base):
         """
         Fail with N/A if kernel doesn't support deferred deletion.
         """
-        required = LooseVersion("3.999")    # FIXME once we ID a good version
+        required = LooseVersion("3.10.0-632")    # in RHEL 7.4
         actual = LooseVersion(os.uname()[2])
         if actual < required:
             raise DockerTestNAError("Deferred deletion functionality"
