@@ -28,6 +28,7 @@ from dockertest.output import OutputGood
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import mustpass
 from dockertest.images import DockerImages
+from dockertest.xceptions import DockerTestFail
 
 
 class info(subtest.Subtest):
@@ -40,38 +41,81 @@ class info(subtest.Subtest):
 
     @staticmethod
     def _build_table(cli_output):
-        out = cli_output.split('\n')
-        out = [x.split(':', 1) for x in out if x]
-        keys = [x[0].strip() for x in out]
-        vals = []
-        for x in out:
-            try:
-                vals.append(x[1].strip())
-            except IndexError:
-                vals.append(None)
-        return dict(zip(keys, vals))
+        """
+        'docker info' returns a human-readable list of key: value pairs.
+        Some are indented by a space, indicating that these key/values
+        are subelements of a previous element. To wit:
+
+             Images: 3
+             Server Version: 1.12.6
+             Storage Driver: devicemapper
+              Pool Name: vg--docker-docker--pool
+              Pool Blocksize: 524.3 kB
+              ...
+             Logging Driver: journald
+
+        In this case 'Images', 'Server Version', and 'Logging Driver'
+        are simple tuples but 'Storage Driver' has both a value and
+        a set of further key/value pairs: Pool Name, Pool Blocksize, ...
+
+        We parse that and return a dict with the expected key/value
+        mapping *and* an extra: for all elements with subelements,
+        'element...' (element name plus three dots) is a dict containing
+        the subelements. E.g. x['Storage Driver...']['Pool Name'] = 'vg--etc'
+        """
+        out = {}
+        current_key = None
+        for line in cli_output.split('\n'):
+            # Almost every line will be Foo: Bar, but 'Insecure Registries:'
+            # is followed by a simple list of IPv4 netmasks
+            if ': ' in line or line.endswith(':'):
+                (key, value) = [e.strip() for e in line.split(':', 1)]
+            else:
+                (key, value) = (line.strip(), '')
+            if line.startswith(' '):
+                if not current_key:
+                    raise IndexError("sdfsdf")
+                if current_key not in out:
+                    out[current_key] = {}
+                out[current_key][key] = value
+            else:
+                out[key] = value
+                current_key = key + '...'
+        return out
 
     def postprocess(self):
         # Raise exception on Go Panic or usage help message
         outputgood = OutputGood(self.stuff['cmdresult'])
         info_map = self._build_table(outputgood.stdout_strip)
-        # Verify some individual items
-        self.failif_ne(info_map['Storage Driver'].lower(), 'devicemapper',
-                       'Storage Driver')
+
+        # We support multiple storage drivers. Each one has a different
+        # set of key/value settings under 'info'; so each one has a
+        # dedicated helper method for validating.
+        storage_driver = info_map['Storage Driver'].lower()
+        try:
+            handler = '_postprocess_' + storage_driver
+            getattr(self, handler)(info_map['Storage Driver...'])
+        except AttributeError:
+            raise DockerTestFail("Unknown storage driver: %s" % storage_driver)
+
+        # Count 'docker images', compare to the 'Images' info key.
+        # Yes, that's unreliable on a busy system. We're not on a busy system.
+        di = DockerImages(self)
+        di.images_args = "%s --all" % di.images_args
+        img_set = set(di.list_imgs_ids())  # don't count multi-tags
+        img_cnt = int(info_map['Images'])
+        self.failif_ne(len(img_set), img_cnt,
+                       "count of 'docker images' vs 'docker info'->Images")
+
+    def _postprocess_devicemapper(self, info_map):
+        """
+        Verify docker info settings for devicemapper storage driver.
+        """
         self.failif_ne(info_map['Data file'].lower(), '',
                        'Data file')
         self.failif_ne(info_map['Metadata file'].lower(), '',
                        'Metadata file')
-        di = DockerImages(self)
-        # Make sure nothing is 'hidden'
-        di.images_args = "%s --all" % di.images_args
-        # Possible race-condition here...
-        img_set = set(di.list_imgs_ids())  # don't count multi-tags
-        # ...with this
-        img_cnt = int(info_map['Images'].lower())
-        self.failif_ne(len(img_set), img_cnt,
-                       "More/less images %d than info reported %d"
-                       % (len(img_set), img_cnt))
+
         # verify value of elements
         self.verify_pool_name(info_map['Pool Name'])
         data_name = 'Data loop file'
@@ -87,6 +131,13 @@ class info(subtest.Subtest):
             data_name = 'Data file'
             metadata_name = 'Metadata file'
             # TODO: Checks based oninfo_map['Backing Filesystem:']
+
+    def _postprocess_overlay2(self, info_map):
+        """
+        Verify docker info settings for overlay2 storage driver.
+        """
+        self.failif_ne(info_map['Backing Filesystem'], 'xfs',
+                       'overlay2 Backing Filesystem')
 
     def verify_pool_name(self, expected_pool_name):
         """
