@@ -65,16 +65,19 @@ class info(subtest.Subtest):
         """
         out = {}
         current_key = None
-        for line in cli_output.split('\n'):
+        for line in cli_output.splitlines():
             # Almost every line will be Foo: Bar, but 'Insecure Registries:'
             # is followed by a simple list of IPv4 netmasks
             if ': ' in line or line.endswith(':'):
                 (key, value) = [e.strip() for e in line.split(':', 1)]
             else:
-                (key, value) = (line.strip(), '')
+                key = line.strip()
+                value = ''
             if line.startswith(' '):
                 if not current_key:
-                    raise IndexError("sdfsdf")
+                    raise IndexError("Internal error: indented output line"
+                                     " '%s' from docker info with no previous"
+                                     " unindented lines.", line)
                 if current_key not in out:
                     out[current_key] = {}
                 out[current_key][key] = value
@@ -97,6 +100,10 @@ class info(subtest.Subtest):
             getattr(self, handler)(info_map['Storage Driver...'])
         except AttributeError:
             raise DockerTestFail("Unknown storage driver: %s" % storage_driver)
+        except KeyError:
+            raise DockerTestFail("Unexpected output from docker info:"
+                                 " 'Storage Driver' section has no"
+                                 " additional info elements.")
 
         # Count 'docker images', compare to the 'Images' info key.
         # Yes, that's unreliable on a busy system. We're not on a busy system.
