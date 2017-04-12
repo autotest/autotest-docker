@@ -243,11 +243,11 @@ class postprocessing(object):
             output = build_def.dockercmd.stderr
         mobj = re.search(parameter, output, re.MULTILINE)
         if command.startswith('rx'):
-            self.logdebug("%s() Matched regex: %s", command,
+            self.logdebug("%s(%s) Matched regex: %s", command,
                           parameter, bool(mobj))
             return bool(mobj)  # matched at least one line
         else:  # must not match
-            self.logdebug("%s() Not-matched regex: %s", command,
+            self.logdebug("%s(%s) Not-matched regex: %s", command,
                           parameter, not bool(mobj))
             return not bool(mobj)  # matched on any line
 
