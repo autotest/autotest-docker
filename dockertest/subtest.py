@@ -27,6 +27,7 @@ from xceptions import DockerTestFail
 from xceptions import DockerTestNAError
 from xceptions import DockerTestError
 from xceptions import DockerSubSubtestNAError
+from dockertest.environment import selinux_is_enforcing
 
 
 class Subtest(subtestbase.SubBase, test.test):
@@ -146,6 +147,10 @@ class Subtest(subtestbase.SubBase, test.test):
         self.step_log_msgs['postprocess_iteration'] = (
             "postprocess_iteration() #%d of #%d"
             % (self.iteration, self.iterations))
+        if self.config.get('verify_enforcing', True):
+            self.failif(not selinux_is_enforcing(),
+                        "SELinux mode != Enforcing and"
+                        " verify_enforcing is set")
 
     def postprocess_iteration(self):
         """
