@@ -3,7 +3,7 @@
 # Exit non-zero on the first error
 set -e
 
-export PYTHONPATH=$(dirname $0)
+export PYTHONPATH=$(dirname $0):$PYTHONPATH
 
 echo ""
 echo ""
