@@ -40,7 +40,8 @@ class rhel_push_plugin_base(SubSubtest):
         # be a better option.
         #
         # References:
-        #  https://zignar.net/2014/09/08/getting-started-with-dbus-python-systemd/
+        #  https://zignar.net/2014/09/08
+        #       /getting-started-with-dbus-python-systemd/
         #  https://pythonhosted.org/psutil/
         self.sub_stuff['base_image'] = self.config['base_image']
         self.sub_stuff['dockerfile'] = self.dockerfile()

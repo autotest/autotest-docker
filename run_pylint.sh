@@ -35,7 +35,7 @@ then
 fi
 
 TMPFILENAME="$(mktemp --suffix=run_pylint)"
-PEP8=`which pep8`
+PEP8=`type -p pep8`
 # for readability, allow multiple spaces after commas, colons & before '='
 PEP8IGNORE='E731,E221,E241'
 MSGFMT='(pylint) {msg_id}:{line:3d},{column}: {obj}: {msg}'

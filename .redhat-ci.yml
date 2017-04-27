@@ -1,0 +1,63 @@
+---
+
+# Example format:
+# https://github.com/jlebon/redhat-ci/blob/master/sample.redhat-ci.yml
+
+# Internal Job (for realtime monitoring):
+# https://hurl.corp.redhat.com/eb0faa3
+
+container:
+    image: centos:latest
+
+# Mark this testsuite as required. This causes a special
+# "required" context to be reported to GitHub on branch
+# tests. The result is set to successful only if all
+# testsuites marked as required are also successful. This is
+# useful for integration with merge bots, so that they only
+# need to watch for a single status rather than multiple
+# (possibly changing) statuses. If omitted, defaults to
+# false.
+required: true
+
+# Time to allow before aborting tests. Must satisfy regex
+# '[0-9]+[smh]'. If omitted, defaults to '2h', which is the
+# maximum.
+timeout: 30m
+
+# These get dumped into /etc/yum.repos.d/$name.repo
+extra-repos:
+    - name: epel
+      mirrorlist: https://mirrors.fedoraproject.org/metalink?repo=epel-7&arch=$basearch
+      gpgkey: https://getfedora.org/static/352C64E5.txt
+      
+packages:
+    - git
+    - make
+    - python-bugzilla
+    - pylint
+    - python-pep8
+    - python2-mock
+    - python-sphinx
+    - python-unittest2
+    - python-docutils
+    - python-sphinxcontrib-httpdomain
+    - python-sphinx_rtd_theme
+    - PyYAML
+    - libselinux-python
+
+env:
+    AUTOTEST_REPO: "https://github.com/autotest/autotest.git"
+    AUTOTEST_BRANCH: "master"
+    AUTOTEST_PATH: "/var/lib/autotest"
+    SPHINXOPTS: "-W"
+# Put the tasks to be executed in the 'tests' key. They are
+# run from the root of the repo. If the 'build' key is also
+# present, tests will run after a successful build. Full
+# UTF-8 values are supported.
+tests:
+    - mkdir -p $AUTOTEST_PATH
+    - git clone --branch "$AUTOTEST_BRANCH" --depth 1 --single-branch "$AUTOTEST_REPO" "$AUTOTEST_PATH"
+    - make
+    - ./run_checkdocs.py
+    - ./run_unittests.sh
+    - ./run_pylint.sh --FF
