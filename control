@@ -57,7 +57,7 @@ def subtests_subsubtests(subthing_set, subtest_modules):
     subtest_to_subsubtest = {}
     for subthing in subthing_set:
         parent = subtest_of_subsubtest(subthing, subtest_modules)
-        if parent == None:
+        if parent is None:
             subtest = subthing
             subsubtest = set()
         else:
@@ -153,27 +153,14 @@ class ControlINI(ConfigParser.SafeConfigParser, Singleton):
     Representation of control settings
     """
 
-    # Default relative locations for control settings files
-    CONTROL_INI_DEFAULT = "config_defaults/control.ini"
-    CONTROL_INI_CUSTOM = "config_custom/control.ini"
-
-    # Mapping of option-name to section name (for generating defaults)
-    OPT_SEC_MAP = {'include': 'Control',
-                   'exclude': 'Control',
-                   'subthings': 'Control',
-                   'pretests': 'Control',
-                   'subtests': 'Control',
-                   'intratests': 'Control',
-                   'posttests': 'Control',
-                   'url': 'Bugzilla',
-                   'username': 'Bugzilla',
-                   'password': 'Bugzilla',
-                   'excluded': 'Bugzilla',
-                   'key_field': 'Bugzilla',
-                   'key_match': 'Bugzilla',}
-
-    # Absolute base path where all other relative paths reside
+    # Absolute base path to prefix onto below
     control_path = os.path.dirname(job.control)
+
+    # Default relative locations, prefixed by above
+    control_ini_default = os.path.join(control_path,
+                                       "config_defaults/control.ini")
+    control_ini_custom = os.path.join(control_path,
+                                      "config_custom/control.ini")
 
     # Default location where write() writes to if no file given
     write_path = job.resultdir
@@ -182,35 +169,46 @@ class ControlINI(ConfigParser.SafeConfigParser, Singleton):
     NOEXECTOK = '!!!'
 
     def __init__(self):
-        # Help catch missing options in defaults but not in OPT_SEC_MAP
-        # by making them None instead of ''
-        super(ControlINI, self).__init__(allow_no_value=True)
+        # Inject defaults dict into ancestor's initialization
+        super(ControlINI, self).__init__(self.defaults(), allow_no_value=True)
         self.optionxform = str  # support case-sensitive options
-        for option, section in self.OPT_SEC_MAP.iteritems():
-            try:
-                self.add_section(section)
-            except ConfigParser.DuplicateSectionError:
-                pass  # already existing section
-            # Empty string is the default value
-            self.set(section, option, '')
-        # These option values default to the option name, look up section
-        for key in ('pretests', 'subtests', 'intratests', 'posttests'):
-            self.set(self.OPT_SEC_MAP[key], key, key)
+
+    def defaults(self):  # Part of the ConfigParser interface
+        """Return a dictionary containing the instance-wide defaults."""
+        return dict(include='', exclude='', subthings='',
+                    pretests='pretests', subtests='subtests',
+                    intratests='intratests', posttests='posttests',
+                    url='', username='', password='',
+                    excluded='', key_field='',
+                    key_match='', product='', component='',
+                    status='')
 
     def read(self, filenames=None):
         """
-        Read CONTROL_INI_DEFAULT or CONTROL_INI_CUSTOM if filenames is None
+        Read default and/or custom control.init plus filesnames
+
+        :param filenames: List of filenames to attempt to load (in order)
+        returns: Representation of loaded items
+        rtype: list
         """
-        if filenames is None:
-            control_ini_default = os.path.join(self.control_path,
-                                               self.CONTROL_INI_DEFAULT)
-            control_ini_custom = os.path.join(self.control_path,
-                                              self.CONTROL_INI_CUSTOM)
-            filenames = [control_ini_default, control_ini_custom]
-        result = super(ControlINI, self).read(filenames)
-        if len(result) == 0:
-            result = ["<ControlINI defaults>"]
-        logging.debug("Loaded control configuration from %s", str(result[-1]))
+        if filenames is None:  # Preserve ancestor interface just in case
+            filenames = []
+        filenames.append(self.control_ini_custom)
+        result = ["<Empty Defaults>"]
+        # Try load defaults via readfp as documented
+        try:
+            with open(self.control_ini_default, 'rb') as defaults_file:
+                # readfp does _not_ merge content, defaults still
+                # used for missing keys, upon reference.
+                super(ControlINI, self).readfp(defaults_file)
+                result.append(defaults_file.name)
+        except IOError:
+            pass  # Use defaults set from __init__()
+        # _merge_ any content from the last readable item in filenames
+        loaded = super(ControlINI, self).read(filenames)
+        if loaded:
+            result += loaded
+        logging.debug("Loaded control configuration from %s", result)
         return result
 
     def write(self, fileobject=None):
