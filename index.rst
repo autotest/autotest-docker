@@ -723,6 +723,78 @@ Documentation Module
    :members:
    :no-undoc-members:
 
+
+----------------
+Hacking
+----------------
+
+
+Rolling a new minor version
+===========================
+
+When the time is right, a large number of PRs have been merged, and you're in
+the right mood, it's time for a new minor release.  Assuming the last tagged
+version was ``0.8.6``, here are the steps required:
+
+#. Make sure your master branch exactly matches upstream:
+
+    ``git remote update``
+    ``git checkout master``
+    ``git reset --hard upstream/master``
+
+#. Create a new branch off master with the next number:
+
+    ``git checkout -tb 0.8.7``
+
+#. Bump the version number up in three places:
+
+    ``$EDITOR config_defaults/defaults.ini dockertest/version.py conf.py``
+
+#. Create a release commit:
+
+    ``git commit -asm "Dockertest Version 0.8.7 (NO API Changes)"``
+
+#. Push to your fork, and open a PR targeting the previous milestone, ``0.8.7``
+   in this case.
+
+#. After PR is merged, switch back to master, update it, and tag the version, and push.
+
+    ``git remote update``
+    ``git checkout master``
+    ``git reset --hard upstream/master``
+    ``git tag 0.8.7 HEAD``
+    ``git push --tags upstream``
+
+#. `Create a new release`_, using the just tagged version and the closed milestone
+   as the title.  e.g. "``Dockertest Version 0.8.7 (NO API Changes)``".  This will
+   cause github to automatically produce a zip and tarball, with URLs for historical
+   reference or use (i.e. somewhere ``git`` is not available).
+
+   For the release notes (big text box under the title), link to the github
+   comparison URL formed by the last two tags with ``...`` in-between (end of the url):
+
+    ``[Changes](https://github.com/autotest/autotest-docker/compare/0.8.6...0.8.7)``
+
+   The actual github comparison page (URL above) can also be used as reference for
+   drafting a release-announcement e-mail, providing brownie-points and karma
+   for all the people who helped out.
+
+#. Next, `close the previous milestone`_ (``0.8.7`` for this example).
+
+#. `Create the next milestone`_ (next version PRs will be attached to),
+   named "``Docker Autotest Version 0.8.8 (NO API Changes)``", add a description
+   and due-date if desired.
+
+#. Move any currently open PRs the new milestone (right side pane of each PRs page).
+
+
+.. _`Create a new release`: https://github.com/autotest/autotest-docker/releases/new
+
+.. _`Create the next milestone`: https://github.com/autotest/autotest-docker/milestones/new
+
+.. _`close the previous milestone`: https://github.com/autotest/autotest-docker/milestones
+
+
 ----------------
 Further Reading
 ----------------
