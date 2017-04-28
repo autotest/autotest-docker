@@ -170,18 +170,29 @@ class ControlINI(ConfigParser.SafeConfigParser, Singleton):
 
     def __init__(self):
         # Inject defaults dict into ancestor's initialization
-        super(ControlINI, self).__init__(self.defaults(), allow_no_value=True)
+        super(ControlINI, self).__init__(allow_no_value=True)
         self.optionxform = str  # support case-sensitive options
-
-    def defaults(self):  # Part of the ConfigParser interface
-        """Return a dictionary containing the instance-wide defaults."""
-        return dict(include='', exclude='', subthings='',
-                    pretests='pretests', subtests='subtests',
-                    intratests='intratests', posttests='posttests',
-                    url='', username='', password='',
-                    excluded='', key_field='',
-                    key_match='', product='', component='',
-                    status='')
+        # ConfigParser applies defaults to ALL sections, setup our own.
+        for section, options in dict(Control=dict(include='',
+                                                  exclude='',
+                                                  subthings='',
+                                                  pretests='pretests',
+                                                  subtests='subtests',
+                                                  intratests='intratests',
+                                                  posttests='posttests'),
+                                     Bugzilla=dict(url='',
+                                                   username='',
+                                                   password='',
+                                                   excluded='',
+                                                   key_field='',
+                                                   key_match=''),
+                                     Query=dict(product='',
+                                                component='',
+                                                status='')).iteritems():
+            if not super(ControlINI, self).has_section(section):
+                super(ControlINI, self).add_section(section)
+            for option, value in options.iteritems():
+                super(ControlINI, self).set(section, option, value)
 
     def read(self, filenames=None):
         """
