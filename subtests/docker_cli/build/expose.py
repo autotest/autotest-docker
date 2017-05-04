@@ -4,10 +4,10 @@ from dockertest.output import mustpass
 from dockertest.output import wait_for_output
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.dockercmd import DockerCmd
-from build import build_base
+from build import BuildSubSubtest
 
 
-class expose(build_base):
+class expose(BuildSubSubtest):
 
     def initialize(self):
         super(expose, self).initialize()

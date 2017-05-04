@@ -1,7 +1,7 @@
-from build import build_base
+from build import BuildSubSubtest
 
 
-class onbuild(build_base):
+class onbuild(BuildSubSubtest):
 
     def make_builds(self, source):
         first = source.copy()
