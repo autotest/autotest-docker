@@ -41,6 +41,7 @@ class DockerVersion(object):
                                                      shell=True,
                                                      close_fds=True)
         self.version_string = version_string
+        # FIXME: This should call super(...).__init__(...) (my bad)
 
     def _oops(self, what):
         raise DockerOutputError("Couldn't parse %s from %s" %
