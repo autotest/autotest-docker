@@ -5,6 +5,7 @@ allows existing clients to continue importing as a single unit.
 """
 
 from . dockertime import DockerTime
+from . dockerinfo import DockerInfo
 from . dockerversion import DockerVersion
 from . texttable import TextTable, ColumnRanges
 from . validate import OutputGood, OutputGoodBase, OutputNotBad

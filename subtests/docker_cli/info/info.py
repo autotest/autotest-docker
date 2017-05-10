@@ -24,9 +24,7 @@ Prerequisites
 import os
 from autotest.client import utils
 from dockertest import subtest
-from dockertest.output import OutputGood
-from dockertest.dockercmd import DockerCmd
-from dockertest.output import mustpass
+from dockertest.output import DockerInfo
 from dockertest.images import DockerImages
 from dockertest.xceptions import DockerTestFail
 
@@ -35,82 +33,31 @@ class info(subtest.Subtest):
 
     def run_once(self):
         super(info, self).run_once()
-        # 1. Run with no options
-        nfdc = DockerCmd(self, "info")
-        self.stuff['cmdresult'] = mustpass(nfdc.execute())
-
-    @staticmethod
-    def _build_table(cli_output):
-        """
-        'docker info' returns a human-readable list of key: value pairs.
-        Some are indented by a space, indicating that these key/values
-        are subelements of a previous element. To wit:
-
-             Images: 3
-             Server Version: 1.12.6
-             Storage Driver: devicemapper
-              Pool Name: vg--docker-docker--pool
-              Pool Blocksize: 524.3 kB
-              ...
-             Logging Driver: journald
-
-        In this case 'Images', 'Server Version', and 'Logging Driver'
-        are simple tuples but 'Storage Driver' has both a value and
-        a set of further key/value pairs: Pool Name, Pool Blocksize, ...
-
-        We parse that and return a dict with the expected key/value
-        mapping *and* an extra: for all elements with subelements,
-        'element...' (element name plus three dots) is a dict containing
-        the subelements. E.g. x['Storage Driver...']['Pool Name'] = 'vg--etc'
-        """
-        out = {}
-        current_key = None
-        for line in cli_output.splitlines():
-            # Almost every line will be Foo: Bar, but 'Insecure Registries:'
-            # is followed by a simple list of IPv4 netmasks
-            if ': ' in line or line.endswith(':'):
-                (key, value) = [e.strip() for e in line.split(':', 1)]
-            else:
-                key = line.strip()
-                value = ''
-            if line.startswith(' '):
-                if not current_key:
-                    raise IndexError("Internal error: indented output line"
-                                     " '%s' from docker info with no previous"
-                                     " unindented lines.", line)
-                if current_key not in out:
-                    out[current_key] = {}
-                out[current_key][key] = value
-            else:
-                out[key] = value
-                current_key = key + '...'
-        return out
+        self.stuff['dockerinfo'] = DockerInfo()
 
     def postprocess(self):
-        # Raise exception on Go Panic or usage help message
-        outputgood = OutputGood(self.stuff['cmdresult'])
-        info_map = self._build_table(outputgood.stdout_strip)
+        super(info, self).postprocess()
+        info_table = self.stuff['dockerinfo']
 
         # We support multiple storage drivers. Each one has a different
         # set of key/value settings under 'info'; so each one has a
         # dedicated helper method for validating.
-        storage_driver = info_map['Storage Driver'].lower()
+        driver_name = info_table.get('storage_driver')
+        self.failif(not driver_name, "'docker info' did not return"
+                                     " a value for 'Storage Driver'")
+        self.loginfo("Storage Driver = %s", driver_name)
         try:
-            handler = '_postprocess_' + storage_driver
-            getattr(self, handler)(info_map['Storage Driver...'])
+            handler = getattr(self, '_postprocess_' + driver_name.lower())
         except AttributeError:
-            raise DockerTestFail("Unknown storage driver: %s" % storage_driver)
-        except KeyError:
-            raise DockerTestFail("Unexpected output from docker info:"
-                                 " 'Storage Driver' section has no"
-                                 " additional info elements.")
+            raise DockerTestFail("Unknown storage driver: %s" % driver_name)
+        handler(info_table.get('storage_driver', {}))
 
         # Count 'docker images', compare to the 'Images' info key.
         # Yes, that's unreliable on a busy system. We're not on a busy system.
         di = DockerImages(self)
         di.images_args = "%s --all" % di.images_args
         img_set = set(di.list_imgs_ids())  # don't count multi-tags
-        img_cnt = int(info_map['Images'])
+        img_cnt = int(info_table.get('images'))
         self.failif_ne(len(img_set), img_cnt,
                        "count of 'docker images' vs 'docker info'->Images")
 
@@ -118,32 +65,32 @@ class info(subtest.Subtest):
         """
         Verify docker info settings for devicemapper storage driver.
         """
-        self.failif_ne(info_map['Data file'].lower(), '',
+        self.failif_ne(info_map['data_file'].lower(), '',
                        'Data file')
-        self.failif_ne(info_map['Metadata file'].lower(), '',
+        self.failif_ne(info_map['metadata_file'].lower(), '',
                        'Metadata file')
 
         # verify value of elements
-        self.verify_pool_name(info_map['Pool Name'])
-        data_name = 'Data loop file'
-        metadata_name = 'Metadata loop file'
+        self.verify_pool_name(info_map['pool_name'])
+        data_name = 'data_loop_file'
+        metadata_name = 'metadata_loop_file'
         if data_name in info_map:
             self.verify_sizes(info_map[data_name],
-                              info_map['Data Space Used'],
-                              info_map['Data Space Total'],
+                              info_map['data_space_used'],
+                              info_map['data_space_total'],
                               info_map[metadata_name],
-                              info_map['Metadata Space Used'],
-                              info_map['Metadata Space Total'])
+                              info_map['metadata_space_used'],
+                              info_map['metadata_space_total'])
         else:
-            data_name = 'Data file'
-            metadata_name = 'Metadata file'
+            data_name = 'data_file'
+            metadata_name = 'metadata_file'
             # TODO: Checks based oninfo_map['Backing Filesystem:']
 
     def _postprocess_overlay2(self, info_map):
         """
         Verify docker info settings for overlay2 storage driver.
         """
-        self.failif_ne(info_map['Backing Filesystem'], 'xfs',
+        self.failif_ne(info_map['backing_filesystem'], 'xfs',
                        'overlay2 Backing Filesystem')
 
     def verify_pool_name(self, expected_pool_name):

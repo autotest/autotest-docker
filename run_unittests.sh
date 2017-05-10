@@ -7,7 +7,7 @@ export PYTHONPATH=$(dirname $0):$PYTHONPATH
 
 echo ""
 echo ""
-for unittest in dockertest/*_unittests.py
+for unittest in $(find dockertest -name '*_unittests.py')
 do
     ${unittest} --failfast --quiet --buffer
 done
