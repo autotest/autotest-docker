@@ -243,11 +243,11 @@ class postprocessing(object):
         expected = int(parameter)
         if command == 'img_count':
             word = 'images'
-            before = len(self.parent_subtest.stuff['existing_images'])
+            before = len(self.sub_stuff['existing_images'])
             after = len(self.sub_stuff['di'].list_imgs())
         elif command == 'cnt_count':
             word = 'containers'
-            before = len(self.parent_subtest.stuff['existing_containers'])
+            before = len(self.sub_stuff['existing_containers'])
             after = len(self.sub_stuff['dc'].list_containers())
         else:
             raise DockerTestError("Command error: %s" % command)
