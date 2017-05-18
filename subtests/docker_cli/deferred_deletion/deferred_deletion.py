@@ -48,15 +48,15 @@ class deferred_deletion(subtest.Subtest):
         super(deferred_deletion, self).initialize()
         dockerinfo = DockerInfo()
         storage_driver = dockerinfo.get('storage_driver')
-        if storage_driver != 'devicemapper':
-            raise DockerTestNAError("This test is only applicable when using"
-                                    " the devicemapper storage driver; host"
-                                    " system is using %s" % storage_driver)
+        self.failif_ne(storage_driver, 'devicemapper',
+                       "test only applicable with devicemapper storage driver",
+                       DockerTestNAError)
 
         docker_cmdline = dockertest.docker_daemon.cmdline()
-        if "dm.use_deferred_deletion=true" not in str(docker_cmdline):
-            raise DockerTestNAError("deferred deletion not enabled in"
-                                    " docker daemon command-line options.")
+        self.failif_not_in("dm.use_deferred_deletion=true", str(docker_cmdline),
+                           "docker daemon command-line options",
+                           DockerTestNAError)
+
         self.stuff['dc'] = DockerContainers(self)
 
     def run_once(self):
