@@ -101,7 +101,7 @@ class SubBase(object):
             self.loginfo(msg)
 
     @staticmethod
-    def failif(condition, reason=None):
+    def failif(condition, reason=None, xcept=DockerTestFail):
         """
         Convenience method for subtests to avoid importing ``TestFail``
         exception
@@ -114,10 +114,10 @@ class SubBase(object):
         if reason is None:
             reason = "Failed test condition"
         if bool(condition):
-            raise DockerTestFail(reason)
+            raise xcept(reason)
 
     @staticmethod
-    def failif_ne(actual, expected, reason=None):
+    def failif_ne(actual, expected, reason=None, xcept=DockerTestFail):
         """
         Convenience method for subtests to compare two values and
         fail if they differ. Failure message will include the expected
@@ -141,10 +141,11 @@ class SubBase(object):
         if all(isinstance(x, (int, long, float)) for x in [actual, expected]):
             arg = "{}"
         spec = "{}: expected " + arg + "; got " + arg
-        raise DockerTestFail(spec.format(reason, expected, actual))
+        raise xcept(spec.format(reason, expected, actual))
 
     @staticmethod
-    def failif_not_in(needle, haystack, description=None):
+    def failif_not_in(needle, haystack, description=None,
+                      xcept=DockerTestFail):
         """
         Convenience method for subtests to test for an expected substring
         being contained in a larger string, e.g. to look for XYZ in a
@@ -168,8 +169,8 @@ class SubBase(object):
             for subneedle in needles:
                 if subneedle.strip() in haystack:
                     return
-        raise DockerTestFail("%s not in %s '%s'" %
-                             (expect_s, description, haystack))
+        raise xcept("%s not in %s '%s'"
+                    % (expect_s, description, haystack))
 
     @classmethod
     def failif_not_redhat(cls, xcept=DockerTestNAError):
