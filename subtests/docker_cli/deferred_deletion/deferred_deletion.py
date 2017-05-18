@@ -53,7 +53,8 @@ class deferred_deletion(subtest.Subtest):
                        DockerTestNAError)
 
         docker_cmdline = dockertest.docker_daemon.cmdline()
-        self.failif_not_in("dm.use_deferred_deletion=true", str(docker_cmdline),
+        self.failif_not_in("dm.use_deferred_deletion=true",
+                           str(docker_cmdline),
                            "docker daemon command-line options",
                            DockerTestNAError)
 
