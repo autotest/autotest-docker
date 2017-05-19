@@ -631,7 +631,8 @@ class DockerImages(object):
         """
         Remove all image fqins not configured to preserve
 
-        :param fqins: Iterable sequence of image **fqins**
+        :param fqins: Iterable sequence of image fqins or IDs
+                      (N/B: Only preserve_fquins NAMES are matched)
         """
         if not hasattr(fqins, "__iter__"):
             raise TypeError("clean_all() called with non-iterable.")
@@ -650,7 +651,9 @@ class DockerImages(object):
         self.verbose = False
         try:
             for name in fqins:
-                if name in preserve_fqins_set:
+                name = name.strip()
+                # Avoid ``docker rmi ''`` or removing a set member
+                if not name or name in preserve_fqins_set:
                     continue
                 try:
                     self.subtest.logdebug("Cleaning %s", name)
