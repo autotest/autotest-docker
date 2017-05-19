@@ -9,25 +9,37 @@ This test is only applicable on RHEL 7.4+ systems in which:
 
   1) kernel is 3.10.0-632 or above; and
   2) The sysctl knob /proc/sys/fs/may_detach_mounts exists and is 1; and
-  3) dockerd unit file DOES NOT include MountFlags=slave; and
-  4) docker daemon is configured to use devicemapper storage; and
-  5) docker daemon is run with --storage-opts dm.use_deferred_deletion=true
+  3) docker daemon is configured to use devicemapper storage; and
+  4) docker daemon is run with --storage-opts dm.use_deferred_deletion=true
 
-As a precondition for running this test, we check only conditions 4 & 5,
-aborting with TestNAError if either is false. We trust docker-storage-setup
-to only enable #5 if all preconditions are met. Anyone running a system
-with 4 & 5 true but 1, 2, or 3 false deserves what they get.
+As a precondition for running this test we check conditions 2, 3 & 4,
+aborting with TestNAError if any is false. We would like to trust
+docker-storage-setup to only enable #4 if all preconditions are met,
+but we can't: RHEL 7.2 shipped with a d-s-s that blindly enabled
+deferred_deletion even though it didn't actually work.
+
+Note that we need to do all the important work from inside a
+helper script, because our autotest process will only have access
+to the container's mounts if MountFlags=slave is *absent* from
+the docker systemd unit file; by default that option is present,
+and it is not clear if/when it will be removed. To make sure
+we have access to the container's mounts we need to nsenter
+the docker daemon's mount namespace, and we can't do that within
+autotest (using ctypes.CDLL and setns) because autotest is
+multithreaded and setns() doesn't allow that.
 
 Operational Summary
 ----------------------
 
 #. Run a docker container
-#. Find out the local (host) mountpoint of its root filesystem. cd into it.
-#. Read the Deferred-Deletion count from 'docker info'.
-#. Remove the container.
-#. Read the Deferred-Deletion count; confirm that it has grown by one.
-#. cd back out of the container rootfs
-#. Read the Deferred-Deletion count; confirm that it has gone back down.
+#. Run a test script inside docker mount space that will:
+#. - Find out the local (host) mountpoint of the container's root filesystem.
+#. - cd into that directory
+#. - Read the Deferred-Deletion count from 'docker info'.
+#. - Remove the container.
+#. - Read the Deferred-Deletion count; confirm that it has grown by one.
+#. - cd back out of the container rootfs
+#. - Read the Deferred-Deletion count; confirm that it has gone back down.
 
 """
 
@@ -39,6 +51,7 @@ from dockertest.containers import DockerContainers
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.images import DockerImage
 from dockertest.output import DockerInfo
+from dockertest.output.validate import mustpass
 from dockertest.xceptions import DockerTestNAError
 
 
@@ -58,6 +71,12 @@ class deferred_deletion(subtest.Subtest):
                            "docker daemon command-line options",
                            DockerTestNAError)
 
+        sysctl_knob = "/proc/sys/fs/may_detach_mounts"
+        self.failif(not os.path.exists(sysctl_knob),
+                    "sysctl knob %s does not exist; this system is"
+                    " not likely to support deferred deletion" % sysctl_knob,
+                    DockerTestNAError)
+
         self.stuff['dc'] = DockerContainers(self)
 
     def run_once(self):
@@ -65,38 +84,22 @@ class deferred_deletion(subtest.Subtest):
 
         self._start_idle_container()
 
-        # cd into its directory. This prevents devicemapper from reaping it.
-        os.chdir(self._container_mountpoint)
-
-        # Determine baseline count of deferred deletions. We expect 0,
-        # but let's not panic if it isn't.
-        defer_count_initial = self._defer_count()
-        if defer_count_initial != 0:
-            self.logwarning("Deferred-Delete count from 'docker info'"
-                            " is %d (I expected 0). This may mean your"
-                            " system has still-undeleted containers.",
-                            defer_count_initial)
-        self.stuff['defer_count_initial'] = defer_count_initial
-
-        # Tell the container to exit
-        self._stop_idle_container()
+        # Run our testing script
+        helper = os.path.join(self.bindir, 'test-deferred-deletion.sh')
+        result = utils.run("nsenter -t %d -m %s %s %s"
+                           % (dockertest.docker_daemon.pid(), helper,
+                              self.stuff['container_name'],
+                              self.stuff['trigger_file']),
+                           ignore_status=True)
+        self.stuff['result'] = result
 
     def postprocess(self):
         super(deferred_deletion, self).postprocess()
+        mustpass(self.stuff['result'])
 
-        defer_count_initial = self.stuff['defer_count_initial']
-        self.failif_ne(self._defer_count(),
-                       defer_count_initial + 1,
-                       "Deferred-Delete count while cd'ed into container")
-
-        # cd out of the container filesystem. devmapper will notice and
-        # will clean up, but it may take a while. Allow up to 30 seconds.
-        os.chdir('/')
-        defer_count_back = lambda: self._defer_count() == defer_count_initial
-        self.failif(not utils.wait_for(defer_count_back, timeout=30),
-                    "Timed out waiting for Deferred-Delete count (%d) to"
-                    " come back down to %d after cd'ing out of container"
-                    % (self._defer_count(), defer_count_initial))
+        # Helper script should be silent; treat any output as a warning
+        if self.stuff['result'].stdout:
+            self.logwarning(self.stuff['result'].stdout)
 
     def _start_idle_container(self):
         """
@@ -107,55 +110,18 @@ class deferred_deletion(subtest.Subtest):
         c_name = self.stuff['dc'].get_unique_name()
 
         fin = DockerImage.full_name_from_defaults(self.config)
+        self.stuff['trigger_file'] = trigger_file = 'DELETE-ME'
         subargs = ['--rm', '--name=' + c_name, fin,
-                   'bash -c "echo READY;touch /DELETE-ME;'
-                   ' while [ -e /DELETE-ME ]; do sleep 0.1; done"']
+                   'bash -c "echo READY;touch /%s;'
+                   ' while [ -e /%s ]; do sleep 0.1; done"'
+                   % (trigger_file, trigger_file)]
         dkrcmd = AsyncDockerCmd(self, 'run', subargs)
         dkrcmd.execute()
         dkrcmd.wait_for_ready(c_name)
         self.stuff['container_name'] = c_name
 
-    def _stop_idle_container(self):
-        """
-        Stop our idle container, by removing its semaphore file.
-        Wait until container is truly gone, as reported by docker ps -a
-        """
-        os.unlink('DELETE-ME')
-
-        dc = self.stuff['dc']
-        c_name = self.stuff['container_name']
-        c_gone = lambda: dc.list_containers_with_name(c_name) == []
-        self.failif(not utils.wait_for(c_gone, timeout=5),
-                    "Timed out waiting for container to exit")
-        del self.stuff['container_name']
-
-    @property
-    def _container_mountpoint(self):
-        """
-        Given a container name, return its host-accessible root filesystem
-        """
-        dc = self.stuff['dc']
-        c_name = self.stuff['container_name']
-        inspect = dc.json_by_name(c_name)
-        d_name = inspect[0]['GraphDriver']['Data']['DeviceName']
-
-        base_path = utils.run('findmnt --noheadings --output TARGET'
-                              ' --source /dev/mapper/%s' % d_name)
-        mountpoint = os.path.join(base_path.stdout.strip(), 'rootfs')
-        self.logdebug('host mount point = %s', mountpoint)
-        return mountpoint
-
-    @staticmethod
-    def _defer_count():
-        """
-        Returns the integer count of deferred deletions, as obtained
-        from docker info. We assume DockerInfo() is never cached.
-        """
-        return int(DockerInfo().get('storage_driver',
-                                    'deferred_deleted_device_count'))
-
     def cleanup(self):
         super(deferred_deletion, self).cleanup()
-        os.chdir('/')
-        if 'container_name' in self.stuff:
-            self.stuff['dc'].clean_all(self.stuff['container_name'])
+        if self.config['remove_after_test']:
+            if 'container_name' in self.stuff:
+                self.stuff['dc'].clean_all([self.stuff['container_name']])
