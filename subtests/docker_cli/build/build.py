@@ -81,7 +81,10 @@ class BuildBase(SubBase):
                 dc.clean_all(dc.list_container_names())
             di = self.stuff.get('di')
             if di:
-                di.clean_all(di.list_imgs_full_name())
+                to_clean = di.list_imgs_full_name()
+                to_clean += [img.long_id for img in di.list_imgs()
+                             if img.full_name.strip() == '']
+                di.clean_all(to_clean)
 
 
 class build(BuildBase, subtest.SubSubtestCaller):
@@ -320,7 +323,7 @@ class postprocessing(object):
         containers = [cid[0:12] for cid in dc.list_container_ids()]
         stdout = build_def.dockercmd.stdout.strip()
         created_containers = [mobj.group(1)
-                              for mobj in self.RE_CONTAINERS.search(stdout)
+                              for mobj in self.RE_CONTAINERS.finditer(stdout)
                               if mobj is not None]
         self.logdebug("%s() Intermediate containers: %d",
                       command, len(created_containers))
