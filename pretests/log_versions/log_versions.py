@@ -2,13 +2,13 @@ r"""
 Summary
 -------
 
-Preserve docker versions in state files.
+Preserve docker and related RPM versions, in sysinfo files.
 
 Operational Summary
 -------------------
 
 #. Run 'docker version'; use DockerVersion module to parse output
-#. Run 'rpm -q docker|docker-latest' (whichever one is in use)
+#. Run 'rpm -q <list of packages>'
 #. Preserve output in sysinfo files
 
 """
@@ -19,6 +19,7 @@ from dockertest import subtest
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import DockerVersion, mustpass
 from dockertest.docker_daemon import which_docker
+from dockertest.config import get_as_list
 
 
 class log_versions(subtest.Subtest):
@@ -38,13 +39,15 @@ class log_versions(subtest.Subtest):
         self.write_sysinfo('docker_rpm_active', self._rpmq(which_docker()))
         self.write_sysinfo('docker_rpm_current', self._rpmq('docker'))
         self.write_sysinfo('docker_rpm_latest', self._rpmq('docker-latest'))
+        for rpm in get_as_list(self.config.get('key_rpms', '')):
+            self.write_sysinfo('key_rpms', self._rpmq(rpm))
 
     def write_sysinfo(self, filename, content):
         """
         Write the given content to sysinfodir/filename
         """
         path = os.path.join(self.job.sysinfo.sysinfodir, filename)
-        with open(path, 'wb') as outfile:
+        with open(path, 'a+b') as outfile:
             outfile.write(content)
 
     @staticmethod
