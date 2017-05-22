@@ -293,9 +293,9 @@ class postprocessing(object):
         del parameter  # not used
         if command not in ('intr_exst', '!intr_exst'):
             raise DockerTestError("Command error: %s" % command)
-        stdout = build_def.dockercmd.stdout  # make name shorter
+        stderr = build_def.dockercmd.stderr  # make name shorter
         created_ids = [mobj.group(1)
-                       for mobj in self.RE_IMAGES.finditer(stdout)
+                       for mobj in self.RE_IMAGES.finditer(stderr)
                        if mobj is not None]
         self.logdebug("%s() Intermediate images created: %d",
                       command, len(created_ids))
@@ -321,9 +321,9 @@ class postprocessing(object):
             raise DockerTestError("Command error: %s" % command)
         dc = self.sub_stuff['dc']
         containers = [cid[0:12] for cid in dc.list_container_ids()]
-        stdout = build_def.dockercmd.stdout.strip()
+        stderr = build_def.dockercmd.stderr.strip()
         created_containers = [mobj.group(1)
-                              for mobj in self.RE_CONTAINERS.finditer(stdout)
+                              for mobj in self.RE_CONTAINERS.finditer(stderr)
                               if mobj is not None]
         self.logdebug("%s() Intermediate containers: %d",
                       command, len(created_containers))
@@ -334,7 +334,7 @@ class postprocessing(object):
                               command)
                 return False
         # Last container must be present
-        if created_containers[-1] not in containers:
+        if created_containers and created_containers[-1] not in containers:
             self.logdebug("%s() Last container not found after build", command)
             return False
         self.logdebug("%s() Last container accounted for", command)
