@@ -23,6 +23,7 @@ import os.path
 import re
 import shutil
 from collections import namedtuple
+from dockertest.subtestbase import SubBase
 from dockertest import subtest
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd
@@ -35,14 +36,14 @@ from dockertest.xceptions import DockerTestFail
 from dockertest.xceptions import DockerTestError
 
 
-class build(subtest.SubSubtestCaller):
-
+class BuildBase(SubBase):
     """
-    Setup, Execute, Cleanup all sub-subtests
+    Shared base-class for ``build`` and ``BuildSubSubtest``
     """
 
     def initialize(self):
-        super(build, self).initialize()
+        super(BuildBase, self).initialize()
+        self.reset_build_context()
         self.stuff['dc'] = dcont = DockerContainers(self)
         self.stuff['existing_containers'] = dcont.list_container_ids()
         self.stuff['di'] = dimg = DockerImages(self)
@@ -55,10 +56,14 @@ class build(subtest.SubSubtestCaller):
         """
         source_dirs = self.config['source_dirs']
         for dir_path in get_as_list(source_dirs):
+            if isinstance(self, subtest.SubSubtest):
+                _self = self.parent_subtest
+            else:
+                _self = self
             # bindir is location of this module
-            src = os.path.join(self.bindir, dir_path)
+            src = os.path.join(_self.bindir, dir_path)
             # srcdir is recreated if doesn't exist or if test version changes
-            dst = os.path.join(self.srcdir, dir_path)
+            dst = os.path.join(_self.srcdir, dir_path)
             src = os.path.abspath(src)
             dst = os.path.abspath(dst)
             self.failif(len(dst) < 5,
@@ -68,42 +73,27 @@ class build(subtest.SubSubtestCaller):
             shutil.rmtree(dst, ignore_errors=True)
             shutil.copytree(src, dst)
 
-    def setup(self):
-        super(build, self).setup()
-        self.reset_build_context()
-
     def cleanup(self):
-        super(build, self).cleanup()
-        # Auto-converts "yes/no" to a boolean
+        super(BuildBase, self).cleanup()
         if self.config['remove_after_test']:
-            # Remove all previously non-existing containers
-            for cid in self.stuff['dc'].list_container_ids():
-                if cid in self.stuff['existing_containers']:
-                    continue    # don't remove previously existing ones
-                self.logdebug("Removing container %s", cid)
-                dcmd = DockerCmd(self, 'rm', ['--force', '--volumes', cid])
-                dcmd.execute()
-            dimg = self.stuff['di']
-            base_repo_fqin = DockerImage.full_name_from_defaults(self.config)
-            # Remove all previously non-existing images
-            for img in dimg.list_imgs():
-                if img in self.stuff['existing_images']:
-                    continue
-                if img.full_name is None or img.full_name is '':
-                    thing = img.long_id
-                else:
-                    thing = img.full_name
-                    # never ever remove base_repo_fqin under any circumstance
-                    if thing == base_repo_fqin:
-                        continue
-                self.logdebug("Removing image %s", img)
-                dcmd = DockerCmd(self, 'rmi', ['--force', thing])
-                dcmd.execute()
+            dc = self.stuff.get('dc')
+            if dc:
+                dc.clean_all(dc.list_container_names())
+            di = self.stuff.get('di')
+            if di:
+                to_clean = di.list_imgs_full_name()
+                to_clean += [img.long_id for img in di.list_imgs()
+                             if img.full_name.strip() == '']
+                di.clean_all(to_clean)
+
+
+class build(BuildBase, subtest.SubSubtestCaller):
+    pass
 
 
 class postprocessing(object):
 
-    """Mixin class for build_base to contain postprocessing methods"""
+    """Mixin class for BuildSubSubtest to contain postprocessing methods"""
 
     RE_IMAGES = re.compile(r'\s*-+>\s*(\w{64}|\w{12})', re.MULTILINE)
     RE_CONTAINERS = re.compile(r's*-+>\s*Running in\s*(\w{64}|\w{12})',
@@ -303,9 +293,9 @@ class postprocessing(object):
         del parameter  # not used
         if command not in ('intr_exst', '!intr_exst'):
             raise DockerTestError("Command error: %s" % command)
-        stdout = build_def.dockercmd.stdout  # make name shorter
+        stderr = build_def.dockercmd.stderr  # make name shorter
         created_ids = [mobj.group(1)
-                       for mobj in self.RE_IMAGES.finditer(stdout)
+                       for mobj in self.RE_IMAGES.finditer(stderr)
                        if mobj is not None]
         self.logdebug("%s() Intermediate images created: %d",
                       command, len(created_ids))
@@ -331,9 +321,9 @@ class postprocessing(object):
             raise DockerTestError("Command error: %s" % command)
         dc = self.sub_stuff['dc']
         containers = [cid[0:12] for cid in dc.list_container_ids()]
-        stdout = build_def.dockercmd.stdout.strip()
+        stderr = build_def.dockercmd.stderr.strip()
         created_containers = [mobj.group(1)
-                              for mobj in self.RE_CONTAINERS.search(stdout)
+                              for mobj in self.RE_CONTAINERS.finditer(stderr)
                               if mobj is not None]
         self.logdebug("%s() Intermediate containers: %d",
                       command, len(created_containers))
@@ -344,7 +334,7 @@ class postprocessing(object):
                               command)
                 return False
         # Last container must be present
-        if created_containers[-1] not in containers:
+        if created_containers and created_containers[-1] not in containers:
             self.logdebug("%s() Last container not found after build", command)
             return False
         self.logdebug("%s() Last container accounted for", command)
@@ -387,7 +377,7 @@ class postprocessing(object):
         return positive == bool(mobj)
 
 
-class build_base(postprocessing, subtest.SubSubtest):
+class BuildSubSubtest(BuildBase, postprocessing, subtest.SubSubtest):
 
     # Search/Replace un-commented FROM line(s) in Dockerfile
     FROM_REGEX = re.compile(r'^FROM\s+.*', re.IGNORECASE | re.MULTILINE)
@@ -429,11 +419,6 @@ class build_base(postprocessing, subtest.SubSubtest):
         with_str = ('FROM %s' % with_repo)
         self.dockerfile_replace_line(dockerfile_path,
                                      self.FROM_REGEX, with_str)
-
-    def initialize_utils(self):
-        # Get the latest container (remove all newly created in cleanup
-        self.sub_stuff['dc'] = DockerContainers(self)
-        self.sub_stuff['di'] = DockerImages(self)
 
     def make_builds(self, source):
         dimg = self.sub_stuff['di']
@@ -483,93 +468,57 @@ class build_base(postprocessing, subtest.SubSubtest):
                               postproc_cmd_csv=postproc_cmd_csv)]
 
     def initialize(self):
-        super(build_base, self).initialize()
-        self.initialize_utils()
+        super(BuildSubSubtest, self).initialize()
         self.sub_stuff['builds'] = []
         # Side-effect: docker pulls the base-image
         self.sub_stuff['builds'] += self.make_builds(self.config)
-        pec = self.parent_subtest.stuff['existing_containers']
-        self.sub_stuff['existing_containers'] = pec
-        # Count after pulling base-image
-        pei = self.parent_subtest.stuff['existing_images']
-        self.sub_stuff['existing_images'] = pei
 
     def run_once(self):
-        super(build_base, self).run_once()
+        super(BuildSubSubtest, self).run_once()
         for build_def in self.sub_stuff['builds']:
             build_def.dockercmd.execute()
 
     def postprocess(self):
         try:
-            super(build_base, self).postprocess()
+            super(BuildSubSubtest, self).postprocess()
         except:
             for build_def in self.sub_stuff['builds']:
                 build_def.dockercmd.verbose = True
                 self.logdebug(str(build_def.dockercmd))
             raise
 
-    def cleanup(self):
-        super(build_base, self).cleanup()
-        # Some of this could have been modified, recover from source
-        self.parent_subtest.reset_build_context()
-        # Auto-converts "yes/no" to a boolean
-        if self.config['remove_after_test']:
-            # Remove all previously non-existing containers
-            for cid in self.sub_stuff['dc'].list_container_ids():
-                if cid in self.sub_stuff['existing_containers']:
-                    continue    # don't remove previously existing ones
-                self.logdebug("Removing container %s", cid)
-                dcmd = DockerCmd(self, 'rm', ['--force', '--volumes', cid])
-                dcmd.execute()
-            dimg = self.sub_stuff['di']
-            base_repo_fqin = DockerImage.full_name_from_defaults(self.config)
-            # Remove all previously non-existing images
-            for img in dimg.list_imgs():
-                if img in self.sub_stuff['existing_images']:
-                    continue
-                if img.full_name is None or img.full_name is '':
-                    thing = img.long_id
-                else:
-                    thing = img.full_name
-                    # never ever remove base_repo_fqin under any circumstance
-                    if thing == base_repo_fqin:
-                        continue
-                self.logdebug("Removing image %s", img)
-                dcmd = DockerCmd(self, 'rmi', ['--force', thing])
-                dcmd.execute()
 
-
-class local_path(build_base):
+class local_path(BuildSubSubtest):
     pass
 
 
-class https_file(build_base):
+class https_file(BuildSubSubtest):
     pass
 
 
-class git_path(build_base):
+class git_path(BuildSubSubtest):
     pass
 
 
-class bad(build_base):  # negative test
+class bad(BuildSubSubtest):  # negative test
     pass
 
 
-class bad_quiet(build_base):  # negative test
+class bad_quiet(BuildSubSubtest):  # negative test
     pass
 
 
-class bad_force_rm(build_base):  # negative test
+class bad_force_rm(BuildSubSubtest):  # negative test
     pass
 
 
-class rm_false(build_base):
+class rm_false(BuildSubSubtest):
     pass
 
 
-class jsonvol(build_base):
+class jsonvol(BuildSubSubtest):
     pass
 
 
-class dockerignore(build_base):
+class dockerignore(BuildSubSubtest):
     pass

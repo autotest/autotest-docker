@@ -52,13 +52,6 @@ class Subtest(subtestbase.SubBase, test.test):
     #: The number of iterations to run in total, override this in subclass.
     iterations = 1
 
-    #: Private dictionary for use by subclasses **ONLY**.  This attribute
-    #: is completely ignored everywhere inside the ``dockertest`` API.
-    #: Subtests are encouraged to use it for temporarily storing
-    #: results/info. It is initialized to an empty dictionary, but subtests
-    #: can reassign it to any type needed.
-    stuff = None
-
     #: Private cache of control.ini's [Control] section contents (do not use!)
     _control_ini = None
 
@@ -117,8 +110,6 @@ class Subtest(subtestbase.SubBase, test.test):
         _init_logging()
         # Optionally setup different iterations if option exists
         self.iterations = self.config.get('iterations', self.iterations)
-        # subclasses can do whatever they like with this
-        self.stuff = {}
 
     def execute(self, *args, **dargs):
         """**Do not override**, needed to pull data from super class"""
@@ -212,13 +203,6 @@ class SubSubtest(subtestbase.SubBase):
     #: Reference to outer, parent test.  Read-only / set in ``__init__``
     parent_subtest = None
 
-    #: Private dictionary for use by subclasses **ONLY**.  This attribute
-    #: is completely ignored everywhere inside the ``dockertest`` API.
-    #: Subtests are encouraged to use it for temporarily storing
-    #: results/info.  It is initialized to an empty dictionary, however
-    #: subsubtests may re-assign it to any other type as needed.
-    sub_stuff = None
-
     #: Number of additional space/tab characters to prefix when logging
     n_spaces = 16  # date/timestamp length
 
@@ -249,11 +233,17 @@ class SubSubtest(subtestbase.SubBase):
         note = {'Configuration_for_Subsubtest': self.config_section}
         self.parent_subtest.write_test_keyval(note)
         self.parent_subtest.write_test_keyval(self.config)
-        # subclasses can do whatever they like with this
-        self.sub_stuff = {}
         self.tmpdir = tempfile.mkdtemp(prefix=classname + '_',
                                        suffix='tmpdir',
                                        dir=self.parent_subtest.tmpdir)
+
+    @property
+    def sub_stuff(self):
+        """
+        Alias of ``stuff``, to destinguish Subtest vs SubSubtest instances
+        """
+        # Instance may have re-initialized, always return the current value.
+        return self.stuff
 
     @classmethod
     def make_name(cls, parent_name):

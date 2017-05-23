@@ -1,9 +1,9 @@
 import os.path
 import re
-from build import build_base
+from build import BuildSubSubtest
 
 
-class addurl(build_base):
+class addurl(BuildSubSubtest):
 
     ADDURL_REGEX = re.compile(r'ADD\s+.*\.')
 

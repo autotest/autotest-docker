@@ -47,12 +47,23 @@ class SubBase(object):
         "cleanup": "cleanup()"
     }
 
+    #: Private dictionary/namespace for storing runtime details, to avoid
+    #: using instance attributes.  This protects the instance namespace
+    #: from accidental clobbering and provides a common name across all
+    #: test code to improve readability, maintenance and debugging.
+    #: This attribute and it's value is is otherwise completely ignored
+    #: by all ``dockertest`` library code (beyond initialization).
+    stuff = None
+
     #: Path to file indicating which Red Hat release this is
     redhat_release_filepath = "/etc/redhat-release"
 
     def __init__(self, *args, **dargs):
         super(SubBase, self).__init__(*args, **dargs)
         self.step_log_msgs = self.step_log_msgs.copy()
+        # instances can do whatever they like with this, so can sub-classes
+        if self.stuff is None:
+            self.stuff = {}
 
     def initialize(self):
         """
