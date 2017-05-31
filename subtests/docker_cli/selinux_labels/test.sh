@@ -81,7 +81,7 @@ check_label "privileged container" \
             "spc_t"
 
 check_label "confined container: root dir" \
-            "docker run $image ls -dZ /" \
+            "docker run --rm $image ls -dZ /" \
             "container_file_t" "svirt_sandbox_file_t"
 
 check_label "container with overridden range" \
