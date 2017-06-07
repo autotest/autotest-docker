@@ -87,19 +87,18 @@ Prerequisites
 
 *  Platform Applications/tools
 
-    *  Autotest 0.16.0 or later (preferred).
+    *  Autotest 0.16.0 or later.
     *  Coreutils or equivalent (i.e. ``cat``, ``mkdir``, ``tee``, etc.)
     *  Tar and supported compression programs (``bzip2``, ``gzip``, etc.)
     *  nfs-utils (nfs-server support daemons)
-    *  Git (and basic familiarity with its operation)
     *  Python 2.6 or greater (not 3.0)
     *  libselinux-python 2.2 or later
     *  Optional (for building documentation), ``make``, ``python-sphinx``,
        and ``docutils`` or equivalent for your platform.
     *  Optional (for running unittests), ``pylint``, ``pep8``,
        ``python-unittest2``, and ``python2-mock``.
-    *  (Optional) ``python-bugzilla`` for test exclusion based
-       upon bug status.  See section `bugzilla_integration`_
+    *  Optional, ``python-bugzilla`` for test exclusion based
+       upon bug status.  See ``control.ini`` file comments for details.
 
 
 *  **Any specific requirements for particular** `subtest modules`_.
@@ -123,85 +122,179 @@ Prerequisites
 Quickstart
 ----------------
 
-#.  Double-check you meet all the requirements in `docker_autotest_prereq`_.
-#.  As ``root``, clone autotest into ``/var/lib/autotest``
-#.  Set and export the ``AUTOTEST_PATH`` environment variable.
+#.  Double-check you meet all the requirements in `docker_autotest_prereq`_.  For
+    the quickstart, a RHEL 7 system is assumed with the Docker daemon started,
+    device-mapper or overlay2 based storage configured, and at least 10gig of
+    local registry storage.
+#.  As ``root``, shallow-clone Autotest (**non-recursive**) into ``/var/lib/autotest``,
+    and set/export the ``AUTOTEST_PATH`` environment variable to it's location.
 
 ::
 
     [root@docker ~]# cd /var/lib
-    [root@docker lib]# git clone https://github.com/autotest/autotest.git autotest
+
+    [root@docker lib]# git clone --single-branch --depth 1 \
+    https://github.com/autotest/autotest.git autotest
+
     [root@docker lib]# export AUTOTEST_PATH=/var/lib/autotest
 
-#.  Change to the ``client/tests`` subdirectory.
-#.  Clone the `autotest-docker`_ repository into the ``docker`` subdirectory.
+#.  Change to the autotest client subdirectory.
+#.  Clone the desired release of the `autotest-docker`_ repository into the
+    ``docker`` subdirectory.  The latest version is obtained by omitting the
+    ``--branch`` option and argument (second clone example below).
 
 .. _autotest-docker: https://github.com/autotest/autotest-docker.git
 
 ::
 
-    [root@docker lib]# cd autotest/client/tests
-    [root@docker tests]# git clone https://github.com/autotest/autotest-docker.git docker
+    [root@docker lib]# cd $AUTOTEST_PATH/client
 
-#.  Change into newly checked out repository directory.
-#.  Make a copy of default configuration, edit as appropriate.  Particularly
-    the options for ``docker_repo_name``, ``docker_repo_tag``,
-    ``docker_registry_host``, and ``docker_registry_user`` (see
-    `default configuration options`_).
+    [root@docker client]# git clone --branch |version| \
+    https://github.com/autotest/autotest-docker.git tests/docker
 
-::
+    # or #
 
-    [root@docker tests]# cd docker
-    [root@docker docker]# cp -abi config_defaults/defaults.ini config_custom/
-    [root@docker docker]# vi config_custom/defaults.ini
+    [root@docker client]# git clone \
+    https://github.com/autotest/autotest-docker.git docker
 
-#.  Change back into the autotest client directory.
-
-::
-
-    [root@docker docker]# cd /var/lib/autotest/client
-
-#.  Verify you don't have any valuable images or running containers.  They
-    will be destroyed, unless configured by name or ID in ``preserve_fqins``
-    and/or ``preserve_cnames`` configuration options.
-#.  Run the autotest standalone client (``autotest-local run docker``).  The
-    default behavior is to run all subtests.  However, the example below
-    demonstrates using the ``--args`` parameter to select *only two* subtests:
+#.  Make a copy of default configuration, then edit as appropriate.
+    Particularly, verify the CSV list of full-image names and
+    container names, ``preserve_fqins`` and ``preserve_cnames``
+    are set correctly.  **All other images/containers will be destroyed!**
+    See `default configuration options`_ for more details.
 
 ::
 
-    [root@docker client]# ./autotest-local run docker --args example,docker_cli/version
+    [root@docker client]# cp -abi tests/docker/config_defaults/defaults.ini \
+    tests/docker/config_custom/
+
+    [root@docker client]# $EDITOR tests/docker/config_custom/defaults.ini
+
+#.  Run the autotest standalone client.  The default behavior is to run all
+    subtests.  However, the example below only executes the ``version`` subtest
+    for demonstration purposes.  Other tests may be selected via the
+    ``--args`` `parameter or by customizing`_ ``control.ini``.
+
+.. _`parameter or by customizing`: _selecting subthings
+
+::
+
+    [root@docker client]# ./autotest-local tests/docker/control --args=docker_cli/version
     Writing results to /var/lib/autotest/client/results/default
-    START   ----    ----
-        START   docker/subtests/example.test_1-of-2
-            RUNNING ----    INFO: initialize()
-            RUNNING ----    INFO: run_once()
-            RUNNING ----    INFO: postprocess_iteration(), iteration #1
-            RUNNING ----    INFO: run_once() iteration 2 of 3
-            RUNNING ----    INFO: postprocess_iteration(), iteration #2
-            RUNNING ----    INFO: run_once() iteration 3 of 3
-            RUNNING ----    INFO: postprocess_iteration(), iteration #3
-            RUNNING ----    INFO: postprocess()
-            RUNNING ----    INFO: cleanup()
-            GOOD    docker/subtests/example.test_1-of-2
-        END GOOD    docker/subtests/example.test_1-of-2
-        START   docker/subtests/docker_cli/version.test_2-of-2
-             RUNNING ----    INFO: initialize()
-             RUNNING ----    INFO: run_once()
-             RUNNING ----    INFO: postprocess_iteration(), iteration #1
-             RUNNING ----    INFO: Found docker versions client: 0.7.6 server 0.7.6
-             RUNNING ----    INFO: Docker cli version matches docker client API version
-             RUNNING ----    INFO: cleanup()
-             GOOD    docker/subtests/docker_cli/version.test_2-of-2
-        END GOOD    docker/subtests/docker_cli/version.test_2-of-2
-    END GOOD    ----    ----
-    [root@docker ~]#
+    START	----	----
+    Subtest/Sub-subtest requested:
+    		'docker_cli/version'
+    
+    Subtest/sub-subtest exclude list:
+    		'subexample'
+    		'pretest_example'
+    		'example'
+    		'intratest_example'
+    		'posttest_example'
+    
+    Executing tests:
+    		'docker/pretests/docker_test_images.1'
+    		'docker/pretests/log_sysconfig.2'
+    		'docker/pretests/log_versions.3'
+    		'docker/subtests/docker_cli/version.4'
+    		'docker/intratests/garbage_check.4'
+    
+    	START	docker/pretests/docker_test_images.1
+    	docker_test_images: initialize()
+    	docker_test_images: setup() for subtest version 2055
+    	docker_test_images: Running sub-subtests...
+    		puller: initialize()
+    		puller: run_once()
+    		puller: Pulling registry.access.redhat.com/rhel7/rhel:latest
+    		puller: Pulling docker.io/stackbrew/centos:latest
+    		puller: postprocess()
+    		puller: cleanup()
+    		builder: initialize()
+    		builder: run_once()
+    		builder: postprocess()
+    		builder: cleanup()
+    	docker_test_images: postprocess_iteration() #0 of #1
+    	docker_test_images: full_name:registry.access.redhat.com/rhel7/rhel:latest
+    	docker_test_images: full_name:docker.io/stackbrew/centos:latest
+    	docker_test_images: Updated preserve_fqins: docker.io/stackbrew/centos:latest,registry.access.redhat.com/rhel7/rhel:latest
+    	docker_test_images: Postprocess sub-subtest results...
+    	docker_test_images: cleanup()
+    		GOOD	docker/pretests/docker_test_images.1
+    	END GOOD	docker/pretests/docker_test_images.1
+    	START	docker/pretests/log_sysconfig.2
+    	log_sysconfig: initialize()
+    	log_sysconfig: setup() for subtest version 0
+    	log_sysconfig: run_once()
+    	log_sysconfig: postprocess_iteration() #0 of #1
+    	log_sysconfig: postprocess()
+    	log_sysconfig: cleanup()
+    		GOOD	docker/pretests/log_sysconfig.2
+    	END GOOD	docker/pretests/log_sysconfig.2
+    	START	docker/pretests/log_versions.3
+    	log_versions: initialize()
+    	log_versions: setup() for subtest version 0
+    	log_versions: run_once()
+    	log_versions: Found docker version client: 1.12.6 server 1.12.6
+    	log_versions: postprocess_iteration() #0 of #1
+    	log_versions: postprocess()
+    	log_versions: cleanup()
+    		GOOD	docker/pretests/log_versions.3
+    	END GOOD	docker/pretests/log_versions.3
+    	START	docker/subtests/docker_cli/version.4
+    	version: initialize()
+    	version: setup() for subtest version 0
+    	version: run_once()
+    	version: postprocess_iteration() #0 of #1
+    	version: postprocess()
+    	version: docker version client: 1.12.6 server 1.12.6
+    	version: Docker cli version matches docker client API version
+    	version: cleanup()
+    		GOOD	docker/subtests/docker_cli/version.4
+    	END GOOD	docker/subtests/docker_cli/version.4
+    	START	docker/intratests/garbage_check.4
+    		GOOD	docker/intratests/garbage_check.4
+    	END GOOD	docker/intratests/garbage_check.4
+    END GOOD	----	----
 
-(timestamps and extra text removed for clarity)
+*(timestamps and extra inconsequential text removed for clarity)*
 
-:Note: Subtest names are all relative to the ``subtests`` subdirectory and must
-       be fully-qualified.  e.g. ``docker_cli/version`` refers to the subtest module
-       ``subtests/docker_cli/version/version.py``.
+
+#.  Examine the test results by changing to the ``results/default`` directory.
+    Note: The name "default" is used when no ``--tag`` option is given to ``autotest-local``.
+
+::
+
+    [root@docker client]# cd results/default
+
+    [root@docker default]# ls -1
+    control          # Copy of the control file used for the run
+    control.ini      # Runtime configuration from default control file
+    control.state    # Used to support mid-test reboot / test resumption
+    debug            # All the client / sydout/stderr recorded by log-level.
+    docker           # Directory-tree of subtest results by name
+    job_report.html  # Autogenerated report web-page.
+    status           # Text-version of test run / results
+    status.json      # Same thing, but in JSON format.
+    sysinfo          # Directory of important log-files for the run.
+
+    [root@docker default]# ls -1 docker/subtests/docker_cli/version.4/
+    debug            # Same as above, but ONLY logs for this subtest
+    keyval           # Copy of subtest configuration, including defaults
+    profiling        # Not used
+    results          # Not used
+    status           # Same as above, but ONLY for this subtest
+    sysinfo          # Logs captured after this subtest ran.
+
+#.  If you wish jUnit format results, execute the bundled conversion script.
+
+::
+
+    [root@docker default]# ../../tests/docker/results2junit --name $HOSTNAME $PWD
+    [root@docker default]#
+    <testsuites>
+        <testsuite name="localhost" timestamp="2017-06-02" failures="0" tests="5" skipped="0" errors="0">
+            <testcase classname="localhost.pretests" name="docker_test_images" time="29"/>
+            ...
 
 .. _subtests:
 
@@ -462,112 +555,77 @@ in the `Subtest Module`_ section.
 Docker Autotest Control
 =========================
 
-The example control file provided with Docker autotest is designed
-to locate and setup particular subtests for execution via the
-``job.next_step()`` mechanism.  Once the steps are initialized,
-execution passes back into the Autotest client harness.
+The example ``control`` file provided with Docker autotest is
+designed to locate and setup subtests for execution in a particular
+way.  However, this is only an example, you may customize or provide
+your own ``control`` file if alternate behavior is desired.
 
-To help with the complex task of specifying which subtests (and
-sub-subtests) are available for running, the control file makes
-use of the ``jobs.args`` attribute value in the following way:
+.. _selecting subthings:
 
-    *  The value is treated as a order-sensitive space-separated
-       list of values.  Any subtests or sub-subtest names listed
-       alone (space separated) or with commas and no intervening spaces,
-       will be added to the master list of sub/sub-subtests to
-       consider for testing.  The sequence (including duplicates)
-       is important, and preserved.
+Selecting Sub-test and Sub-subtest modules
+------------------------------------------
 
-    *  It's possible to specify both subtest and sub-subtest names,
-       to the ``--args`` option.  However, only job steps will be
-       added for subtests since Autotest has no knowledge of
-       sub-subtests.  If a sub-subtest is specified without its
-       parent subtest, the control file will automatically inject
-       the parent subtest into the master list, ahead of the sub-subtest
-       if it's not already listed.
+To help with the complex task of locating and queuing subtests
+for execution.  The default ``control`` file examines two possibly
+complementary sets of options.  One is via the ``--args`` autotest client
+command-line option.  The other is via the ``control.ini`` file.  This
+file is typically copied from ``config_defaults`` and modified in
+``config_custom``.
 
-    *  If no subtests or sub-subtests are specified via ``jobs.args``,
-       the master list will be automatically generated by
-       searching for all applicable modules containing a
-       ``test.test`` class or subclass.  The order they will be
-       added is undefined.
+.. _args configuration:
 
-    *  If a ``jobs.args`` sub-option in the form ``i=<thing>,<thing>,...``
-       appears, it will be considered as the set of sub/sub-subtest names
-       to explicitly **include** from the master list (above).  Unknown
-       names are ignored, and an empty list means to
-       include everything from the master list.
+**``--args`` Reference:**
 
-    *  If the sub-option ``x=<thing>,<thing>,...`` appears in ``--args``,
-       it will be used as the set of sub/sub-subtests to explicitly
-       **exclude** from the master list above.  Unknown names are ignored,
-       and an empty list means *include* everything.  Items also appearing
-       in include set, will be excluded.
+    *  The value is treated as a sequence of space-separated then
+       comma-separated list of values.  Any subtests or sub-subtest
+       names listed alone (space separated), or with commas and no
+       intervening spaces, will be added to list of candidates.
 
+    *  If no candidate subtest or sub-subtest list are specified,
+       the list will be generated by searching for applicable
+       modules under ``subtests``, ``pretests``, ``intratests`` and
+       ``posttests``.
+
+    *  If a space-separated component of ``--args`` is of the
+       form ``i=<name>,<name>,...``.  Then each ``<name>`` will
+       be taken from the candidate list, as a test module to include
+       in the run-queue.  Unknown names are ignored with a warning.
+
+    *  Similarly, a space-separated component of the form
+       ``x=<thing>,<thing>,...`` is taken as the list of test modules
+       to exclude from the run-queue.  Any conflicts with the include
+       list, will result in the item being excluded.
+
+    *  If the string ``!!!`` appears as any of the space-separated
+       items to ``--args``, then **no** tests will be executed.
+       Instead, the run-queue will simply be displayed and logged.
 
 .. _control configuration:
 
-Control Configuration
-----------------------
+**``control.ini`` Reference:**
 
-To support environments where a static set of sub/sub-subtests, include
-and exclude lists is needed, a completely optional control configuration
-file ``control.ini`` may be used.  It uses a similar ``ini`` style configuration,
-though the section names are fixed and specific.  A fully commented sample is
-provided in ``config_defaults/control.ini``.  Obviously this feature is
-not necessarely applicable for alternative or custom control files.
+    * A ``config_custom/control.ini`` will be loaded in preference
+      to ``config_defaults/control.ini``.
 
-If the default control file finds a ``config_custom/control.ini`` it will be
-loaded in preference to ``config_defaults/control.ini``.  The command-line ``--args``
-list of sub/sub-subtests to consider will augment any also provided by
-the ``subthings`` option value.  Similarly, any ``x=`` and ``i=``
-sub-options to ``--args`` will augment the ``include``
-and ``exclude`` option values respectively.  Command-line (``--args``) values
-always take precedence over control configuration values.
+    * The ``subthings`` option takes a CSV list of candidate module
+      names, similar to the space-separated sequence from ``--args``
+      (above).
 
-After parsing all command-line and static ``control.ini`` options,
-a reference copy is stored in the autotest results directory for reference.
-The operational list of sub/sub-subtests (after include/exclude/bugzilla
-filtering) is supplied in the ``subtests`` option value.
+    * The ``pretests``, ``intratests`` and ``posttests`` items specify
+      the relative path to directories to search for candidates if
+      they're not specified in the ``subthings`` list (or in ``--args``).
 
-:**Note**:  The results directory's ``control.ini`` may optionally
-            be consulted  by sub/sub-subtests.  However, its format
-            and/or any contained options must always have default
-            values in case of format changes or missing values.
-            This facility may not be provided at all, or implemented
-            differently by other control files.
+    * The ``include`` and ``exclude`` CSV lists operate just as expected.
+      Either including or excluding items from the candidate list, into
+      the run-queue.
 
-.. _bugzilla_integration:
+    * All the other options are fully documented within the
+      ``config_custom/control.ini`` file.
 
-Bugzilla Integration
----------------------
-
-This feature is only enabled if a bugzilla url option value is provided
-and the ``python-bugzilla`` package is installed.  This package is available
-for Fedora directly, and for Red Hat Enterprise Linux in the EPEL repository.
-Most other distros similarly provide a pre-packaged version of this
-python module.
-
-When enabled in ``control.ini``, this feature helps to automatically
-skip sub/sub-subtests linked to one or more outstanding bugs.  The mapping
-of sub/sub-subtest to bugzilla list is specified in the ``control.ini``
-file under the ``NamesToBZs`` section.  The results of querying bugzilla
-are evaluated last, after the normal include/exclude lists.
-
-.. _additional_test_trees:
-
-Additional Test Trees
-----------------------
-
-The ``control.ini`` file may list relative directory names to be used for
-test modules at different stages.  The ``subtests`` option specifies the
-subdirectory that contains the main tree of tests.  Additional trees can be
-named for executing test modules before, between, and after all subtest
-modules.  They are named ``pretests``, ``intratests``, and ``posttests``.
-
-:note: The include/exclude rules are simplified for additional trees.  Namely
-       they are not filtered by bugzilla, and are susceptible to name collision with
-       the other trees.  Care must be taken in naming modules to avoid collisions.
+:**Note**:  The ``$AUTOTEST_PATH/client/results/default/control.ini``
+            represents the parsed, run-time copy of the file.  It is
+            consumed and used internally by Docker Autotest and should
+            be considered read-only.
 
 ------------------------
 Versioning Requirements
