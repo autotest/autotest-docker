@@ -122,40 +122,46 @@ Prerequisites
 Quickstart
 ----------------
 
+All platforms
+=============
+
 #.  Double-check you meet all the requirements in `docker_autotest_prereq`_.  For
-    the quickstart, a RHEL 7 system is assumed with the Docker daemon started,
-    device-mapper or overlay2 based storage configured, and at least 10gig of
-    local registry storage.
+    the quickstart, either a RHEL 7 or Fedora 25 system is assumed with the Docker
+    daemon started, device-mapper or overlay2 storage configured, and at
+    least 10gig of registry space is available.
+
 #.  As ``root``, shallow-clone Autotest (**non-recursive**) into ``/var/lib/autotest``,
     and set/export the ``AUTOTEST_PATH`` environment variable to it's location.
 
-::
+    ::
 
-    [root@docker ~]# cd /var/lib
+        [root@docker ~]# cd /var/lib
 
-    [root@docker lib]# git clone --single-branch --depth 1 \
-    https://github.com/autotest/autotest.git autotest
+        [root@docker lib]# git clone --single-branch --depth 1 \
+        https://github.com/autotest/autotest.git autotest
 
-    [root@docker lib]# export AUTOTEST_PATH=/var/lib/autotest
+        [root@docker lib]# export AUTOTEST_PATH=/var/lib/autotest
 
 #.  Change to the autotest client subdirectory.
-#.  Clone the desired release of the `autotest-docker`_ repository into the
-    ``docker`` subdirectory.  The latest version is obtained by omitting the
-    ``--branch`` option and argument (second clone example below).
 
-.. _autotest-docker: https://github.com/autotest/autotest-docker.git
+#.  Clone `autotest-docker`_ repository into the ``docker`` subdirectory.
+    Bassed from a `formal release`_ or the latest available.
 
-::
+    ::
 
-    [root@docker lib]# cd $AUTOTEST_PATH/client
+        [root@docker lib]# cd $AUTOTEST_PATH/client
 
-    [root@docker client]# git clone --branch |version| \
-    https://github.com/autotest/autotest-docker.git tests/docker
+        [root@docker client]# git clone --branch $VERSION \
+        https://github.com/autotest/autotest-docker.git tests/docker
 
-    # or #
+    Where ``$VERSION`` is the docker-autotest release (e.g. "|version|")
+    **or** to use the current latest release, omit the --branch option:
 
-    [root@docker client]# git clone \
-    https://github.com/autotest/autotest-docker.git docker
+    ::
+
+        [root@docker client]# git clone \
+        https://github.com/autotest/autotest-docker.git docker
+
 
 #.  Make a copy of default configuration, then edit as appropriate.
     Particularly, verify the CSV list of full-image names and
@@ -163,108 +169,149 @@ Quickstart
     are set correctly.  **All other images/containers will be destroyed!**
     See `default configuration options`_ for more details.
 
+    ::
+
+        [root@docker client]# cp -abi tests/docker/config_defaults/defaults.ini \
+        tests/docker/config_custom/
+
+        [root@docker client]# $EDITOR tests/docker/config_custom/defaults.ini
+
+.. _autotest-docker: https://github.com/autotest/autotest-docker.git
+.. _`formal release`: https://github.com/autotest/autotest-docker/releases
+
+Fedora platforms
+=================
+
+The Fedora base-images lack some essential tooling necessary for testing.  In addition
+to the steps above, a custom test-image must be configured for building.
+
+#.  Edit the ``defaults.ini`` file again, and change the registry settings as follows:
+
+    ::
+
+        [root@docker client]# $EDITOR tests/docker/config_custom/defaults.ini
+
+        ...
+        docker_registry_host = localhost
+        docker_registry_user =
+        docker_repo_name = fedora_test_image
+        docker_repo_tag = latest
+        ...
+
+#.  Make a copy of the ``docker_test_images.ini`` configuration file and configure
+    it to build the test image.
+
+    ::
+
+        [root@docker client]# $EDITOR tests/docker/config_custom/defaults.ini
+
+        ...
+        build_name = localhost/fedora_test_image:latest
+        build_dockerfile = https://raw.githubusercontent.com/autotest/autotest-docker/master/fedora_test_image.tar.gz
+        build_opts_csv = --no-cache,--pull,--force-rm
+        ...
+
+Execute and examine results
+============================
+
+For all platforms, use the standalone autotest client to select and execute subtests.
+The default behavior is to run all subtests.  However, the example below only
+executes the ``version`` subtest for demonstration purposes.  This will bring in
+some additional utility "tests", such as ``docker_test_images`` and ``garbage_check``.
+Other subtests may be selected via the ``--args`` `parameter or by customizing`_
+``control.ini``.
+
 ::
 
-    [root@docker client]# cp -abi tests/docker/config_defaults/defaults.ini \
-    tests/docker/config_custom/
-
-    [root@docker client]# $EDITOR tests/docker/config_custom/defaults.ini
-
-#.  Run the autotest standalone client.  The default behavior is to run all
-    subtests.  However, the example below only executes the ``version`` subtest
-    for demonstration purposes.  Other tests may be selected via the
-    ``--args`` `parameter or by customizing`_ ``control.ini``.
-
-.. _`parameter or by customizing`: _selecting subthings
-
-::
+    [root@docker /]# cd $AUTOTEST_PATH/client
 
     [root@docker client]# ./autotest-local tests/docker/control --args=docker_cli/version
     Writing results to /var/lib/autotest/client/results/default
     START	----	----
     Subtest/Sub-subtest requested:
-    		'docker_cli/version'
-    
+            'docker_cli/version'
+
     Subtest/sub-subtest exclude list:
-    		'subexample'
-    		'pretest_example'
-    		'example'
-    		'intratest_example'
-    		'posttest_example'
-    
+            'subexample'
+            'pretest_example'
+            'example'
+            'intratest_example'
+            'posttest_example'
+
     Executing tests:
-    		'docker/pretests/docker_test_images.1'
-    		'docker/pretests/log_sysconfig.2'
-    		'docker/pretests/log_versions.3'
-    		'docker/subtests/docker_cli/version.4'
-    		'docker/intratests/garbage_check.4'
-    
-    	START	docker/pretests/docker_test_images.1
-    	docker_test_images: initialize()
-    	docker_test_images: setup() for subtest version 2055
-    	docker_test_images: Running sub-subtests...
-    		puller: initialize()
-    		puller: run_once()
-    		puller: Pulling registry.access.redhat.com/rhel7/rhel:latest
-    		puller: Pulling docker.io/stackbrew/centos:latest
-    		puller: postprocess()
-    		puller: cleanup()
-    		builder: initialize()
-    		builder: run_once()
-    		builder: postprocess()
-    		builder: cleanup()
-    	docker_test_images: postprocess_iteration() #0 of #1
-    	docker_test_images: full_name:registry.access.redhat.com/rhel7/rhel:latest
-    	docker_test_images: full_name:docker.io/stackbrew/centos:latest
-    	docker_test_images: Updated preserve_fqins: docker.io/stackbrew/centos:latest,registry.access.redhat.com/rhel7/rhel:latest
-    	docker_test_images: Postprocess sub-subtest results...
-    	docker_test_images: cleanup()
-    		GOOD	docker/pretests/docker_test_images.1
-    	END GOOD	docker/pretests/docker_test_images.1
-    	START	docker/pretests/log_sysconfig.2
-    	log_sysconfig: initialize()
-    	log_sysconfig: setup() for subtest version 0
-    	log_sysconfig: run_once()
-    	log_sysconfig: postprocess_iteration() #0 of #1
-    	log_sysconfig: postprocess()
-    	log_sysconfig: cleanup()
-    		GOOD	docker/pretests/log_sysconfig.2
-    	END GOOD	docker/pretests/log_sysconfig.2
-    	START	docker/pretests/log_versions.3
-    	log_versions: initialize()
-    	log_versions: setup() for subtest version 0
-    	log_versions: run_once()
-    	log_versions: Found docker version client: 1.12.6 server 1.12.6
-    	log_versions: postprocess_iteration() #0 of #1
-    	log_versions: postprocess()
-    	log_versions: cleanup()
-    		GOOD	docker/pretests/log_versions.3
-    	END GOOD	docker/pretests/log_versions.3
-    	START	docker/subtests/docker_cli/version.4
-    	version: initialize()
-    	version: setup() for subtest version 0
-    	version: run_once()
-    	version: postprocess_iteration() #0 of #1
-    	version: postprocess()
-    	version: docker version client: 1.12.6 server 1.12.6
-    	version: Docker cli version matches docker client API version
-    	version: cleanup()
-    		GOOD	docker/subtests/docker_cli/version.4
-    	END GOOD	docker/subtests/docker_cli/version.4
-    	START	docker/intratests/garbage_check.4
-    		GOOD	docker/intratests/garbage_check.4
-    	END GOOD	docker/intratests/garbage_check.4
+            'docker/pretests/docker_test_images.1'
+            'docker/pretests/log_sysconfig.2'
+            'docker/pretests/log_versions.3'
+            'docker/subtests/docker_cli/version.4'
+            'docker/intratests/garbage_check.4'
+
+        START	docker/pretests/docker_test_images.1
+        docker_test_images: initialize()
+        docker_test_images: setup() for subtest version 2055
+        docker_test_images: Running sub-subtests...
+            puller: initialize()
+            puller: run_once()
+            puller: Pulling registry.access.redhat.com/rhel7/rhel:latest
+            puller: Pulling docker.io/stackbrew/centos:latest
+            puller: postprocess()
+            puller: cleanup()
+            builder: initialize()
+            builder: run_once()
+            builder: postprocess()
+            builder: cleanup()
+        docker_test_images: postprocess_iteration() #0 of #1
+        docker_test_images: full_name:registry.access.redhat.com/rhel7/rhel:latest
+        docker_test_images: full_name:docker.io/stackbrew/centos:latest
+        docker_test_images: Updated preserve_fqins: docker.io/stackbrew/centos:latest,registry.access.redhat.com/rhel7/rhel:latest
+        docker_test_images: Postprocess sub-subtest results...
+        docker_test_images: cleanup()
+            GOOD	docker/pretests/docker_test_images.1
+        END GOOD	docker/pretests/docker_test_images.1
+        START	docker/pretests/log_sysconfig.2
+        log_sysconfig: initialize()
+        log_sysconfig: setup() for subtest version 0
+        log_sysconfig: run_once()
+        log_sysconfig: postprocess_iteration() #0 of #1
+        log_sysconfig: postprocess()
+        log_sysconfig: cleanup()
+            GOOD	docker/pretests/log_sysconfig.2
+        END GOOD	docker/pretests/log_sysconfig.2
+        START	docker/pretests/log_versions.3
+        log_versions: initialize()
+        log_versions: setup() for subtest version 0
+        log_versions: run_once()
+        log_versions: Found docker version client: 1.12.6 server 1.12.6
+        log_versions: postprocess_iteration() #0 of #1
+        log_versions: postprocess()
+        log_versions: cleanup()
+            GOOD	docker/pretests/log_versions.3
+        END GOOD	docker/pretests/log_versions.3
+        START	docker/subtests/docker_cli/version.4
+        version: initialize()
+        version: setup() for subtest version 0
+        version: run_once()
+        version: postprocess_iteration() #0 of #1
+        version: postprocess()
+        version: docker version client: 1.12.6 server 1.12.6
+        version: Docker cli version matches docker client API version
+        version: cleanup()
+            GOOD	docker/subtests/docker_cli/version.4
+        END GOOD	docker/subtests/docker_cli/version.4
+        START	docker/intratests/garbage_check.4
+            GOOD	docker/intratests/garbage_check.4
+        END GOOD	docker/intratests/garbage_check.4
     END GOOD	----	----
+
 
 *(timestamps and extra inconsequential text removed for clarity)*
 
-
-#.  Examine the test results by changing to the ``results/default`` directory.
-    Note: The name "default" is used when no ``--tag`` option is given to ``autotest-local``.
+Examine the test results by changing to the ``results/default`` directory.
+*Note:* The name "default" is used when no ``--tag`` option is given to the
+``autotest-local`` command.
 
 ::
 
-    [root@docker client]# cd results/default
+    [root@docker client]# cd $AUTOTEST_PATH/client/results/default
 
     [root@docker default]# ls -1
     control          # Copy of the control file used for the run
@@ -285,16 +332,21 @@ Quickstart
     status           # Same as above, but ONLY for this subtest
     sysinfo          # Logs captured after this subtest ran.
 
-#.  If you wish jUnit format results, execute the bundled conversion script.
+If you wish jUnit format results, execute the included conversion script.
 
 ::
 
-    [root@docker default]# ../../tests/docker/results2junit --name $HOSTNAME $PWD
-    [root@docker default]#
+    [root@docker client]# cd $AUTOTEST_PATH/client
+    [root@docker client]# tests/docker/results2junit --name $HOSTNAME results/default
+
+    [root@docker client]# cat results/default/results.junit
     <testsuites>
-        <testsuite name="localhost" timestamp="2017-06-02" failures="0" tests="5" skipped="0" errors="0">
+        <testsuite name="localhost" failures="0" tests="5" skipped="0" errors="0">
             <testcase classname="localhost.pretests" name="docker_test_images" time="29"/>
             ...
+
+.. _`parameter or by customizing`: _selecting subthings
+
 
 .. _subtests:
 
