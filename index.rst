@@ -203,7 +203,10 @@ to the steps above, a custom test-image must be configured for building.
 
     ::
 
-        [root@docker client]# $EDITOR tests/docker/config_custom/defaults.ini
+        [root@docker client]# cp -abi tests/docker/config_defaults/docker_test_images.ini \
+        tests/docker/config_custom/
+
+        [root@docker client]# $EDITOR tests/docker/config_custom/docker_test_images.ini
 
         ...
         build_name = localhost/fedora_test_image:latest
