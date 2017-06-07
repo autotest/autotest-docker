@@ -207,7 +207,7 @@ to the steps above, a custom test-image must be configured for building.
 
         ...
         build_name = localhost/fedora_test_image:latest
-        build_dockerfile = https://raw.githubusercontent.com/autotest/autotest-docker/master/fedora_test_image.tar.gz
+        build_dockerfile = https://github.com/autotest/autotest-docker/raw/master/fedora_test_image.tar.gz
         build_opts_csv = --no-cache,--pull,--force-rm
         ...
 
