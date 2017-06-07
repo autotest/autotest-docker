@@ -145,7 +145,7 @@ All platforms
 #.  Change to the autotest client subdirectory.
 
 #.  Clone `autotest-docker`_ repository into the ``docker`` subdirectory.
-    Bassed from a `formal release`_ or the latest available.
+    Based from a `formal release`_ or the latest available.
 
     ::
 
