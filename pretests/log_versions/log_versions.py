@@ -18,7 +18,6 @@ from autotest.client import utils
 from dockertest import subtest
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import DockerVersion, mustpass
-from dockertest.docker_daemon import which_docker
 from dockertest.config import get_as_list
 
 
@@ -36,9 +35,6 @@ class log_versions(subtest.Subtest):
                 % (docker_version.client, docker_version.server))
         self.loginfo("Found %s", info)
         self.write_sysinfo('docker_version', info + "\n")
-        self.write_sysinfo('docker_rpm_active', self._rpmq(which_docker()))
-        self.write_sysinfo('docker_rpm_current', self._rpmq('docker'))
-        self.write_sysinfo('docker_rpm_latest', self._rpmq('docker-latest'))
         for rpm in get_as_list(self.config.get('key_rpms', '')):
             self.write_sysinfo('key_rpms', self._rpmq(rpm))
 
