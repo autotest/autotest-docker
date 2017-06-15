@@ -278,3 +278,5 @@ class volume_mount(CpBase):
         if 'volume_name' in self.sub_stuff:
             vol = self.sub_stuff['volume_name']
             DockerCmd(self, 'volume', ['rm', vol]).execute()
+
+        self.stuff['di'].clean_all(['busybox'])
