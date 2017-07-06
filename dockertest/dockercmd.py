@@ -338,16 +338,18 @@ class AsyncDockerCmd(DockerCmdBase):
     def wait_for_ready(self, cid=None, timeout=None, timestep=0.2):
         """
         Monitor the output of a container (including docker logs, in
-        case stdout is detached), waiting for the string 'READY'. Return
-        as soon as we see it. If we don't, throw a meaningful exception.
+        case stdout is detached), waiting for the string 'READY' or
+        for the container to terminate. Return if we see the string.
+        If we don't, throw a meaningful exception.
 
         :raises DockerExecError: on timeout.
         """
         if timeout is None:
             timeout = self.timeout
         end_time = time.time() + timeout
-        while time.time() <= end_time:
-            time.sleep(timestep)
+        done = False
+        while time.time() <= end_time and not done:
+            done = self.done
             stdout = self.stdout
             if 'READY' in stdout:
                 return
@@ -360,6 +362,7 @@ class AsyncDockerCmd(DockerCmdBase):
                 stdout = logs.stdout
                 if 'READY' in stdout:
                     return
+            time.sleep(timestep)
 
         # Never saw READY. Did container exit? If so, help user understand why
         if self.done:
