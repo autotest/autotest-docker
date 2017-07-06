@@ -201,10 +201,15 @@ class postprocessing(object):
 
     def basic_postprocess(self, build_def, command, parameter):
         del parameter  # not used
+        # June 2017: docker-1.13 ignores $TERM for build sub-command.
+        #            Jambs ANSI codes in output, BZ1403326
+        skip = ['nonprintables_check']
+        if self.config['enable_nonprintables_check']:
+            skip = None
         if command == 'positive':
             # Verify zero exit status and healthy output
             opg = OutputGood(build_def.dockercmd.cmdresult,
-                             ignore_error=True)
+                             skip=skip, ignore_error=True)
             if opg:
                 return build_def.dockercmd.cmdresult.exit_status == 0
             else:
@@ -214,7 +219,7 @@ class postprocessing(object):
         elif command == 'negative':
             # Verify non-zero exit status and no panics
             notbad = OutputNotBad(build_def.dockercmd.cmdresult,
-                                  ignore_error=True)
+                                  skip=skip, ignore_error=True)
             if notbad:
                 return build_def.dockercmd.cmdresult.exit_status != 0
             else:

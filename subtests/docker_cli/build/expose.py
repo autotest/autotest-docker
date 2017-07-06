@@ -1,7 +1,6 @@
 import os
 from dockertest.networking import PortContainer
 from dockertest.output import mustpass
-from dockertest.output import wait_for_output
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.dockercmd import DockerCmd
 from build import BuildSubSubtest
@@ -25,10 +24,8 @@ class expose(BuildSubSubtest):
         self.sub_stuff['async_dkrcmd'] = async_dkrcmd
         async_dkrcmd.execute(read_fd)
         os.close(read_fd)
-        os.write(write_fd, 'echo "StArTeD!"\n')
-        self.failif(not wait_for_output(lambda: async_dkrcmd.stdout,
-                                        "StArTeD!",
-                                        timeout=10), str(async_dkrcmd))
+        os.write(write_fd, '\necho "R""EADY"\n')
+        async_dkrcmd.wait_for_ready()
         return name
 
     def container_ports(self, name):
