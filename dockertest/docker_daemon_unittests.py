@@ -24,6 +24,32 @@ def mock(mod_path):
             sys.modules[mod_path] = child_mod
         return sys.modules[mod_path]
 
+# Just pack whatever args received into attributes
+class FakeCmdResult(object):
+
+    def __init__(self, **dargs):
+        for key, val in dargs.items():
+            setattr(self, key, val)
+
+# Simulate utils.run(). Individual tests prime us with predetermined
+# results for each invocation of utils.run.
+FAKERUN_RESULTS = []
+
+def fakerun_setup(**kwargs):
+    fake_cmd_result = { 'command': '',
+                        'stdout': '',
+                        'stderr': '',
+                        'exit_status': 0,
+                        'duration': 0.1 }
+    for k in fake_cmd_result.keys():
+        if k in kwargs:
+            fake_cmd_result[k] = kwargs[k]
+    FAKERUN_RESULTS.append(FakeCmdResult(**fake_cmd_result))
+
+def fakerun(command, *_args, **_dargs):
+    return FAKERUN_RESULTS.pop(0)
+
+
 # Mock module and exception class in one stroke
 setattr(mock('autotest.client.shared.error'), 'CmdError', Exception)
 setattr(mock('autotest.client.shared.error'), 'TestFail', Exception)
@@ -34,6 +60,7 @@ mock('autotest.client.utils')
 mock('autotest.client.shared.utils')
 mock('autotest.client.shared.error')
 mock('autotest.client.shared.service')
+setattr(mock('autotest.client.utils'), 'run', fakerun)
 
 
 class DDTestBase(unittest2.TestCase):
@@ -108,6 +135,61 @@ class TestStringEdit(unittest2.TestCase):
                           docker_daemon.edit_options_string,
                           "OPTIONS='missing end quote")
 
+
+class TestWhichDocker(unittest2.TestCase):
+    """
+    Tests for which_docker()
+    """
+
+    def test_default(self):
+        """
+        Default to 'docker' when systemctl output isn't helpful
+        """
+        import docker_daemon
+        fakerun_setup(stdout="")
+        self.assertEqual(docker_daemon.which_docker(), 'docker', 'default')
+
+    def test_full_systemctl_output(self):
+        """
+        Parse realistic systemctl output
+        """
+        import docker_daemon
+        fakerun_setup(stdout="""UNIT                       LOAD   ACTIVE SUB     DESCRIPTION
+auditd.service             loaded active running Security Auditing Service
+chronyd.service            loaded active running NTP client/server
+container-engine.service   loaded active running Container Engine service
+crond.service              loaded active running Command Scheduler
+dbus.service               loaded active running D-Bus System Message Bus
+dm-event.service           loaded active running Device-mapper event daemon
+firewalld.service          loaded active running firewalld - dynamic firewall daemon
+getty@tty1.service         loaded active running Getty on tty1
+irqbalance.service         loaded active running irqbalance daemon
+lvm2-lvmetad.service       loaded active running LVM2 metadata daemon
+NetworkManager.service     loaded active running Network Manager
+nginx.service              loaded active running The nginx HTTP and reverse proxy server
+polkit.service             loaded active running Authorization Manager
+postfix.service            loaded active running Postfix Mail Transport Agent
+rhel-push-plugin.service   loaded active running Docker Block RHEL push plugin authZ Plugin
+rhnsd.service              loaded active running LSB: Starts the Spacewalk Daemon
+rhsmcertd.service          loaded active running Enable periodic update of entitlement certificates.
+rsyslog.service            loaded active running System Logging Service
+serial-getty@ttyS0.service loaded active running Serial Getty on ttyS0
+sshd.service               loaded active running OpenSSH server daemon
+systemd-journald.service   loaded active running Journal Service
+systemd-logind.service     loaded active running Login Service
+systemd-udevd.service      loaded active running udev Kernel Device Manager
+tuned.service              loaded active running Dynamic System Tuning Daemon
+
+LOAD   = Reflects whether the unit definition was properly loaded.
+ACTIVE = The high-level unit activation state, i.e. generalization of SUB.
+SUB    = The low-level unit activation state, values depend on unit type.
+
+24 loaded units listed. Pass --all to see loaded but inactive units, too.
+To show all installed unit files use 'systemctl list-unit-files'.
+""")
+        expect = "container-engine"
+        actual = docker_daemon.which_docker()
+        self.assertEqual(actual, expect, "which_docker()")
 
 if __name__ == '__main__':
     unittest2.main()

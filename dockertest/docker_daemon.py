@@ -10,6 +10,7 @@ import logging
 import socket
 import json
 import os
+import re
 from autotest.client import utils
 
 # File extension used for preserving original docker config file
@@ -117,20 +118,25 @@ class SocketClient(ClientBase):
 
 def which_docker():
     """
-    Returns 'docker' or 'docker-latest' based on setting in
-    /etc/sysconfig/docker.
-
-    Warning: this is not a reliable method. /etc/sysconfig/docker defines
-    the docker *client*; it is perfectly possible for a system to use
-    docker as client and docker-latest as daemon or vice-versa. It's
-    possible, but unsupported, so we're not going to worry about it.
+    Returns the name of the currently-running docker systemd service,
+    as a string. This is usually 'docker' but could be 'docker-latest'
+    or the name of a known docker-as-system-container service.
     """
     docker = 'docker'
-    with open('/etc/sysconfig/docker', 'r') as docker_sysconfig:
-        for line in docker_sysconfig:
-            if line.startswith('DOCKERBINARY='):
-                if 'docker-latest' in line:
-                    docker = 'docker-latest'
+
+    # Known docker-daemon services as of July 2017
+    docker_services = ('docker', 'docker-latest', 'container-engine')
+
+    # List systemd units, look for "xx.service loaded active running"
+    re_svc = re.compile(r'^([\w-]+)\.service\s+loaded\s+active\s+running\s')
+    list_units = 'systemctl list-units --full --type=service --state=running'
+    units = utils.run(list_units).stdout.strip().splitlines()
+    for line in units:
+        found_running = re.match(re_svc, line)
+        if found_running:
+            unit = found_running.group(1)
+            if unit in docker_services:
+                docker = unit
     return docker
 
 
