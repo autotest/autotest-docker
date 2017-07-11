@@ -159,14 +159,22 @@ def restart():
     return _systemd_action('restart')
 
 
+def systemd_show(prop):
+    """
+    Runs 'systemctl show --property=ARG' for given arg.
+    Returns the value as a string.
+    """
+    cmd_result = _systemd_action('show --property=%s' % prop)
+    stdout = cmd_result.stdout
+    if not stdout.startswith(prop + '='):
+        raise RuntimeError("Unexpected output from %s: expected %s=XXXX,"
+                           " got '%s'" % (cmd_result.command, prop, stdout))
+    return stdout[(len(prop) + 1):].strip()
+
+
 def pid():
     """ returns the process ID of currently-running docker daemon """
-    cmd_result = _systemd_action('show --property=MainPID')
-    stdout = cmd_result.stdout
-    if not stdout.startswith('MainPID='):
-        raise RuntimeError("Unexpected output from %s: expected MainPID=NNN,"
-                           " got '%s'" % (cmd_result.command, stdout))
-    mainpid = int(stdout[8:])
+    mainpid = int(systemd_show('MainPID'))
     cmd = cmdline(mainpid)
     if 'dockerd' in cmd[0]:
         return mainpid
@@ -185,17 +193,16 @@ def pid():
 
 def cmdline(process_id=None):
     """
-    Returns the command line (argv) for the given process_id, as read
-    from /proc/<pid>/cmdline. We don't use 'systemctl show' because
-    that includes unexpanded variables. Return value is a list of strings.
+    Returns the command line (argv) for the given process_id, as obtained
+    from 'ps'. We don't use 'systemctl show' because that includes
+    unexpanded variables. Return value is a list of strings.
 
     :param process_id: PID whose commandline we read (default: docker daemon)
     """
     if process_id is None:
         process_id = pid()
-    cmdline_file = os.path.join('/proc', str(process_id), 'cmdline')
-    with open(cmdline_file, 'r') as cmdline_fh:
-        return cmdline_fh.read().split('\0')
+    ps_command = 'ps -o command= -p %d' % int(process_id)
+    return utils.run(ps_command).stdout.strip().split()
 
 
 def assert_pristine_environment():

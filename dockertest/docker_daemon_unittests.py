@@ -191,5 +191,52 @@ To show all installed unit files use 'systemctl list-unit-files'.
         actual = docker_daemon.which_docker()
         self.assertEqual(actual, expect, "which_docker()")
 
+
+class TestSystemdShow(unittest2.TestCase):
+    """
+    Tests for systemd_show()
+    """
+
+    def test_simple(self):
+        """
+        The usual case: systemctl responds with a 'Property=XXX' one-liner
+        """
+        import docker_daemon
+
+        expect = 'baz'
+        fakerun_setup(stdout="\n")                      # for which_docker()
+        fakerun_setup(stdout="FooBar=%s\n" % expect)
+        actual = docker_daemon.systemd_show('FooBar')
+
+        self.assertEqual(actual, expect, "systemd_show(FooBar)")
+
+    def test_bad_output_from_systemctl(self):
+        """
+        If for some reason systemctl does not return a 'Property=XXX' line
+        """
+        import docker_daemon
+
+        fakerun_setup(stdout="\n")                      # for which_docker()
+        fakerun_setup(stdout="UnExpectedResultWithNoEqualsSign\n")
+        self.assertRaises(RuntimeError,
+                          docker_daemon.systemd_show, 'FooBar')
+
+    def test_pid(self):
+        """
+        docker_daemon.pid() depends on systemctl_show
+        """
+        import docker_daemon
+
+        # It also checks the docker daemon command line, because it has to
+        # distinguish between dockerd itself and dockerd run under runc
+        # (as a container). The third fakerun_setup() simulates the
+        # output of 'ps' on our pid.
+        fakerun_setup(stdout="\n")                      # for which_docker()
+        fakerun_setup(stdout="MainPID=12345\n")
+        fakerun_setup(stdout="/usr/bin/dockerd --add-runtime ...\n")
+
+        self.assertEqual(docker_daemon.pid(), 12345, 'daemon pid')
+
+
 if __name__ == '__main__':
     unittest2.main()
