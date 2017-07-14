@@ -35,6 +35,7 @@ from autotest.client import utils
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
+from dockertest.output import OutputGood
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
 from dockertest.xceptions import DockerTestNAError
@@ -248,3 +249,70 @@ class volumes_rw(volumes_base):
         self.cleanup_test_dict(self, self.sub_stuff['path_info'])
         self.cleanup_cntnrs()
         super(volumes_rw, self).cleanup()
+
+
+class oci_umount(volumes_base):
+    """
+    oci-umount is a docker hook shipping in RHEL 7.4+. Its purpose is
+    to unmount certain critical filesystems before the container starts.
+    See rhbz#1470261
+
+    This test runs a docker container with / and /var/lib/docker mounted,
+    gets a list (via findmnt) of mounted filesystems in that container,
+    and verifies that none of those are in the /etc/oci-umount.conf
+    exclusion list.
+    """
+
+    def initialize(self):
+        super(oci_umount, self).initialize()
+
+        # Config file contains filesystem paths, one per line. It is
+        # not clear if comment lines are supported, but we don't have
+        # to worry about it because '#/foo' will not match anything.
+        should_not_be_mounted = []
+        try:
+            with open('/etc/oci-umount.conf', 'r') as oci_umount_conf:
+                for line in oci_umount_conf:
+                    should_not_be_mounted.append(line.strip())
+        except IOError:
+            raise DockerTestNAError("oci-umount not installed or configured")
+        if len(should_not_be_mounted) == 0:
+            raise DockerTestNAError("oci-umount is disabled")
+        self.stuff['should_not_be_mounted'] = should_not_be_mounted
+
+    def run_once(self):
+        super(oci_umount, self).run_once()
+        fqin = DockerImage.full_name_from_defaults(self.config)
+        dc = DockerCmd(self, 'run', ['--rm',
+                                     '-v', '/:/rootfs',
+                                     '-v', '/var/lib/docker:/var/lib/docker',
+                                     fqin, 'findmnt -R -n --list /'])
+        OutputGood(dc.execute())
+
+        # Output is a list of (path, device, fstype, options).
+        # We only care about the first field.
+        self.stuff['mounted'] = []
+        for line in dc.stdout.splitlines():
+            (fs, _) = line.split(' ', 1)
+            self.stuff['mounted'].append(fs)
+        self.failif(len(self.stuff['mounted']) == 0,
+                    'container reported no mounted filesystems')
+
+    def postprocess(self):
+        super(oci_umount, self).postprocess()
+        missed = self.cross_check_mounts()
+        self.failif_ne(missed, [], "filesystem(s) not unmounted by oci-umount")
+
+    def cross_check_mounts(self):
+        """
+        Cross-checks two lists: actual mounted filesystems, and the
+        oci-umount input list. Return a list of all mounted filesystems
+        which contain a substring from the oci-umount list. (Should
+        be an empty list).
+        """
+        did_not_umount = []
+        for omit in self.stuff['should_not_be_mounted']:
+            for mounted in self.stuff['mounted']:
+                if omit in mounted:
+                    did_not_umount.append(mounted)
+        return did_not_umount
