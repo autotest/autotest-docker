@@ -316,3 +316,30 @@ class oci_umount(volumes_base):
                 if omit in mounted:
                     did_not_umount.append(mounted)
         return did_not_umount
+
+
+class oci_umount_bz1472121(volumes_base):
+    """
+    Simple and hopefully temporary test for bz1472121, in which one
+    particular volume-mount incantation triggers a segv in oci-umount.
+    This test is being put into place 2017-07-20 just to make sure
+    that all known docker builds include a fix. Once that is confirmed,
+    and stable, we may be able to remove this test.
+    """
+
+    def initialize(self):
+        super(oci_umount_bz1472121, self).initialize()
+        self.failif(not os.path.exists('/etc/oci-umount.conf'),
+                    "oci-umount not installed", DockerTestNAError)
+
+    def run_once(self):
+        super(oci_umount_bz1472121, self).run_once()
+        fqin = DockerImage.full_name_from_defaults(self.config)
+        bindmount = '/var/lib/docker/devicemapper'
+        dc = DockerCmd(self, 'run', ['--rm',
+                                     '-v', '%s:%s' % (bindmount, bindmount),
+                                     fqin, 'true'])
+        # On a system with faulty oci-umount, e.g. 1.12.6-47.git0fdc778.el7,
+        # this will fail with "oci runtime error: ...error running hook:
+        # signal: segmentation fault (core dumped)"
+        OutputGood(dc.execute())
