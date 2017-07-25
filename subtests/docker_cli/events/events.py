@@ -213,7 +213,7 @@ class events(Subtest):
         cid = self.stuff['nfdc_cid'] = cmdresult.stdout.strip()
         while True:
             _json = dc.json_by_long_id(cid)
-            if len(_json) > 0 and _json[0]["State"]["Running"]:
+            if _json and _json[0]["State"]["Running"]:
                 self.loginfo("Waiting for test container to exit...")
                 time.sleep(3)
             else:

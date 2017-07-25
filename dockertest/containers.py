@@ -154,8 +154,7 @@ class DockerContainer(object):  # pylint: disable=R0902
         """
         if len(container_id) == 12:
             return container_id == self.long_id[:12]
-        else:
-            return container_id == self.long_id
+        return container_id == self.long_id
 
     def cmp_name(self, container_name):
         """
@@ -342,9 +341,9 @@ class DockerContainers(object):
                                         self.timeout)
             if cmdresult.exit_status == 0:
                 _json = json.loads(cmdresult.stdout.strip())
-                if len(_json) > 0:
+                if _json:
                     # No items in _json list should be empty either
-                    if all([len(item) > 0 for item in _json]):
+                    if all([bool(item) for item in _json]):
                         return _json
             #  failed command, empty list, or empty list item
             return None
@@ -380,7 +379,7 @@ class DockerContainers(object):
         cnts = self.list_containers_with_name(str(container_name))
         if len(cnts) == 1:
             return self.json_by_long_id(cnts[0].long_id)
-        elif len(cnts) == 0:
+        elif not cnts:
             raise ValueError("Container not found with name %s"
                              % container_name)
         else:
@@ -480,8 +479,7 @@ class DockerContainers(object):
         if self.remove_args is not None:
             return dkrcmd("rm %s %s" % (self.remove_args, container_id),
                           self.timeout)
-        else:
-            return dkrcmd("rm %s" % (container_id), self.timeout)
+        return dkrcmd("rm %s" % (container_id), self.timeout)
 
     def remove_by_obj(self, container_obj):
         """
@@ -502,7 +500,7 @@ class DockerContainers(object):
         cnts = self.list_containers_with_name(str(name))
         if len(cnts) == 1:
             return self.remove_by_obj(cnts[0])
-        elif len(cnts) == 0:
+        elif not cnts:
             raise ValueError("Container not found with name %s"
                              % name)
         else:
@@ -546,7 +544,7 @@ class DockerContainers(object):
         cnts = self.list_containers_with_name(str(name))
         if len(cnts) == 1:
             return self.wait_by_obj(cnts[0])
-        elif len(cnts) == 0:
+        elif not cnts:
             raise ValueError("Container not found with name %s"
                              % name)
         else:

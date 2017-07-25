@@ -47,13 +47,12 @@ class memory_base(cgroups_base):
                 result = {'PASS': msg}
 
                 return result
-            else:
-                msg = ("container_memory is %s, "
-                       "unit %s, cgroup_memory is %s, status Unknown"
-                       % (container_memory, unit, cgroup_memory))
-                result = {'FAIL': msg}
+            msg = ("container_memory is %s, "
+                   "unit %s, cgroup_memory is %s, status Unknown"
+                   % (container_memory, unit, cgroup_memory))
+            result = {'FAIL': msg}
 
-                return result
+            return result
 
         if container_memory != cgroup_memory:
             msg = ("container_memory is %s "
@@ -61,12 +60,11 @@ class memory_base(cgroups_base):
                    % (container_memory, unit, cgroup_memory))
             result = {'FAIL': msg}
             return result
-        else:
-            msg = ("container_memory is %s, "
-                   "unit %s, cgroup_memory is %s"
-                   % (container_memory, unit, cgroup_memory))
-            result = {'PASS': msg}
-            return result
+        msg = ("container_memory is %s, "
+               "unit %s, cgroup_memory is %s"
+               % (container_memory, unit, cgroup_memory))
+        result = {'PASS': msg}
+        return result
 
     @staticmethod
     def combine_subargs(name, option, image, sub_command):
@@ -127,10 +125,9 @@ class memory_base(cgroups_base):
             memory.append(memory_value.split(unit)[0])
             memory.append(unit)
             return memory
-        else:
-            memory.append(memory_value)
-            memory.append(' ')
-            return memory
+        memory.append(memory_value)
+        memory.append(' ')
+        return memory
 
     def initialize(self):
         super(memory_base, self).initialize()
@@ -142,7 +139,7 @@ class memory_base(cgroups_base):
 
         if self.config['expect_success'] == "PASS":
             memory_value = str(self.config['memory_value'])
-            if memory_value is not '0':
+            if memory_value != '0':
                 for unit in unit_list:
                     memory_list.append(memory_value + unit)
             else:
@@ -197,10 +194,10 @@ class memory_base(cgroups_base):
                     ("expected this_result to be a dict; it's a %s" %
                      this_result.__class__))
         status = this_result.keys().pop()
-        if status is "PASS":
+        if status == "PASS":
             self.logdebug(this_result)
             passed.append(True)
-        elif status is 'FAIL':
+        elif status == 'FAIL':
             self.logerror(this_result)
             passed.append(False)
         else:
@@ -213,10 +210,10 @@ class memory_base(cgroups_base):
                         ("expected this_result to be a dict; it's a %s" %
                          this_result.__class__))
             status = this_result.keys().pop()
-            if status is "FAIL":
+            if status == "FAIL":
                 self.logdebug("Expected fail: %s", this_result)
                 passed.append(True)
-            elif status is 'FAIL':
+            elif status == 'FAIL':
                 self.logerror("Unexpected pass: %s", this_result)
                 passed.append(False)
             else:

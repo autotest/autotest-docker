@@ -106,7 +106,7 @@ class DockerInfo(object):
         if sub_key is None:
             return self.info_table[normalized_key]
         sub_fields = self.info_table[normalized_key + '...']
-        if len(sub_key) == 0:
+        if not sub_key:
             return sub_fields
         return sub_fields[_normalize(sub_key)]
 

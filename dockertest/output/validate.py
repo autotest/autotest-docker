@@ -169,8 +169,7 @@ class OutputGoodBase(AllGoodBase):
             msg = super(OutputGoodBase, self).__str__()
             return "%s\nSTDOUT:\n%s\nSTDERR:\n%s" % (msg, self.stdout_strip,
                                                      self.stderr_strip)
-        else:
-            return super(OutputGoodBase, self).__str__()
+        return super(OutputGoodBase, self).__str__()
 
     def callable_args(self, name):
         if name.endswith('_stdout'):
@@ -190,9 +189,9 @@ class OutputGoodBase(AllGoodBase):
                 detail = 'Command '
                 if exit_status != 0:
                     detail += 'exit %d ' % exit_status
-                if len(stdout) > 0:
+                if stdout > 0:
                     detail += 'stdout "%s" ' % stdout
-                if len(stderr) > 0:
+                if stderr:
                     detail += 'stderr "%s".' % stderr
                 self.details[checker] = detail
                 duplicate = True  # all other failures will be same

@@ -60,6 +60,17 @@ import autotest.common
 import dockertest
 "
 
+declare -a PYLINT_OPTS=(-rn
+                        --output-format=colorized
+                        --rcfile=/dev/null
+                        --deprecated-modules=regsub,TERMIOS,Bastion,rexec,pdb
+                        --msg-template="${MSGFMT}")
+
+# pylint 1.7.1 (f26) has an annoying "Your code has been rated at" message
+if pylint --help 2>/dev/null | grep -q -- -score; then
+    PYLINT_OPTS+=("--score=n")
+fi
+
 # Run from top-level dir
 MYDIR=$(dirname "$0")
 if [ "$PWD" != "$MYDIR" ]
@@ -113,23 +124,19 @@ run_ff() {
 check_dockertest() {
     WHAT="$1"
     echo -e "Checking: ${WHAT} "
-    run_ff pylint -rn --init-hook="$INIT_HOOK" \
+    run_ff pylint "${PYLINT_OPTS[@]}" \
+           --init-hook="$INIT_HOOK" \
            --disable="$DISABLEMSG" \
            --max-args=6 \
            --min-public-methods=2\
            --no-docstring-rgx='(__.*__)|(_.*)|(__init__)' \
-           --output-format="colorized" \
-           --rcfile=/dev/null \
-           --deprecated-modules=regsub,TERMIOS,Bastion,rexec,pdb \
-           --msg-template="$MSGFMT" "${WHAT}"
+           "${WHAT}"
     # Just print FIXME/TODO warnings, don't fail on them.
-    pylint -rn --init-hook="$INIT_HOOK" \
+    pylint "${PYLINT_OPTS[@]}" \
+               --init-hook="$INIT_HOOK" \
                --disable=all \
                --enable=W0511 \
-               --output-format="colorized" \
-               --rcfile=/dev/null \
-               --deprecated-modules=regsub,TERMIOS,Bastion,rexec,pdb \
-               --msg-template="$MSGFMT" "${WHAT}"
+               "${WHAT}"
     if [ -n "$PEP8" ]
     then
         run_ff $PEP8 --ignore=$PEP8IGNORE "$WHAT"
@@ -149,23 +156,19 @@ check_dockertests() {
 check_subtest() {
     WHAT="$1"
     echo -e "Checking: ${WHAT} "
-    run_ff pylint -rn --init-hook="$SUBTESTINIT_HOOK" \
+    run_ff pylint "${PYLINT_OPTS[@]}" \
+           --init-hook="$SUBTESTINIT_HOOK" \
            --disable="$SUBTESTDISABLEMSG" \
            --max-args=8 \
            --max-locals=20 \
            --min-public-methods=1\
-           --output-format="colorized" \
-           --rcfile=/dev/null \
-           --deprecated-modules=regsub,TERMIOS,Bastion,rexec,pdb \
-           --msg-template="$MSGFMT" "${WHAT}"
+           "${WHAT}"
     # Just print FIXME/TODO warnings, don't fail on them.
-    pylint -rn --init-hook="$SUBTESTINIT_HOOK" \
+    pylint "${PYLINT_OPTS[@]}" \
+               --init-hook="$SUBTESTINIT_HOOK" \
                --disable=all \
                --enable=W0511 \
-               --output-format="colorized" \
-               --rcfile=/dev/null \
-               --deprecated-modules=regsub,TERMIOS,Bastion,rexec,pdb \
-               --msg-template="$MSGFMT" "${WHAT}"
+               "${WHAT}"
     if [ -n "$PEP8" ]
     then
         run_ff $PEP8 --ignore=$PEP8IGNORE "$WHAT"

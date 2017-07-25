@@ -27,9 +27,6 @@ from dockertest.docker_daemon import SocketClient
 
 class version(subtest.Subtest):
 
-    def initialize(self):
-        super(version, self).initialize()
-
     def run_once(self):
         super(version, self).run_once()
         # 1. Run with no options

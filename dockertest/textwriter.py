@@ -427,7 +427,7 @@ class TextTranslator(nodes.NodeVisitor):
         self.end_state(first='[%s] ' % self._footnote)
 
     def visit_citation(self, node):
-        if len(node) and isinstance(node[0], nodes.label):
+        if node and isinstance(node[0], nodes.label):
             self._citlabel = node[0].astext()
         else:
             self._citlabel = ''

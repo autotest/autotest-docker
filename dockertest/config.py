@@ -382,14 +382,14 @@ class Config(dict):
         """
         defaults_dict = configs_dict['DEFAULTS']
         def_warn = defaults_dict.get('__example__', '').lower()
-        if def_warn is not '':
+        if def_warn:
             def_warn = set(get_as_list(def_warn))
         else:
             def_warn = set()
         # Need to detect __example__ options that differ w/ existing
         old_sec = configs_dict[section]
         sec_warn = newcd.get_other('__example__', '').lower()
-        if sec_warn is not '':
+        if sec_warn:
             sec_warn = set(get_as_list(sec_warn))
         else:
             sec_warn = set()
@@ -405,7 +405,7 @@ class Config(dict):
                 sec_warn.remove(warn_option)  # change was made
             # else, contents unmodified, allow through
         # Re-form it back into a CSV
-        if len(sec_warn) > 0:
+        if sec_warn:
             newcd['__example__'] = ', '.join(sec_warn)
         else:
             # Everything overriden, prevent defaults creeping in
@@ -506,8 +506,8 @@ def none_if_empty(dict_like, key_name=None):
         keys = dict_like.keys()
     else:
         keys = [key_name]
-    for key_name in keys:
-        value = dict_like.get(key_name, "")
+    for key in keys:
+        value = dict_like.get(key, "")
         if(isinstance(value, (str, unicode)) and
            len(value.strip()) < 1):
-            dict_like[key_name] = None
+            dict_like[key] = None

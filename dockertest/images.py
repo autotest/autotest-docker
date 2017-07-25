@@ -227,8 +227,7 @@ class DockerImage(object):  # pylint: disable=R0902
 
         if len(image_id) == 12:
             return image_id == self.short_id
-        else:
-            return image_id == self.long_id
+        return image_id == self.long_id
 
     def cmp_full_name_with_component(self, repo, tag=None,
                                      repo_addr=None, user=None):
@@ -599,8 +598,7 @@ class DockerImages(object):
         if self.remove_args is not None:
             return dkrcmd("rmi %s %s"
                           % (self.remove_args, image_id), self.timeout)
-        else:
-            return dkrcmd("rmi %s" % image_id, self.timeout)
+        return dkrcmd("rmi %s" % image_id, self.timeout)
 
     def remove_image_by_full_name(self, full_name):
         """
@@ -616,8 +614,7 @@ class DockerImages(object):
         if self.remove_args is not None:
             return dkrcmd("rmi %s %s"
                           % (self.remove_args, full_name), self.timeout)
-        else:
-            return dkrcmd("rmi %s" % full_name, self.timeout)
+        return dkrcmd("rmi %s" % full_name, self.timeout)
 
     def remove_image_by_image_obj(self, image_obj):
         """

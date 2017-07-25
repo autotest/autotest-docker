@@ -14,9 +14,9 @@ from dockertest.output import OutputNotBad
 class wrong_registry_addr(pull_base):
 
     @staticmethod
-    def check_registry(addr):
-        # addr is expected to be incorrect
-        del addr
+    def check_registry(registry_addr):
+        # registry_addr is expected to be incorrect
+        del registry_addr
 
     def outputcheck(self):
         # Only verify no panics or really bad stuff

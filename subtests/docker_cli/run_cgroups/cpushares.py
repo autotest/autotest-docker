@@ -43,8 +43,7 @@ class cpu_base(cgroups_base):
                    docker_cpushares == json_cpushares]
         if all(matches):
             return {'PASS': msg, 'FAIL': None}
-        else:
-            return {'FAIL': msg, 'PASS': None}
+        return {'FAIL': msg, 'PASS': None}
 
     def initialize(self):
         super(cpu_base, self).initialize()

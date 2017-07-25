@@ -18,7 +18,7 @@ class ColumnRanges(Mapping):
     """
 
     # Too few pub. methods, pylint doesn't count abstract __special_methods__
-    # pylint: disable=R0903
+    # pylint: disable=R0903, W0231
 
     __slots__ = ('ranges', 'columns', 'count')
 
@@ -135,6 +135,7 @@ class TextTable(MutableSet, Sequence):
     _rows = None
 
     def __init__(self, table, columnranges=None, header=None, tabledata=None):
+        # pylint: disable=W0231
         if columnranges is not None and header is not None:
             raise ValueError("Cannot specify both columnranges and header "
                              "parameters")
@@ -205,11 +206,11 @@ class TextTable(MutableSet, Sequence):
         self.conform_or_raise(value)
         return self._rows.append(value)
 
-    def discard(self, index):
+    def discard(self, value):
         """
         Wraps del texttable[index[
         """
-        return self.__delitem__(index)
+        return self.__delitem__(value)
 
     def append(self, value):
         """

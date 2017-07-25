@@ -19,9 +19,6 @@ from dockertest.images import DockerImages
 class images(subtest.Subtest):
     config_section = 'docker_cli/images'
 
-    def initialize(self):
-        super(images, self).initialize()
-
     def run_once(self):
         super(images, self).run_once()
         # 1. Run with no options
