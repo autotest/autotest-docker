@@ -72,7 +72,7 @@ class SubBase(object):
         self.log_step_msg('initialize')
         # Issue warnings for failed to customize suggested options
         not_customized = self.config.get('__example__', None)
-        if not_customized is not None and not_customized is not '':
+        if not_customized:
             self.logdebug("WARNING: Recommended options not customized:")
             for nco in get_as_list(not_customized):
                 self.logdebug("WARNING: %s" % nco)

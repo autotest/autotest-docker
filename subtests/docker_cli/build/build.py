@@ -163,7 +163,7 @@ class postprocessing(object):
         result = []
         commands = []
         for command_param in get_as_list(build_def.postproc_cmd_csv):
-            if command_param is '' or command_param is None:
+            if not command_param:
                 continue
             mobj = self.RE_CSVCMD.search(command_param)
             if not mobj:
@@ -212,20 +212,18 @@ class postprocessing(object):
                              skip=skip, ignore_error=True)
             if opg:
                 return build_def.dockercmd.cmdresult.exit_status == 0
-            else:
-                self.logwarning('Positive output expected but check'
-                                ' failed: %s', str(opg))
-                return False
+            self.logwarning('Positive output expected but check'
+                            ' failed: %s', str(opg))
+            return False
         elif command == 'negative':
             # Verify non-zero exit status and no panics
             notbad = OutputNotBad(build_def.dockercmd.cmdresult,
                                   skip=skip, ignore_error=True)
             if notbad:
                 return build_def.dockercmd.cmdresult.exit_status != 0
-            else:
-                self.logwarning('Negative output expected, but'
-                                ' this is worse: %s', str(notbad))
-                return False
+            self.logwarning('Negative output expected, but'
+                            ' this is worse: %s', str(notbad))
+            return False
         else:
             raise DockerTestError("Command error: %s" % command)
 
@@ -241,10 +239,10 @@ class postprocessing(object):
             self.logdebug("%s(%s) Matched regex: %s", command,
                           parameter, bool(mobj))
             return bool(mobj)  # matched at least one line
-        else:  # must not match
-            self.logdebug("%s(%s) Not-matched regex: %s", command,
-                          parameter, not bool(mobj))
-            return not bool(mobj)  # matched on any line
+        # must not match
+        self.logdebug("%s(%s) Not-matched regex: %s", command,
+                      parameter, not bool(mobj))
+        return not bool(mobj)  # matched on any line
 
     def count_postprocess(self, build_def, command, parameter):
         del build_def  # not used
@@ -281,7 +279,7 @@ class postprocessing(object):
         self.logdebug("%s() current images:\n%s", command,
                       '\n'.join([img.full_name
                                  for img in images
-                                 if img.full_name is not '']))
+                                 if img.full_name]))
         matches = [img
                    for img in images
                    if img.cmp_greedy_full_name(build_def.image_name)]
@@ -290,7 +288,7 @@ class postprocessing(object):
             if len(matches) != 1:
                 return False
         else:  # negative test
-            if len(matches) != 0:
+            if matches:
                 return False
         return True
 

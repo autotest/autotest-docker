@@ -97,7 +97,9 @@ class volumes_base(SubSubtest):
             os.mkdir(host_path)
             # keys must coorespond with those used in *_template strings
             args = self.make_test_files(host_path)
-            args += (host_path, cntr_path)
+            # Inexplicable: pylint 1.7.1 (F26) can't grok '+= (host,cntr)'
+            args += (host_path)
+            args += (cntr_path)
             # list of dicts {'read_fn', 'write_fn', 'read_data', ...}
             test_dict = self.make_test_dict(*args)
             # unique cidfile for each container
@@ -276,7 +278,7 @@ class oci_umount(volumes_base):
                     should_not_be_mounted.append(line.strip())
         except IOError:
             raise DockerTestNAError("oci-umount not installed or configured")
-        if len(should_not_be_mounted) == 0:
+        if not should_not_be_mounted:
             raise DockerTestNAError("oci-umount is disabled")
         self.stuff['should_not_be_mounted'] = should_not_be_mounted
 

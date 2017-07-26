@@ -201,10 +201,10 @@ class Base(subtest.SubSubtest):
         super(Base, self).cleanup()
         if not self.config['remove_after_test']:
             return
-        if len(self.sub_stuff.get('RUNCNTR', [])):
+        if self.sub_stuff.get('RUNCNTR', []):
             dockercmd.DockerCmd(self, 'kill',
                                 [self.sub_stuff['RUNCNTR']]).execute()
-        if len(self.sub_stuff.get('STPCNTR', [])):
+        if self.sub_stuff.get('STPCNTR', []):
             dockercmd.DockerCmd(self, 'rm',
                                 ['--force', '--volumes',
                                  self.sub_stuff['STPCNTR']]).execute()

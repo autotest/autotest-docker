@@ -66,8 +66,7 @@ class DockerCmdBase(object):
         else:
             # Allow consecutive runs with modifications
             self.subargs = [arg.strip()
-                            for arg in subargs
-                            if arg is not None or arg is not '']
+                            for arg in subargs if arg]
         if timeout is None:
             # Defined in [DEFAULTS] guaranteed to exist
             self.timeout = float(subtest.config['docker_timeout'])
@@ -250,7 +249,7 @@ class DockerCmdBase(object):
                                   self.docker_options.strip())
         if self.subcmd is not None:
             complete = "%s %s" % (complete.strip(), self.subcmd.strip())
-        if len(self.subargs) > 0:
+        if self.subargs:
             complete = "%s %s" % (complete.strip(), " ".join(self.subargs))
         return complete.strip()
 
@@ -263,11 +262,6 @@ class DockerCmd(DockerCmdBase):  # pylint: disable=R0903
     Setup a call docker subcommand as if by CLI w/ subtest config integration
     Execute docker subcommand with arguments and a timeout.
     """
-
-    def __init__(self, subtest, subcmd, subargs=None, timeout=None,
-                 verbose=True):
-        super(DockerCmd, self).__init__(subtest, subcmd, subargs,
-                                        timeout, verbose)
 
     def execute(self, stdin=None):
         """
@@ -302,11 +296,6 @@ class AsyncDockerCmd(DockerCmdBase):
     """
     #: Private, class assumes exclusive access and no locking is performed
     _async_job = None
-
-    def __init__(self, subtest, subcmd, subargs=None, timeout=None,
-                 verbose=True):
-        super(AsyncDockerCmd, self).__init__(subtest, subcmd, subargs,
-                                             timeout, verbose)
 
     def execute(self, stdin=None):
         """
@@ -474,22 +463,19 @@ class AsyncDockerCmd(DockerCmdBase):
     def stdout(self):
         if self._async_job is None:
             return None
-        else:
-            return self._async_job.get_stdout()
+        return self._async_job.get_stdout()
 
     @property
     def stderr(self):
         if self._async_job is None:
             return None
-        else:
-            return self._async_job.get_stderr()
+        return self._async_job.get_stderr()
 
     @property
     def exit_status(self):
         if self._async_job is None:
             return None
-        else:
-            return self._async_job.sp.poll()
+        return self._async_job.sp.poll()
 
     @property
     def duration(self):

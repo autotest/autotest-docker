@@ -111,9 +111,17 @@ class Subtest(subtestbase.SubBase, test.test):
         # Optionally setup different iterations if option exists
         self.iterations = self.config.get('iterations', self.iterations)
 
-    def execute(self, *args, **dargs):
+    def execute(self, iterations=None, test_length=None, profile_only=None,
+                _get_time=None, postprocess_profiled_run=None,
+                constraints=(), *args, **dargs):
         """**Do not override**, needed to pull data from super class"""
+        ppr = postprocess_profiled_run
         super(Subtest, self).execute(iterations=self.iterations,
+                                     test_length=test_length,
+                                     profile_only=profile_only,
+                                     _get_time=_get_time,
+                                     postprocess_profiled_run=ppr,
+                                     constraints=constraints,
                                      *args, **dargs)
 
     # These methods can optionally be overridden by subclasses
@@ -157,12 +165,10 @@ class Subtest(subtestbase.SubBase, test.test):
             fullpath = os.path.join(self.job.resultdir, 'control.ini')
             # Control-file & behavior cannot be assumed, file may not exist.
             try:
-                cache = config.ConfigDict(section)
-                cache.read(open(fullpath, 'rb'))
+                cache_section = config.ConfigDict(section)
+                cache_section.read(open(fullpath, 'rb'))
                 # The class instance isn't needed, only store the data
-                # ignore re-definition of 'cache' warning.
-                # pylint: disable=R0204
-                cache = dict(cache.items())
+                cache = dict(cache_section.items())
             except (IOError, OSError, Error):
                 self.logwarning("Failed to load reference '%s' and/or "
                                 "its '[%s]' section.", fullpath, section)
@@ -171,11 +177,10 @@ class Subtest(subtestbase.SubBase, test.test):
             # Update cache set
             self._control_ini[section] = cache
         # Must always return None or a dictionary
-        if cache == {}:
+        if not cache:
             self.logdebug("No reference control.ini found, returning None")
             return None
-        else:
-            return dict(cache.items())  # return a copy
+        return dict(cache.items())  # return a copy
 
     @property
     def control_config(self):
@@ -272,12 +277,12 @@ class SubSubtest(subtestbase.SubBase):
             if key == '__example__':
                 # Compose from parent + subsub
                 par_val = parent_config.get(key, '').strip()
-                if par_val is not '':
+                if par_val:
                     par_val = set(config.get_as_list(par_val))
                 else:
                     par_val = set()
                 sst_val = val.strip()
-                if sst_val is not '':
+                if sst_val:
                     sst_val = set(config.get_as_list(sst_val))
                 else:
                     sst_val = set()
@@ -352,9 +357,9 @@ class SubSubtestCaller(Subtest):
                                              "results...")
         # Private to this instance, outside of __init__
         if (self.config.get('subsubtests') is None and
-                len(self.subsubtest_names) == 0):
+                not self.subsubtest_names):
             raise DockerTestNAError("Missing|empty 'subsubtests' in config.")
-        if len(self.subsubtest_names) == 0:
+        if not self.subsubtest_names:
             sst_names = self.config['subsubtests']
             self.subsubtest_names = config.get_as_list(sst_names)
         # Turn a short name into a fully-qualified name
@@ -524,8 +529,7 @@ class SubSubtestCaller(Subtest):
             mod = imp.load_module(name, *imp.find_module(name, pkg_path))
             sys.modules[name] = mod
             return mod
-        else:
-            return sys.modules[name]
+        return sys.modules[name]
 
     def subsubtests_in_list(self, subsubtests, thinglist):
         """
@@ -575,9 +579,8 @@ class SubSubtestCaller(Subtest):
                                              subthings)
         if specifics:
             return name in subthings
-        else:
-            # This code is running, assume all sub-subtest should run.
-            return True
+        # This code is running, assume all sub-subtests should run.
+        return True
 
     def subsub_enabled(self, subsubtest_class):
         """
@@ -631,9 +634,6 @@ class SubSubtestCaller(Subtest):
         # Load failure will be caught and loged later
         return None
 
-    def cleanup(self):
-        super(SubSubtestCaller, self).cleanup()
-
 
 class SubSubtestCallerSimultaneous(SubSubtestCaller):
 
@@ -684,7 +684,7 @@ class SubSubtestCallerSimultaneous(SubSubtestCaller):
                     # Log problem, don't add to run_subsubtests
                     self.logtraceback(name, sys.exc_info(), "initialize",
                                       detail)
-        if len(self.start_subsubtests) == 0:
+        if not self.start_subsubtests:
             raise TestError("No sub-subtests configured to run "
                             "for subtest %s", self.config_section)
 
@@ -742,6 +742,6 @@ class SubSubtestCallerSimultaneous(SubSubtestCaller):
                 cleanup_failures.add(name)
                 self.logtraceback(name, sys.exc_info(), "cleanup",
                                   detail)
-        if len(cleanup_failures) > 0:
+        if cleanup_failures:
             raise DockerTestError("Sub-subtest cleanup failures: %s"
                                   % cleanup_failures)

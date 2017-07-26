@@ -68,7 +68,7 @@ class DefaultDoc(DocBase):
         """
         Represent entire contents of defaults configuration section.
         """
-        if len(self.docitems) == 0:
+        if not self.docitems:
             raise ValueError("No defaults.ini options were parsed from %s"
                              % self.ini_path)
         _fmt = ''
@@ -146,11 +146,11 @@ class ConfigDoc(DocBase):
         Represent entire contents of configuration section (if any)
         """
         # Handle simple case first
-        if len(self.docitems) == 0:
+        if not self.docitems:
             return ''
         _fmt = '\n\nConfiguration\n---------------\n\n'
         ssns = ["``%s``" % ssn for ssn in self.docitems.subsub_names]
-        if len(ssns) > 0:
+        if ssns:
             subsublist = ':Sub-subtests: %s' % ', '.join(ssns)
             _fmt = '%s%s\n\n' % (_fmt, subsublist)
         general_fmt = self._general_fmt()  # Could be empty
@@ -217,7 +217,7 @@ class ConfigDoc(DocBase):
         # Unroll each section's items under one heading per section
         lines = []
         for subsub_name in subsubs:
-            if len(subsubs[subsub_name]) == 0:
+            if not subsubs[subsub_name]:
                 continue  # Skip sections w/o any content
             lines.append('')  # blank before section content
             lines.append('``%s`` Sub-subtest' % subsub_name)  # Section heading

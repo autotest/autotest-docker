@@ -40,6 +40,7 @@ class example(subtest.Subtest):
         """
         super(example, self).initialize()  # Prints out basic info
         # Do Something useful here, store run_once input in 'stuff'
+        self.stuff['sample_key'] = 'a'
 
     def setup(self):
         """
@@ -47,6 +48,7 @@ class example(subtest.Subtest):
         """
         super(example, self).setup()  # Prints out basic info
         # Do Something useful here
+        self.stuff['something_else'] = 'b'
 
     def run_once(self):
         """
@@ -54,6 +56,7 @@ class example(subtest.Subtest):
         """
         super(example, self).run_once()  # Prints out basic info
         # Do Something useful here, store results in 'stuff'
+        self.stuff['dc'] = 'DockerCmd(...)'
 
     def postprocess_iteration(self):
         """
@@ -61,6 +64,7 @@ class example(subtest.Subtest):
         """
         super(example, self).postprocess_iteration()  # Prints out basic info
         # Do Something useful here, check 'stuff' for iteration-errors
+        self.stuff['postprocess_iteration'] = 'nobody ever uses this'
 
     def postprocess(self):
         """
@@ -68,6 +72,7 @@ class example(subtest.Subtest):
         """
         super(example, self).postprocess()  # Prints out basic info
         # Do Something useful here, check 'stuff' for overall errors
+        self.stuff['postprocess'] = 'this is where you check results'
 
     def cleanup(self):
         """
@@ -75,3 +80,4 @@ class example(subtest.Subtest):
         """
         super(example, self).cleanup()  # Prints out basic info
         # Do Something useful here, leave environment as we received it
+        self.stuff['cleanup'] = 'blah blah'

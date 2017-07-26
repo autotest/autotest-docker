@@ -112,7 +112,7 @@ class UnseenLines(object):
 
     def peek(self):
         """Inspect incomplete-line buffer w/o integrating new I/O"""
-        if len(self.strbuffer):
+        if self.strbuffer:
             if self.log_fn is not None and callable(self.log_fn):
                 self.log_fn("(peek) %s" % self.strbuffer)
         return str(self.strbuffer)  # return a copy
@@ -312,9 +312,8 @@ class UnseenlineMatchPeek(UnseenlineMatch):
         if nextline is None and unseenlines.peek() != '':
             # Current-state only, does NOT gather new I/O
             return unseenlines.peek()
-        else:
-            # Could be None
-            return nextline
+        # Could be None
+        return nextline
 
 
 class NoUnseenlineMatch(UnseenlineMatch):

@@ -79,12 +79,6 @@ class kill_bad_base(subtest.SubSubtest):
         self.logdebug("Killing nonexisting containe.")
         mustfail(DockerCmd(self, 'kill', [nonexisting_name]).execute(), 1)
 
-    def postprocess(self):
-        """
-        No postprocess required.
-        """
-        super(kill_bad_base, self).postprocess()
-
     def cleanup(self):
         super(kill_bad_base, self).cleanup()
         if self.config['remove_after_test']:

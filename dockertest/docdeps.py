@@ -50,8 +50,7 @@ class DocItem(DocItemBase):
             _dct = newone.asdict()
             _dct['value'] = cls.empty_value
             return cls(**_dct)
-        else:
-            return newone
+        return newone
 
     def __cmp__(self, other):
         """Compare to another instance, ignoring ``desc`` and ``value``."""
@@ -235,10 +234,8 @@ class ConfigINIParser(tuple):
                 # Last chance to remove leading/trailing whitespace
                 state['desc'] = state['desc'].strip()
                 return True
-            else:
-                return False
-        else:
             return False
+        return False
 
     @classmethod
     def parse_non_section(cls, line, state):
@@ -256,11 +253,10 @@ class ConfigINIParser(tuple):
                 # Don't leave unnecessary whitespace if first is empty string
                 state['value'] = ('%s%s' % (state['value'], line)).strip()
                 return None  # Next line could value-continue also
-            else:  # line is junk
-                if cls.state_complete(state):
-                    return DocItem(**state)
-                else:
-                    return None  # ignore junk
+            # line is junk
+            if cls.state_complete(state):
+                return DocItem(**state)
+            return None  # ignore junk
         else:  # line contains at least an unseen option
             # Must be new option+value for desc already recorded or
             # a new undocumented after a prev. undocumented option-doc
@@ -425,7 +421,7 @@ class DocBase(object):
             dct.update(self.get_sub_method_dct())
         if self.sub_method_args is not None:
             dct.update(self.get_sub_method_args_dct())
-        if len(dct) > 0:
+        if dct:
             output_string = self.do_sub_str(self.fmt, dct)
         else:  # No substitutions to perform!
             output_string = self.fmt
