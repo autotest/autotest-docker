@@ -1,7 +1,7 @@
 ---
 
 # Example format:
-# https://github.com/jlebon/redhat-ci/blob/master/sample.redhat-ci.yml
+# https://github.com/projectatomic/papr/blob/master/docs/sample.papr.yml
 
 # Internal Job (for realtime monitoring):
 # https://hurl.corp.redhat.com/eb0faa3
@@ -29,7 +29,7 @@ extra-repos:
     - name: epel
       mirrorlist: https://mirrors.fedoraproject.org/metalink?repo=epel-7&arch=$basearch
       gpgkey: https://getfedora.org/static/352C64E5.txt
-      
+
 packages:
     - git
     - make
