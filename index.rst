@@ -192,7 +192,7 @@ to the steps above, a custom test-image must be configured for building.
         [root@docker client]# $EDITOR tests/docker/config_custom/defaults.ini
 
         ...
-        docker_registry_host = localhost
+        docker_registry_host =
         docker_registry_user =
         docker_repo_name = fedora_test_image
         docker_repo_tag = latest
@@ -209,7 +209,7 @@ to the steps above, a custom test-image must be configured for building.
         [root@docker client]# $EDITOR tests/docker/config_custom/docker_test_images.ini
 
         ...
-        build_name = localhost/fedora_test_image:latest
+        build_name = fedora_test_image:latest
         build_dockerfile = https://github.com/autotest/autotest-docker/raw/master/fedora_test_image.tar.gz
         build_opts_csv = --no-cache,--pull,--force-rm
         ...
