@@ -394,11 +394,11 @@ class SubSubtestCaller(Subtest):
             if len(children) < 1:
                 return  # No children specified
             # Any children NOT listed in fullnames are 'undefined'
-            # unless they were excluded by (an old) bugzilla
-            missing_section = children - fullnames - bzexclude
+            # unless they were excluded
+            missing_section = children - fullnames - bzexclude - excludes
             if missing_section:
                 msg = ("Sub-subtest(s) %s referenced in control include, "
-                       "exclude, and/or subthings but not defined in "
+                       "and/or subthings but not defined in "
                        'subsubtests = %s'
                        % (missing_section, self.subsubtest_names))
                 raise DockerTestError(msg)
