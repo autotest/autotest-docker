@@ -34,9 +34,7 @@ packages:
     - git
     - make
     - python-bugzilla
-    # Temporarily workaround broken dependency in EPEL:
-    #     pylint requires python-astroid >= 1.4.5 but is missing (BZ 1479018)
-    # - pylint
+    - pylint
     - python-pep8
     - python2-mock
     - python-sphinx
@@ -57,10 +55,6 @@ env:
 # present, tests will run after a successful build. Full
 # UTF-8 values are supported.
 tests:
-    # BEGIN Temporarily workaround  (BZ 1479018)
-    - yum install -y python-pip
-    - pip install pylint
-    # END Temporarily workaround  (BZ 1479018)
     - mkdir -p $AUTOTEST_PATH
     - git clone --branch "$AUTOTEST_BRANCH" --depth 1 --single-branch "$AUTOTEST_REPO" "$AUTOTEST_PATH"
     - make
