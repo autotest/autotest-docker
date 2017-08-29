@@ -103,7 +103,7 @@ class run_cgroup_parent_base(SubSubtest):
         # ...where <path> must exactly match the one in our test setup.
         stdout = cmdresult.stdout.strip()
         if path_exp:
-            re_cgroup = re.compile(r'^(\d+):([^:]+):(.*)')
+            re_cgroup = re.compile(r'^(\d+):([^:]*):(.*)')
             found_match = False
             for line in stdout.split("\n"):
                 m = re.match(re_cgroup, line)
