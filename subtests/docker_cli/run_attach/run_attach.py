@@ -19,8 +19,11 @@ from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
 
 
+# LS_BAD is split into three elements. That's deliberate: coreutils 8.25ish
+# changes error messages such that file paths are in quotes. The 3-part form
+# below works with RHEL7 and F26 versions of coreutils, quotes or not.
 LS_GOOD = ["bin", "etc", "lib", "root", "var"]
-LS_BAD = ["cannot access /I/hope/this/does/not/exist/",
+LS_BAD = ["cannot access", "/I/hope/this/does/not/exist/",
           ": No such file or directory"]
 
 
