@@ -132,7 +132,11 @@ def all_files(exclude_paths, exclude_symlinks=False):
                       for fi in fl
                       if not islink(join(dp, fi))]
             data.append((dp, dn, fl))
-    dump(data, stdout, 2)
+    # python3: stdout is str-only, we need a binary-capable file object
+    outfile = stdout
+    if hasattr(stdout, "buffer"):
+        outfile = stdout.buffer
+    dump(data, outfile, 2)
 
 
 class every_last(CpBase):
@@ -141,6 +145,7 @@ class every_last(CpBase):
         """
         Returns a list of tuples as from os.walk() inside fqin
         """
+        python_path = self.config['python_path']
         code = ('%s\nall_files([%s], %s)'
                 % (inspect.getsource(all_files),
                    self.config['exclude_paths'],
@@ -149,7 +154,7 @@ class every_last(CpBase):
                    "--name=%s" % self.sub_stuff['container_name'],
                    "--attach=stdout",
                    fqin,
-                   "python -c '%s'" % code]
+                   "%s -c '%s'" % (python_path, code)]
         nfdc = DockerCmd(self, "run", subargs)
         nfdc.quiet = True
         self.logdebug("Executing %s", nfdc.command)
