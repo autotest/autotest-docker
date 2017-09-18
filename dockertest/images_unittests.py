@@ -376,15 +376,15 @@ class DockerImageTestBasic(ImageTestBase):
                          "/foo/bar rmi 123456789012")
         self.assertEqual(d.remove_image_by_full_name('fedora:latest').command,
                          "/foo/bar rmi fedora:latest")
+        img_id = ("0d20aec6529d5d396b195182c0eaa82b"
+                  "fe014c3e82ab390203ed56a774d2c404")
         image_obj = self.images.DockerImage("fedora_repo", "last_tag",
-                                            ("0d20aec6529d5d396b195182c0eaa"
-                                             "82bfe014c3e82ab390203ed56a774"
-                                             "d2c404"),
+                                            img_id,
                                             "dd",
                                             "50 MB",
                                             None, "user_user")
         self.assertEqual(d.remove_image_by_image_obj(image_obj).command,
-                         "/foo/bar rmi user_user/fedora_repo:last_tag")
+                         "/foo/bar rmi %s" % img_id)
 
     def test_docker_images_lowlevel(self):
         images = self.images.DockerImages(self.fake_subtest)

@@ -611,11 +611,12 @@ class DockerImages(object):
 
     def remove_image_by_image_obj(self, image_obj):
         """
-        Alias for remove_image_by_full_name(image_obj.full_name)
+        Remove an image. This is simply a convenience function so
+        callers don't need to access image_obj internals.
 
-        :return: Same as remove_image_by_full_name()
+        :returns: ``autotest.client.utils.CmdResult`` instance
         """
-        return self.remove_image_by_full_name(image_obj.full_name)
+        return self.remove_image_by_id(image_obj.long_id)
 
     def clean_all(self, fqins):
         """
