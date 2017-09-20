@@ -384,7 +384,16 @@ class DockerImageTestBasic(ImageTestBase):
                                             "50 MB",
                                             None, "user_user")
         self.assertEqual(d.remove_image_by_image_obj(image_obj).command,
+                         "/foo/bar rmi user_user/fedora_repo:last_tag")
+
+        image_notag = self.images.DockerImage("fedora_repo", "<none>",
+                                              img_id,
+                                              "dd",
+                                              "50 MB",
+                                              None, "user_user")
+        self.assertEqual(d.remove_image_by_image_obj(image_notag).command,
                          "/foo/bar rmi %s" % img_id)
+
 
     def test_docker_images_lowlevel(self):
         images = self.images.DockerImages(self.fake_subtest)

@@ -614,8 +614,15 @@ class DockerImages(object):
         Remove an image. This is simply a convenience function so
         callers don't need to access image_obj internals.
 
+        If the image has a tag, we try removing it by name: this is
+        robust when the same image might be tagged differently.
+        If there's no tag, as can happen during an incomplete
+        build subtest, try removing by ID.
+
         :returns: ``autotest.client.utils.CmdResult`` instance
         """
+        if image_obj.tag and image_obj.tag != '<none>':   # the usual case
+            return self.remove_image_by_full_name(image_obj.full_name)
         return self.remove_image_by_id(image_obj.long_id)
 
     def clean_all(self, fqins):
