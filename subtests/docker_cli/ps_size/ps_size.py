@@ -53,6 +53,7 @@ class ps_size_base(SubSubtest):
         """
         Cleanup the containers defined in self.sub_stuff['containers']
         """
+        super(ps_size_base, self).cleanup()
         if self.config['remove_after_test']:
             dc = DockerContainers(self)
             dc.clean_all(self.sub_stuff.get("containers"))

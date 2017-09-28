@@ -682,6 +682,54 @@ file is typically copied from ``config_defaults`` and modified in
             consumed and used internally by Docker Autotest and should
             be considered read-only.
 
+Filtering out known failures
+----------------------------
+
+Sometimes tests fail temporarily: docker regression, or new test
+that requires a particular not-yet-in-the-repos docker build, or
+disparity between RHEL/CentOS/Fedora. We want to acknowledge those
+and silence them for future runs, but without heavyhandedness
+such as hardcoded conditionals in the tests themselves.
+
+The mechanism to do this is the file `known_failures.txt`,
+maintained within ADEPT and copied into the autotest `config_custom`
+subdirectory before a run. This file contains mappings of known
+failures in particular subtests when run on particular docker builds.
+If a docker-autotest subtest fails, but the NVR/subtest combination
+is listed in this file, the test is marked as passing. Test logs
+are unaffected, so a reader looking at .DEBUG logs will see the
+original failure.
+
+The format of this file is:
+
+      <NVRA>       <subtest path>       <human-friendly description>
+
+Where:
+
+    NVRA          is a full N-V-R.A of a specific docker or docker-latest
+                  build. As a special case, R.A can be '*' (asterisk)
+                  to indicate that this failure is not likely to be
+                  fixed in any non-rebase build of this package.
+
+    subtest path  is the full name of a subtest or subsubtest
+
+    description   is a string intended to be read by humans. Bugzilla
+                  IDs are especially helpful here. This string will be
+                  shown not only when a failure is bypassed but also
+                  if there's a NON-bypassed failure
+
+Fields are separated by one or more spaces; this allows the columns
+to be aligned for readability. The description field is optional
+but strongly recommended; spaces in it are (of course) not delimiters.
+
+Examples:
+
+    docker-1.12.3-10.el7.centos  docker_cli/iptable/iptable_remove  bz1406460: fixed in 1.12.5
+
+    docker-1.12.6-49.1.hotfix.git90e29fe.el7.x86_64   docker_cli/run_volumes/oci_umount   New oci-umount.conf contains spaces and comments; docker-autotest fix for this is in review.
+
+    docker-1.12.5-*     docker_cli/negativeusage/iv4       bz1393572: expect fix in docker-1.13?
+
 ------------------------
 Versioning Requirements
 ------------------------
@@ -934,4 +982,3 @@ Indices and Tables
 
 *  :ref:`genindex`
 *  :ref:`modindex`
-

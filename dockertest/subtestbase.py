@@ -8,10 +8,58 @@ modules.
 # pylint: disable=W0403
 
 import logging
+import os.path
+import sys
 import traceback
 from xceptions import DockerTestFail
 from xceptions import DockerTestNAError
-from config import get_as_list
+from config import CONFIGCUSTOMS, get_as_list
+from environment import docker_rpm
+
+
+def known_failures_file():
+    """
+    Returns path to a file containing a list of known failures.
+
+    Format of this file is:
+
+          <NVRA>    <subtest name>   <human-friendly description>
+
+    Fields are separated by whitespace; spaces in the third (description)
+    field are OK. This lets us column-align the fields for readability.
+    Comment lines (starting with '#') and blank lines are ignored.
+    """
+    return os.path.join(CONFIGCUSTOMS, 'known_failures.txt')
+
+
+def known_failures():
+    """
+    Returns a dict containing known test failures. Primary key is
+    subtest name (e.g. docker_cli/sub/subsub), value is another dict
+    whose key is docker NVRA (e.g. docker-1.12.5-8.el7.x86_64),
+    value of that is a string description of the problem (e.g.
+    a bz number and comment).
+    """
+    known_failures_path = known_failures_file()
+    known = {}
+    try:
+        known_failures_fh = open(known_failures_path, 'r')
+    except IOError, excpt:
+        SubBase.logwarning("Skipping known_failure check: %s" % excpt)
+        return known
+
+    for row in known_failures_fh:
+        row = row.strip()
+        if row and not row.startswith('#'):
+            try:
+                nvra, subtest, description = row.strip().split(None, 2)
+                if subtest not in known:
+                    known[subtest] = {}
+                known[subtest][nvra] = description
+            except ValueError:
+                SubBase.logwarning("Bad row in %s: %s"
+                                   % (known_failures_path, row))
+    return known
 
 
 class SubBase(object):
@@ -100,10 +148,91 @@ class SubBase(object):
         Always called, before any exceptions thrown are re-raised.
         """
         self.log_step_msg('cleanup')
+        self.overlook_known_failures()
+
+    def overlook_known_failures(self):
+        """
+        If we've caught a DockerXxxx exception, see if it's a known problem
+        with this combination of subtest & docker NVR. If it is, change the
+        exception status from FAIL to WARN.
+        """
+        e_type, e_value, _ = sys.exc_info()
+
+        # In a perfect world we'd use isinstance(e_type, DockerSomething).
+        # In this world, there are two problems with that:
+        #   1) sometimes a test raises dockertest.xceptions.DockerTestFail,
+        #      but sometimes just xceptions.DockerTestFail. I don't know
+        #      why. We'd need to check for both.
+        #   2) It's not just DockerTestFail: DockerOutputError is common,
+        #      and others (eg DockerTestError, DockerCommandError, more)
+        #      are possible.
+        # A string comparison, although ugly, lets us catch any DockerXxxxx
+        if 'Docker' not in str(e_type):
+            return
+
+        # Children of autotest TestBaseException have an exit_status field;
+        # we only bypass if it's FAIL
+        if not hasattr(e_value, 'exit_status'):
+            return
+        if e_value.exit_status != 'FAIL':
+            return
+
+        # Yep, it's a test failure
+        # FIXME: is there a way to check if this is a new exception
+        #        coming from our module, vs an old one from a previous test?
+        if self.is_known_failure():
+            self.logwarning("Treating subtest failure as WARN")
+            e_value.exit_status = 'WARN'
+
+    def is_known_failure(self, subsubtest=None):
+        """
+        Do we have a registered known failure in this subtest when running
+        on the currently-installed docker? Return True if so.
+        Side effect: log warning messages to help human debuggers.
+        """
+        # e.g. docker_cli/subtest, plus /subsubtest if present
+        fullname = self.config_section
+        if subsubtest:
+            fullname = os.path.join(fullname, subsubtest)
+        known = known_failures()
+        if fullname not in known:
+            return False
+        docker_nvr = docker_rpm()
+        if docker_nvr in known[fullname]:
+            why = known[fullname][docker_nvr]
+            self.logwarning("%s: Known failure on %s: %s",
+                            fullname, docker_nvr, why)
+            return True
+
+        # This exact NVR is not known to fail. What about NV?
+        _nv = lambda nvr: nvr[:nvr.rfind('-')]
+        docker_nv = _nv(docker_nvr)
+        docker_nv_wild = docker_nv + '-*'
+        if docker_nv_wild in known[fullname]:
+            why = known[fullname][docker_nv_wild]
+            self.logwarning("%s expected to fail on all builds of %s: %s",
+                            fullname, docker_nv, why)
+            return True
+
+        # No known failures for NVR or NV. What about other builds of same NV
+        # or a related one? These messages are informational only, intended
+        # as hints for a test engineer trying to understand new failures.
+        if docker_nv in [_nv(x) for x in known[fullname]]:
+            # e.g. docker is 1.12.5-6, we have an exception for 1.12.5->>5<<
+            self.logwarning("%s is known to fail in other %s builds",
+                            fullname, docker_nv)
+        elif docker_nv.count('.') > 1:
+            _nv_base = lambda nv_orig: nv_orig[:nv_orig.rfind('.')]
+            docker_nv_base = _nv_base(docker_nv)
+            if docker_nv_base in [_nv_base(_nv(x)) for x in known[fullname]]:
+                # e.g. docker is 1.12.6-1, we have exception for 1.12.>>5<<-*
+                self.logwarning("%s is known to fail in other %s.x builds",
+                                fullname, docker_nv_base)
+        return False
 
     def log_step_msg(self, stepname):
         """
-        Send message stored in ``step_log_msgs`` key ``stepname`` to logingo
+        Send message stored in ``step_log_msgs`` key ``stepname`` to loginfo
         """
         msg = self.step_log_msgs.get(stepname)
         if msg:

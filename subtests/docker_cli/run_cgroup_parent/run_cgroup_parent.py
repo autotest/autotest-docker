@@ -145,6 +145,7 @@ class run_cgroup_parent_base(SubSubtest):
         """
         Remove stray cgroups
         """
+        super(run_cgroup_parent_base, self).cleanup()
         cgroups_dir = '/sys/fs/cgroup'
         try:
             rand1 = self.sub_stuff['rand1']

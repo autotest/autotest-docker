@@ -217,6 +217,7 @@ class rm_sub_base(SubSubtest):
         self.verify_stop()
 
     def cleanup(self):
+        super(rm_sub_base, self).cleanup()
         if self.config['remove_after_test']:
             dc = DockerContainers(self)
             dc.clean_all([self.sub_stuff.get('cntr_name')])

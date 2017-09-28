@@ -13,6 +13,7 @@ import subprocess
 # python docs are terrible.  The C library man(3) pages provided by
 # the 'libselinux-devel' RPM package (or equivilent) are much better.
 import selinux
+from dockertest.docker_daemon import which_docker
 
 
 def set_selinux_context(path=None, context=None, recursive=True, pwd=None):
@@ -79,3 +80,14 @@ def selinux_is_enforcing():
         raise ValueError("Unexpected value from"
                          " security_getenforce(): %s" % mode)
     return mode == selinux.ENFORCING
+
+
+def docker_rpm():
+    """
+    Returns the full NVRA of the currently-installed docker or docker-latest.
+
+    FIXME: this won't work for container-engine. That's tricky, and
+    not high priority, so let's save it for a subsequent PR.
+    """
+    cmd = "rpm -q %s" % which_docker()
+    return subprocess.check_output(cmd, shell=True).strip()

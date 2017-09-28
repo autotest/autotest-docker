@@ -217,6 +217,7 @@ class login_base(SubSubtest):
         return DockerCmd(self, 'push', [pushed_name]).execute()
 
     def cleanup(self):
+        super(login_base, self).cleanup()
         if 'my_containers' in self.sub_stuff:
             DockerContainers(self).clean_all(self.sub_stuff['my_containers'])
         if 'my_images' in self.sub_stuff:

@@ -429,6 +429,9 @@ class SubSubtestCaller(Subtest):
                               self.exception_info["error_source"],
                               detail)
             exc_info = self.exception_info["exc_info"]
+            if self.is_known_failure(name):
+                self.logwarning("Treating %s subsubtest failure as PASS", name)
+                self.final_subsubtests.add(name)
             # Treat N/A as passed, even though this may hide obscure failures
             if isinstance(detail, TestNAError):
                 self.logwarning("Treating TestNAError as PASS")
