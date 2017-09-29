@@ -268,14 +268,15 @@ class oci_umount(volumes_base):
     def initialize(self):
         super(oci_umount, self).initialize()
 
-        # Config file contains filesystem paths, one per line. It is
-        # not clear if comment lines are supported, but we don't have
-        # to worry about it because '#/foo' will not match anything.
+        # Config file contains filesystem paths, one per line. It may
+        # also contain comments or empty lines, both of which we ignore.
         should_not_be_mounted = []
         try:
             with open('/etc/oci-umount.conf', 'r') as oci_umount_conf:
                 for line in oci_umount_conf:
-                    should_not_be_mounted.append(line.strip())
+                    line = line.strip()
+                    if line and not line.startswith('#'):
+                        should_not_be_mounted.append(line)
         except IOError:
             raise DockerTestNAError("oci-umount not installed or configured")
         if not should_not_be_mounted:
@@ -314,6 +315,13 @@ class oci_umount(volumes_base):
         """
         did_not_umount = []
         for omit in self.stuff['should_not_be_mounted']:
+            # Special wildcard case: '/foo/bar/*' means to unmount everything
+            # under /foo/bar but leave /foo/bar itself. To test this we
+            # simply strip off the star, leaving the trailing slash: this
+            # triggers a test failure on /foo/bar/x but not /foo/bar.
+            if omit.endswith('/*'):
+                omit = omit.rstrip('*')
+
             for mounted in self.stuff['mounted']:
                 if omit in mounted:
                     did_not_umount.append(mounted)
