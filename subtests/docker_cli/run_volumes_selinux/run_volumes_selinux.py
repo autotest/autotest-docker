@@ -27,6 +27,7 @@ from dockertest.environment import get_selinux_context
 from dockertest.output import wait_for_output
 from dockertest.containers import DockerContainers
 from dockertest.images import DockerImage
+import dockertest.docker_daemon as docker_daemon
 
 
 class run_volumes_selinux(subtest.SubSubtestCaller):
@@ -115,6 +116,10 @@ class selinux_base(subtest.SubSubtest):
         else:
             tmp = self.tmpdir
         volume = tempfile.mkdtemp(prefix=self.__class__.__name__, dir=tmp)
+        if docker_daemon.user_namespaces_enabled():
+            os.chown(volume,
+                     docker_daemon.user_namespaces_uid(),
+                     docker_daemon.user_namespaces_gid())
         self.sub_stuff['volumes'].add(volume)
         host_file = os.path.join(volume, "hostfile")
         open(host_file, 'w').write("01")
