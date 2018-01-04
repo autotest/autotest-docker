@@ -77,7 +77,7 @@ check_label "container with overriden type" \
             "svirt_qemu_net_t"
 
 check_label "privileged container" \
-            "docker run --rm --privileged $image cat /proc/self/attr/current" \
+            "docker run --rm --privileged --userns=host $image cat /proc/self/attr/current" \
             "spc_t"
 
 check_label "confined container: root dir" \

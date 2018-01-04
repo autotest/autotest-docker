@@ -199,3 +199,35 @@ def cmdline(process_id=None):
         process_id = pid()
     ps_command = 'ps -o command= -p %d' % int(process_id)
     return utils.run(ps_command).stdout.strip().split()
+
+
+def user_namespaces_enabled():
+    """ Returns true if docker daemon is running with user namespaces """
+    return '--userns-remap=default' in cmdline()
+
+
+def user_namespaces_uid():
+    """ Returns the subordinate UID used for docker processes. """
+    return _user_namespaces_id('/etc/subuid')
+
+
+def user_namespaces_gid():
+    """ Returns the subordinate GID used for docker processes. """
+    return _user_namespaces_id('/etc/subgid')
+
+
+def _user_namespaces_id(idfile):
+    """
+    Reads the given file (/etc/subuid or subgid), looks for a
+    line of the form 'dockremap:XXXX:YYYY', returns XXXX.
+    """
+    with open(idfile, 'r') as subxid:
+        for line in subxid:
+            try:
+                (login, xid, _) = line.split(':')
+                if login == 'dockremap':
+                    return int(xid)
+            except ValueError:
+                pass
+    raise RuntimeError("User namespaces enabled, but"
+                       " did not find 'dockremap' in %s" % idfile)

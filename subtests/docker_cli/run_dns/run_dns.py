@@ -19,6 +19,7 @@ from dockertest import subtest
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import mustpass, mustfail
 from dockertest.images import DockerImage
+import dockertest.docker_daemon
 
 
 class run_dns(subtest.Subtest):
@@ -66,8 +67,11 @@ class run_dns(subtest.Subtest):
     def run_once(self):
         super(run_dns, self).run_once()
         fin = DockerImage.full_name_from_defaults(self.config)
-        self.stuff['subargs'] = ['--privileged', '--rm', fin,
-                                 "cat /etc/resolv.conf"]
+        privileged = ['--privileged']
+        if dockertest.docker_daemon.user_namespaces_enabled():
+            privileged.append('--userns=host')
+        self.stuff['subargs'] = privileged + ['--rm', fin,
+                                              "cat /etc/resolv.conf"]
         self.test_good()
         self.test_bad()
 

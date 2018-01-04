@@ -28,6 +28,7 @@ from xceptions import DockerTestNAError
 from xceptions import DockerTestError
 from xceptions import DockerSubSubtestNAError
 from dockertest.environment import selinux_is_enforcing
+import dockertest.docker_daemon as docker_daemon
 
 
 class Subtest(subtestbase.SubBase, test.test):
@@ -241,6 +242,12 @@ class SubSubtest(subtestbase.SubBase):
         self.tmpdir = tempfile.mkdtemp(prefix=classname + '_',
                                        suffix='tmpdir',
                                        dir=self.parent_subtest.tmpdir)
+        # When running with user namespaces, docker needs to see tmpdirs
+        if docker_daemon.user_namespaces_enabled():
+            uid = docker_daemon.user_namespaces_uid()
+            gid = docker_daemon.user_namespaces_gid()
+            os.chown(self.tmpdir, uid, gid)
+            os.chown(self.parent_subtest.tmpdir, uid, gid)
 
     @property
     def sub_stuff(self):

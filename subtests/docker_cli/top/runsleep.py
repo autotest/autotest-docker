@@ -2,6 +2,7 @@ from top import base
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import OutputGood
 from dockertest.output import TextTable
+import dockertest.docker_daemon as docker_daemon
 
 
 class runsleep(base):
@@ -36,6 +37,19 @@ class runsleep(base):
         pstable = TextTable(self.sub_stuff['top_dkrcmd'].stdout)
         self.failif_ne(len(pstable), 1, "Number of rows returned by top")
         psrow = pstable[0]
-        self.failif_ne(psrow['USER'], 'root', 'Expected user')
+        self.failif_ne(psrow['USER'], self._expected_user(), 'Expected user')
         self.failif(int(psrow['PID']) == 1, 'Process PID is 1')
         self.failif_ne(psrow['COMMAND'], self.COMMAND, 'Expected command')
+
+    @staticmethod
+    def _expected_user():
+        """
+        Most of the time, we expect root. When running with user namespaces
+        enabled, docker uses the subordinate uid specified for 'dockremap'
+        in the file /etc/subuid.
+        """
+        if docker_daemon.user_namespaces_enabled():
+            return str(docker_daemon.user_namespaces_uid())
+
+        # The usual case: no userns
+        return 'root'
