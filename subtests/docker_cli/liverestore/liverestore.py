@@ -195,7 +195,6 @@ class liverestore(subtest.Subtest):
 
     def cleanup(self):
         super(liverestore, self).cleanup()
-        docker_daemon.revert_options_file()
         if self.config['remove_after_test']:
             if 'container_name' in self.stuff:
                 self.stuff['dc'].clean_all([self.stuff['container_name']])

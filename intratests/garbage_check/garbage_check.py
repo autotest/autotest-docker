@@ -25,7 +25,6 @@ from dockertest.containers import DockerContainers
 from dockertest.images import DockerImage
 from dockertest.images import DockerImages
 from dockertest.config import get_as_list
-from dockertest.docker_daemon import assert_pristine_environment
 
 
 class DockerImageIncomplete(DockerImage):
@@ -287,10 +286,3 @@ class nones(Base):
                 self.logwarning(fail_images)
             else:
                 self.failif(fail_images, fail_images)
-
-
-class config(Base):
-
-    def postprocess(self):
-        super(config, self).run_once()
-        assert_pristine_environment()
