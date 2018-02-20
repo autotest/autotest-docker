@@ -4,7 +4,6 @@
 .*.swp
 results2junitc
 docs_build
-config_custom/*.ini
 cscope.files
 cscope.out
 subtests.rst
