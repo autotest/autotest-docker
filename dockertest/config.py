@@ -11,6 +11,7 @@ unit-tested but not intended for wide-spread general use.
 
 from ConfigParser import SafeConfigParser
 from collections import MutableMapping
+from dockertest.output import DockerVersion
 import os.path
 import sys
 import copy
@@ -245,6 +246,7 @@ class ConfigDict(MutableMapping):
     def __init__(self, section, defaults=None, *args, **dargs):
         self._config_section = ConfigSection(defaults=defaults,
                                              section=section)
+        self._is_podman = None
         # pylint: disable=E1101
         super(ConfigDict, self).__init__(*args, **dargs)
 
@@ -274,6 +276,13 @@ class ConfigDict(MutableMapping):
         # Don't call more methods than necessary
         if not self.__contains__(key):
             raise xceptions.DockerKeyError(key)
+        # Special case for podman: use 'podman_xxxxx' setting if defined
+        if key.startswith('docker_'):
+            if self.is_podman:
+                podman_key = key.replace('docker_', 'podman_')
+                if self.__contains__(podman_key):
+                    key = podman_key
+
         # No suffix calls regular get(), boolean wants to gobble '0' and '1' :(
         for suffix in ('int', 'boolean', 'float', ''):
             method = getattr(self._config_section, 'get%s' % suffix)
@@ -306,6 +315,15 @@ class ConfigDict(MutableMapping):
         """Raise an IOError exception, instance is read-only"""
         raise xceptions.DockerIOError("Instance does not permit writing to %s"
                                       % filelike.name)
+
+    @property
+    def is_podman(self):
+        """
+        Return true if we're testing podman (instead of docker)
+        """
+        if self._is_podman is None:
+            self._is_podman = DockerVersion().is_podman
+        return self._is_podman
 
 
 class Config(dict):

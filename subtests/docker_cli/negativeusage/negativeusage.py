@@ -143,10 +143,10 @@ class Base(subtest.SubSubtest):
         # Some are CSV, some are regex, some are simple strings
         for key in ('subcmd', 'subarg', 'stderr', 'stdout'):
             # Ignore empty config values
-            if self.config[key].strip() != '':
+            if self.config['docker_' + key].strip() != '':
                 # Catch misspellings / unsupported sutstitution keywords
                 try:
-                    value = self.config[key] % self.sub_stuff
+                    value = self.config['docker_' + key] % self.sub_stuff
                 except KeyError, xcpt:
                     raise KeyError("Configuration error with option '%s' value"
                                    "in sub-subtest %s: Invalid substitution "
@@ -185,7 +185,7 @@ class Base(subtest.SubSubtest):
 
     def postprocess(self):
         NoPanic(self.sub_stuff['cmdresult'])
-        expected_exit_status = self.config['extcmd']
+        expected_exit_status = self.config['docker_exit_status']
         cmdresult = self.sub_stuff['cmdresult']
         mustfail(cmdresult, expected_exit_status)
         # Same checks for both

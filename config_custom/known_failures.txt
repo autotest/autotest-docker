@@ -1,0 +1,49 @@
+"Full NVRA, may be N-V-* as wildcard"     "subsubtest path"                  comment describing the reason for this test exception
+docker-1.12.5-4.el7.x86_64                foo/bar/fubar                      comment
+docker-1.12.5-4.el7.x86_64                docker_cli/negativeusage/iv4       bz1393572: invalid header field value      blah blah
+docker-1.12.5-5.el7.x86_64                docker_cli/negativeusage/iv4       bz1393572: invalid header field value      blah blah
+docker-1.12.5-*     i                     docker_cli/negativeusage/iv4       bz1393572: expect fix in docker-1.13?
+docker-latest-1.12.5-5.el7.x86_64         docker_cli/negativeusage/iv4       bz1393572: invalid header field value      blah blah
+docker-latest-1.12.5-*                    docker_cli/negativeusage/iv4       bz1393572: expect fix in docker-1.13?
+docker-1.12.3-10.el7.centos               docker_cli/iptable/iptable_remove  bz1406460: fixed in 1.12.5
+docker-1.12.3-10.el7.centos               docker_cli/login/login_ok          bz1406460: fixed in 1.12.5
+docker-1.12.3-10.el7.centos               docker_cli/login/login_fail        bz1406460: fixed in 1.12.5
+docker-1.12.3-10.el7.centos               docker_cli/login/logout_ok         bz1406460: fixed in 1.12.5
+docker-1.12.3-10.el7.centos               docker_cli/login/push_ok           bz1406460: fixed in 1.12.5
+docker-1.12.3-10.el7.centos               docker_cli/login/push_fail         bz1406460: fixed in 1.12.5
+docker-1.10.3-55.gite03ddb8.fc24          docker_cli/events                  No idea. Just ignoring.
+docker-1.10.3-55.gite03ddb8.fc24          docker_cli/run/run_install         Bad repo? ADEPT bug? No idea, just ignoring.
+docker-1.10.3-55.gite03ddb8.fc24          docker_cli/run_cgroup_parent/run_cgroup_parent_path               No idea. Looks like a real bug, possibly kernel-related but I don't care. I just want to silence this.
+docker-1.10.3-55.gite03ddb8.fc24          docker_cli/run_cgroup_parent/run_cgroup_parent_path_with_hyphens  No idea. Looks like a real bug, possibly kernel-related but I don't care. I just want to silence this.
+docker-1.10.3-55.gite03ddb8.fc24          docker_cli/run_exec/exec_pid_count Argh. Fedora docker image doesn't have 'find'. This probably needs to be fixed in the test itself but just ignore for now.
+docker-1.12.6-49.1.hotfix.git90e29fe.el7.x86_64 docker_cli/run_volumes/oci_umount no idea
+podman-0.3.2-*                            docker_cli/create/create_tmpfs          "Key Error" - podman inspect doesn't show Tmpfs
+podman-0.3.3-*                            docker_cli/create/create_remote_tag     podman can't deal with colons in output filename
+podman-0.3.5-*                            docker_cli/restart/stopped              #575 stop an already-stopped container
+podman-0.3.4-*                            docker_cli/kill/run_sigproxy_ttyoff     sigproxy not implemented yet
+podman-0.3.4-*                            docker_cli/kill/attach_sigproxy_ttyoff  sigproxy not implemented yet
+podman-0.3.4-*                            docker_cli/kill_stress/run_sigproxy_ttyoff     sigproxy not implemented yet
+podman-0.3.4-*                            docker_cli/kill_stress/attach_sigproxy_ttyoff  sigproxy not implemented yet
+podman-0.3.5-*                            docker_cli/run_dns                      DOS newlines in output
+podman-0.3.3-*                            docker_cli/events                       events not implemented, and not likely to be
+podman-0.3.4-*                            docker_cli/run_cgroup_parent/run_cgroup_parent_invalid_name  FIXME: file issue on this
+podman-0.3.2-*                            docker_cli/run_cgroup_parent/run_cgroup_parent_path          cgroup-parent not implemented
+podman-0.3.3-*                            docker_cli/rmi/only_tag                 issue #387
+podman-0.4.1-*                            docker_cli/rm/forced                    issue #527: unable to get exit code
+podman-0.5.4-*                            docker_cli/images_all/two_images_with_parents  #520 podman-history loses history
+podman-0.5.4-*                            docker_cli/images_all/with_unused_containers   #520 podman-history loses history
+podman-0.4.1-*                            docker_cli/run/run_install                     no entitlements
+podman-0.4.1-*                            docker_cli/run/run_update                      no entitlements
+podman-0.4.1-*                            docker_cli/negativeusage/iv1                   one of our dashes is missing
+podman-0.4.1-*                            docker_cli/stop/force                          #389 exit status is 0 after signal
+podman-0.3.5-*                            docker_cli/stop/stopped                        #575 stop an already-stopped container
+podman-0.4.1-*                            docker_cli/stop/zerotime                       #389 exit status is 0 after signal
+podman-0.4.1-*                            docker_cli/attach/simple                       #580 attach: There Can Be Only One
+podman-0.4.1-*                            docker_cli/attach/no_stdin                     #580 attach: There Can Be Only One
+podman-0.3.5-*                            docker_cli/kill/attach_sigproxy_ttyoff         #580 attach: There Can Be Only One
+podman-0.5.4-*                            docker_cli/commit/check_default_cmd            #586 podman-commit doesn't create entrypoint
+podman-0.4.4-*                            docker_cli/run_cgroups/cpu_overflow            #633 typo in podman-inspect 'CpuShares'
+podman-0.4.4-*                            docker_cli/load                                #639 podman prepends 'docker.io' to local image
+podman-0.5.4-*                            docker_cli/build/expose                        #735 podman exposes both udp and tcp
+podman-0.5.4-*                            docker_cli/build/onbuild                       buildah #658 ONBUILD not supported
+podman-0.5.4-*                            docker_cli/create/create_remote_tag            #649 podman save, multi-tag handling

@@ -119,6 +119,7 @@ def which_docker():
     or the name of a known docker-as-system-container service.
     """
     docker = 'docker'
+    return 'podman'          # FIXME FIXME FIXME
 
     # Known docker-daemon services as of July 2017
     docker_services = ('docker', 'docker-latest', 'container-engine')
@@ -172,6 +173,10 @@ def systemd_show(prop):
 def pid():
     """ returns the process ID of currently-running docker daemon """
     mainpid = int(systemd_show('MainPID'))
+    # systemd returns 0 for unknown or non-running units; this is
+    # expected when testing podman, which has no daemon.
+    if mainpid == 0:
+        return 0
     cmd = cmdline(mainpid)
     if 'dockerd' in cmd[0]:
         return mainpid
@@ -198,6 +203,9 @@ def cmdline(process_id=None):
     """
     if process_id is None:
         process_id = pid()
+    # daemon won't be running if we're testing podman
+    if int(process_id) == 0:
+        return ''
     ps_command = 'ps -o command= -p %d' % int(process_id)
     return utils.run(ps_command).stdout.strip().split()
 

@@ -73,7 +73,11 @@ class iptable_base(SubSubtest):
         result = {}
         for name in [_ for _ in njs
                      if njs[_]["NetworkSettings"]["IPAddress"] != ""]:
-            result[name] = njs[name]["NetworkSettings"]["IPAddress"]
+            addr = njs[name]["NetworkSettings"]["IPAddress"]
+            # podman returns this as a list, not a string
+            if isinstance(addr, list):
+                addr = addr[0]
+            result[name] = addr
             self.logdebug("%s -> %s", name, result[name])
         return result
 

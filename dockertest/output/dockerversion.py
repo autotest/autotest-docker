@@ -31,6 +31,7 @@ class DockerVersion(object):
     _client_info = None
     _server_info = None
     _has_distinct_exit_codes = None
+    _is_podman = None
 
     def __init__(self, version_string=None, docker_path=None):
         # If called without an explicit version string, run docker to find out
@@ -248,3 +249,13 @@ class DockerVersion(object):
                 has = (d_run.exit_status > 120)
             DockerVersion._has_distinct_exit_codes = has
         return DockerVersion._has_distinct_exit_codes
+
+    @property
+    def is_podman(self):
+        """
+        Are we testing podman? This is expensive, so cache the result.
+        """
+        if DockerVersion._is_podman is None:
+            d_help = utils.run('docker --help')
+            DockerVersion._is_podman = ('podman' in d_help.stdout)
+        return DockerVersion._is_podman

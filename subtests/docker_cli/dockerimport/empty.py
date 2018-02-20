@@ -87,7 +87,8 @@ class empty(SubSubtest):
         fqin = DockerImage.full_name_from_component(image_name, image_tag)
         imglst = di.list_imgs_with_full_name(fqin)
         try:
-            # Don't care about duplicate ID's
-            return imglst[0].long_id
+            # Don't care about duplicate ID's.
+            # podman sometimes (inconsistently) prefixes images with 'sha256:'
+            return imglst[0].long_id.lstrip("sha256:")
         except IndexError:
             return None  # expected by some sub-subtests

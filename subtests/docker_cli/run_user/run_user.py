@@ -18,6 +18,7 @@ from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd
 from dockertest.images import DockerImage
 from dockertest.output import OutputGood
+from dockertest.output import DockerVersion
 
 
 class run_user(subtest.SubSubtestCaller):
@@ -236,7 +237,10 @@ class bad_user(run_user_base):
                 pass
         user = utils.get_unique_name(lambda name: name not in users, "user",
                                      length=6)
-        self.sub_stuff['execution_failure'] = "unable to find user %s" % user
+        expect_msg = 'unable to find user %s' % user
+        if DockerVersion().is_podman:
+            expect_msg = 'unknown user error looking up user "%s"' % user
+        self.sub_stuff['execution_failure'] = expect_msg
         self.sub_stuff['subargs'] = ['--rm', '--interactive',
                                      '--user=%s' % user]
 

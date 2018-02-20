@@ -33,8 +33,9 @@ class create_remote_tag(create_base):
         if imgs:
             long_id = imgs[0].long_id
             existing_images = di.list_imgs_with_image_id(long_id)
-            self.sub_stuff['saved_images'] = os.path.join(self.tmpdir,
-                                                          str(long_id))
+            # podman can't deal with ':' in filenames; libpod issue #489
+            outfile = os.path.join(self.tmpdir, str(long_id).lstrip("sha256:"))
+            self.sub_stuff['saved_images'] = outfile
             subargs = ['--output', self.sub_stuff['saved_images']]
             for img in existing_images:
                 self.loginfo("Going to save image %s" % img.full_name)

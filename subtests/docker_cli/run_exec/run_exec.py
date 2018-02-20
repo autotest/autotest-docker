@@ -149,7 +149,8 @@ class exec_false(exec_base):
 
     def postprocess(self):
         dkrcmd_exec = self.sub_stuff['dkrcmd_exec']
-        mustfail(dkrcmd_exec.cmdresult, 1)
+        expected_status = self.config['docker_exit_status']
+        mustfail(dkrcmd_exec.cmdresult, expected_status)
         OutputNotBad(dkrcmd_exec.cmdresult)
         super(exec_false, self).postprocess()
 

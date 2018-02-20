@@ -29,7 +29,10 @@ class create_signal(create_base):
         sigdkrcmd = DockerCmd(self, 'kill',
                               ['--signal', str(sig),
                                self.get_cid()])
-        sigdkrcmd_result = mustfail(sigdkrcmd.execute(), 1)
+        expect_status = 1
+        if DockerVersion().is_podman:
+            expect_status = 125
+        sigdkrcmd_result = mustfail(sigdkrcmd.execute(), expect_status)
         self.sub_stuff['sigdkrcmd'] = sigdkrcmd_result
 
     def postprocess(self):

@@ -26,6 +26,8 @@ from autotest.client.shared import error
 from dockertest.subtest import SubSubtest
 from dockertest.images import DockerImages
 from dockertest.output import OutputGood
+from dockertest.output import OutputGood
+from dockertest.output import DockerVersion
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest import subtest
 
@@ -99,8 +101,12 @@ class pull_base(SubSubtest):
         OutputGood(self.sub_stuff['dkrcmd'].cmdresult)
 
     def exitcheck(self):
+        expect = self.config["docker_expected_exit_status"]
+        if DockerVersion().is_podman:
+            if 'podman_expected_exit_status' in self.config:
+                expect = self.config["podman_expected_exit_status"]
         self.failif_ne(self.sub_stuff['dkrcmd'].exit_status,
-                       self.config["docker_expected_exit_status"],
+                       expect,
                        "Exit status from pull command")
 
     def existcheck(self):

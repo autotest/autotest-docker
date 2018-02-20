@@ -161,13 +161,12 @@ class login_base(SubSubtest):
         """
         if password is None:
             password = self.sub_stuff['passwd']
-        # FIXME: --email option is deprecated in 1.12, and will be
-        # removed in 1.13. We still need it for <= 1.10; otherwise
-        # docker prompts from stdin, and we hang.
-        dc = DockerCmd(self, 'login', ['--username', self.sub_stuff['user'],
-                                       '--password', password,
-                                       '--email', 'nobody@redhat.com',
-                                       self.sub_stuff['server']])
+        login_args = ['--username', self.sub_stuff['user'],
+                      '--password', password] + \
+                      self.config['docker_args_csv'].split(',') + \
+                      [self.sub_stuff['server']]
+        import pprint;pprint.pprint(login_args)
+        dc = DockerCmd(self, 'login', login_args)
         return dc.execute()
 
     def _check_credentials(self):
@@ -214,7 +213,8 @@ class login_base(SubSubtest):
         mustpass(dc.execute())
         self.sub_stuff['my_images'] += [pushed_name]
 
-        return DockerCmd(self, 'push', [pushed_name]).execute()
+        subargs = self.config['docker_args_csv'].split(',') + [pushed_name]
+        return DockerCmd(self, 'push', subargs).execute()
 
     def cleanup(self):
         super(login_base, self).cleanup()
@@ -263,8 +263,9 @@ class login_fail(login_base):
         super(login_fail, self).postprocess()
         cmdresult = self.sub_stuff['cmdresult']
         OutputGood(cmdresult, ignore_error=True)
-        mustfail(cmdresult, 1)
-        self.failif_not_in("401 Unauthorized", cmdresult.stderr,
+        mustfail(cmdresult, self.config['docker_exit_status'])
+        self.failif_not_in(self.config['docker_error_message'],
+                           cmdresult.stderr,
                            "stderr from failed docker login")
 
 
@@ -279,13 +280,17 @@ class logout_ok(login_ok):
 
     def run_once(self):
         super(logout_ok, self).run_once()
-        logout = DockerCmd(self, 'logout', [self.sub_stuff['server']])
-        self.sub_stuff['cmdresult_logout'] = logout.execute()
+        logout_args = [x for x in self.config['docker_args_csv'].split(',')
+                       if 'tls-verify' not in x] + [self.sub_stuff['server']]
+        logout = DockerCmd(self, 'logout', logout_args)
+        self.sub_stuff['cmdresult_logout'] = mustpass(logout.execute())
 
     def postprocess(self):
         super(logout_ok, self).postprocess()
+        cmdresult = self.sub_stuff['cmdresult_logout']
+        OutputGood(cmdresult)
         xpect = 'Remove login credentials for | Removing login credentials for'
-        self.failif_not_in(xpect, self.sub_stuff['cmdresult_logout'].stdout,
+        self.failif_not_in(xpect, cmdresult.stdout,
                            'stdout from docker logout')
 
 
@@ -307,10 +312,9 @@ class push_ok(login_base):
         cmdresult = self.sub_stuff['pushresult']
         OutputGood(cmdresult)
         mustpass(cmdresult)
-        self.failif_not_in(": Pushed", cmdresult.stdout,
-                           "stdout from docker push")
-        self.failif_not_in("tag_ok: digest:", cmdresult.stdout,
-                           "stdout from docker push")
+        for expect in self.config['docker_expected_stdout_csv'].split(','):
+            self.failif_not_in(expect, cmdresult.stdout,
+                               "stdout from docker push")
 
 
 class push_fail(login_base):
@@ -330,4 +334,6 @@ class push_fail(login_base):
         super(push_fail, self).postprocess()
         cmdresult = self.sub_stuff['pushresult']
         OutputGood(cmdresult, ignore_error=True)
-        mustfail(cmdresult, 1)
+        mustfail(cmdresult, self.config['docker_exit_status'])
+        self.failif_not_in(self.config['docker_expected_stderr'],
+                           cmdresult.stderr, "stderr from docker push")

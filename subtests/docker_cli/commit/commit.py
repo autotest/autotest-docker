@@ -21,7 +21,7 @@ from dockertest.subtest import SubSubtest
 from dockertest.containers import DockerContainers
 from dockertest.images import DockerImages
 from dockertest.images import DockerImage
-from dockertest.output import OutputGood
+from dockertest.output import OutputGood, DockerVersion
 from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
 from dockertest import subtest
 from dockertest import config
@@ -70,7 +70,8 @@ class commit_base(SubSubtest):
         cmd = []
         if c_author:
             cmd.append("-a %s" % c_author)
-        if c_msg:
+        # oci format (default for podman commit) does not support -m
+        if c_msg and not DockerVersion().is_podman:
             cmd.append("-m %s" % c_msg)
 
         cmd.append(self.sub_stuff["container"])

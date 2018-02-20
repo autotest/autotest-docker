@@ -77,9 +77,11 @@ class cpu_base(cgroups_base):
         long_id = cobjs[0].long_id
         jzero = dc.json_by_long_id(long_id)[0]
         json_cpushares = jzero["HostConfig"]["CpuShares"]
-        cgpath = self.config['cgroup_path']
+        # podman leaves this unset if unspecified; docker sets to 0
+        if json_cpushares is None:
+            json_cpushares = 0
         cgvalue = self.config['cgroup_key_value']
-        cgroup_cpushares = self.read_cgroup(long_id, cgpath, cgvalue)
+        cgroup_cpushares = self.read_cgroup(long_id, cgvalue)
         docker_cpushares = self.config.get('cpushares_value', 0)
         result.update(self.check_cpushares(docker_cpushares,
                                            cgroup_cpushares,

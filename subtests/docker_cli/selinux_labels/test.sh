@@ -56,13 +56,17 @@ check_label() {
 }
 
 # Actual checks
-check_label "docker-containerd" \
-            "ps axZ | grep docker-containerd | grep -v grep" \
-            "container_runtime_t" "docker_t"
 
-check_label "dockerd" \
-            "ps axZ | grep dockerd | grep -v grep" \
-            "container_runtime_t" "docker_t"
+# dockerd and docker-containerd tests N/A when testing podman
+if ! docker version | grep -q podman-V-R; then
+    check_label "docker-containerd" \
+                "ps axZ | grep docker-containerd | grep -v grep" \
+                "container_runtime_t" "docker_t"
+
+    check_label "dockerd" \
+                "ps axZ | grep dockerd | grep -v grep" \
+                "container_runtime_t" "docker_t"
+fi
 
 check_label "confined container" \
             "docker run --rm $image cat /proc/self/attr/current" \

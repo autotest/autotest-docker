@@ -26,6 +26,8 @@ from dockertest.containers import DockerContainers
 from dockertest.images import DockerImages
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import mustpass
+from dockertest.output import DockerVersion
+from dockertest.xceptions import DockerTestNAError
 
 
 class import_url(SubSubtestCaller):
@@ -70,17 +72,21 @@ class base(SubSubtest):
         if self.config['remove_after_test']:
             preserve_fqins = get_as_list(self.config['preserve_fqins'])
             preserve_cnames = get_as_list(self.config['preserve_cnames'])
-            if self.sub_stuff['import_repo'] not in preserve_fqins:
-                DockerCmd(self, 'rmi',
-                          [self.sub_stuff['import_repo']]).execute()
-            if self.sub_stuff['run_name'] not in preserve_cnames:
-                DockerCmd(self, 'rm',
-                          [self.sub_stuff['run_name']]).execute()
+            if 'import_repo' in self.sub_stuff:
+                if self.sub_stuff['import_repo'] not in preserve_fqins:
+                    DockerCmd(self, 'rmi',
+                              [self.sub_stuff['import_repo']]).execute()
+            if 'run_name' in self.sub_stuff:
+                if self.sub_stuff['run_name'] not in preserve_cnames:
+                    DockerCmd(self, 'rm',
+                              [self.sub_stuff['run_name']]).execute()
 
 
 class md5sum(base):
 
     def initialize(self):
+        if DockerVersion().is_podman:
+            raise DockerTestNAError
         super(md5sum, self).initialize()
         self.sub_stuff['filename'] = basename(self.config['in_tar_file'])
 

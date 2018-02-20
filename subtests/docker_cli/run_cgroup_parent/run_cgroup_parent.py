@@ -39,6 +39,9 @@ class run_cgroup_parent_base(SubSubtest):
         self.sub_stuff['rand1'] = utils.generate_random_string(8)
         self.sub_stuff['rand2'] = utils.generate_random_string(8)
         self.sub_stuff['cgroup_parent'] = cg_parent.format(**self.sub_stuff)
+        self.sub_stuff['toolname'] = 'docker'
+        if DockerVersion().is_podman:
+            self.sub_stuff['toolname'] = 'libpod'
 
     def _expect(self, path=None, stderr=None, exit_status=0):
         """
@@ -65,7 +68,17 @@ class run_cgroup_parent_base(SubSubtest):
                    '--cidfile', cidfile,
                    DockerImage.full_name_from_defaults(self.config),
                    '/bin/cat', '/proc/1/cgroup']
-        dc = DockerCmd(self, "run", subargs,
+
+        # docker only supports systemd cgroups, so that's what these tests
+        # cover. Podman supports systemd and cgroupfs, but the latter are
+        # the default. The command-line option to use systemd cgroups has
+        # to precede the action: it's a podman option, not a run option.
+        # FIXME: 2018-05-21 mheon has indicated that the default will
+        #        be switching back to systemd
+        cmd = "run"
+        if DockerVersion().is_podman:
+            cmd = "--cgroup-manager=systemd run"
+        dc = DockerCmd(self, cmd, subargs,
                        timeout=self.config['docker_timeout'])
         self.sub_stuff["cmdresult"] = dc.execute()
 
@@ -77,7 +90,8 @@ class run_cgroup_parent_base(SubSubtest):
         OutputGood(cmdresult, ignore_error=(expected_status != 0),
                    skip=['nonprintables_check'])
 
-        self.sub_stuff["cid"] = self._read_cid()
+        if expected_status == 0:
+            self.sub_stuff["cid"] = self._read_cid()
         path_exp = self.sub_stuff['expected_path'].format(**self.sub_stuff)
         stderr_exp = self.sub_stuff['expected_stderr'].format(**self.sub_stuff)
 
@@ -178,7 +192,8 @@ class run_cgroup_parent_invalid_name(run_cgroup_parent_base):
     def initialize(self):
         super(run_cgroup_parent_invalid_name, self).initialize()
         self._setup("/{rand1}")
-        self._expect(stderr=self.config['expect_stderr'], exit_status=125)
+        self._expect(stderr=self.config['docker_expect_stderr'],
+                     exit_status=125)
 
 
 class run_cgroup_parent_path(run_cgroup_parent_base):
@@ -190,7 +205,8 @@ class run_cgroup_parent_path(run_cgroup_parent_base):
     def initialize(self):
         super(run_cgroup_parent_path, self).initialize()
         self._setup("{rand1}.slice")
-        self._expect(path="/{rand1}.slice/docker-{cid}.scope")
+        expect = "/{rand1}.slice/{toolname}-{cid}.scope"
+        self._expect(path=expect)
 
 
 class run_cgroup_parent_path_with_hyphens(run_cgroup_parent_base):
@@ -202,4 +218,4 @@ class run_cgroup_parent_path_with_hyphens(run_cgroup_parent_base):
         super(run_cgroup_parent_path_with_hyphens, self).initialize()
         self._setup("{rand1}-{rand2}.slice")
         self._expect(path="/{rand1}.slice/{rand1}-{rand2}.slice"
-                     "/docker-{cid}.scope")
+                     "/{toolname}-{cid}.scope")

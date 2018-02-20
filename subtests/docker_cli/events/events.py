@@ -32,8 +32,9 @@ from dockertest.containers import DockerContainers
 from dockertest.images import DockerImage
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import mustpass
+from dockertest.output import DockerVersion
 from dockertest.dockercmd import AsyncDockerCmd
-from dockertest.xceptions import DockerValueError
+from dockertest.xceptions import DockerValueError, DockerTestNAError
 
 
 regexes = {
@@ -179,6 +180,8 @@ class events(Subtest):
     config_section = 'docker_cli/events'
 
     def initialize(self):
+        if DockerVersion().is_podman:
+            raise DockerTestNAError
         super(events, self).initialize()
         dc = self.stuff['dc'] = DockerContainers(self)
         fullname = dc.get_unique_name()

@@ -67,17 +67,19 @@ class kill_bad_base(subtest.SubSubtest):
         self.logdebug("Executing couple of bad kill signals.")
         self.failif(self.sub_stuff['container_cmd'].done, "Testing container "
                     "died unexpectadly.")
+        expected_status = self.config.get('docker_exit_status')
         for signal in self.config['bad_signals'].split(','):
             mustfail(DockerCmd(self, 'kill',
                                ['-s', signal,
                                 self.sub_stuff['container_name']]).execute(),
-                     1)
+                     expected_status)
             self.failif(self.sub_stuff['container_cmd'].done, "Testing "
                         "container died after using signal %s." % signal)
         dkrcnt = DockerContainers(self)
         nonexisting_name = dkrcnt.get_unique_name()
         self.logdebug("Killing nonexisting containe.")
-        mustfail(DockerCmd(self, 'kill', [nonexisting_name]).execute(), 1)
+        mustfail(DockerCmd(self, 'kill', [nonexisting_name]).execute(),
+                 expected_status)
 
     def cleanup(self):
         super(kill_bad_base, self).cleanup()

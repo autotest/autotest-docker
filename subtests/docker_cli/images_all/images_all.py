@@ -59,6 +59,8 @@ class images_all_base(SubSubtest):
         img_name = images.get_unique_name(prefix)
         dkrcmd = DockerCmd(self, "commit", [cont_name, img_name])
         img_id = mustpass(dkrcmd.execute()).stdout.strip()
+##        if not img_id.startswith('sha256:'):
+##            img_id = 'sha256:' + img_id         # FIXME FIXME FIXME ESM
         mustpass(DockerCmd(self, 'rm',
                            ['--force', '--volumes', cont_name]).execute())
         self.sub_stuff['images'].append(img_id)
@@ -89,7 +91,7 @@ class images_all_base(SubSubtest):
             out = "Expected images:\n"
             out += "\n".join((str(_) for _ in test_images))
             out += "\nImages:\n"
-            out += "\n".join(("%s%s" % (_.repo, _.long_id)
+            out += "\n".join(("%s (%s)" % (_.repo, _.long_id)
                               for _ in images))
             out += "\nImages --all:\n"
             out += "\n".join(("%s (%s)" % (_.repo, _.long_id)
@@ -102,9 +104,13 @@ class images_all_base(SubSubtest):
 
         def id_in(long_id, images):
             """ id in list of images """
-            return long_id in (_.long_id for _ in images)
+#            return long_id in (_.long_id for _ in images)
+            return long_id.lstrip("sha256:") in (
+                _.long_id.lstrip("sha256:") for _ in images)
         images = self.sub_stuff['di'].list_imgs()
         imagesall = self.sub_stuff['dia'].list_imgs()
+        import pprint;print ">>> Images:";pprint.pprint(images)
+        import pprint;print ">>> ImagesAll:";pprint.pprint(imagesall)
         err_str = lambda: format_err_str(test_images, images, imagesall)
         for image in test_images:
             if image[2:4] == [False, False]:   # Non existing (nowhere)

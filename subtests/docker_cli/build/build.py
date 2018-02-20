@@ -31,6 +31,7 @@ from dockertest.images import DockerImage
 from dockertest.images import DockerImages
 from dockertest.output import OutputGood
 from dockertest.output import OutputNotBad
+from dockertest.output import DockerVersion
 from dockertest.config import get_as_list
 from dockertest.xceptions import DockerTestFail
 from dockertest.xceptions import DockerTestError
@@ -193,6 +194,16 @@ class postprocessing(object):
             except KeyError:
                 self.logerror("Unknown postprocessing command: %s", command)
                 raise
+            # Special case for 'docker=this and that;podman=something else'
+            if param and 'podman=' in param:
+                tool_dict = {}
+                for tool_value in param.split(';'):
+                    (tool, value) = tool_value.split('=')
+                    tool_dict[tool] = value
+                if DockerVersion().is_podman:
+                    param = tool_dict['podman']
+                else:
+                    param = tool_dict['docker']
             args = (build_def, command, param)
             result.append((method, args))
             commands.append(command)

@@ -1,0 +1,10 @@
+[baude-Upstream_CRIO_Family]
+name=Copr repo for Upstream_CRIO_Family owned by baude
+baseurl=https://copr-be.cloud.fedoraproject.org/results/baude/Upstream_CRIO_Family/fedora-$releasever-$basearch/
+type=rpm-md
+skip_if_unavailable=True
+gpgcheck=1
+gpgkey=https://copr-be.cloud.fedoraproject.org/results/baude/Upstream_CRIO_Family/pubkey.gpg
+repo_gpgcheck=0
+enabled=1
+enabled_metadata=1

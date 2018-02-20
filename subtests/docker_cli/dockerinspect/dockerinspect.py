@@ -18,10 +18,11 @@ from autotest.client import utils
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import DockerCmd
 from dockertest.output import mustpass
+from dockertest.output import DockerVersion
 from dockertest.images import DockerImage
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
-from dockertest.xceptions import DockerTestError
+from dockertest.xceptions import DockerTestError, DockerTestNAError
 
 
 class dockerinspect(SubSubtestCaller):
@@ -30,6 +31,11 @@ class dockerinspect(SubSubtestCaller):
 
 
 class inspect_base(SubSubtest):
+
+    def initialize(self):
+        if DockerVersion().is_podman:
+            raise DockerTestNAError
+        super(inspect_container_simple, self).initialize()
 
     @staticmethod
     def verify_same_configs(subtest, source, comp, ignore_fields=None):

@@ -18,6 +18,7 @@ from dockertest import config, subtest
 from dockertest.containers import DockerContainers
 from dockertest.dockercmd import AsyncDockerCmd, DockerCmd
 from dockertest.output import mustpass, mustfail
+from dockertest.output import DockerVersion
 from dockertest.images import DockerImage
 
 
@@ -56,7 +57,11 @@ class simple(subtest.SubSubtest):
         super(simple, self).run_once()
         name = self.sub_stuff['container_name']
         # Container does not yet exist; 'start' should fail.
-        result = mustfail(DockerCmd(self, "start", [name]).execute(), 1)
+        expect_status = 1
+        if DockerVersion().is_podman:
+            expect_status = 125
+        result = mustfail(DockerCmd(self, "start", [name]).execute(),
+                          expect_status)
         self.failif_not_in(self.config['missing_msg'], str(result),
                            "'docker start <nonexistent container>' failed"
                            " (as expected), but docker error message did not"

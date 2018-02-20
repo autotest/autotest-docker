@@ -441,6 +441,10 @@ class AsyncDockerCmd(DockerCmdBase):
             c_pid = utils.run('docker inspect --format {{.State.Pid}} ' + cid)
             if int(c_pid.stdout) == int(pid):
                 return cid
+
+        # No match. FIXME: this is pretty likely because the PID reported by
+        # docker inspect is actually unrelated to ours; FIXME FIXME
+        self.subtest.logwarning("Could not find container_id for pid %d" % pid)
         return None
 
     # Override base-class property methods to give up-to-second details

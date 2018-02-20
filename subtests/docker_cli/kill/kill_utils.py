@@ -51,6 +51,7 @@ class Output(object):   # only containment pylint: disable=R0903
             idx = self.idx
         out = self.stuff.stdout.splitlines()
         self.idx = len(out)
+        print ">>> got here: idx=%d -> %d : '%s'" % (idx, self.idx, out[idx:])
         return out[idx:]
 
 
@@ -318,12 +319,13 @@ class kill_check_base(kill_base):
         check = _check % signal
         output_matches = lambda: check in container_out.get(_idx)
         # Wait until the signal gets logged
-        if wait_for(output_matches, timeout, step=0) is None:
+        if wait_for(output_matches, timeout, step=0.1) is None:
             msg = ("Signal %s not handled inside container.\nExpected "
                    "output:\n  %s\nActual container output:\n  %s"
                    % (signal, check,
                       "\n  ".join(container_out.get(_idx))))
             self.logdebug(msg)
+            # FIXME: run 'docker logs container_id' here
             raise xceptions.DockerTestFail("Unhandled signal(s), see debug"
                                            "log for more details")
 

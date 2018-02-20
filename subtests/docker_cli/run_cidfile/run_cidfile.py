@@ -88,8 +88,8 @@ class basic(subtest.SubSubtest):
         :warning: When dkrcmd_cls is of Async type, there is no guarantee
                   that it is going to be up&running after return.
         """
-        def do_nothing(resutls):
-            return resutls
+        def do_nothing(results):
+            return results
 
         if custom_dockercmd is None:
             custom_dockercmd = dockercmd.DockerCmd
@@ -157,8 +157,7 @@ class basic(subtest.SubSubtest):
 
     def _check_failure_cidfile_present(self, dkrcmd):
         """ Check that docker warns about existing cidfile """
-        msg_cidfile_exists = ("Container ID file found, make sure the other "
-                              "container isn't running or delete")
+        msg_cidfile_exists = self.config['docker_msg_cidfile_exists']
         self.failif(msg_cidfile_exists not in dkrcmd.cmdresult.stderr, "Msg "
                     "'%s' not present in the container stderr:\n%s"
                     % (msg_cidfile_exists, dkrcmd))

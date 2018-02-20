@@ -4,7 +4,7 @@ Base class for cgroups testing
 
 import os
 from dockertest import xceptions
-from dockertest.output import mustpass
+from dockertest.output import mustpass, DockerVersion
 from dockertest.dockercmd import DockerCmd
 from dockertest.containers import DockerContainers
 from dockertest.subtest import SubSubtest
@@ -13,25 +13,30 @@ from dockertest.config import get_as_list
 
 class cgroups_base(SubSubtest):
 
-    @staticmethod
-    def cgroup_fullpath(long_id, path, content):
+    def cgroup_fullpath(self, long_id, content):
         """
         Return full cgroup path for a container.
         :param long_id: a container's long id
-        :path: the cgroup path of container
+        :cgroup_type: desired cgroup type ('cpu' or 'memory')
         :param content: the value need check.
         """
-        return os.path.join("%s-%s.scope" % (path, long_id), content)
+        cgroup_base_dir = '/sys/fs/cgroup'
+        # 'cpu' or 'memory', extracted from test name
+        cgroup_type = self.__class__.__name__.split('_')[0]
+        (parent, subdir) = ('system.slice', 'docker-{}.scope')
+        if DockerVersion().is_podman:
+            (parent, subdir) = ('libpod_parent', 'libpod-{}/ctr')
+        return os.path.join(cgroup_base_dir, cgroup_type, parent,
+                            subdir.format(long_id), content)
 
-    @staticmethod
-    def read_cgroup(long_id, path, content):
+    def read_cgroup(self, long_id, content):
         """
         Read container's cgroup file, return its value
         :param long_id: a container's long id, can get via command --inspect.
         :param path: the cgroup path of container.
         :param content: the value need read.
         """
-        cgroup_path = cgroups_base.cgroup_fullpath(long_id, path, content)
+        cgroup_path = self.cgroup_fullpath(long_id, content)
         if not os.path.exists(cgroup_path):
             raise xceptions.DockerIOError("Docker cgroup path "
                                           "doesn't exist: %s"

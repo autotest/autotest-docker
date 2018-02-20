@@ -1,0 +1,146 @@
+#!/usr/bin/perl -w
+#
+# translate podman output to docker style
+#
+(our $ME = $0) =~ s|^.*/||;
+
+use strict;
+use List::Util          qw(max);
+
+$| = 1;
+
+our $Podman_Bin = '/usr/bin/podman';
+
+my $handler = 'do_' . $ARGV[0];
+if (main->can($handler)) {
+    no strict 'refs';
+    $handler->()
+}
+else {
+    exec $Podman_Bin, @ARGV;
+    die "$ME: exec podman failed: $!\n";
+}
+
+exit 0;
+
+
+################################################################
+
+sub do_images {
+    # Remove --all option if present
+    my @new_argv = grep { $_ !~ /^--all$/ } @ARGV;
+
+    exec $Podman_Bin, @new_argv;
+}
+
+
+# FIXME: docker ps emits headers even if there are no running containers
+sub do_ps {
+    my $fmt = "%-64s %-41s %-21s %-19s %-26s %-19s %s\n";
+
+    open my $podman_fh, '-|', $Podman_Bin, @ARGV
+        or die "$ME: Cannot fork: $!\n";
+    while (my $line = <$podman_fh>) {
+        chomp $line;
+        $line =~ s/ CREATED AT / CREATED    /;
+
+        # Docker emits '0 B' with a space; podman has no space
+        if (grep { /^(-s|--size)$/ } @ARGV) {
+            $line =~ s/(\s\d+(\.\d+)?)(\w*B\s+\()/$1 $3/;
+        }
+
+        print $line, "\n";
+        undef $fmt;
+    }
+    close $podman_fh
+        or die "$ME: Command failed: $Podman_Bin @ARGV: status=$?\n";
+
+    if ($fmt && !("@ARGV" =~ /-q/)) {
+        printf $fmt, "CONTAINER ID", "IMAGE", "COMMAND", "CREATED", "STATUS",
+            "PORTS", "NAMES";
+    }
+    exit 0;
+}
+
+
+# 2018-02-14 remove '--volumes' if present
+sub do_rm {
+    my @new_argv = grep { $_ !~ /^--volumes/ } @ARGV;
+
+    exec $Podman_Bin, @new_argv;
+}
+
+sub do_version {
+    # e.g. --help
+    exec $Podman_Bin, @ARGV if @ARGV > 1;
+
+    print <<'END_VERSION';
+Client:
+ Version:         1.12.6
+ API version:     1.24
+ Package version: podman-V-R
+ Go version:      go1.8.3
+ Git commit:      5246e78-unsupported
+ Built:           Wed Jan 31 14:13:27 2018
+ OS/Arch:         linux/amd64
+
+Server:
+ Version:         1.12.6
+ API version:     1.24
+ Package version: podman-V-R
+ Go version:      go1.8.3
+ Git commit:      5246e78-unsupported
+ Built:           Wed Jan 31 14:13:27 2018
+ OS/Arch:         linux/amd64
+END_VERSION
+
+     exit 0;
+}
+
+
+# Headings in 'podman top' are right-aligned for numbers; docker left-aligns
+# everything. Let's match docker.
+sub do_top {
+    my @lines;
+    my $n_elements = 0;
+    open my $podman_fh, '-|', $Podman_Bin, @ARGV
+        or die "$ME: Cannot fork: $!\n";
+    while (my $line = <$podman_fh>) {
+        chomp $line;
+        push @lines, [ split ' ', $line, $n_elements ];
+        $n_elements ||= $#{$lines[0]} + 1;
+    }
+    close $podman_fh;
+    my $status = $?;
+
+    # Reformat, left-justified
+    my @maxlen = (0);
+    for my $i (0 .. $#{$lines[0]}) {
+        $maxlen[$i] = max(map { length $_->[$i] } @lines);
+    }
+    # dockertest/output/texttable.py requires TWO spaces between fields
+    my $fmt = join('  ', map { "%-${_}s" } @maxlen) . "\n";
+
+    for my $line (@lines) {
+        printf $fmt, @$line;
+    }
+    exit $status / 256;
+}
+
+
+# strip --rm option
+sub do_build {
+    my @new_argv = grep { $_ !~ /^--(rm|cache|no-cache|force-rm)/ } @ARGV;
+
+    # Special case for 'docker build URL-to-Dockerfile'
+    # https://github.com/projectatomic/libpod/issues/682
+    if ($new_argv[-1] =~ m!^\w+://.*/Dockerfile$!) {
+        my $url = pop @new_argv;
+        push @new_argv, '-f', $url, '.';
+    }
+    system $Podman_Bin, @new_argv;
+
+    # docker-autotest expects this docker message which podman does not emit
+    print "Successfully built 0123456789ab\n" if $? == 0;
+    exit $? / 256;
+}

@@ -43,6 +43,10 @@ class version(subtest.Subtest):
         self.verify_version(docker_version)
 
     def verify_version(self, docker_version):
+        # podman has no daemon
+        if DockerVersion().is_podman:
+            return
+
         # TODO: Make URL to daemon configurable
         client = SocketClient()
         _version = client.version()

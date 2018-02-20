@@ -126,16 +126,18 @@ class simple_base(attach_base):
         self.logdebug("Before input should be ignored: %s", dkrcmd.cmdresult)
 
         # This input should be ignored.
-        os.write(self.sub_stuff["run_in_pipe_w"],
-                 self.config['interactive_cmd_run'] + "\n")
+        send_str = self.config['interactive_cmd_run']
+        self.logdebug("About to send '%s' to run_in_pipe" % send_str)
+        os.write(self.sub_stuff["run_in_pipe_w"], send_str + "\n")
 
         self.logdebug("Before input should be passed: %s", dkrcmd.cmdresult)
         # This input should be passed to container.
-        os.write(attach_in_pipe_w,
-                 self.config['interactive_cmd_attach'] + "\n")
+        send_str = self.config['interactive_cmd_attach']
+        self.logdebug("About to send '%s' to attach_in_pipe" % send_str)
+        os.write(attach_in_pipe_w, send_str + "\n")
 
         self.wait_interactive_cmd()
-        self.logdebug("After input was passsed: %s", dkrcmd.cmdresult)
+        self.logdebug("After input was passed: %s", dkrcmd.cmdresult)
 
     def failif_contain(self, check_for, in_output, details):
         self.failif(check_for in in_output,
@@ -145,10 +147,9 @@ class simple_base(attach_base):
         self.logdebug("Output does NOT contain '%s'", check_for)
 
     def failif_not_contain(self, check_for, in_output, details):
-        self.failif(check_for not in in_output,
-                    "Command '%s' output must contain '%s' but doesn't."
-                    " Detail: %s" % (self.config["cmd"],
-                                     check_for, details))
+        self.failif_not_in(check_for, in_output,
+                           "Output from '%s' command. Details: %s" %
+                           (self.config["cmd"], details))
         self.logdebug("Output does contain '%s'", check_for)
 
     def verify_output(self):

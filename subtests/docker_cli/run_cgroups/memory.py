@@ -39,32 +39,11 @@ class memory_base(cgroups_base):
         elif unit == 'g' or unit == 'G':
             container_memory *= 1024 * 1024 * 1024
 
-        if container_memory == 0:
-            if cgroup_memory == 0:
-                msg = ("container_memory is %s, "
-                       "unit %s, cgroup_memory is %s"
-                       % (container_memory, unit, cgroup_memory))
-                result = {'PASS': msg}
-
-                return result
-            msg = ("container_memory is %s, "
-                   "unit %s, cgroup_memory is %s, status Unknown"
-                   % (container_memory, unit, cgroup_memory))
-            result = {'FAIL': msg}
-
-            return result
-
-        if container_memory != cgroup_memory:
-            msg = ("container_memory is %s "
-                   ",unit %s, cgroup_memory is %s"
-                   % (container_memory, unit, cgroup_memory))
-            result = {'FAIL': msg}
-            return result
-        msg = ("container_memory is %s, "
-               "unit %s, cgroup_memory is %s"
-               % (container_memory, unit, cgroup_memory))
-        result = {'PASS': msg}
-        return result
+        msg = ("cgroup memory is 0x%X, expected 0x%X (%s%s)" %
+               (cgroup_memory, container_memory, docker_memory, unit.strip()))
+        if container_memory == cgroup_memory:
+            return {'PASS': msg}
+        return {'FAIL': msg}
 
     @staticmethod
     def combine_subargs(name, option, image, sub_command):
@@ -182,9 +161,8 @@ class memory_base(cgroups_base):
         memory = self.split_unit(memory_arg)
         memory_value = memory[0]
         memory_unit = memory[1]
-        cgpath = self.config['cgroup_path']
         cgvalue = self.config['cgroup_key_value']
-        cgroup_memory = self.read_cgroup(long_id, cgpath, cgvalue)
+        cgroup_memory = self.read_cgroup(long_id, cgvalue)
         return self.check_memory(memory_value, cgroup_memory, memory_unit)
 
     def postprocess_positive(self, this_result, passed):

@@ -20,6 +20,7 @@ from dockertest import images
 from dockertest.subtest import SubSubtest
 from dockertest.images import DockerImages
 from dockertest.output import OutputGood
+from dockertest.output import DockerVersion
 from dockertest.dockercmd import AsyncDockerCmd
 from dockertest.dockercmd import DockerCmd
 from dockertest.xceptions import DockerTestNAError
@@ -83,6 +84,9 @@ class rmi_base(SubSubtest):
         super(rmi_base, self).postprocess()
         # Raise exception if problems found
         expect = self.config["docker_expected_exit_status"]
+        if DockerVersion().is_podman:
+            if 'podman_expected_exit_status' in self.config:
+                expect = self.config['podman_expected_exit_status']
         OutputGood(self.sub_stuff['cmdresult'], ignore_error=(expect != 0))
 
         self.failif_ne(self.sub_stuff['cmdresult'].exit_status, expect,
@@ -91,7 +95,7 @@ class rmi_base(SubSubtest):
         if expect == 0:
             im = self.check_image_exists(self.sub_stuff["image_name"])
             self.sub_stuff['image_list'] = im
-            self.failif_ne(im, [], "Deleted image still exits: %s" %
+            self.failif_ne(im, [], "Deleted image still exists: %s" %
                            self.sub_stuff["image_name"])
 
     def cleanup(self):
