@@ -334,7 +334,7 @@ class AsyncDockerCmd(DockerCmdBase):
         :raises DockerExecError: on timeout.
         """
         if timeout is None:
-            timeout = self.timeout
+            timeout = float(self.subtest.config['wait_ready'])
         end_time = time.time() + timeout
         done = False
         while time.time() <= end_time and not done:

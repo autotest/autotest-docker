@@ -99,7 +99,7 @@ class sigproxy_base(SubSubtest):
         else:
             self._init_container_normal(name)
         cmd = self.sub_stuff['container_cmd']
-        cmd.wait_for_ready(cid=name, timeout=self.config['wait_start'])
+        cmd.wait_for_ready(cid=name)
         # Prepare the "sigproxy" command
         kill_sigs = [int(sig) for sig in self.config['kill_signals'].split()]
         self.sub_stuff['kill_signals'] = kill_sigs

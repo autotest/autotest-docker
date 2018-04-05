@@ -52,7 +52,7 @@ class stop_base(SubSubtest):
         container = AsyncDockerCmd(self, 'run', subargs)
         self.sub_stuff['container_cmd'] = container
         container.execute()
-        container.wait_for_ready(timeout=self.config['wait_start'])
+        container.wait_for_ready()
         # Prepare the "stop" command
         if self.config.get('stop_options_csv'):
             subargs = [arg for arg in

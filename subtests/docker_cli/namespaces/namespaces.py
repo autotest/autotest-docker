@@ -64,7 +64,7 @@ class rmdir_mount(SubSubtest):
         dkrcmd = AsyncDockerCmd(self, 'run', subargs)
         self.sub_stuff['dkrcmd'] = dkrcmd
         dkrcmd.execute()
-        dkrcmd.wait_for_ready(name, timeout=5)
+        dkrcmd.wait_for_ready(name)
 
         # Container is running. Now, in parallel: clone, delete state file,
         # and wait for container to terminate.

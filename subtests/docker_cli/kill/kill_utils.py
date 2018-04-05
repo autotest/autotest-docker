@@ -130,7 +130,7 @@ class kill_base(subtest.SubSubtest):
             self._init_container_normal(name)
 
         cmd = self.sub_stuff['container_cmd']
-        cmd.wait_for_ready(timeout=self.config['wait_start'])
+        cmd.wait_for_ready()
 
         # Prepare the "kill" command
         if self.config.get('kill_options_csv'):
