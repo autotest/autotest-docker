@@ -81,7 +81,7 @@ class basic(subtest.SubSubtest):
 
     """ Base class """
 
-    def _init_container(self, subargs, cidfile, cmd, check_method=None,
+    def _init_container(self, subargs_in, cidfile, cmd, check_method=None,
                         custom_dockercmd=None):
         """
         Starts container
@@ -95,8 +95,9 @@ class basic(subtest.SubSubtest):
             custom_dockercmd = dockercmd.DockerCmd
         if check_method is None:
             check_method = do_nothing
-        if not subargs:
-            subargs = []
+        if not subargs_in:
+            subargs_in = []
+        subargs = subargs_in[:]               # Do not modify caller's copy
         self.sub_stuff['cidfiles'].add(cidfile)
         subargs.append('--cidfile %s' % cidfile)
         name = self.sub_stuff['dc'].get_unique_name()
