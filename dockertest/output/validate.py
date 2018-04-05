@@ -240,9 +240,7 @@ class OutputGood(OutputGoodBase):
         :param output: Stripped output string
         :return: True if 'Error: ' does **not** sppear
         """
-        for line in output.splitlines():
-            return line.lower().strip().find('error') == -1
-        return True
+        return output.lower().strip().find('error') == -1
 
     @staticmethod
     def fata_check(output):
