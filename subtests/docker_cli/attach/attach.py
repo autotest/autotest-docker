@@ -62,8 +62,7 @@ class attach_base(SubSubtest):
         if self.image_exist(fin) == []:
             self.pull_image(fin)
         self.sub_stuff['subargs'].append(fin)
-        self.sub_stuff['subargs'] += self.config['bash_cmd'].split(',')
-        self.sub_stuff['subargs'].append(self.config['cmd'])
+        self.sub_stuff['subargs'] += ['bash', '-c', self.config['cmd']]
         self.sub_stuff["containers"] = []
         self.sub_stuff["images"] = []
         self.sub_stuff["cont"] = DockerContainers(self)
@@ -95,7 +94,7 @@ class simple_base(attach_base):
         # Runs in background
         self.sub_stuff['cmdresult'] = dkrcmd.execute(run_in_pipe_r)
         self.sub_stuff['cmd_run'] = dkrcmd
-        self.wait_interactive_cmd()
+        dkrcmd.wait_for_ready()
         self.logdebug("Detail after waiting: %s", dkrcmd.cmdresult)
 
         attach_options = self.config['attach_options_csv'].split(',')
@@ -141,14 +140,14 @@ class simple_base(attach_base):
     def failif_contain(self, check_for, in_output, details):
         self.failif(check_for in in_output,
                     "Command '%s' output must not contain '%s' but does."
-                    " Detail: %s" % (self.config["bash_cmd"],
+                    " Detail: %s" % (self.config["cmd"],
                                      check_for, details))
         self.logdebug("Output does NOT contain '%s'", check_for)
 
     def failif_not_contain(self, check_for, in_output, details):
         self.failif(check_for not in in_output,
                     "Command '%s' output must contain '%s' but doesn't."
-                    " Detail: %s" % (self.config["bash_cmd"],
+                    " Detail: %s" % (self.config["cmd"],
                                      check_for, details))
         self.logdebug("Output does contain '%s'", check_for)
 
@@ -204,7 +203,7 @@ class sig_proxy_off_base(attach_base):
         attach_options = self.config['attach_options_csv'].split(',')
         self.sub_stuff['subargs_a'] = attach_options
 
-        self.wait_interactive_cmd()
+        dkrcmd.wait_for_ready()
         c_name = self.sub_stuff["rand_name"]
         self.sub_stuff["containers"].append(c_name)
         cid = self.sub_stuff["cont"].list_containers_with_name(c_name)
@@ -236,8 +235,8 @@ class sig_proxy_off_base(attach_base):
     def check_containers(self, containers):
         if containers:
             self.failif("Exited" in containers[0].status,
-                        "Docker command was killed by attached docker when"
-                        "sig-proxy=false. It shouldn't happened.")
+                        "Docker command was killed by attached docker"
+                        " despite --sig-proxy=false.")
         else:
             self.logerror("Unable to find started container.")
 

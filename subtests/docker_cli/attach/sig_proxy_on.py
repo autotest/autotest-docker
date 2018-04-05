@@ -15,7 +15,7 @@ class sig_proxy_on(sig_proxy_off_base):
     def check_containers(self, containers):
         if containers:
             self.failif("Exited" not in containers[0].status,
-                        "Docker command wasn't killed by attached docker when"
-                        " sig-proxy=true. It shouldn't happened.")
+                        "Docker command wasn't killed by attached docker"
+                        " despite --sig-proxy=true.")
         else:
             self.logerror("Unable to find started container.")
