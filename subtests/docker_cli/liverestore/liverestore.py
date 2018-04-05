@@ -32,9 +32,10 @@ Prerequisites
 This test is only applicable if docker daemon is run with --live-restore
 option; we abort with TestNAError if it isn't.
 
-live-restore also requires `KillMode=process` in the docker systemd
-unit file. Without it, the container is stopped on daemon restart.
-See rhbz1424709#c40 and rhbz1460266.
+live-restore also requires `KillMode=process` in the systemd unit file of
+the controlling process - typically dockerd but possibly docker-containerd.
+Without that key, the container is stopped on daemon restart; see
+rhbz1424709#c40 and rhbz1460266.
 
 """
 
@@ -74,7 +75,7 @@ class liverestore(subtest.Subtest):
         killmode = docker_daemon.systemd_show('KillMode')
         if killmode != 'process':
             self.logwarning("systemd KillMode is '%s' (expected 'process')."
-                            " This test will probably fail." % killmode)
+                            " See rhbz1424709." % killmode)
 
         self.stuff['dc'] = DockerContainers(self)
 
@@ -82,23 +83,32 @@ class liverestore(subtest.Subtest):
         super(liverestore, self).run_once()
 
         self._start_container()
-
-        # Verify that the container is running and that it's a child
-        # of the main docker daemon
         self._verify_that_container_is_running()
-        self.failif(not self._container_is_child_of_docker_daemon(),
-                    "Newly-created container is not a descendant of dockerd")
 
         # Restart docker daemon. It should be nearly instantaneous; if it
         # takes ~90 seconds it could be another symptom of rhbz1424709.
         # The warning message might help someone diagnose a later failure.
+        # 2018-04-04 also restart docker-containerd. This is currently
+        # only meaningful for Fedora 28; the service doesn't exist on RHEL.
+        # So don't actually check exit status.
         self.stuff['dockerd_pid_orig'] = docker_daemon.pid()
         self.stuff['container_pid_orig'] = self._container_pid()
         t0 = time.time()
+        utils.run('systemctl restart docker-containerd.service',
+                  ignore_status=True)
         docker_daemon.restart()
         t1 = time.time()
         if t1 - t0 > 30:
             self.logwarning("docker restart took %d seconds", t1 - t0)
+
+        # Wait until docker is back
+        def _docker_is_active():
+            result = docker_daemon.systemd_action('is-active').stdout.strip()
+            self.logdebug("is-active -> %s" % result)
+            return result == 'active'
+
+        self.failif(utils.wait_for(_docker_is_active, 15, step=1) is None,
+                    "Timed out waiting for docker daemon ")
 
     def _start_container(self):
         """
@@ -148,24 +158,6 @@ class liverestore(subtest.Subtest):
         inspect = dc.json_by_name(self.stuff['container_name'])
         return int(inspect[0]['State']['Pid'])
 
-    def _container_is_child_of_docker_daemon(self):
-        """
-        Returns True if our container's PID is a child of the docker daemon.
-        """
-        dockerd_pid = docker_daemon.pid()
-
-        pid = self._container_pid()
-        while pid != 1:
-            pid = self._ppid(pid)
-            if pid == dockerd_pid:
-                return True
-        return False
-
-    @staticmethod
-    def _ppid(pid):
-        """ returns parent PID of given PID """
-        return int(utils.run('ps -o ppid= -p %d' % pid).stdout.strip())
-
     def postprocess(self):
         super(liverestore, self).postprocess()
 
@@ -188,10 +180,6 @@ class liverestore(subtest.Subtest):
         self.failif_ne(self._container_pid(),
                        self.stuff['container_pid_orig'],
                        "Container PID changed after dockerd restart")
-
-        # Confirm that container is not a child of the current dockerd
-        self.failif(self._container_is_child_of_docker_daemon(),
-                    "Newly-created container is still a descendant of dockerd")
 
     def cleanup(self):
         super(liverestore, self).cleanup()

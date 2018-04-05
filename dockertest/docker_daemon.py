@@ -136,23 +136,24 @@ def which_docker():
     return docker
 
 
-def _systemd_action(action):
+def systemd_action(action):
+    """ Run the given systemctl action on the current docker service """
     return utils.run("systemctl %s %s.service" % (action, which_docker()))
 
 
 def stop():
     """ stop the docker daemon """
-    return _systemd_action('stop')
+    return systemd_action('stop')
 
 
 def start():
     """ start the docker daemon """
-    return _systemd_action('start')
+    return systemd_action('start')
 
 
 def restart():
     """ restart the docker daemon """
-    return _systemd_action('restart')
+    return systemd_action('restart')
 
 
 def systemd_show(prop):
@@ -160,7 +161,7 @@ def systemd_show(prop):
     Runs 'systemctl show --property=ARG' for given arg.
     Returns the value as a string.
     """
-    cmd_result = _systemd_action('show --property=%s' % prop)
+    cmd_result = systemd_action('show --property=%s' % prop)
     stdout = cmd_result.stdout
     if not stdout.startswith(prop + '='):
         raise RuntimeError("Unexpected output from %s: expected %s=XXXX,"
