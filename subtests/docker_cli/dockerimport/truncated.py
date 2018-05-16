@@ -36,13 +36,12 @@ class truncated(empty):
                                                 verbose=True)
 
     def check_output(self):
-        outputgood = output.OutputGood(self.sub_stuff['cmdresult'],
-                                       ignore_error=True)
-        zeroexit = self.sub_stuff['cmdresult'].exit_status == 0
-        # This is SUPPOSE to fail, fail test if it succeeds!
-        self.failif(outputgood or zeroexit,
-                    "Unexpected good output: %s or exit_status: %d"
-                    % (outputgood, self.sub_stuff['cmdresult'].exit_status))
+        cmdresult = self.sub_stuff['cmdresult']
+        outputgood = output.OutputGood(cmdresult, ignore_error=True)
+        self.failif(outputgood, "Unexpected good output - this command was "
+                    "supposed to fail: %s" % outputgood)
+        self.failif(cmdresult.exit_status == 0,
+                    "Unexpected exit status: got 0, expected error exit")
 
     def check_status(self):
         successful_exit = self.sub_stuff['cmdresult'].exit_status == 0
