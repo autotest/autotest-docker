@@ -26,8 +26,9 @@ class create_names(create_base):
         super(create_names, self).postprocess()
         # Also check JSON name is expected
         self.failif(len(json) == 0)
-        # docker sticks a "/" prefix on name (documented?)
-        actual_name = str(json[0]['Name'][1:])
+        # docker prepends a slash to the name; this seems unlikely to be fixed
+        # See https://github.com/moby/moby/issues/29997
+        actual_name = str(json[0]['Name']).lstrip('/')
         self.failif_ne(actual_name, self.sub_stuff['name'],
                        "Actual name %s != expected name %s"
                        % (actual_name, self.sub_stuff['name']))

@@ -33,6 +33,7 @@ class run_names(run_base):
         cont = self.sub_stuff["cont"]
         json = cont.json_by_long_id(self.sub_stuff['cid'])
         self.failif(len(json) == 0)
-        # docker sticks a "/" prefix on name (documented?)
-        actual_name = str(json[0]['Name'][1:])
+        # docker prepends a slash to the name; this seems unlikely to be fixed
+        # See https://github.com/moby/moby/issues/29997
+        actual_name = str(json[0]['Name']).lstrip('/')
         self.failif_ne(actual_name, self.sub_stuff['expected_name'], "Name")
