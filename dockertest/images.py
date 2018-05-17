@@ -369,7 +369,7 @@ class DockerImages(object):
         return cls.DICLS(repo, tag, long_id, created, size)
 
     # private methods don't need docstrings
-    def _parse_colums(self, stdout_strip):  # pylint: disable=C0111
+    def _parse_columns(self, stdout_strip):  # pylint: disable=C0111
         texttable = TextTable(stdout_strip)
         return [self._di_from_row(row) for row in texttable]
 
@@ -460,7 +460,7 @@ class DockerImages(object):
         """
         cmdresult = self.docker_cmd("images %s" % self.images_args,
                                     self.timeout)
-        return self._parse_colums(cmdresult.stdout.strip())
+        return self._parse_columns(cmdresult.stdout.strip())
 
     @staticmethod
     def filter_list_full_name(image_list, full_name=None):
