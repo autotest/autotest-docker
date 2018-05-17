@@ -57,7 +57,7 @@ else
         echo "FAILED running systemd in $image"
 fi
 
-if docker run -d -ti --name systemd$$ -h www.example.test $image /usr/sbin/init ; then
+if docker run -d -ti --name systemd$$ --hostname www.example.test $image /usr/sbin/init ; then
         check_output "systemd$$" \
                      "systemd with hostname set" \
                      "Set hostname to <www\.example\.test>"
