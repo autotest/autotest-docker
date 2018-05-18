@@ -9,7 +9,6 @@ docker rmi full_name
 """
 from autotest.client import utils
 from dockertest.images import DockerImages
-from dockertest.output import OutputGood
 from rmi import rmi_base
 
 
@@ -25,11 +24,3 @@ class delete_wrong_name(rmi_base):
 
         self.sub_stuff["image_name"] = im_name
         # Private to this instance, outside of __init__
-
-    def postprocess(self):
-        super(delete_wrong_name, self).postprocess()
-        # Raise exception if problems found
-        OutputGood(self.sub_stuff['cmdresult'], ignore_error=True)
-        self.failif_ne(self.sub_stuff['cmdresult'].exit_status,
-                       self.config["docker_expected_exit_status"],
-                       "Docker exit status")
