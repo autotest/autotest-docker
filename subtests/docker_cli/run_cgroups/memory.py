@@ -32,39 +32,17 @@ class memory_base(cgroups_base):
         if cgroup_memory >= 0x7FFFFFFFFFFFF000:
             cgroup_memory = 0
 
-        if unit == 'K' or unit == 'k':
+        if unit.upper() == 'K':
             container_memory *= 1024
-        elif unit == 'm' or unit == 'M':
+        elif unit.upper() == 'M':
             container_memory *= 1024 * 1024
-        elif unit == 'g' or unit == 'G':
+        elif unit.upper() == 'G':
             container_memory *= 1024 * 1024 * 1024
 
-        if container_memory == 0:
-            if cgroup_memory == 0:
-                msg = ("container_memory is %s, "
-                       "unit %s, cgroup_memory is %s"
-                       % (container_memory, unit, cgroup_memory))
-                result = {'PASS': msg}
-
-                return result
-            msg = ("container_memory is %s, "
-                   "unit %s, cgroup_memory is %s, status Unknown"
-                   % (container_memory, unit, cgroup_memory))
-            result = {'FAIL': msg}
-
-            return result
-
-        if container_memory != cgroup_memory:
-            msg = ("container_memory is %s "
-                   ",unit %s, cgroup_memory is %s"
-                   % (container_memory, unit, cgroup_memory))
-            result = {'FAIL': msg}
-            return result
-        msg = ("container_memory is %s, "
-               "unit %s, cgroup_memory is %s"
-               % (container_memory, unit, cgroup_memory))
-        result = {'PASS': msg}
-        return result
+        msg = ("cgroup memory is 0x%X, expected 0x%X (%s%s)" %
+               (cgroup_memory, container_memory, docker_memory, unit.strip()))
+        status = 'PASS' if container_memory == cgroup_memory else 'FAIL'
+        return {status: msg}
 
     @staticmethod
     def combine_subargs(name, option, image, sub_command):
