@@ -29,8 +29,8 @@ import os.path
 from autotest.client import utils
 from dockertest.subtest import SubSubtest
 from dockertest.subtest import SubSubtestCaller
-from dockertest.output import mustpass
-from dockertest.dockercmd import DockerCmd
+from dockertest.output import mustpass, OutputGood
+from dockertest.dockercmd import DockerCmd, AsyncDockerCmd
 from dockertest.images import DockerImage
 from dockertest.images import DockerImages
 from dockertest.containers import DockerContainers
@@ -285,3 +285,87 @@ class volume_mount(CpBase):
             DockerCmd(self, 'volume', ['rm', vol]).execute()
 
         self.stuff['di'].clean_all(['busybox'])
+
+
+class cp_symlink(CpBase):
+    """
+    Various CVEs relating to copying into a symlink path in a container,
+    plus some regressions introduced in the fixing thereof
+
+    See: https://bugzilla.redhat.com/show_bug.cgi?id=1717087
+         https://bugzilla.redhat.com/show_bug.cgi?id=1723491
+    """
+
+    def initialize(self):
+        super(cp_symlink, self).initialize()
+
+        # Create a randomly-named file with random content; we will
+        # copy this into the container, into a path pointed to by
+        # symlinks, then make sure it copied correctly.
+        self.sub_stuff['xfer_file'] = 'cp_symlink_' + \
+                                      utils.generate_random_string(15)
+        self.sub_stuff['xfer_content'] = utils.generate_random_string(30)
+
+        xfer_file_local = os.path.join(self.tmpdir, self.sub_stuff['xfer_file'])
+        with open(xfer_file_local, 'wb') as xfer_file_fh:
+            xfer_file_fh.write(self.sub_stuff['xfer_content'])
+        self.sub_stuff['xfer_file_local'] = xfer_file_local
+
+    def run_once(self):
+        super(cp_symlink, self).run_once()
+
+        self.sub_stuff['cname'] = DockerContainers(self).get_unique_name()
+
+        # Run a container. It will wait for the presence of a signal file,
+        # then check for presence of the xfer file and compare its contents
+        # to the expected value. Different exit codes (tested in postprocess)
+        # mean different errors.
+        command = ('\'ln -s /tmp /mylink; echo READY; while [ ! -f /stop ]; do sleep 0.2s; done; xfer_file=/tmp/%s; test -f $xfer_file || exit 4; actual=$(< $xfer_file); expect="%s"; test "$actual" = "$expect" && exit 0; echo $xfer_file: bad content "$actual" - expected "$expect";exit 5\'' % (self.sub_stuff['xfer_file'], self.sub_stuff['xfer_content']))
+        subargs = [ '--name=%s' % self.sub_stuff['cname'],
+                    DockerImage.full_name_from_defaults(self.config),
+                    '/bin/bash', '-c', command]
+        self.sub_stuff['dkrcmd'] = AsyncDockerCmd(self, 'run', subargs)
+        self.sub_stuff['dkrcmd'].execute()
+        self.sub_stuff['dkrcmd'].wait_for_ready()
+
+        # First: copy the desired destination file
+        subargs = [ self.sub_stuff['xfer_file_local'],
+                    "%s:/mylink" % self.sub_stuff['cname'] ]
+        mustpass(DockerCmd(self, 'cp', subargs).execute())
+
+        # Second: create the signal file that tells the container to stop.
+        # We don't use the content file as signal, first, because we
+        # don't know if docker-cp is atomic, i.e. if we can have a race
+        # condition where the destfile exists but does not have content;
+        # and second, because there are situations in which docker-cp
+        # to / (root) works but /tmp or /mylink->/tmp does not.
+        subargs[1] = '%s:/stop' % self.sub_stuff['cname']
+        mustpass(DockerCmd(self, 'cp', subargs).execute())
+
+    def _container_done(self):
+        return self.sub_stuff['dkrcmd'].done
+
+    def postprocess(self):
+        super(cp_symlink, self).postprocess()
+
+        # Container should terminate on its own
+        self.failif(not utils.wait_for(func=self._container_done,
+                                       timeout=5,
+                                       text="\tWaiting for container to exit"),
+                    "Container did not exit! Perhaps /stop did not copy?")
+        cmdresult = self.sub_stuff['dkrcmd'].wait(1)
+        OutputGood(cmdresult)
+        self.failif(cmdresult.exit_status == 4,
+                    "File was not copied into container:/tmp")
+        self.failif(cmdresult.exit_status == 5,
+                    "File was copied, but content is bad: %s" % cmdresult.stdout)
+        self.failif_ne(cmdresult.exit_status, 0,
+                       "Unexpected error running command: %s" % cmdresult)
+
+    def cleanup(self):
+        super(cp_symlink, self).cleanup()
+        # self.tmpdir will be automatically cleaned
+        remove_after_test = self.config['remove_after_test']
+        if remove_after_test and 'cname' in self.sub_stuff:
+            dc = self.sub_stuff['dc']
+            dc.clean_all([self.sub_stuff['cname']])
