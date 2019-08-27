@@ -320,7 +320,8 @@ class cp_symlink(CpBase):
         # then check for presence of the xfer file and compare its contents
         # to the expected value. Different exit codes (tested in postprocess)
         # mean different errors.
-        command = ('\'ln -s /tmp /mylink; echo READY; while [ ! -f /stop ]; do sleep 0.2s; done; xfer_file=/tmp/%s; test -f $xfer_file || exit 4; actual=$(< $xfer_file); expect="%s"; test "$actual" = "$expect" && exit 0; echo $xfer_file: bad content "$actual" - expected "$expect";exit 5\'' % (self.sub_stuff['xfer_file'], self.sub_stuff['xfer_content']))
+        destdir = self.config['destdir']
+        command = ('\'ln -s /tmp /mylink; echo READY; while [ ! -f /stop ]; do sleep 0.2s; done; xfer_file=%s/%s; test -f $xfer_file || exit 4; actual=$(< $xfer_file); expect="%s"; test "$actual" = "$expect" && exit 0; echo $xfer_file: bad content "$actual" - expected "$expect";exit 5\'' % (destdir, self.sub_stuff['xfer_file'], self.sub_stuff['xfer_content']))
         subargs = [ '--name=%s' % self.sub_stuff['cname'],
                     DockerImage.full_name_from_defaults(self.config),
                     '/bin/bash', '-c', command]
@@ -329,8 +330,11 @@ class cp_symlink(CpBase):
         self.sub_stuff['dkrcmd'].wait_for_ready()
 
         # First: copy the desired destination file
+        cp_dest = self.config['cp_dest']
+        if '%' in cp_dest:
+            cp_dest = cp_dest % self.sub_stuff['xfer_file']
         subargs = [ self.sub_stuff['xfer_file_local'],
-                    "%s:/mylink" % self.sub_stuff['cname'] ]
+                    "%s:%s" % (self.sub_stuff['cname'], cp_dest) ]
         mustpass(DockerCmd(self, 'cp', subargs).execute())
 
         # Second: create the signal file that tells the container to stop.
@@ -356,7 +360,7 @@ class cp_symlink(CpBase):
         cmdresult = self.sub_stuff['dkrcmd'].wait(1)
         OutputGood(cmdresult)
         self.failif(cmdresult.exit_status == 4,
-                    "File was not copied into container:/tmp")
+                    "File was not copied into container:%s" % self.config['destdir'])
         self.failif(cmdresult.exit_status == 5,
                     "File was copied, but content is bad: %s" % cmdresult.stdout)
         self.failif_ne(cmdresult.exit_status, 0,
@@ -369,3 +373,18 @@ class cp_symlink(CpBase):
         if remove_after_test and 'cname' in self.sub_stuff:
             dc = self.sub_stuff['dc']
             dc.clean_all([self.sub_stuff['cname']])
+
+
+class cp_in_varlib(cp_symlink):
+    """
+    Copying a file into a container's /var/lib, when docker storage root
+    is also /var/lib, does a weird thing where docker strips off the /var/lib
+    and puts the file into / (root).
+
+    https://bugzilla.redhat.com/show_bug.cgi?id=1741718
+
+    This is the same logic as cp_symlink(), so all differences are in
+    config settings (cp destination argument, where we expect the file).
+    """
+
+    pass
